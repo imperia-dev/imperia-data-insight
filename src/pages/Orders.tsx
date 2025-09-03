@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,146 +149,154 @@ export function Orders() {
     : orders;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-foreground">Pedidos</h1>
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={profile?.role || "operation"} />
+      
+      <div className="md:pl-64">
+        <Header userName={profile?.full_name || user?.email || ""} userRole={profile?.role || "operation"} />
         
-        {isAdmin && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Pedido
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Criar Novo Pedido</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="order_number">Número do Pedido</Label>
-                  <Input
-                    id="order_number"
-                    value={formData.order_number}
-                    onChange={(e) =>
-                      setFormData({ ...formData, order_number: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="document_count">Quantidade de Documentos</Label>
-                  <Input
-                    id="document_count"
-                    type="number"
-                    value={formData.document_count}
-                    onChange={(e) =>
-                      setFormData({ ...formData, document_count: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="deadline">Prazo</Label>
-                  <Input
-                    id="deadline"
-                    type="datetime-local"
-                    value={formData.deadline}
-                    onChange={(e) =>
-                      setFormData({ ...formData, deadline: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  Criar Pedido
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+        <main className="p-4 md:p-6 lg:p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-foreground">Pedidos</h1>
+            
+            {isAdmin && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Novo Pedido
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Criar Novo Pedido</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="order_number">Número do Pedido</Label>
+                      <Input
+                        id="order_number"
+                        value={formData.order_number}
+                        onChange={(e) =>
+                          setFormData({ ...formData, order_number: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="document_count">Quantidade de Documentos</Label>
+                      <Input
+                        id="document_count"
+                        type="number"
+                        value={formData.document_count}
+                        onChange={(e) =>
+                          setFormData({ ...formData, document_count: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="deadline">Prazo</Label>
+                      <Input
+                        id="deadline"
+                        type="datetime-local"
+                        value={formData.deadline}
+                        onChange={(e) =>
+                          setFormData({ ...formData, deadline: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full">
+                      Criar Pedido
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            {isOperation ? "Pedidos Disponíveis" : "Todos os Pedidos"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Carregando pedidos...
-            </div>
-          ) : filteredOrders?.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum pedido encontrado
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID Pedido</TableHead>
-                  <TableHead>Quantidade de Documentos</TableHead>
-                  <TableHead>Prazo</TableHead>
-                  <TableHead>Status</TableHead>
-                  {(isAdmin || isMaster) && <TableHead>Atribuído a</TableHead>}
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders?.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">
-                      {order.order_number}
-                    </TableCell>
-                    <TableCell>{order.document_count}</TableCell>
-                    <TableCell>
-                      {format(new Date(order.deadline), "dd/MM/yyyy HH:mm", {
-                        locale: ptBR,
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <span className={cn(
-                        "px-2 py-1 rounded-full text-xs font-medium",
-                        order.delivered_at
-                          ? "bg-green-100 text-green-700"
-                          : order.assigned_to
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      )}>
-                        {order.delivered_at
-                          ? "Entregue"
-                          : order.assigned_to
-                          ? "Em andamento"
-                          : "Disponível"}
-                      </span>
-                    </TableCell>
-                    {(isAdmin || isMaster) && (
-                      <TableCell>
-                        {order.assigned_profile?.full_name || "-"}
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      {isOperation && !order.assigned_to && (
-                        <Button
-                          size="sm"
-                          onClick={() => takeOrderMutation.mutate(order.id)}
-                          disabled={takeOrderMutation.isPending}
-                        >
-                          Pegar Pedido
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                {isOperation ? "Pedidos Disponíveis" : "Todos os Pedidos"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Carregando pedidos...
+                </div>
+              ) : filteredOrders?.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum pedido encontrado
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID Pedido</TableHead>
+                      <TableHead>Quantidade de Documentos</TableHead>
+                      <TableHead>Prazo</TableHead>
+                      <TableHead>Status</TableHead>
+                      {(isAdmin || isMaster) && <TableHead>Atribuído a</TableHead>}
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders?.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">
+                          {order.order_number}
+                        </TableCell>
+                        <TableCell>{order.document_count}</TableCell>
+                        <TableCell>
+                          {format(new Date(order.deadline), "dd/MM/yyyy HH:mm", {
+                            locale: ptBR,
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          <span className={cn(
+                            "px-2 py-1 rounded-full text-xs font-medium",
+                            order.delivered_at
+                              ? "bg-green-100 text-green-700"
+                              : order.assigned_to
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          )}>
+                            {order.delivered_at
+                              ? "Entregue"
+                              : order.assigned_to
+                              ? "Em andamento"
+                              : "Disponível"}
+                          </span>
+                        </TableCell>
+                        {(isAdmin || isMaster) && (
+                          <TableCell>
+                            {order.assigned_profile?.full_name || "-"}
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          {isOperation && !order.assigned_to && (
+                            <Button
+                              size="sm"
+                              onClick={() => takeOrderMutation.mutate(order.id)}
+                              disabled={takeOrderMutation.isPending}
+                            >
+                              Pegar Pedido
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+      </div>
     </div>
   );
 }
