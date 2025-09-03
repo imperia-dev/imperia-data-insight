@@ -253,11 +253,11 @@ export function MyOrders() {
                         <TableCell>
                           <Button
                             size="sm"
+                            variant="default"
                             onClick={() => deliverOrderMutation.mutate(order.id)}
                             disabled={deliverOrderMutation.isPending}
                           >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Pedido Entregue
+                            Finalizar
                           </Button>
                         </TableCell>
                       </TableRow>
