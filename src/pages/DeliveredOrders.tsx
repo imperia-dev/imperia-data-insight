@@ -92,6 +92,7 @@ export function DeliveredOrders() {
                     <TableRow>
                       <TableHead>ID Pedido</TableHead>
                       <TableHead>Quantidade de Documentos</TableHead>
+                      <TableHead>Data de Atribuição</TableHead>
                       <TableHead>Prazo Original</TableHead>
                       <TableHead>Data de Entrega</TableHead>
                       {isAdminOrMaster && <TableHead>Responsável</TableHead>}
@@ -110,6 +111,13 @@ export function DeliveredOrders() {
                             {order.order_number}
                           </TableCell>
                           <TableCell>{order.document_count}</TableCell>
+                          <TableCell>
+                            {order.assigned_at 
+                              ? format(new Date(order.assigned_at), "dd/MM/yyyy HH:mm", {
+                                  locale: ptBR,
+                                })
+                              : "-"}
+                          </TableCell>
                           <TableCell>
                             {format(deadlineDate, "dd/MM/yyyy HH:mm", {
                               locale: ptBR,
