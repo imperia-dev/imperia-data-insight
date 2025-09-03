@@ -1,4 +1,4 @@
-import { Bell, Search, User, ChevronDown, MessageSquareMore, LogOut } from "lucide-react";
+import { Bell, Search, User, ChevronDown, MessageSquareMore, LogOut, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,7 +19,7 @@ interface HeaderProps {
 }
 
 export function Header({ userName, userRole }: HeaderProps) {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -51,6 +51,16 @@ export function Header({ userName, userRole }: HeaderProps) {
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-2">
+          {/* WhatsApp Contact Button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => window.open('https://wa.me/5515981074591', '_blank')}
+            title="Contato via WhatsApp"
+          >
+            <MessageCircle className="h-5 w-5" />
+          </Button>
+
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
@@ -66,7 +76,8 @@ export function Header({ userName, userRole }: HeaderProps) {
                 </div>
                 <div className="hidden md:flex flex-col items-start">
                   <span className="text-sm font-semibold">{userName}</span>
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                  <span className="text-xs text-muted-foreground">{user?.email}</span>
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0 mt-0.5">
                     {userRole}
                   </Badge>
                 </div>
