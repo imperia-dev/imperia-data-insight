@@ -36,6 +36,8 @@ export function Orders() {
     order_number: "",
     document_count: "",
     deadline: "",
+    attribution_date: "",
+    delivered_at: "",
   });
 
   // Fetch user profile to get role
@@ -71,15 +73,26 @@ export function Orders() {
     },
   });
 
-  // Create order mutation (admin only)
+  // Create order mutation (admin and master)
   const createOrderMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from("orders").insert({
+      const insertData: any = {
         order_number: data.order_number,
         document_count: parseInt(data.document_count),
         deadline: new Date(data.deadline).toISOString(),
         created_by: user?.id,
-      });
+      };
+      
+      // Add optional fields if provided
+      if (data.attribution_date) {
+        insertData.attribution_date = new Date(data.attribution_date).toISOString();
+      }
+      
+      if (data.delivered_at) {
+        insertData.delivered_at = new Date(data.delivered_at).toISOString();
+      }
+      
+      const { error } = await supabase.from("orders").insert(insertData);
       
       if (error) throw error;
     },
@@ -94,6 +107,8 @@ export function Orders() {
         order_number: "",
         document_count: "",
         deadline: "",
+        attribution_date: "",
+        delivered_at: "",
       });
     },
     onError: (error: any) => {
@@ -159,7 +174,7 @@ export function Orders() {
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-foreground">Pedidos</h1>
             
-            {isAdmin && (
+            {(isAdmin || isMaster) && (
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
@@ -167,15 +182,16 @@ export function Orders() {
                     Novo Pedido
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Criar Novo Pedido</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <Label htmlFor="order_number">Número do Pedido</Label>
+                      <Label htmlFor="order_number">ID do Pedido *</Label>
                       <Input
                         id="order_number"
+                        placeholder="Ex: PED-001"
                         value={formData.order_number}
                         onChange={(e) =>
                           setFormData({ ...formData, order_number: e.target.value })
@@ -183,11 +199,14 @@ export function Orders() {
                         required
                       />
                     </div>
+                    
                     <div>
-                      <Label htmlFor="document_count">Quantidade de Documentos</Label>
+                      <Label htmlFor="document_count">Quantidade de Documentos *</Label>
                       <Input
                         id="document_count"
                         type="number"
+                        min="1"
+                        placeholder="Ex: 10"
                         value={formData.document_count}
                         onChange={(e) =>
                           setFormData({ ...formData, document_count: e.target.value })
@@ -195,8 +214,9 @@ export function Orders() {
                         required
                       />
                     </div>
+                    
                     <div>
-                      <Label htmlFor="deadline">Prazo</Label>
+                      <Label htmlFor="deadline">Deadline *</Label>
                       <Input
                         id="deadline"
                         type="datetime-local"
@@ -207,8 +227,39 @@ export function Orders() {
                         required
                       />
                     </div>
-                    <Button type="submit" className="w-full">
-                      Criar Pedido
+                    
+                    <div>
+                      <Label htmlFor="attribution_date">Data de Atribuição</Label>
+                      <Input
+                        id="attribution_date"
+                        type="datetime-local"
+                        value={formData.attribution_date}
+                        onChange={(e) =>
+                          setFormData({ ...formData, attribution_date: e.target.value })
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Opcional - Data quando o pedido foi atribuído
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="delivered_at">Data de Entrega</Label>
+                      <Input
+                        id="delivered_at"
+                        type="datetime-local"
+                        value={formData.delivered_at}
+                        onChange={(e) =>
+                          setFormData({ ...formData, delivered_at: e.target.value })
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Opcional - Data quando o pedido foi entregue
+                      </p>
+                    </div>
+                    
+                    <Button type="submit" className="w-full" disabled={createOrderMutation.isPending}>
+                      {createOrderMutation.isPending ? "Criando..." : "Criar Pedido"}
                     </Button>
                   </form>
                 </DialogContent>
@@ -237,8 +288,10 @@ export function Orders() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>ID Pedido</TableHead>
-                      <TableHead>Quantidade de Documentos</TableHead>
-                      <TableHead>Prazo</TableHead>
+                      <TableHead>Qtd. Documentos</TableHead>
+                      {(isAdmin || isMaster) && <TableHead>Data Atribuição</TableHead>}
+                      <TableHead>Deadline</TableHead>
+                      {(isAdmin || isMaster) && <TableHead>Data Entrega</TableHead>}
                       <TableHead>Status</TableHead>
                       {(isAdmin || isMaster) && <TableHead>Atribuído a</TableHead>}
                       <TableHead>Ações</TableHead>
@@ -251,11 +304,25 @@ export function Orders() {
                           {order.order_number}
                         </TableCell>
                         <TableCell>{order.document_count}</TableCell>
+                        {(isAdmin || isMaster) && (
+                          <TableCell>
+                            {order.attribution_date 
+                              ? format(new Date(order.attribution_date), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                              : "-"}
+                          </TableCell>
+                        )}
                         <TableCell>
                           {format(new Date(order.deadline), "dd/MM/yyyy HH:mm", {
                             locale: ptBR,
                           })}
                         </TableCell>
+                        {(isAdmin || isMaster) && (
+                          <TableCell>
+                            {order.delivered_at
+                              ? format(new Date(order.delivered_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                              : "-"}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <span className={cn(
                             "px-2 py-1 rounded-full text-xs font-medium",
