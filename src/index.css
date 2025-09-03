@@ -8,35 +8,61 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    /* Core Colors - Impéria Brand */
+    --background: 0 0% 98%;
+    --foreground: 213 31% 21%;
+    
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 213 31% 21%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
+    --popover-foreground: 213 31% 21%;
+    
+    /* Navy Blue - Primary Brand Color */
+    --primary: 213 31% 31%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Gray - Secondary */
+    --secondary: 215 9% 46%;
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Light Blue - Accent */
+    --accent: 195 30% 79%;
+    --accent-foreground: 213 31% 21%;
+    
+    /* Beige - Warm Accent */
+    --warm: 30 20% 78%;
+    --warm-foreground: 213 31% 21%;
+    
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 9% 46%;
+    
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 214 20% 91%;
+    --input: 214 20% 91%;
+    --ring: 213 31% 31%;
+    
+    --radius: 0.75rem;
+    
+    /* Premium Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(213 31% 31%), hsl(213 31% 41%));
+    --gradient-accent: linear-gradient(135deg, hsl(195 30% 79%), hsl(195 30% 89%));
+    --gradient-premium: linear-gradient(135deg, hsl(30 20% 78%), hsl(30 20% 88%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(213 31% 31% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(213 31% 31% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(213 31% 31% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(213 31% 31% / 0.15);
+    --shadow-premium: 0 25px 50px -12px hsl(213 31% 31% / 0.25);
+    
+    /* Animations */
+    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +126,14 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-outfit;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-outfit font-black tracking-tight;
+  }
+  
+  p {
+    @apply font-outfit font-normal;
   }
 }
