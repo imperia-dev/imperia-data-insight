@@ -147,6 +147,60 @@ export type Database = {
           },
         ]
       }
+      orders: {
+        Row: {
+          assigned_at: string | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          deadline: string
+          delivered_at: string | null
+          document_count: number
+          id: string
+          order_number: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          deadline: string
+          delivered_at?: string | null
+          document_count: number
+          id?: string
+          order_number: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          deadline?: string
+          delivered_at?: string | null
+          document_count?: number
+          id?: string
+          order_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productivity: {
         Row: {
           created_at: string | null

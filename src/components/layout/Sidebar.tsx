@@ -10,6 +10,7 @@ import {
   BarChart3,
   Clock,
   Sparkles,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,25 +23,37 @@ const navigation = [
     title: "Dashboard",
     icon: LayoutDashboard,
     href: "/",
-    roles: ["master", "admin", "operacao"],
+    roles: ["master", "admin"],
+  },
+  {
+    title: "Pedidos",
+    icon: FileText,
+    href: "/orders",
+    roles: ["master", "admin", "operation"],
+  },
+  {
+    title: "Meus Pedidos",
+    icon: Package,
+    href: "/my-orders",
+    roles: ["operation"],
   },
   {
     title: "Documentos",
     icon: FileText,
     href: "/documents",
-    roles: ["master", "admin", "operacao"],
+    roles: ["master", "admin"],
   },
   {
     title: "Equipe",
     icon: Users,
     href: "/team",
-    roles: ["master", "admin"],
+    roles: ["master", "admin", "operation"],
   },
   {
     title: "Produtividade",
     icon: TrendingUp,
     href: "/productivity",
-    roles: ["master", "admin"],
+    roles: ["master", "admin", "operation"],
   },
   {
     title: "Financeiro",
@@ -58,13 +71,13 @@ const navigation = [
     title: "Calendário",
     icon: Calendar,
     href: "/calendar",
-    roles: ["master", "admin", "operacao"],
+    roles: ["master", "admin"],
   },
   {
     title: "Timesheet",
     icon: Clock,
     href: "/timesheet",
-    roles: ["master", "admin", "operacao"],
+    roles: ["master", "admin"],
   },
   {
     title: "AI Analytics",
@@ -76,7 +89,7 @@ const navigation = [
     title: "Configurações",
     icon: Settings,
     href: "/settings",
-    roles: ["master", "admin"],
+    roles: ["master", "admin", "operation"],
   },
 ];
 
