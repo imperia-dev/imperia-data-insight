@@ -42,7 +42,7 @@ export function DeliveredOrders() {
       let query = supabase
         .from("orders")
         .select("*, profiles!orders_assigned_to_fkey(full_name, email)")
-        .not("delivered_at", "is", null)
+        .eq("status_order", "delivered")
         .order("delivered_at", { ascending: false });
       
       // If user is operation, only show their delivered orders

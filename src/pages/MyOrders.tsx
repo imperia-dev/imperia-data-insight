@@ -38,7 +38,7 @@ export function MyOrders() {
     enabled: !!user?.id,
   });
 
-  // Fetch user's orders
+  // Fetch user's orders in progress
   const { data: myOrders, isLoading } = useQuery({
     queryKey: ["my-orders", user?.id],
     queryFn: async () => {
@@ -46,25 +46,28 @@ export function MyOrders() {
         .from("orders")
         .select("*")
         .eq("assigned_to", user?.id)
+        .eq("status_order", "in_progress")
         .order("assigned_at", { ascending: false });
       
       if (error) throw error;
+      console.log("My orders (in_progress):", data);
       return data;
     },
     enabled: !!user?.id,
   });
 
-  // Fetch available orders (not assigned)
+  // Fetch available orders
   const { data: availableOrders, isLoading: isLoadingAvailable } = useQuery({
     queryKey: ["available-orders"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .is("assigned_to", null)
+        .eq("status_order", "available")
         .order("created_at", { ascending: false });
       
       if (error) throw error;
+      console.log("Available orders:", data);
       return data;
     },
   });
@@ -76,22 +79,23 @@ export function MyOrders() {
         .from("orders")
         .update({
           delivered_at: new Date().toISOString(),
+          status_order: "delivered",
         })
         .eq("id", orderId)
         .eq("assigned_to", user?.id);
       
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ["my-orders"] });
       toast({
-        title: "Pedido entregue",
+        title: "Pedido finalizado",
         description: "O pedido foi marcado como entregue com sucesso.",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao marcar pedido como entregue",
+        title: "Erro ao finalizar pedido",
         description: error.message,
         variant: "destructive",
       });
@@ -106,9 +110,10 @@ export function MyOrders() {
         .update({
           assigned_to: user?.id,
           assigned_at: new Date().toISOString(),
+          status_order: "in_progress",
         })
         .eq("id", orderId)
-        .is("assigned_to", null);
+        .eq("status_order", "available");
       
       if (error) throw error;
     },
@@ -129,8 +134,6 @@ export function MyOrders() {
       });
     },
   });
-
-  const pendingOrders = myOrders?.filter(order => !order.delivered_at) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -218,7 +221,7 @@ export function MyOrders() {
                 <div className="text-center py-8 text-muted-foreground">
                   Carregando pedidos...
                 </div>
-              ) : pendingOrders.length === 0 ? (
+              ) : myOrders?.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Nenhum pedido em andamento
                 </div>
@@ -234,7 +237,7 @@ export function MyOrders() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingOrders.map((order) => (
+                    {myOrders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
                           {order.order_number}

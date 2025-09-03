@@ -81,6 +81,7 @@ export function Orders() {
         document_count: parseInt(data.document_count),
         deadline: new Date(data.deadline).toISOString(),
         created_by: user?.id,
+        status_order: "available", // Always start with available status
       };
       
       // Add optional fields if provided
@@ -90,6 +91,7 @@ export function Orders() {
       
       if (data.delivered_at) {
         insertData.delivered_at = new Date(data.delivered_at).toISOString();
+        insertData.status_order = "delivered"; // If delivered date is set, mark as delivered
       }
       
       const { error } = await supabase.from("orders").insert(insertData);
