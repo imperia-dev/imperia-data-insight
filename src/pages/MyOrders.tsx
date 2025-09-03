@@ -112,9 +112,10 @@ export function MyOrders() {
       
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["available-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+    onSuccess: async () => {
+      // Force immediate refetch of both queries
+      await queryClient.refetchQueries({ queryKey: ["available-orders"] });
+      await queryClient.refetchQueries({ queryKey: ["my-orders"] });
       toast({
         title: "Pedido atribuído",
         description: "O pedido foi atribuído a você com sucesso.",
