@@ -30,7 +30,7 @@ const navigation = [
     title: "Pedidos",
     icon: FileText,
     href: "/orders",
-    roles: ["master", "admin", "operation"],
+    roles: ["master"],
   },
     {
       title: "Meus Pedidos",

@@ -37,7 +37,6 @@ export function Orders() {
     document_count: "",
     deadline: "",
     attribution_date: "",
-    delivered_at: "",
   });
 
   // Fetch user profile to get role
@@ -89,11 +88,6 @@ export function Orders() {
         insertData.attribution_date = new Date(data.attribution_date).toISOString();
       }
       
-      if (data.delivered_at) {
-        insertData.delivered_at = new Date(data.delivered_at).toISOString();
-        insertData.status_order = "delivered"; // If delivered date is set, mark as delivered
-      }
-      
       const { error } = await supabase.from("orders").insert(insertData);
       
       if (error) throw error;
@@ -110,7 +104,6 @@ export function Orders() {
         document_count: "",
         deadline: "",
         attribution_date: "",
-        delivered_at: "",
       });
     },
     onError: (error: any) => {
@@ -125,24 +118,34 @@ export function Orders() {
   // Take order mutation
   const takeOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
+      console.log("Attempting to take order with ID:", orderId);
+      console.log("Assigning to user ID:", user?.id);
       const { error } = await supabase
         .from("orders")
         .update({
           assigned_to: user?.id,
           assigned_at: new Date().toISOString(),
+          status_order: "in_progress", // Explicitly set status to in_progress
         })
         .eq("id", orderId);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error taking order:", error);
+        throw error;
+      }
+      console.log("Order taken successfully in Supabase.");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      console.log("takeOrderMutation onSuccess: Invalidating and refetching queries.");
+      queryClient.refetchQueries({ queryKey: ["orders"] }); // Force refetch of all orders
+      queryClient.refetchQueries({ queryKey: ["my-orders", user?.id] }); // Force refetch of my-orders for the current user
       toast({
         title: "Pedido atribuído",
         description: "O pedido foi atribuído a você com sucesso.",
       });
     },
     onError: (error: any) => {
+      console.error("takeOrderMutation onError:", error);
       toast({
         title: "Erro ao pegar pedido",
         description: error.message,
@@ -242,21 +245,6 @@ export function Orders() {
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Opcional - Data quando o pedido foi atribuído
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="delivered_at">Data de Entrega</Label>
-                      <Input
-                        id="delivered_at"
-                        type="datetime-local"
-                        value={formData.delivered_at}
-                        onChange={(e) =>
-                          setFormData({ ...formData, delivered_at: e.target.value })
-                        }
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Opcional - Data quando o pedido foi entregue
                       </p>
                     </div>
                     

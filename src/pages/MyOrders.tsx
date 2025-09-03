@@ -39,7 +39,7 @@ export function MyOrders() {
   });
 
   // Fetch user's orders in progress
-  const { data: myOrders, isLoading } = useQuery({
+  const { data: myOrders, isLoading: isLoadingMyOrders } = useQuery({
     queryKey: ["my-orders", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -88,6 +88,7 @@ export function MyOrders() {
     },
     onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: ["my-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["delivered-orders"] }); // Invalidate delivered orders cache
       toast({
         title: "Pedido finalizado",
         description: "O pedido foi marcado como entregue com sucesso.",
@@ -110,10 +111,9 @@ export function MyOrders() {
         .update({
           assigned_to: user?.id,
           assigned_at: new Date().toISOString(),
-          status_order: "in_progress",
+          status_order: "in_progress", // Set status to in_progress
         })
-        .eq("id", orderId)
-        .eq("status_order", "available");
+        .eq("id", orderId);
       
       if (error) throw error;
     },
@@ -217,7 +217,7 @@ export function MyOrders() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {isLoadingMyOrders ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Carregando pedidos...
                 </div>
