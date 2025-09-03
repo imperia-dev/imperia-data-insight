@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, TrendingUp, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -25,12 +26,32 @@ interface AccumulatedPayment {
 }
 
 export default function Financial() {
-  const [userRole] = useState("master");
-  const [userName] = useState("João Silva");
+  const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [dailyPayments, setDailyPayments] = useState<PaymentData[]>([]);
   const [accumulatedPayments, setAccumulatedPayments] = useState<AccumulatedPayment[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setUserName(data.full_name);
+          setUserRole(data.role);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   useEffect(() => {
     fetchPaymentData();

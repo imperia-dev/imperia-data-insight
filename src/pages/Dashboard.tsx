@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { DocumentTable } from "@/components/documents/DocumentTable";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   FileText,
   Users,
@@ -109,9 +111,29 @@ const mockDocuments = [
 ];
 
 export default function Dashboard() {
-  const [userRole] = useState("master"); // This will come from auth later
-  const [userName] = useState("João Silva");
+  const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setUserName(data.full_name);
+          setUserRole(data.role);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-background">

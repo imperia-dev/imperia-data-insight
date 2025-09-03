@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,11 +74,31 @@ const mockDocuments = [
 ];
 
 export default function Documents() {
-  const [userRole] = useState("master");
-  const [userName] = useState("João Silva");
+  const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setUserName(data.full_name);
+          setUserRole(data.role);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-background">
