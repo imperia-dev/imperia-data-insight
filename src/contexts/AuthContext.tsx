@@ -25,10 +25,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Handle navigation based on auth state
-        if (event === 'SIGNED_IN') {
-          navigate('/');
-        } else if (event === 'SIGNED_OUT') {
+        // Only navigate on actual sign out, not on other auth state changes
+        if (event === 'SIGNED_OUT') {
           navigate('/auth');
         }
       }
