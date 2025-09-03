@@ -10,6 +10,7 @@ import Documents from "./pages/Documents";
 import Financial from "./pages/Financial";
 import { Orders } from "./pages/Orders";
 import { MyOrders } from "./pages/MyOrders";
+import { DeliveredOrders } from "./pages/DeliveredOrders";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,11 @@ const App = () => (
             <Route path="/my-orders" element={
               <ProtectedRoute>
                 <MyOrders />
+              </ProtectedRoute>
+            } />
+            <Route path="/delivered-orders" element={
+              <ProtectedRoute>
+                <DeliveredOrders />
               </ProtectedRoute>
             } />
             <Route path="/documents" element={

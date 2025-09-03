@@ -11,6 +11,7 @@ import {
   Clock,
   Sparkles,
   Package,
+  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +32,18 @@ const navigation = [
     href: "/orders",
     roles: ["master", "admin", "operation"],
   },
-  {
-    title: "Meus Pedidos",
-    icon: Package,
-    href: "/my-orders",
-    roles: ["operation"],
-  },
+    {
+      title: "Meus Pedidos",
+      icon: Package,
+      href: "/my-orders",
+      roles: ["operation"],
+    },
+    {
+      title: "Pedidos Entregues",
+      icon: CheckCircle,
+      href: "/delivered-orders",
+      roles: ["operation", "admin", "master"],
+    },
   {
     title: "Documentos",
     icon: FileText,

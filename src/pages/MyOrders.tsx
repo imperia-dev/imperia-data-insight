@@ -16,7 +16,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Package, CheckCircle } from "lucide-react";
+import { Package, CheckCircle, Clock } from "lucide-react";
 
 export function MyOrders() {
   const { user } = useAuth();
@@ -54,6 +54,21 @@ export function MyOrders() {
     enabled: !!user?.id,
   });
 
+  // Fetch available orders (not assigned)
+  const { data: availableOrders, isLoading: isLoadingAvailable } = useQuery({
+    queryKey: ["available-orders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .is("assigned_to", null)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Mark order as delivered mutation
   const deliverOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
@@ -83,8 +98,38 @@ export function MyOrders() {
     },
   });
 
+  // Take order mutation
+  const takeOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          assigned_to: user?.id,
+          assigned_at: new Date().toISOString(),
+        })
+        .eq("id", orderId)
+        .is("assigned_to", null);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["available-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      toast({
+        title: "Pedido atribuído",
+        description: "O pedido foi atribuído a você com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao pegar pedido",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const pendingOrders = myOrders?.filter(order => !order.delivered_at) || [];
-  const deliveredOrders = myOrders?.filter(order => order.delivered_at) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,8 +141,71 @@ export function MyOrders() {
         <main className="p-4 md:p-6 lg:p-8">
           <h1 className="text-3xl font-bold text-foreground mb-6">Meus Pedidos</h1>
 
-          {/* Pending Orders */}
+          {/* Available Orders */}
           <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Pedidos Disponíveis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAvailable ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Carregando pedidos disponíveis...
+                </div>
+              ) : availableOrders?.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum pedido disponível no momento
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID Pedido</TableHead>
+                      <TableHead>Quantidade de Documentos</TableHead>
+                      <TableHead>Prazo</TableHead>
+                      <TableHead>Data de Atribuição</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {availableOrders?.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">
+                          {order.order_number}
+                        </TableCell>
+                        <TableCell>{order.document_count}</TableCell>
+                        <TableCell>
+                          {format(new Date(order.deadline), "dd/MM/yyyy HH:mm", {
+                            locale: ptBR,
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          {order.attribution_date &&
+                            format(new Date(order.attribution_date), "dd/MM/yyyy", {
+                              locale: ptBR,
+                            })}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            onClick={() => takeOrderMutation.mutate(order.id)}
+                            disabled={takeOrderMutation.isPending}
+                          >
+                            Pegar Pedido
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pending Orders */}
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
@@ -154,71 +262,6 @@ export function MyOrders() {
                         </TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Delivered Orders */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Pedidos Entregues
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {deliveredOrders.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum pedido entregue ainda
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID Pedido</TableHead>
-                      <TableHead>Quantidade de Documentos</TableHead>
-                      <TableHead>Prazo Original</TableHead>
-                      <TableHead>Data de Entrega</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {deliveredOrders.map((order) => {
-                      const deadlineDate = new Date(order.deadline);
-                      const deliveredDate = new Date(order.delivered_at!);
-                      const isOnTime = deliveredDate <= deadlineDate;
-                      
-                      return (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">
-                            {order.order_number}
-                          </TableCell>
-                          <TableCell>{order.document_count}</TableCell>
-                          <TableCell>
-                            {format(deadlineDate, "dd/MM/yyyy HH:mm", {
-                              locale: ptBR,
-                            })}
-                          </TableCell>
-                          <TableCell>
-                            {format(deliveredDate, "dd/MM/yyyy HH:mm", {
-                              locale: ptBR,
-                            })}
-                          </TableCell>
-                          <TableCell>
-                            <span className={cn(
-                              "px-2 py-1 rounded-full text-xs font-medium",
-                              isOnTime
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            )}>
-                              {isOnTime ? "No prazo" : "Atrasado"}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
                   </TableBody>
                 </Table>
               )}
