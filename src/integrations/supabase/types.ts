@@ -14,16 +14,237 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      documents: {
+        Row: {
+          assigned_to: string | null
+          client_name: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          deadline: string | null
+          document_name: string
+          id: string
+          notes: string | null
+          pages: number | null
+          payment_amount: number | null
+          project_name: string | null
+          status: Database["public"]["Enums"]["document_status"] | null
+          updated_at: string | null
+          word_count: number | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_name: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deadline?: string | null
+          document_name: string
+          id?: string
+          notes?: string | null
+          pages?: number | null
+          payment_amount?: number | null
+          project_name?: string | null
+          status?: Database["public"]["Enums"]["document_status"] | null
+          updated_at?: string | null
+          word_count?: number | null
+        }
+        Update: {
+          assigned_to?: string | null
+          client_name?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deadline?: string | null
+          document_name?: string
+          id?: string
+          notes?: string | null
+          pages?: number | null
+          payment_amount?: number | null
+          project_name?: string | null
+          status?: Database["public"]["Enums"]["document_status"] | null
+          updated_at?: string | null
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_records: {
+        Row: {
+          amount: number
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          document_id: string | null
+          id: string
+          payment_date: string
+          payment_method: string | null
+          type: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_id?: string | null
+          id?: string
+          payment_date: string
+          payment_method?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_id?: string | null
+          id?: string
+          payment_date?: string
+          payment_method?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_records_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      productivity: {
+        Row: {
+          created_at: string | null
+          daily_earnings: number | null
+          date: string
+          documents_completed: number | null
+          hours_worked: number | null
+          id: string
+          pages_translated: number | null
+          updated_at: string | null
+          user_id: string
+          words_translated: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          daily_earnings?: number | null
+          date: string
+          documents_completed?: number | null
+          hours_worked?: number | null
+          id?: string
+          pages_translated?: number | null
+          updated_at?: string | null
+          user_id: string
+          words_translated?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          daily_earnings?: number | null
+          date?: string
+          documents_completed?: number | null
+          hours_worked?: number | null
+          id?: string
+          pages_translated?: number | null
+          updated_at?: string | null
+          user_id?: string
+          words_translated?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "productivity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          daily_rate: number | null
+          email: string
+          full_name: string
+          hourly_rate: number | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          daily_rate?: number | null
+          email: string
+          full_name: string
+          hourly_rate?: number | null
+          id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          daily_rate?: number | null
+          email?: string
+          full_name?: string
+          hourly_rate?: number | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
     }
     Enums: {
-      [_ in never]: never
+      document_status:
+        | "pending"
+        | "in_progress"
+        | "review"
+        | "completed"
+        | "delivered"
+      user_role: "master" | "admin" | "operation"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +371,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      document_status: [
+        "pending",
+        "in_progress",
+        "review",
+        "completed",
+        "delivered",
+      ],
+      user_role: ["master", "admin", "operation"],
+    },
   },
 } as const
