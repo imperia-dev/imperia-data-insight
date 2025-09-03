@@ -1,4 +1,4 @@
-import { Bell, Search, User, ChevronDown, MessageSquareMore } from "lucide-react";
+import { Bell, Search, User, ChevronDown, MessageSquareMore, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   userName: string;
@@ -17,6 +19,13 @@ interface HeaderProps {
 }
 
 export function Header({ userName, userRole }: HeaderProps) {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/auth");
+  };
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="flex h-16 items-center px-4 md:px-6">
@@ -71,7 +80,8 @@ export function Header({ userName, userRole }: HeaderProps) {
               <DropdownMenuItem>Configurações</DropdownMenuItem>
               <DropdownMenuItem>Ajuda</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
                 Sair
               </DropdownMenuItem>
             </DropdownMenuContent>
