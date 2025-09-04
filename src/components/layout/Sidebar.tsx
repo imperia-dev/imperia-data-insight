@@ -60,7 +60,7 @@ const navigation = [
     title: "Produtividade",
     icon: TrendingUp,
     href: "/productivity",
-    roles: ["master", "admin", "operation"],
+    roles: ["master", "admin"],
   },
   {
     title: "Financeiro",
@@ -96,7 +96,7 @@ const navigation = [
     title: "Configurações",
     icon: Settings,
     href: "/settings",
-    roles: ["master", "admin", "operation"],
+    roles: ["master", "admin"],
   },
 ];
 
