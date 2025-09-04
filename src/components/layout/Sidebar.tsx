@@ -73,7 +73,7 @@ const navigation = [
     title: "Carteira",
     icon: Wallet,
     href: "/wallet",
-    roles: ["operation"],
+    roles: ["master", "operation"],
   },
   {
     title: "Relatórios",
