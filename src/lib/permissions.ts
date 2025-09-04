@@ -33,7 +33,7 @@ export const rolePermissions: Record<Role, string[]> = {
   ],
   operation: [
     '/',
-    '/my-orders',
+    '/delivered-orders',
     '/wallet',
     '/calendar',
     '/timesheet',
