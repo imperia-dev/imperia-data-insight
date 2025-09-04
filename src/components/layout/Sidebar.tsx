@@ -12,6 +12,7 @@ import {
   Sparkles,
   Package,
   CheckCircle,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +68,12 @@ const navigation = [
     icon: DollarSign,
     href: "/financial",
     roles: ["master"],
+  },
+  {
+    title: "Carteira",
+    icon: Wallet,
+    href: "/wallet",
+    roles: ["operation"],
   },
   {
     title: "Relatórios",

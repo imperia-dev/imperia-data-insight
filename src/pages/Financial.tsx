@@ -60,47 +60,72 @@ export default function Financial() {
   const fetchPaymentData = async () => {
     setLoading(true);
     try {
-      // Fetch daily payments
-      const { data: dailyData, error: dailyError } = await supabase
-        .from('financial_records')
+      // Fetch orders delivered by service providers
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
         .select(`
-          user_id,
-          amount,
-          payment_date,
-          profiles!financial_records_user_id_fkey(full_name)
+          id,
+          assigned_to,
+          document_count,
+          delivered_at,
+          profiles!orders_assigned_to_fkey(full_name)
         `)
-        .order('payment_date', { ascending: false });
+        .eq('status_order', 'delivered')
+        .not('delivered_at', 'is', null)
+        .order('delivered_at', { ascending: false });
 
-      if (dailyError) throw dailyError;
+      if (ordersError) throw ordersError;
 
-      // Transform daily data
-      const transformedDaily = dailyData?.map(record => ({
-        user_id: record.user_id,
-        user_name: record.profiles?.full_name || 'Unknown',
-        date: record.payment_date,
-        amount: record.amount
-      })) || [];
+      // Calculate payments based on R$ 1.30 per document
+      const PAYMENT_PER_DOCUMENT = 1.30;
+      
+      const dailyPaymentsMap = new Map<string, PaymentData>();
+      const accumulatedMap = new Map<string, AccumulatedPayment>();
 
-      setDailyPayments(transformedDaily);
-
-      // Calculate accumulated payments
-      const accumulated = transformedDaily.reduce((acc, payment) => {
-        const existing = acc.find(p => p.user_id === payment.user_id);
-        if (existing) {
-          existing.total_amount += payment.amount;
-          existing.total_documents += 1;
+      ordersData?.forEach(order => {
+        if (!order.assigned_to || !order.delivered_at) return;
+        
+        const date = new Date(order.delivered_at).toISOString().split('T')[0];
+        const userId = order.assigned_to;
+        const userName = order.profiles?.full_name || 'Unknown';
+        const amount = (order.document_count || 0) * PAYMENT_PER_DOCUMENT;
+        
+        // Daily payments aggregation
+        const dailyKey = `${userId}-${date}`;
+        if (dailyPaymentsMap.has(dailyKey)) {
+          const existing = dailyPaymentsMap.get(dailyKey)!;
+          existing.amount += amount;
         } else {
-          acc.push({
-            user_id: payment.user_id,
-            user_name: payment.user_name,
-            total_amount: payment.amount,
-            total_documents: 1
+          dailyPaymentsMap.set(dailyKey, {
+            user_id: userId,
+            user_name: userName,
+            date: date,
+            amount: amount
           });
         }
-        return acc;
-      }, [] as AccumulatedPayment[]);
+        
+        // Accumulated payments
+        if (accumulatedMap.has(userId)) {
+          const existing = accumulatedMap.get(userId)!;
+          existing.total_amount += amount;
+          existing.total_documents += order.document_count || 0;
+        } else {
+          accumulatedMap.set(userId, {
+            user_id: userId,
+            user_name: userName,
+            total_amount: amount,
+            total_documents: order.document_count || 0
+          });
+        }
+      });
 
-      setAccumulatedPayments(accumulated.sort((a, b) => b.total_amount - a.total_amount));
+      setDailyPayments(Array.from(dailyPaymentsMap.values()).sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      ));
+      
+      setAccumulatedPayments(Array.from(accumulatedMap.values()).sort((a, b) => 
+        b.total_amount - a.total_amount
+      ));
     } catch (error) {
       console.error('Error fetching payment data:', error);
     } finally {

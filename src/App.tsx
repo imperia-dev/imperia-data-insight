@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Documents from "./pages/Documents";
 import Financial from "./pages/Financial";
+import Wallet from "./pages/Wallet";
 import { Orders } from "./pages/Orders";
 import { MyOrders } from "./pages/MyOrders";
 import { DeliveredOrders } from "./pages/DeliveredOrders";
@@ -63,6 +64,11 @@ const App = () => (
             <Route path="/financial" element={
               <ProtectedRoute>
                 <Financial />
+              </ProtectedRoute>
+            } />
+            <Route path="/wallet" element={
+              <ProtectedRoute>
+                <Wallet />
               </ProtectedRoute>
             } />
             <Route path="/reports" element={
