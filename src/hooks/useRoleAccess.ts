@@ -55,8 +55,9 @@ export const useRoleAccess = (pathname: string) => {
         const allowedRoles = routePermissions[pathname];
         
         if (!allowedRoles) {
-          // If route is not defined in permissions, allow access (for undefined routes)
-          setHasAccess(true);
+          // If route is not defined in permissions, DENY access by default (security first)
+          console.warn(`Route ${pathname} not defined in permissions, denying access`);
+          setHasAccess(false);
         } else {
           setHasAccess(allowedRoles.includes(data.role));
         }
