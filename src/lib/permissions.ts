@@ -32,14 +32,10 @@ export const rolePermissions: Record<Role, string[]> = {
     '/settings'
   ],
   operation: [
-    '/',
-    '/delivered-orders',
     '/my-orders',
+    '/delivered-orders',
     '/wallet',
-    '/calendar',
-    '/timesheet',
-    '/productivity',
-    '/settings'
+    '/productivity'
   ]
 };
 
