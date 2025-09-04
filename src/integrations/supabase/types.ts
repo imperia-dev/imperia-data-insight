@@ -158,6 +158,7 @@ export type Database = {
           delivered_at: string | null
           document_count: number
           id: string
+          is_urgent: boolean | null
           order_number: string
           status_order: string
           updated_at: string
@@ -172,6 +173,7 @@ export type Database = {
           delivered_at?: string | null
           document_count: number
           id?: string
+          is_urgent?: boolean | null
           order_number: string
           status_order?: string
           updated_at?: string
@@ -186,6 +188,7 @@ export type Database = {
           delivered_at?: string | null
           document_count?: number
           id?: string
+          is_urgent?: boolean | null
           order_number?: string
           status_order?: string
           updated_at?: string

@@ -26,7 +26,8 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export function Orders() {
   const { user } = useAuth();
@@ -65,6 +66,7 @@ export function Orders() {
           *,
           assigned_profile:profiles!assigned_to(full_name, email)
         `)
+        .order("is_urgent", { ascending: false })
         .order("created_at", { ascending: false });
       
       if (error) throw error;
@@ -148,6 +150,32 @@ export function Orders() {
       console.error("takeOrderMutation onError:", error);
       toast({
         title: "Erro ao pegar pedido",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Toggle urgent mutation
+  const toggleUrgentMutation = useMutation({
+    mutationFn: async ({ orderId, isUrgent }: { orderId: string; isUrgent: boolean }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ is_urgent: isUrgent })
+        .eq("id", orderId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast({
+        title: "Status de urgência atualizado",
+        description: "O status de urgência foi atualizado com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar urgência",
         description: error.message,
         variant: "destructive",
       });
@@ -291,7 +319,15 @@ export function Orders() {
                     {filteredOrders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
-                          {order.order_number}
+                          <div className="flex items-center gap-2">
+                            {order.order_number}
+                            {order.is_urgent && (
+                              <Badge variant="destructive" className="gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Urgente
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>{order.document_count}</TableCell>
                         {(isAdmin || isMaster) && (
@@ -335,15 +371,31 @@ export function Orders() {
                           </TableCell>
                         )}
                         <TableCell>
-                          {isOperation && !order.assigned_to && (
-                            <Button
-                              size="sm"
-                              onClick={() => takeOrderMutation.mutate(order.id)}
-                              disabled={takeOrderMutation.isPending}
-                            >
-                              Pegar Pedido
-                            </Button>
-                          )}
+                          <div className="flex gap-2">
+                            {isMaster && (
+                              <Button
+                                size="sm"
+                                variant={order.is_urgent ? "destructive" : "outline"}
+                                onClick={() => toggleUrgentMutation.mutate({
+                                  orderId: order.id,
+                                  isUrgent: !order.is_urgent
+                                })}
+                                disabled={toggleUrgentMutation.isPending}
+                              >
+                                <AlertTriangle className="h-4 w-4" />
+                                {order.is_urgent ? "Remover Urgência" : "Marcar Urgente"}
+                              </Button>
+                            )}
+                            {isOperation && !order.assigned_to && (
+                              <Button
+                                size="sm"
+                                onClick={() => takeOrderMutation.mutate(order.id)}
+                                disabled={takeOrderMutation.isPending}
+                              >
+                                Pegar Pedido
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
