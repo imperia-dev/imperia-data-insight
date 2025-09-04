@@ -32,10 +32,24 @@ export const useRoleAccess = (pathname: string) => {
           return;
         }
 
+        console.log('User role from DB:', data.role);
+        console.log('Checking access for route:', pathname);
+        
         setUserRole(data.role);
+
+        // Check if the user role is valid
+        const validRoles: Role[] = ['master', 'admin', 'operation'];
+        if (!validRoles.includes(data.role as Role)) {
+          console.error(`Invalid role '${data.role}' for user ${user.id}`);
+          setHasAccess(false);
+          setLoading(false);
+          return;
+        }
 
         // Check if the current route allows this role
         const hasPermission = canAccessRoute(data.role as Role, pathname);
+        
+        console.log(`Permission check: role='${data.role}', route='${pathname}', hasAccess=${hasPermission}`);
         
         if (!hasPermission) {
           console.warn(`User with role '${data.role}' denied access to route '${pathname}'`);
