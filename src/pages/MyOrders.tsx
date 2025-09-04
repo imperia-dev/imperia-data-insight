@@ -16,7 +16,8 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Package, CheckCircle, Clock } from "lucide-react";
+import { Package, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export function MyOrders() {
   const { user } = useAuth();
@@ -180,7 +181,15 @@ export function MyOrders() {
                     {availableOrders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
-                          {order.order_number}
+                          <div className="flex items-center gap-2">
+                            {order.order_number}
+                            {order.is_urgent && (
+                              <Badge variant="destructive" className="gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Urgente
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>{order.document_count}</TableCell>
                         <TableCell>
@@ -243,7 +252,15 @@ export function MyOrders() {
                     {myOrders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
-                          {order.order_number}
+                          <div className="flex items-center gap-2">
+                            {order.order_number}
+                            {order.is_urgent && (
+                              <Badge variant="destructive" className="gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Urgente
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>{order.document_count}</TableCell>
                         <TableCell>

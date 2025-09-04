@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export function DeliveredOrders() {
   const { user } = useAuth();
@@ -108,7 +109,15 @@ export function DeliveredOrders() {
                       return (
                         <TableRow key={order.id}>
                           <TableCell className="font-medium">
-                            {order.order_number}
+                            <div className="flex items-center gap-2">
+                              {order.order_number}
+                              {order.is_urgent && (
+                                <Badge variant="destructive" className="gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Urgente
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>{order.document_count}</TableCell>
                           <TableCell>
