@@ -38,6 +38,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/wallet',
     '/calendar',
     '/timesheet',
+    '/productivity',
     '/settings'
   ]
 };
