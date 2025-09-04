@@ -5,23 +5,127 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, TrendingUp, DollarSign, Clock, Calendar, AlertCircle } from "lucide-react";
+import { FileText, Package, AlertTriangle, Clock, Calendar, AlertCircle, Filter } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
 export default function Productivity() {
   const { user } = useAuth();
+  const [periodFilter, setPeriodFilter] = useState("month");
 
-  // Fetch productivity data for the logged-in user
-  const { data: productivityData, isLoading, error } = useQuery({
-    queryKey: ["productivity", user?.id],
+  // Calculate date range based on filter
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (periodFilter) {
+      case "today":
+        startDate = startOfDay(now);
+        endDate = endOfDay(now);
+        break;
+      case "week":
+        startDate = startOfWeek(now, { weekStartsOn: 1 });
+        endDate = endOfWeek(now, { weekStartsOn: 1 });
+        break;
+      case "month":
+        startDate = startOfMonth(now);
+        endDate = endOfMonth(now);
+        break;
+      case "year":
+        startDate = startOfYear(now);
+        endDate = endOfYear(now);
+        break;
+      case "last7days":
+        startDate = subDays(now, 7);
+        endDate = now;
+        break;
+      case "last30days":
+        startDate = subDays(now, 30);
+        endDate = now;
+        break;
+      case "last6months":
+        startDate = subMonths(now, 6);
+        endDate = now;
+        break;
+      default:
+        startDate = startOfMonth(now);
+        endDate = endOfMonth(now);
+    }
+
+    return { startDate, endDate };
+  };
+
+  const { startDate, endDate } = getDateRange();
+
+  // Fetch documents completed by the user in the period
+  const { data: documentsData } = useQuery({
+    queryKey: ["documents", user?.id, periodFilter],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const endDate = endOfMonth(new Date());
-      const startDate = startOfMonth(subMonths(new Date(), 5)); // Last 6 months
+      const { data, error } = await supabase
+        .from("documents")
+        .select("*")
+        .eq("assigned_to", user.id)
+        .eq("status", "completed")
+        .gte("completed_at", startDate.toISOString())
+        .lte("completed_at", endDate.toISOString());
 
+      if (error) {
+        console.error("Error fetching documents:", error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch orders in the period
+  const { data: ordersData } = useQuery({
+    queryKey: ["orders", user?.id, periodFilter],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .gte("created_at", startDate.toISOString())
+        .lte("created_at", endDate.toISOString());
+
+      if (error) {
+        console.error("Error fetching orders:", error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Calculate delayed orders
+  const delayedOrders = ordersData?.filter(order => {
+    const now = new Date();
+    const deadline = new Date(order.deadline);
+    
+    // Order is delayed if:
+    // 1. It's delivered after the deadline
+    // 2. It's still in progress and deadline has passed
+    if (order.delivered_at) {
+      return isAfter(new Date(order.delivered_at), deadline);
+    } else if (order.status_order === "in_progress") {
+      return isAfter(now, deadline);
+    }
+    return false;
+  }) || [];
+
+  // Fetch productivity data for charts
+  const { data: productivityData, isLoading, error } = useQuery({
+    queryKey: ["productivity", user?.id, periodFilter],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
         .from("productivity")
         .select("*")
@@ -41,14 +145,13 @@ export default function Productivity() {
 
   // Calculate summary statistics
   const stats = {
-    totalDocuments: productivityData?.reduce((sum, item) => sum + (item.documents_completed || 0), 0) || 0,
+    documentsCompleted: documentsData?.length || 0,
+    ordersCreated: ordersData?.length || 0,
+    delayedOrders: delayedOrders.length,
+    delayRate: ordersData?.length ? Math.round((delayedOrders.length / ordersData.length) * 100) : 0,
     totalWords: productivityData?.reduce((sum, item) => sum + (item.words_translated || 0), 0) || 0,
-    totalPages: productivityData?.reduce((sum, item) => sum + (item.pages_translated || 0), 0) || 0,
     totalHours: productivityData?.reduce((sum, item) => sum + Number(item.hours_worked || 0), 0) || 0,
     totalEarnings: productivityData?.reduce((sum, item) => sum + Number(item.daily_earnings || 0), 0) || 0,
-    avgWordsPerDay: productivityData?.length 
-      ? Math.round((productivityData.reduce((sum, item) => sum + (item.words_translated || 0), 0)) / productivityData.length)
-      : 0,
   };
 
   // Group data by month for charts
@@ -103,8 +206,8 @@ export default function Productivity() {
       <div className="container mx-auto p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {[...Array(5)].map((_, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
               <div key={i} className="h-32 bg-muted rounded"></div>
             ))}
           </div>
@@ -127,95 +230,111 @@ export default function Productivity() {
     );
   }
 
-  // Check if there's no data
-  if (!productivityData || productivityData.length === 0) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold">Produtividade</h1>
           <p className="text-muted-foreground">Acompanhe seus indicadores de desempenho</p>
         </div>
-
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Sem dados disponíveis</AlertTitle>
-          <AlertDescription>
-            Ainda não há dados de produtividade registrados para sua conta. 
-            Os dados serão exibidos aqui assim que forem adicionados ao sistema.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Produtividade</h1>
-        <p className="text-muted-foreground">Acompanhe seus indicadores de desempenho</p>
+        
+        {/* Period Filter */}
+        <Select value={periodFilter} onValueChange={setPeriodFilter}>
+          <SelectTrigger className="w-[200px]">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filtrar período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="today">Hoje</SelectItem>
+            <SelectItem value="week">Esta Semana</SelectItem>
+            <SelectItem value="month">Este Mês</SelectItem>
+            <SelectItem value="year">Este Ano</SelectItem>
+            <SelectItem value="last7days">Últimos 7 dias</SelectItem>
+            <SelectItem value="last30days">Últimos 30 dias</SelectItem>
+            <SelectItem value="last6months">Últimos 6 meses</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Documentos</CardTitle>
+            <CardTitle className="text-sm font-medium">Documentos Feitos</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalDocuments}</div>
-            <p className="text-xs text-muted-foreground">Documentos completos</p>
+            <div className="text-2xl font-bold">{stats.documentsCompleted}</div>
+            <p className="text-xs text-muted-foreground">No período selecionado</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Palavras Traduzidas</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Pedidos Feitos</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalWords.toLocaleString("pt-BR")}</div>
-            <p className="text-xs text-muted-foreground">Média: {stats.avgWordsPerDay}/dia</p>
+            <div className="text-2xl font-bold">{stats.ordersCreated}</div>
+            <p className="text-xs text-muted-foreground">Total de pedidos criados</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Páginas Traduzidas</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Atraso dos Pedidos</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPages}</div>
-            <p className="text-xs text-muted-foreground">Total de páginas</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Horas Trabalhadas</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalHours.toFixed(1)}h</div>
-            <p className="text-xs text-muted-foreground">Total de horas</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ganhos Totais</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {stats.totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <p className="text-xs text-muted-foreground">Últimos 6 meses</p>
+            <div className="text-2xl font-bold">{stats.delayedOrders}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.delayRate}% de taxa de atraso
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts - only show if there's data */}
+      {/* Additional Stats */}
+      {productivityData && productivityData.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Palavras Traduzidas</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalWords.toLocaleString("pt-BR")}</div>
+              <p className="text-xs text-muted-foreground">Total no período</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Horas Trabalhadas</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalHours.toFixed(1)}h</div>
+              <p className="text-xs text-muted-foreground">Total de horas</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ganhos Totais</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                R$ {stats.totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <p className="text-xs text-muted-foreground">No período selecionado</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Charts - only show if there's productivity data */}
       {monthlyData.length > 0 && (
         <Tabs defaultValue="documents" className="space-y-4">
           <TabsList>
@@ -357,6 +476,18 @@ export default function Productivity() {
             </Card>
           </TabsContent>
         </Tabs>
+      )}
+
+      {/* Show message if no data in selected period */}
+      {(!productivityData || productivityData.length === 0) && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Sem dados no período</AlertTitle>
+          <AlertDescription>
+            Não há dados de produtividade registrados para o período selecionado. 
+            Tente selecionar um período diferente ou aguarde novos dados serem adicionados.
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );
