@@ -15,6 +15,7 @@ import { MyOrders } from "./pages/MyOrders";
 import { DeliveredOrders } from "./pages/DeliveredOrders";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/" element={
               <ProtectedRoute>
                 <Dashboard />

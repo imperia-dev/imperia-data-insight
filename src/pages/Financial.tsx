@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, TrendingUp, User } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, User, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -23,6 +23,12 @@ interface AccumulatedPayment {
   user_name: string;
   total_amount: number;
   total_documents: number;
+}
+
+interface TopPerformer {
+  user_name: string;
+  document_count: number;
+  total_amount: number;
 }
 
 export default function Financial() {
@@ -141,6 +147,15 @@ export default function Financial() {
   };
 
   const totalPayments = accumulatedPayments.reduce((sum, payment) => sum + payment.total_amount, 0);
+  
+  // Get top 3 performers
+  const topPerformers: TopPerformer[] = accumulatedPayments
+    .slice(0, 3)
+    .map(payment => ({
+      user_name: payment.user_name,
+      document_count: payment.total_documents,
+      total_amount: payment.total_amount
+    }));
 
   return (
     <div className="min-h-screen bg-background">
@@ -227,6 +242,56 @@ export default function Financial() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Top 3 Performers Card */}
+          <Card className="mb-8">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Top 3 Prestadores</CardTitle>
+                <CardDescription>
+                  Ranking dos prestadores com mais documentos traduzidos
+                </CardDescription>
+              </div>
+              <Trophy className="h-5 w-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Carregando dados...
+                </div>
+              ) : topPerformers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum prestador encontrado
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {topPerformers.map((performer, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-white ${
+                          index === 0 ? 'bg-gradient-to-r from-yellow-500 to-amber-500' :
+                          index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
+                          'bg-gradient-to-r from-orange-600 to-orange-700'
+                        }`}>
+                          {index + 1}º
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground">{performer.user_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {performer.document_count} {performer.document_count === 1 ? 'documento' : 'documentos'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-lg text-primary">{formatCurrency(performer.total_amount)}</p>
+                        <p className="text-xs text-muted-foreground">Total ganho</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Daily Payments Table */}
           <Card className="mb-8">
