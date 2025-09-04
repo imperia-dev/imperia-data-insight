@@ -54,13 +54,13 @@ const navigation = [
     title: "Equipe",
     icon: Users,
     href: "/team",
-    roles: ["master", "admin", "operation"],
+    roles: ["master", "admin"],
   },
   {
     title: "Produtividade",
     icon: TrendingUp,
     href: "/productivity",
-    roles: ["master", "admin"],
+    roles: ["master", "admin", "operation"],
   },
   {
     title: "Financeiro",
