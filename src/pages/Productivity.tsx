@@ -7,30 +7,36 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, TrendingUp, DollarSign, Clock, Calendar } from "lucide-react";
+import { FileText, TrendingUp, DollarSign, Clock, Calendar, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function Productivity() {
   const { user } = useAuth();
 
   // Fetch productivity data for the logged-in user
-  const { data: productivityData, isLoading } = useQuery({
+  const { data: productivityData, isLoading, error } = useQuery({
     queryKey: ["productivity", user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const endDate = endOfMonth(new Date());
       const startDate = startOfMonth(subMonths(new Date(), 5)); // Last 6 months
 
       const { data, error } = await supabase
         .from("productivity")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("user_id", user.id)
         .gte("date", startDate.toISOString())
         .lte("date", endDate.toISOString())
         .order("date", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching productivity data:", error);
+        throw error;
+      }
       return data || [];
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
 
   // Calculate summary statistics
@@ -107,6 +113,41 @@ export default function Productivity() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro</AlertTitle>
+          <AlertDescription>
+            Ocorreu um erro ao carregar os dados de produtividade. Por favor, tente novamente.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Check if there's no data
+  if (!productivityData || productivityData.length === 0) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Produtividade</h1>
+          <p className="text-muted-foreground">Acompanhe seus indicadores de desempenho</p>
+        </div>
+
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Sem dados disponíveis</AlertTitle>
+          <AlertDescription>
+            Ainda não há dados de produtividade registrados para sua conta. 
+            Os dados serão exibidos aqui assim que forem adicionados ao sistema.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
@@ -167,154 +208,156 @@ export default function Productivity() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {stats.totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              R$ {stats.totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">Últimos 6 meses</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
-      <Tabs defaultValue="documents" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="documents">Documentos</TabsTrigger>
-          <TabsTrigger value="words">Palavras</TabsTrigger>
-          <TabsTrigger value="hours">Horas</TabsTrigger>
-          <TabsTrigger value="earnings">Ganhos</TabsTrigger>
-        </TabsList>
+      {/* Charts - only show if there's data */}
+      {monthlyData.length > 0 && (
+        <Tabs defaultValue="documents" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="documents">Documentos</TabsTrigger>
+            <TabsTrigger value="words">Palavras</TabsTrigger>
+            <TabsTrigger value="hours">Horas</TabsTrigger>
+            <TabsTrigger value="earnings">Ganhos</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="documents" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Documentos Completos por Mês</CardTitle>
-              <CardDescription>Evolução mensal de documentos traduzidos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="month" 
-                    className="text-xs"
-                    tick={{ fill: "hsl(var(--foreground))" }}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: "hsl(var(--foreground))" }}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="documents" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="documents" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Documentos Completos por Mês</CardTitle>
+                <CardDescription>Evolução mensal de documentos traduzidos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <BarChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="month" 
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--foreground))" }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--foreground))" }}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="documents" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="words" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Palavras Traduzidas por Mês</CardTitle>
-              <CardDescription>Volume de palavras traduzidas ao longo do tempo</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <AreaChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="month" 
-                    className="text-xs"
-                    tick={{ fill: "hsl(var(--foreground))" }}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: "hsl(var(--foreground))" }}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="words" 
-                    stroke="hsl(var(--primary))" 
-                    fill="hsl(var(--primary) / 0.2)" 
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="words" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Palavras Traduzidas por Mês</CardTitle>
+                <CardDescription>Volume de palavras traduzidas ao longo do tempo</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <AreaChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="month" 
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--foreground))" }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--foreground))" }}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Area 
+                      type="monotone" 
+                      dataKey="words" 
+                      stroke="hsl(var(--primary))" 
+                      fill="hsl(var(--primary) / 0.2)" 
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="hours" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Horas Trabalhadas por Mês</CardTitle>
-              <CardDescription>Tempo dedicado às traduções</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <LineChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="month" 
-                    className="text-xs"
-                    tick={{ fill: "hsl(var(--foreground))" }}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: "hsl(var(--foreground))" }}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="hours" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={2}
-                    dot={{ fill: "hsl(var(--primary))" }}
-                  />
-                </LineChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="hours" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Horas Trabalhadas por Mês</CardTitle>
+                <CardDescription>Tempo dedicado às traduções</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <LineChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="month" 
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--foreground))" }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--foreground))" }}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="hours" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      dot={{ fill: "hsl(var(--primary))" }}
+                    />
+                  </LineChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="earnings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ganhos Mensais</CardTitle>
-              <CardDescription>Evolução dos ganhos ao longo do tempo</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <AreaChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="month" 
-                    className="text-xs"
-                    tick={{ fill: "hsl(var(--foreground))" }}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: "hsl(var(--foreground))" }}
-                  />
-                  <ChartTooltip 
-                    content={
-                      <ChartTooltipContent 
-                        formatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                      />
-                    } 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="earnings" 
-                    stroke="hsl(var(--chart-5))" 
-                    fill="hsl(var(--chart-5) / 0.2)" 
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="earnings" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ganhos Mensais</CardTitle>
+                <CardDescription>Evolução dos ganhos ao longo do tempo</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <AreaChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="month" 
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--foreground))" }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--foreground))" }}
+                    />
+                    <ChartTooltip 
+                      content={
+                        <ChartTooltipContent 
+                          formatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        />
+                      } 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="earnings" 
+                      stroke="hsl(var(--chart-5))" 
+                      fill="hsl(var(--chart-5) / 0.2)" 
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }
