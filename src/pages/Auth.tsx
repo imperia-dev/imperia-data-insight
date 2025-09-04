@@ -195,7 +195,7 @@ export default function Auth() {
                       Entrando...
                     </>
                   ) : (
-                    "Entrarr"
+                    "Entrar"
                   )}
                 </Button>
               </form>
