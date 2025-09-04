@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Documents from "./pages/Documents";
 import Financial from "./pages/Financial";
 import Wallet from "./pages/Wallet";
+import Calendar from "./pages/Calendar";
 import { Orders } from "./pages/Orders";
 import { MyOrders } from "./pages/MyOrders";
 import { DeliveredOrders } from "./pages/DeliveredOrders";
@@ -78,7 +79,7 @@ const App = () => (
             } />
             <Route path="/calendar" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Calendar />
               </ProtectedRoute>
             } />
             <Route path="/timesheet" element={
