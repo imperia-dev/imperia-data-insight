@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,7 +26,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
 
@@ -35,6 +35,7 @@ export function Orders() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [lastOrderId, setLastOrderId] = useState("");
+  const [isEditingLastOrder, setIsEditingLastOrder] = useState(false);
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -104,6 +105,62 @@ export function Orders() {
     },
   });
 
+  // Fetch last document ID from system settings
+  const { data: lastDocumentSetting } = useQuery({
+    queryKey: ["last-document-setting"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("system_settings")
+        .select("*")
+        .eq("key", "last_document_id")
+        .maybeSingle();
+      
+      if (error) {
+        console.log("Error fetching last document setting:", error);
+        return null;
+      }
+      return data;
+    },
+  });
+
+  // Set the initial value when setting is loaded
+  useEffect(() => {
+    if (lastDocumentSetting?.value) {
+      setLastOrderId(lastDocumentSetting.value);
+    }
+  }, [lastDocumentSetting]);
+
+  // Save last document ID mutation
+  const saveLastDocumentMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const { error } = await supabase
+        .from("system_settings")
+        .upsert({
+          key: "last_document_id",
+          value: value,
+          updated_by: user?.id
+        }, {
+          onConflict: "key"
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["last-document-setting"] });
+      toast({
+        title: "Salvo com sucesso",
+        description: "O ID do último documento foi atualizado.",
+      });
+      setIsEditingLastOrder(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Create order mutation (admin and master)
   const createOrderMutation = useMutation({
@@ -418,12 +475,35 @@ export function Orders() {
               </CardTitle>
             </CardHeader>
             <CardContent className="py-3">
-              <Input
-                placeholder="Digite o ID do pedido"
-                value={lastOrderId}
-                onChange={(e) => setLastOrderId(e.target.value)}
-                className="max-w-xs"
-              />
+              <div className="flex gap-2 items-center">
+                <Input
+                  placeholder="Digite o ID do pedido"
+                  value={lastOrderId}
+                  onChange={(e) => setLastOrderId(e.target.value)}
+                  disabled={!isEditingLastOrder}
+                  className="max-w-xs"
+                />
+                {!isEditingLastOrder ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditingLastOrder(true)}
+                    disabled={!isAdmin && !isMaster && profile?.role !== "owner"}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => saveLastDocumentMutation.mutate(lastOrderId)}
+                    disabled={saveLastDocumentMutation.isPending}
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    {saveLastDocumentMutation.isPending ? "Salvando..." : "Salvar"}
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
 
