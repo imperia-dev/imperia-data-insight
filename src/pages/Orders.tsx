@@ -505,7 +505,7 @@ export function Orders() {
             )}
           </div>
 
-          <div className="flex gap-4 items-end mb-4">
+          <div className="flex gap-4 items-start mb-4">
             <div className="flex-1">
               <OrderFilters 
                 onFiltersChange={setFilters} 
@@ -514,24 +514,26 @@ export function Orders() {
               />
             </div>
             <div className="w-64">
-              <Label className="text-sm mb-2 block">Ordenar por</Label>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="urgent_created">Urgente + Mais Recente</SelectItem>
-                  <SelectItem value="deadline_asc">Prazo (Mais Próximo)</SelectItem>
-                  <SelectItem value="deadline_desc">Prazo (Mais Distante)</SelectItem>
-                  <SelectItem value="documents_asc">Documentos (Menor)</SelectItem>
-                  <SelectItem value="documents_desc">Documentos (Maior)</SelectItem>
-                  <SelectItem value="order_number_asc">ID do Pedido (A-Z)</SelectItem>
-                  <SelectItem value="order_number_desc">ID do Pedido (Z-A)</SelectItem>
-                  <SelectItem value="created_asc">Data Criação (Mais Antigo)</SelectItem>
-                  <SelectItem value="created_desc">Data Criação (Mais Recente)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Ordenar por</Label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="urgent_created">Urgente + Mais Recente</SelectItem>
+                    <SelectItem value="deadline_asc">Prazo (Mais Próximo)</SelectItem>
+                    <SelectItem value="deadline_desc">Prazo (Mais Distante)</SelectItem>
+                    <SelectItem value="documents_asc">Documentos (Menor)</SelectItem>
+                    <SelectItem value="documents_desc">Documentos (Maior)</SelectItem>
+                    <SelectItem value="order_number_asc">ID do Pedido (A-Z)</SelectItem>
+                    <SelectItem value="order_number_desc">ID do Pedido (Z-A)</SelectItem>
+                    <SelectItem value="created_asc">Data Criação (Mais Antigo)</SelectItem>
+                    <SelectItem value="created_desc">Data Criação (Mais Recente)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 

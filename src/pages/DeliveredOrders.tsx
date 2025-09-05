@@ -122,27 +122,31 @@ export function DeliveredOrders() {
         <Header userName={profile?.full_name || user?.email || ""} userRole={profile?.role || "operation"} />
         
         <main className="p-4 md:p-6 lg:p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-foreground">Pedidos Entregues</h1>
-            <div className="w-64">
-              <Label className="text-sm mb-2 block">Ordenar por</Label>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="delivered_desc">Entrega (Mais Recente)</SelectItem>
-                  <SelectItem value="delivered_asc">Entrega (Mais Antiga)</SelectItem>
-                  <SelectItem value="deadline_asc">Prazo (Mais Próximo)</SelectItem>
-                  <SelectItem value="deadline_desc">Prazo (Mais Distante)</SelectItem>
-                  <SelectItem value="documents_asc">Documentos (Menor)</SelectItem>
-                  <SelectItem value="documents_desc">Documentos (Maior)</SelectItem>
-                  <SelectItem value="order_number_asc">ID do Pedido (A-Z)</SelectItem>
-                  <SelectItem value="order_number_desc">ID do Pedido (Z-A)</SelectItem>
-                  <SelectItem value="status">Status (No Prazo Primeiro)</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-foreground mb-4">Pedidos Entregues</h1>
+            <div className="flex justify-end">
+              <div className="w-64">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Ordenar por</Label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger>
+                      <ArrowUpDown className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="delivered_desc">Entrega (Mais Recente)</SelectItem>
+                      <SelectItem value="delivered_asc">Entrega (Mais Antiga)</SelectItem>
+                      <SelectItem value="deadline_asc">Prazo (Mais Próximo)</SelectItem>
+                      <SelectItem value="deadline_desc">Prazo (Mais Distante)</SelectItem>
+                      <SelectItem value="documents_asc">Documentos (Menor)</SelectItem>
+                      <SelectItem value="documents_desc">Documentos (Maior)</SelectItem>
+                      <SelectItem value="order_number_asc">ID do Pedido (A-Z)</SelectItem>
+                      <SelectItem value="order_number_desc">ID do Pedido (Z-A)</SelectItem>
+                      <SelectItem value="status">Status (No Prazo Primeiro)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           </div>
 

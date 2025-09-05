@@ -326,7 +326,7 @@ export default function CompanyCosts() {
       <div className="md:ml-64 pt-16">
         <div className="container mx-auto py-8 px-4">
           {/* Filters and Sort Component */}
-          <div className="flex gap-4 items-end mb-4">
+          <div className="flex gap-4 items-start mb-4">
             <div className="flex-1">
               <CompanyCostFilters 
                 onFiltersChange={setFilters}
@@ -335,23 +335,25 @@ export default function CompanyCosts() {
               />
             </div>
             <div className="w-64">
-              <Label className="text-sm mb-2 block">Ordenar por</Label>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date_desc">Data (Mais Recente)</SelectItem>
-                  <SelectItem value="date_asc">Data (Mais Antiga)</SelectItem>
-                  <SelectItem value="amount_asc">Valor (Menor)</SelectItem>
-                  <SelectItem value="amount_desc">Valor (Maior)</SelectItem>
-                  <SelectItem value="category_asc">Categoria (A-Z)</SelectItem>
-                  <SelectItem value="category_desc">Categoria (Z-A)</SelectItem>
-                  <SelectItem value="description_asc">Descrição (A-Z)</SelectItem>
-                  <SelectItem value="description_desc">Descrição (Z-A)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Ordenar por</Label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date_desc">Data (Mais Recente)</SelectItem>
+                    <SelectItem value="date_asc">Data (Mais Antiga)</SelectItem>
+                    <SelectItem value="amount_asc">Valor (Menor)</SelectItem>
+                    <SelectItem value="amount_desc">Valor (Maior)</SelectItem>
+                    <SelectItem value="category_asc">Categoria (A-Z)</SelectItem>
+                    <SelectItem value="category_desc">Categoria (Z-A)</SelectItem>
+                    <SelectItem value="description_asc">Descrição (A-Z)</SelectItem>
+                    <SelectItem value="description_desc">Descrição (Z-A)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           

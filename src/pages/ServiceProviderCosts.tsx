@@ -331,42 +331,46 @@ export default function ServiceProviderCosts() {
       <div className="md:ml-64 pt-16">
         <div className="container mx-auto py-8 px-4">
           {/* Search and Sort bar */}
-          <div className="flex gap-4 items-end mb-4">
+          <div className="flex gap-4 items-start mb-4">
             <div className="flex-1 max-w-md">
-              <Label htmlFor="search">Buscar</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  id="search"
-                  placeholder="Buscar por nome, email, tipo, competência, status..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+              <div className="space-y-2">
+                <Label htmlFor="search">Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="search"
+                    placeholder="Buscar por nome, email, tipo, competência, status..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
             </div>
             <div className="w-64">
-              <Label className="text-sm mb-2 block">Ordenar por</Label>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="created_desc">Data (Mais Recente)</SelectItem>
-                  <SelectItem value="created_asc">Data (Mais Antiga)</SelectItem>
-                  <SelectItem value="amount_asc">Valor (Menor)</SelectItem>
-                  <SelectItem value="amount_desc">Valor (Maior)</SelectItem>
-                  <SelectItem value="name_asc">Nome (A-Z)</SelectItem>
-                  <SelectItem value="name_desc">Nome (Z-A)</SelectItem>
-                  <SelectItem value="type_asc">Tipo (A-Z)</SelectItem>
-                  <SelectItem value="type_desc">Tipo (Z-A)</SelectItem>
-                  <SelectItem value="status_asc">Status (A-Z)</SelectItem>
-                  <SelectItem value="status_desc">Status (Z-A)</SelectItem>
-                  <SelectItem value="competence_asc">Competência (A-Z)</SelectItem>
-                  <SelectItem value="competence_desc">Competência (Z-A)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Ordenar por</Label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="created_desc">Data (Mais Recente)</SelectItem>
+                    <SelectItem value="created_asc">Data (Mais Antiga)</SelectItem>
+                    <SelectItem value="amount_asc">Valor (Menor)</SelectItem>
+                    <SelectItem value="amount_desc">Valor (Maior)</SelectItem>
+                    <SelectItem value="name_asc">Nome (A-Z)</SelectItem>
+                    <SelectItem value="name_desc">Nome (Z-A)</SelectItem>
+                    <SelectItem value="type_asc">Tipo (A-Z)</SelectItem>
+                    <SelectItem value="type_desc">Tipo (Z-A)</SelectItem>
+                    <SelectItem value="status_asc">Status (A-Z)</SelectItem>
+                    <SelectItem value="status_desc">Status (Z-A)</SelectItem>
+                    <SelectItem value="competence_asc">Competência (A-Z)</SelectItem>
+                    <SelectItem value="competence_desc">Competência (Z-A)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           
