@@ -111,6 +111,7 @@ export default function Dashboard() {
   const [activeTranslators, setActiveTranslators] = useState(0);
   const [loading, setLoading] = useState(true);
   const [lineChartData, setLineChartData] = useState<any[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -142,28 +143,36 @@ export default function Dashboard() {
       // Calculate date filter based on selected period
       const now = new Date();
       let startDate = new Date();
+      let endDate = new Date();
       
       switch (selectedPeriod) {
         case 'day':
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          endDate = now;
           break;
         case 'week':
           const dayOfWeek = now.getDay();
           const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
           startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
           break;
         case 'month':
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
           break;
         case 'quarter':
           const quarter = Math.floor(now.getMonth() / 3);
           startDate = new Date(now.getFullYear(), quarter * 3, 1);
+          endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0);
           break;
         case 'year':
           startDate = new Date(now.getFullYear(), 0, 1);
+          endDate = new Date(now.getFullYear(), 11, 31);
           break;
         default:
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       }
 
       // Fetch delivered orders (documents translated) for the period
@@ -190,6 +199,32 @@ export default function Dashboard() {
         console.error('Error fetching profiles:', profilesError);
       } else {
         setActiveTranslators(profilesData?.length || 0);
+      }
+
+      // Fetch total revenue paid to operation users for the period
+      const { data: revenueData, error: revenueError } = await supabase
+        .from('financial_records')
+        .select('amount, user_id')
+        .gte('payment_date', startDate.toISOString().split('T')[0])
+        .lte('payment_date', endDate.toISOString().split('T')[0]);
+
+      if (revenueError) {
+        console.error('Error fetching revenue:', revenueError);
+      } else {
+        // Get operation users
+        const { data: operationUsers } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'operation');
+        
+        const operationUserIds = operationUsers?.map(u => u.id) || [];
+        
+        // Calculate total revenue for operation users
+        const totalRev = revenueData?.filter(record => 
+          operationUserIds.includes(record.user_id)
+        ).reduce((sum, record) => sum + (Number(record.amount) || 0), 0) || 0;
+        
+        setTotalRevenue(totalRev);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -378,11 +413,15 @@ export default function Dashboard() {
             />
             <StatsCard
               title="Receita Total"
-              value="R$ 125.4k"
+              value={loading ? "..." : `R$ ${(totalRevenue / 1000).toFixed(1)}k`}
               change={15}
               trend="up"
               icon={<DollarSign className="h-5 w-5" />}
-              description="este mês"
+              description={`pagamentos aos operadores ${selectedPeriod === 'day' ? 'hoje' : 
+                           selectedPeriod === 'week' ? 'esta semana' : 
+                           selectedPeriod === 'month' ? 'este mês' : 
+                           selectedPeriod === 'quarter' ? 'este trimestre' : 
+                           'este ano'}`}
             />
           </div>
 
