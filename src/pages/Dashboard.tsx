@@ -37,16 +37,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-// Mock data for charts
-const lineChartData = [
-  { month: "Jan", documentos: 120, receita: 45000 },
-  { month: "Fev", documentos: 145, receita: 52000 },
-  { month: "Mar", documentos: 165, receita: 58000 },
-  { month: "Abr", documentos: 180, receita: 65000 },
-  { month: "Mai", documentos: 220, receita: 78000 },
-  { month: "Jun", documentos: 195, receita: 72000 },
-];
+import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const barChartData = [
   { name: "Ana Silva", documentos: 45, valor: 12500 },
@@ -118,6 +110,7 @@ export default function Dashboard() {
   const [documentsTranslated, setDocumentsTranslated] = useState(0);
   const [activeTranslators, setActiveTranslators] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [lineChartData, setLineChartData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -140,6 +133,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchEvolutionData();
   }, [selectedPeriod]);
 
   const fetchDashboardData = async () => {
@@ -201,6 +195,116 @@ export default function Dashboard() {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchEvolutionData = async () => {
+    try {
+      const now = new Date();
+      let startDate = new Date();
+      let endDate = new Date();
+      let interval: Date[] = [];
+      
+      switch (selectedPeriod) {
+        case 'day':
+          // For today, show hourly data
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          endDate = now;
+          // Create hourly intervals for today
+          interval = Array.from({ length: 24 }, (_, i) => {
+            const date = new Date(startDate);
+            date.setHours(i);
+            return date;
+          });
+          break;
+        case 'week':
+          // Show daily data for this week
+          const dayOfWeek = now.getDay();
+          const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+          startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          interval = eachDayOfInterval({ start: startDate, end: endDate });
+          break;
+        case 'month':
+          // Show daily data for this month
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          interval = eachDayOfInterval({ start: startDate, end: endDate });
+          break;
+        case 'quarter':
+          // Show weekly data for this quarter
+          const quarter = Math.floor(now.getMonth() / 3);
+          startDate = new Date(now.getFullYear(), quarter * 3, 1);
+          endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0);
+          interval = eachWeekOfInterval({ start: startDate, end: endDate });
+          break;
+        case 'year':
+          // Show monthly data for this year
+          startDate = new Date(now.getFullYear(), 0, 1);
+          endDate = new Date(now.getFullYear(), 11, 31);
+          interval = eachMonthOfInterval({ start: startDate, end: endDate });
+          break;
+        default:
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          interval = eachDayOfInterval({ start: startDate, end: endDate });
+      }
+
+      // Fetch delivered orders for the period
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('document_count, delivered_at')
+        .eq('status_order', 'delivered')
+        .gte('delivered_at', startDate.toISOString())
+        .lte('delivered_at', endDate.toISOString());
+
+      if (ordersError) {
+        console.error('Error fetching evolution data:', ordersError);
+        return;
+      }
+
+      // Process data based on period
+      const chartData = interval.map(date => {
+        let label = '';
+        let dateStart = date;
+        let dateEnd = new Date(date);
+        
+        if (selectedPeriod === 'day') {
+          // Hourly labels
+          label = format(date, 'HH:mm', { locale: ptBR });
+          dateEnd.setHours(date.getHours() + 1);
+        } else if (selectedPeriod === 'week' || selectedPeriod === 'month') {
+          // Daily labels
+          label = format(date, 'dd/MM', { locale: ptBR });
+          dateEnd = new Date(date);
+          dateEnd.setDate(date.getDate() + 1);
+        } else if (selectedPeriod === 'quarter') {
+          // Weekly labels
+          label = `Sem ${format(date, 'w', { locale: ptBR })}`;
+          dateEnd = endOfWeek(date, { locale: ptBR });
+        } else if (selectedPeriod === 'year') {
+          // Monthly labels
+          label = format(date, 'MMM', { locale: ptBR });
+          dateEnd = endOfMonth(date);
+        }
+
+        // Count documents for this interval
+        const documentsInInterval = ordersData?.filter(order => {
+          if (!order.delivered_at) return false;
+          const deliveredDate = new Date(order.delivered_at);
+          return deliveredDate >= dateStart && deliveredDate < dateEnd;
+        }).reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+
+        return {
+          label,
+          documentos: documentsInInterval,
+        };
+      });
+
+      setLineChartData(chartData);
+    } catch (error) {
+      console.error('Error fetching evolution data:', error);
     }
   };
 
@@ -282,42 +386,36 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Line Chart */}
+          {/* Evolution Chart - Full Width */}
+          <div className="mb-8">
             <ChartCard
-              title="Evolução Mensal"
-              description="Documentos traduzidos e receita"
+              title={`Evolução ${selectedPeriod === 'day' ? 'Horária' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'Diária' : selectedPeriod === 'quarter' ? 'Semanal' : 'Mensal'}`}
+              description={`Documentos traduzidos ${selectedPeriod === 'day' ? 'por hora' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'por dia' : selectedPeriod === 'quarter' ? 'por semana' : 'por mês'}`}
               onExport={() => console.log("Export")}
               onFilter={() => console.log("Filter")}
             >
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={lineChartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
+                  <XAxis dataKey="label" className="text-xs" />
                   <YAxis className="text-xs" />
                   <Tooltip />
                   <Legend />
                   <Line
                     type="monotone"
                     dataKey="documentos"
-                    stroke="#4A5568"
+                    stroke="hsl(var(--primary))"
                     strokeWidth={2}
-                    dot={{ fill: "#4A5568" }}
+                    dot={{ fill: "hsl(var(--primary))" }}
                     name="Documentos"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="receita"
-                    stroke="#B4D4E1"
-                    strokeWidth={2}
-                    dot={{ fill: "#B4D4E1" }}
-                    name="Receita (R$)"
                   />
                 </LineChart>
               </ResponsiveContainer>
             </ChartCard>
+          </div>
 
+          {/* Performance Chart - Below Evolution */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Bar Chart */}
             <ChartCard
               title="Performance por Tradutor"
@@ -331,21 +429,18 @@ export default function Dashboard() {
                   <YAxis className="text-xs" />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="documentos" fill="#4A5568" name="Documentos" />
-                  <Bar dataKey="valor" fill="#B4D4E1" name="Valor (R$)" />
+                  <Bar dataKey="documentos" fill="hsl(var(--primary))" name="Documentos" />
+                  <Bar dataKey="valor" fill="hsl(var(--accent))" name="Valor (R$)" />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
-          </div>
 
-          {/* Additional Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             {/* Pie Chart */}
             <ChartCard
               title="Distribuição por Tipo"
               description="Tipos de documentos"
             >
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={pieChartData}
@@ -365,60 +460,60 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
             </ChartCard>
+          </div>
 
-            {/* Quick Stats */}
-            <div className="lg:col-span-2 space-y-4">
-              <ChartCard
-                title="Métricas Rápidas"
-                description="Indicadores em tempo real"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-gradient-accent">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Tempo Médio
-                      </span>
-                    </div>
-                    <p className="text-2xl font-black text-primary mt-2">2.5h</p>
-                    <p className="text-xs text-muted-foreground">por documento</p>
+          {/* Quick Stats */}
+          <div className="mb-8">
+            <ChartCard
+              title="Métricas Rápidas"
+              description="Indicadores em tempo real"
+            >
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 rounded-lg bg-gradient-accent">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Tempo Médio
+                    </span>
                   </div>
-                  
-                  <div className="p-4 rounded-lg bg-gradient-premium">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Taxa de Entrega
-                      </span>
-                    </div>
-                    <p className="text-2xl font-black text-primary mt-2">94%</p>
-                    <p className="text-xs text-muted-foreground">no prazo</p>
-                  </div>
-                  
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Em Andamento
-                      </span>
-                    </div>
-                    <p className="text-2xl font-black text-primary mt-2">38</p>
-                    <p className="text-xs text-muted-foreground">documentos</p>
-                  </div>
-                  
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Online Agora
-                      </span>
-                    </div>
-                    <p className="text-2xl font-black text-primary mt-2">18</p>
-                    <p className="text-xs text-muted-foreground">tradutores</p>
-                  </div>
+                  <p className="text-2xl font-black text-primary mt-2">2.5h</p>
+                  <p className="text-xs text-muted-foreground">por documento</p>
                 </div>
-              </ChartCard>
-            </div>
+                
+                <div className="p-4 rounded-lg bg-gradient-premium">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Taxa de Entrega
+                    </span>
+                  </div>
+                  <p className="text-2xl font-black text-primary mt-2">94%</p>
+                  <p className="text-xs text-muted-foreground">no prazo</p>
+                </div>
+                
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Em Andamento
+                    </span>
+                  </div>
+                  <p className="text-2xl font-black text-primary mt-2">38</p>
+                  <p className="text-xs text-muted-foreground">documentos</p>
+                </div>
+                
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Online Agora
+                    </span>
+                  </div>
+                  <p className="text-2xl font-black text-primary mt-2">18</p>
+                  <p className="text-xs text-muted-foreground">tradutores</p>
+                </div>
+              </div>
+            </ChartCard>
           </div>
 
           {/* Documents Table */}
