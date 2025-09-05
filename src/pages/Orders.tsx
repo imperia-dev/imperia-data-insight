@@ -103,19 +103,19 @@ export function Orders() {
     },
   });
 
-  // Fetch last document
-  const { data: lastDocument } = useQuery({
-    queryKey: ["last-document"],
+  // Fetch last order
+  const { data: lastOrder } = useQuery({
+    queryKey: ["last-order"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("documents")
-        .select("id, document_name, created_at")
+        .from("orders")
+        .select("id, order_number, created_at")
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       
       if (error) {
-        console.log("No documents found or error:", error);
+        console.log("Error fetching last order:", error);
         return null;
       }
       return data;
@@ -144,6 +144,7 @@ export function Orders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["last-order"] }); // Invalidate last order query
       toast({
         title: "Pedido criado",
         description: "O pedido foi criado com sucesso.",
@@ -427,20 +428,20 @@ export function Orders() {
             isOperation={isOperation}
           />
 
-          {/* Last Document Added Card */}
+          {/* Last Order Added Card */}
           <Card className="mb-6">
             <CardHeader className="py-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Último Documento Incluído
+                Último Pedido Incluído
               </CardTitle>
             </CardHeader>
             <CardContent className="py-3">
               <div className="text-lg font-semibold">
-                {lastDocument ? lastDocument.id.slice(0, 8).toUpperCase() : "—"}
+                {lastOrder ? lastOrder.order_number : "—"}
               </div>
-              {lastDocument && (
+              {lastOrder && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  {lastDocument.document_name}
+                  ID: {lastOrder.id.slice(0, 8).toUpperCase()}
                 </p>
               )}
             </CardContent>
