@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText, ArrowUpDown, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
@@ -42,6 +42,8 @@ export default function ServiceProviderCosts() {
   const [editingCost, setEditingCost] = useState<ServiceProviderCost | null>(null);
   const { userRole } = useRoleAccess('/service-provider-costs');
   const [userName, setUserName] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("created_desc");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -187,9 +189,71 @@ export default function ServiceProviderCosts() {
     }
   };
 
-  const totalAmount = costs.reduce((sum, cost) => sum + cost.amount, 0);
-  const totalPaid = costs.filter(c => c.status === 'Pago').reduce((sum, cost) => sum + cost.amount, 0);
-  const totalPending = costs.filter(c => c.status !== 'Pago').reduce((sum, cost) => sum + cost.amount, 0);
+  // Filter and sort costs
+  const filteredCosts = useMemo(() => {
+    let result = costs;
+    
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(cost => 
+        cost.name.toLowerCase().includes(term) ||
+        cost.email.toLowerCase().includes(term) ||
+        cost.type.toLowerCase().includes(term) ||
+        cost.competence.toLowerCase().includes(term) ||
+        cost.status.toLowerCase().includes(term) ||
+        (cost.cpf && cost.cpf.includes(term)) ||
+        (cost.cnpj && cost.cnpj.includes(term))
+      );
+    }
+    
+    // Apply sorting
+    const sorted = [...result];
+    switch (sortBy) {
+      case "created_desc":
+        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case "created_asc":
+        sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case "amount_asc":
+        sorted.sort((a, b) => a.amount - b.amount);
+        break;
+      case "amount_desc":
+        sorted.sort((a, b) => b.amount - a.amount);
+        break;
+      case "name_asc":
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case "name_desc":
+        sorted.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case "type_asc":
+        sorted.sort((a, b) => a.type.localeCompare(b.type));
+        break;
+      case "type_desc":
+        sorted.sort((a, b) => b.type.localeCompare(a.type));
+        break;
+      case "status_asc":
+        sorted.sort((a, b) => a.status.localeCompare(b.status));
+        break;
+      case "status_desc":
+        sorted.sort((a, b) => b.status.localeCompare(a.status));
+        break;
+      case "competence_asc":
+        sorted.sort((a, b) => a.competence.localeCompare(b.competence));
+        break;
+      case "competence_desc":
+        sorted.sort((a, b) => b.competence.localeCompare(a.competence));
+        break;
+    }
+    
+    return sorted;
+  }, [costs, searchTerm, sortBy]);
+
+  const totalAmount = filteredCosts.reduce((sum, cost) => sum + cost.amount, 0);
+  const totalPaid = filteredCosts.filter(c => c.status === 'Pago').reduce((sum, cost) => sum + cost.amount, 0);
+  const totalPending = filteredCosts.filter(c => c.status !== 'Pago').reduce((sum, cost) => sum + cost.amount, 0);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -208,7 +272,7 @@ export default function ServiceProviderCosts() {
     const exportData = {
       title: 'Custos - Prestadores de Serviço',
       headers: ['Nome', 'Email', 'CPF/CNPJ', 'Telefone', 'Tipo', 'Dias', 'Chave PIX', 'NF', 'Competência', 'Status', 'Valor'],
-      rows: costs.map(cost => [
+      rows: filteredCosts.map(cost => [
         cost.name,
         cost.email,
         cost.cpf || cost.cnpj || '-',
@@ -234,7 +298,7 @@ export default function ServiceProviderCosts() {
     const exportData = {
       title: 'Custos - Prestadores de Serviço',
       headers: ['Nome', 'Email', 'CPF/CNPJ', 'Telefone', 'Tipo', 'Dias', 'Chave PIX', 'NF', 'Competência', 'Status', 'Valor'],
-      rows: costs.map(cost => [
+      rows: filteredCosts.map(cost => [
         cost.name,
         cost.email,
         cost.cpf || cost.cnpj || '-',
@@ -266,6 +330,46 @@ export default function ServiceProviderCosts() {
       <Sidebar userRole={userRole} />
       <div className="md:ml-64 pt-16">
         <div className="container mx-auto py-8 px-4">
+          {/* Search and Sort bar */}
+          <div className="flex gap-4 items-end mb-4">
+            <div className="flex-1 max-w-md">
+              <Label htmlFor="search">Buscar</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  id="search"
+                  placeholder="Buscar por nome, email, tipo, competência, status..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="w-64">
+              <Label className="text-sm mb-2 block">Ordenar por</Label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created_desc">Data (Mais Recente)</SelectItem>
+                  <SelectItem value="created_asc">Data (Mais Antiga)</SelectItem>
+                  <SelectItem value="amount_asc">Valor (Menor)</SelectItem>
+                  <SelectItem value="amount_desc">Valor (Maior)</SelectItem>
+                  <SelectItem value="name_asc">Nome (A-Z)</SelectItem>
+                  <SelectItem value="name_desc">Nome (Z-A)</SelectItem>
+                  <SelectItem value="type_asc">Tipo (A-Z)</SelectItem>
+                  <SelectItem value="type_desc">Tipo (Z-A)</SelectItem>
+                  <SelectItem value="status_asc">Status (A-Z)</SelectItem>
+                  <SelectItem value="status_desc">Status (Z-A)</SelectItem>
+                  <SelectItem value="competence_asc">Competência (A-Z)</SelectItem>
+                  <SelectItem value="competence_desc">Competência (Z-A)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
       <Card>
         <CardHeader>
           <div className="flex flex-row items-center justify-between">
@@ -516,7 +620,7 @@ export default function ServiceProviderCosts() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {costs.map((cost) => (
+                {filteredCosts.map((cost) => (
                   <TableRow key={cost.id}>
                     <TableCell className="font-medium">{cost.name}</TableCell>
                     <TableCell>{cost.email}</TableCell>

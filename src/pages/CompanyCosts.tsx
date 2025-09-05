@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, FileSpreadsheet, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +59,7 @@ export default function CompanyCosts() {
   const { userRole } = useRoleAccess('/company-costs');
   const [userName, setUserName] = useState<string>("");
   const [filters, setFilters] = useState<any>({});
+  const [sortBy, setSortBy] = useState("date_desc");
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     category: "",
@@ -180,7 +181,7 @@ export default function CompanyCosts() {
     }
   };
 
-  // Filter costs based on filters
+  // Filter and sort costs
   const filteredCosts = useMemo(() => {
     let filtered = [...costs];
 
@@ -242,8 +243,37 @@ export default function CompanyCosts() {
       );
     }
 
-    return filtered;
-  }, [costs, filters]);
+    // Apply sorting
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case "date_desc":
+        sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        break;
+      case "date_asc":
+        sorted.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        break;
+      case "amount_asc":
+        sorted.sort((a, b) => a.amount - b.amount);
+        break;
+      case "amount_desc":
+        sorted.sort((a, b) => b.amount - a.amount);
+        break;
+      case "category_asc":
+        sorted.sort((a, b) => a.category.localeCompare(b.category));
+        break;
+      case "category_desc":
+        sorted.sort((a, b) => b.category.localeCompare(a.category));
+        break;
+      case "description_asc":
+        sorted.sort((a, b) => a.description.localeCompare(b.description));
+        break;
+      case "description_desc":
+        sorted.sort((a, b) => b.description.localeCompare(a.description));
+        break;
+    }
+
+    return sorted;
+  }, [costs, filters, sortBy]);
 
   const totalAmount = filteredCosts.reduce((sum, cost) => sum + cost.amount, 0);
 
@@ -295,12 +325,35 @@ export default function CompanyCosts() {
       <Sidebar userRole={userRole} />
       <div className="md:ml-64 pt-16">
         <div className="container mx-auto py-8 px-4">
-          {/* Filters Component */}
-          <CompanyCostFilters 
-            onFiltersChange={setFilters}
-            categories={categories}
-            subCategories={subCategories}
-          />
+          {/* Filters and Sort Component */}
+          <div className="flex gap-4 items-end mb-4">
+            <div className="flex-1">
+              <CompanyCostFilters 
+                onFiltersChange={setFilters}
+                categories={categories}
+                subCategories={subCategories}
+              />
+            </div>
+            <div className="w-64">
+              <Label className="text-sm mb-2 block">Ordenar por</Label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date_desc">Data (Mais Recente)</SelectItem>
+                  <SelectItem value="date_asc">Data (Mais Antiga)</SelectItem>
+                  <SelectItem value="amount_asc">Valor (Menor)</SelectItem>
+                  <SelectItem value="amount_desc">Valor (Maior)</SelectItem>
+                  <SelectItem value="category_asc">Categoria (A-Z)</SelectItem>
+                  <SelectItem value="category_desc">Categoria (Z-A)</SelectItem>
+                  <SelectItem value="description_asc">Descrição (A-Z)</SelectItem>
+                  <SelectItem value="description_desc">Descrição (Z-A)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           
       <Card>
         <CardHeader>

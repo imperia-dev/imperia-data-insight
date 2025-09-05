@@ -23,10 +23,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, Edit, Save } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
 
@@ -37,6 +44,7 @@ export function Orders() {
   const [lastOrderId, setLastOrderId] = useState("");
   const [isEditingLastOrder, setIsEditingLastOrder] = useState(false);
   const [tempLastOrderId, setTempLastOrderId] = useState("");
+  const [sortBy, setSortBy] = useState("urgent_created");
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -278,7 +286,7 @@ export function Orders() {
   const isMaster = profile?.role === "master";
   const isOperation = profile?.role === "operation";
 
-  // Apply filters
+  // Apply filters and sorting
   const filteredOrders = useMemo(() => {
     let result = orders || [];
 
@@ -368,8 +376,45 @@ export function Orders() {
       );
     }
 
-    return result;
-  }, [orders, filters, isOperation, user?.id]);
+    // Apply sorting
+    const sortedResult = [...result];
+    switch (sortBy) {
+      case "urgent_created":
+        sortedResult.sort((a, b) => {
+          if (a.is_urgent !== b.is_urgent) {
+            return a.is_urgent ? -1 : 1;
+          }
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+        break;
+      case "deadline_asc":
+        sortedResult.sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+        break;
+      case "deadline_desc":
+        sortedResult.sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime());
+        break;
+      case "documents_asc":
+        sortedResult.sort((a, b) => a.document_count - b.document_count);
+        break;
+      case "documents_desc":
+        sortedResult.sort((a, b) => b.document_count - a.document_count);
+        break;
+      case "order_number_asc":
+        sortedResult.sort((a, b) => a.order_number.localeCompare(b.order_number));
+        break;
+      case "order_number_desc":
+        sortedResult.sort((a, b) => b.order_number.localeCompare(a.order_number));
+        break;
+      case "created_asc":
+        sortedResult.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case "created_desc":
+        sortedResult.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+    }
+
+    return sortedResult;
+  }, [orders, filters, isOperation, user?.id, sortBy]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -460,11 +505,35 @@ export function Orders() {
             )}
           </div>
 
-          <OrderFilters 
-            onFiltersChange={setFilters} 
-            profiles={allProfiles || []}
-            isOperation={isOperation}
-          />
+          <div className="flex gap-4 items-end mb-4">
+            <div className="flex-1">
+              <OrderFilters 
+                onFiltersChange={setFilters} 
+                profiles={allProfiles || []}
+                isOperation={isOperation}
+              />
+            </div>
+            <div className="w-64">
+              <Label className="text-sm mb-2 block">Ordenar por</Label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="urgent_created">Urgente + Mais Recente</SelectItem>
+                  <SelectItem value="deadline_asc">Prazo (Mais Próximo)</SelectItem>
+                  <SelectItem value="deadline_desc">Prazo (Mais Distante)</SelectItem>
+                  <SelectItem value="documents_asc">Documentos (Menor)</SelectItem>
+                  <SelectItem value="documents_desc">Documentos (Maior)</SelectItem>
+                  <SelectItem value="order_number_asc">ID do Pedido (A-Z)</SelectItem>
+                  <SelectItem value="order_number_desc">ID do Pedido (Z-A)</SelectItem>
+                  <SelectItem value="created_asc">Data Criação (Mais Antigo)</SelectItem>
+                  <SelectItem value="created_desc">Data Criação (Mais Recente)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           {/* Last Order ID Input Card */}
           <Card className="mb-6">
