@@ -34,6 +34,7 @@ export function Orders() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState("");
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -103,24 +104,6 @@ export function Orders() {
     },
   });
 
-  // Fetch last order
-  const { data: lastOrder } = useQuery({
-    queryKey: ["last-order"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("id, order_number, created_at")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (error) {
-        console.log("Error fetching last order:", error);
-        return null;
-      }
-      return data;
-    },
-  });
 
   // Create order mutation (admin and master)
   const createOrderMutation = useMutation({
@@ -144,7 +127,6 @@ export function Orders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["last-order"] }); // Invalidate last order query
       toast({
         title: "Pedido criado",
         description: "O pedido foi criado com sucesso.",
@@ -428,22 +410,20 @@ export function Orders() {
             isOperation={isOperation}
           />
 
-          {/* Last Order Added Card */}
+          {/* Last Order ID Input Card */}
           <Card className="mb-6">
             <CardHeader className="py-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Último Pedido Incluído
+                Último Documento Incluído
               </CardTitle>
             </CardHeader>
             <CardContent className="py-3">
-              <div className="text-lg font-semibold">
-                {lastOrder ? lastOrder.order_number : "—"}
-              </div>
-              {lastOrder && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  ID: {lastOrder.id.slice(0, 8).toUpperCase()}
-                </p>
-              )}
+              <Input
+                placeholder="Digite o ID do pedido"
+                value={lastOrderId}
+                onChange={(e) => setLastOrderId(e.target.value)}
+                className="max-w-xs"
+              />
             </CardContent>
           </Card>
 
