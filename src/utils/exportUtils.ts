@@ -74,10 +74,10 @@ export const exportToExcel = (data: ExportData) => {
   XLSX.writeFile(wb, fileName);
 };
 
-export const exportToPDF = (data: ExportData) => {
+export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'landscape') => {
   // Create new PDF document
   const doc = new jsPDF({
-    orientation: data.headers.length > 6 ? 'landscape' : 'portrait',
+    orientation: forceOrientation || (data.headers.length > 6 ? 'landscape' : 'portrait'),
     unit: 'mm',
     format: 'a4'
   });
@@ -108,16 +108,17 @@ export const exportToPDF = (data: ExportData) => {
     theme: 'grid',
     styles: {
       font: 'helvetica',
-      fontSize: 9,
-      cellPadding: 3,
+      fontSize: 8,
+      cellPadding: 2,
       textColor: [44, 62, 80],
       lineColor: [189, 195, 199],
       lineWidth: 0.1,
+      overflow: 'linebreak',
     },
     headStyles: {
       fillColor: [52, 73, 94],
       textColor: [255, 255, 255],
-      fontSize: 10,
+      fontSize: 9,
       fontStyle: 'bold',
       halign: 'center',
     },
@@ -125,10 +126,19 @@ export const exportToPDF = (data: ExportData) => {
       fillColor: [245, 248, 250],
     },
     columnStyles: {
-      0: { halign: 'left' },
-      [data.headers.length - 1]: { halign: 'right' },
+      0: { halign: 'left', cellWidth: 'auto' },
+      1: { halign: 'left', cellWidth: 'auto' },
+      2: { halign: 'left', cellWidth: 'auto' },
+      3: { halign: 'left', cellWidth: 'auto' },
+      4: { halign: 'center', cellWidth: 'auto' },
+      5: { halign: 'center', cellWidth: 'auto' },
+      6: { halign: 'left', cellWidth: 'auto' },
+      7: { halign: 'center', cellWidth: 'auto' },
+      8: { halign: 'center', cellWidth: 'auto' },
+      9: { halign: 'center', cellWidth: 'auto' },
+      [data.headers.length - 1]: { halign: 'right', cellWidth: 'auto' },
     },
-    margin: { top: 35, left: 14, right: 14 },
+    margin: { top: 35, left: 10, right: 10 },
     didDrawPage: (data) => {
       // Add page number
       const pageCount = doc.internal.pages.length - 1;

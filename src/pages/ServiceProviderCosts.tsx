@@ -430,7 +430,7 @@ export default function ServiceProviderCosts() {
         { label: 'Total Pendente', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPending) }
       ]
     };
-    exportToPDF(exportData);
+    exportToPDF(exportData, 'landscape');
   };
 
   if (loading) {
