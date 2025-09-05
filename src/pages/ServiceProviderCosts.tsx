@@ -14,6 +14,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/contexts/AuthContext";
+import { PaymentChart } from "@/components/serviceProviderCosts/PaymentChart";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 
 interface ServiceProviderCost {
@@ -867,6 +868,9 @@ export default function ServiceProviderCosts() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment Chart */}
+      <PaymentChart costs={filteredCosts} />
         </div>
       </div>
     </div>
