@@ -17,6 +17,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { CompanyCostFilters } from "@/components/companyCosts/CompanyCostFilters";
+import { CategoryChart } from "@/components/companyCosts/CategoryChart";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 
 interface CompanyCost {
@@ -761,6 +762,9 @@ export default function CompanyCosts() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Category Charts */}
+      <CategoryChart costs={filteredCosts} />
         </div>
       </div>
     </div>
