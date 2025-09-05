@@ -103,6 +103,25 @@ export function Orders() {
     },
   });
 
+  // Fetch last document
+  const { data: lastDocument } = useQuery({
+    queryKey: ["last-document"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documents")
+        .select("id, document_name, created_at")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error) {
+        console.log("No documents found or error:", error);
+        return null;
+      }
+      return data;
+    },
+  });
+
   // Create order mutation (admin and master)
   const createOrderMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -407,6 +426,25 @@ export function Orders() {
             profiles={allProfiles || []}
             isOperation={isOperation}
           />
+
+          {/* Last Document Added Card */}
+          <Card className="mb-6">
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Último Documento Incluído
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="py-3">
+              <div className="text-lg font-semibold">
+                {lastDocument ? lastDocument.id.slice(0, 8).toUpperCase() : "—"}
+              </div>
+              {lastDocument && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {lastDocument.document_name}
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
