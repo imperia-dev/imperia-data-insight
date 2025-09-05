@@ -4,14 +4,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Role, canAccessRoute } from "@/lib/permissions";
 
 export const useRoleAccess = (pathname: string) => {
-  const { user, session } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     const checkAccess = async () => {
-      // Wait for session to be checked
+      // If auth is still loading, wait
+      if (authLoading) {
+        return;
+      }
+
+      // If no session after auth loading is complete, deny access
       if (!session) {
         setLoading(false);
         setHasAccess(false);
@@ -66,7 +71,7 @@ export const useRoleAccess = (pathname: string) => {
     };
 
     checkAccess();
-  }, [session, pathname]);
+  }, [session, pathname, authLoading]);
 
-  return { userRole, loading, hasAccess };
+  return { userRole, loading: loading || authLoading, hasAccess };
 };
