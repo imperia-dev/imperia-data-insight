@@ -123,7 +123,7 @@ export function Sidebar({ userRole }: SidebarProps) {
   const location = useLocation();
 
   const filteredNavigation = navigation.filter((item) =>
-    item.roles.includes(userRole.toLowerCase())
+    userRole ? item.roles.includes(userRole.toLowerCase()) : false
   );
 
   return (
