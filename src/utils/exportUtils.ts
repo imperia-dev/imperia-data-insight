@@ -273,9 +273,7 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
           doc.setFillColor(230, 230, 230);
           doc.rect(x + 1, y + barHeight, barWidth, 1, 'F');
           
-          // Add value on top of bar with background
-          doc.setFillColor(255, 255, 255);
-          doc.roundedRect(x - 5, y - 12, barWidth + 10, 10, 2, 2, 'F');
+          // Add value on top of bar
           doc.setFontSize(7);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(52, 152, 219);
@@ -286,7 +284,7 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
               notation: 'compact',
               maximumFractionDigits: 1
             }).format(item.value);
-          doc.text(formattedValue, x + barWidth / 2, y - 5, { align: 'center' });
+          doc.text(formattedValue, x + barWidth / 2, y - 3, { align: 'center' });
           
           // Add label below bar
           doc.setFontSize(6);
