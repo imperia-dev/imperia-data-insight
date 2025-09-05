@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, FileSpreadsheet, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { CompanyCostFilters } from "@/components/companyCosts/CompanyCostFilters";
+import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 
 interface CompanyCost {
   id: string;
@@ -246,6 +247,44 @@ export default function CompanyCosts() {
 
   const totalAmount = filteredCosts.reduce((sum, cost) => sum + cost.amount, 0);
 
+  const handleExportExcel = () => {
+    const exportData = {
+      title: 'Custos - Empresa',
+      headers: ['Data', 'Categoria', 'Sub Categoria', 'Descrição', 'Observações', 'Valor'],
+      rows: filteredCosts.map(cost => [
+        format(new Date(cost.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }),
+        cost.category,
+        cost.sub_category || '-',
+        cost.description,
+        cost.observations || '-',
+        `R$ ${cost.amount.toFixed(2)}`
+      ]),
+      totals: [
+        { label: 'Total Geral', value: `R$ ${totalAmount.toFixed(2)}` }
+      ]
+    };
+    exportToExcel(exportData);
+  };
+
+  const handleExportPDF = () => {
+    const exportData = {
+      title: 'Custos - Empresa',
+      headers: ['Data', 'Categoria', 'Sub Categoria', 'Descrição', 'Observações', 'Valor'],
+      rows: filteredCosts.map(cost => [
+        format(new Date(cost.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }),
+        cost.category,
+        cost.sub_category || '-',
+        cost.description,
+        cost.observations || '-',
+        `R$ ${cost.amount.toFixed(2)}`
+      ]),
+      totals: [
+        { label: 'Total Geral', value: `R$ ${totalAmount.toFixed(2)}` }
+      ]
+    };
+    exportToPDF(exportData);
+  };
+
   if (loading) {
           return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
@@ -264,9 +303,27 @@ export default function CompanyCosts() {
           />
           
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-2xl font-bold">Custos - Empresa</CardTitle>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between">
+            <CardTitle className="text-2xl font-bold">Custos - Empresa</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                className="flex items-center gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExportPDF}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Exportar PDF
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
                 setEditingCost(null);
@@ -381,7 +438,9 @@ export default function CompanyCosts() {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
+              </Dialog>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
             <div className="mb-4 p-4 bg-muted rounded-lg flex justify-between items-center">

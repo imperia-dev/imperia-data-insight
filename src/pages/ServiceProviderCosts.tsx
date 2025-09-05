@@ -7,13 +7,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, User } from "lucide-react";
+import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/contexts/AuthContext";
+import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 
 interface ServiceProviderCost {
   id: string;
@@ -203,6 +204,58 @@ export default function ServiceProviderCosts() {
     }
   };
 
+  const handleExportExcel = () => {
+    const exportData = {
+      title: 'Custos - Prestadores de Serviço',
+      headers: ['Nome', 'Email', 'CPF/CNPJ', 'Telefone', 'Tipo', 'Dias', 'Chave PIX', 'NF', 'Competência', 'Status', 'Valor'],
+      rows: costs.map(cost => [
+        cost.name,
+        cost.email,
+        cost.cpf || cost.cnpj || '-',
+        cost.phone || '-',
+        cost.type,
+        cost.days_worked?.toString() || '-',
+        cost.pix_key || '-',
+        cost.invoice_number || '-',
+        cost.competence,
+        cost.status,
+        `R$ ${cost.amount.toFixed(2)}`
+      ]),
+      totals: [
+        { label: 'Total Geral', value: `R$ ${totalAmount.toFixed(2)}` },
+        { label: 'Total Pago', value: `R$ ${totalPaid.toFixed(2)}` },
+        { label: 'Total Pendente', value: `R$ ${totalPending.toFixed(2)}` }
+      ]
+    };
+    exportToExcel(exportData);
+  };
+
+  const handleExportPDF = () => {
+    const exportData = {
+      title: 'Custos - Prestadores de Serviço',
+      headers: ['Nome', 'Email', 'CPF/CNPJ', 'Telefone', 'Tipo', 'Dias', 'Chave PIX', 'NF', 'Competência', 'Status', 'Valor'],
+      rows: costs.map(cost => [
+        cost.name,
+        cost.email,
+        cost.cpf || cost.cnpj || '-',
+        cost.phone || '-',
+        cost.type,
+        cost.days_worked?.toString() || '-',
+        cost.pix_key || '-',
+        cost.invoice_number || '-',
+        cost.competence,
+        cost.status,
+        `R$ ${cost.amount.toFixed(2)}`
+      ]),
+      totals: [
+        { label: 'Total Geral', value: `R$ ${totalAmount.toFixed(2)}` },
+        { label: 'Total Pago', value: `R$ ${totalPaid.toFixed(2)}` },
+        { label: 'Total Pendente', value: `R$ ${totalPending.toFixed(2)}` }
+      ]
+    };
+    exportToPDF(exportData);
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
@@ -214,9 +267,27 @@ export default function ServiceProviderCosts() {
       <div className="md:ml-64 pt-16">
         <div className="container mx-auto py-8 px-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-2xl font-bold">Custos - Prestadores de Serviço</CardTitle>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between">
+            <CardTitle className="text-2xl font-bold">Custos - Prestadores de Serviço</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                className="flex items-center gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExportPDF}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Exportar PDF
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
                 setEditingCost(null);
@@ -386,7 +457,9 @@ export default function ServiceProviderCosts() {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
+              </Dialog>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
