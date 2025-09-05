@@ -4,14 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Role, canAccessRoute } from "@/lib/permissions";
 
 export const useRoleAccess = (pathname: string) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     const checkAccess = async () => {
-      if (!user) {
+      // Wait for session to be checked
+      if (!session) {
         setLoading(false);
         setHasAccess(false);
         return;
@@ -22,7 +23,7 @@ export const useRoleAccess = (pathname: string) => {
         const { data, error } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', user.id)
+          .eq('id', session.user.id)
           .single();
 
         if (error || !data) {
@@ -40,7 +41,7 @@ export const useRoleAccess = (pathname: string) => {
         // Check if the user role is valid
         const validRoles: Role[] = ['owner', 'master', 'admin', 'operation'];
         if (!validRoles.includes(data.role as Role)) {
-          console.error(`Invalid role '${data.role}' for user ${user.id}`);
+          console.error(`Invalid role '${data.role}' for user ${session.user.id}`);
           setHasAccess(false);
           setLoading(false);
           return;
@@ -65,7 +66,7 @@ export const useRoleAccess = (pathname: string) => {
     };
 
     checkAccess();
-  }, [user, pathname]);
+  }, [session, pathname]);
 
   return { userRole, loading, hasAccess };
 };
