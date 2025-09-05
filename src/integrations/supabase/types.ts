@@ -342,6 +342,7 @@ export type Database = {
           created_by: string | null
           days_worked: number | null
           email: string
+          files: string[] | null
           id: string
           invoice_number: string | null
           name: string
@@ -360,6 +361,7 @@ export type Database = {
           created_by?: string | null
           days_worked?: number | null
           email: string
+          files?: string[] | null
           id?: string
           invoice_number?: string | null
           name: string
@@ -378,6 +380,7 @@ export type Database = {
           created_by?: string | null
           days_worked?: number | null
           email?: string
+          files?: string[] | null
           id?: string
           invoice_number?: string | null
           name?: string

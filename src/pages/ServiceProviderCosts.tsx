@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText, ArrowUpDown, Search } from "lucide-react";
+import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText, ArrowUpDown, Search, Upload, Paperclip, Download, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
@@ -30,6 +30,7 @@ interface ServiceProviderCost {
   invoice_number: string | null;
   competence: string;
   status: 'Pago' | 'Não Pago' | 'Pendente';
+  files?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +45,8 @@ export default function ServiceProviderCosts() {
   const [userName, setUserName] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("created_desc");
+  const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, File[]>>({});
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -175,6 +178,21 @@ export default function ServiceProviderCosts() {
     if (!confirm("Tem certeza que deseja excluir este prestador?")) return;
 
     try {
+      // First, get the cost to check for files
+      const cost = costs.find(c => c.id === id);
+      
+      // If there are files, delete them from storage
+      if (cost?.files && cost.files.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('service-provider-files')
+          .remove(cost.files);
+        
+        if (storageError) {
+          console.error('Error deleting files from storage:', storageError);
+        }
+      }
+      
+      // Then delete the cost record
       const { error } = await supabase
         .from('service_provider_costs')
         .delete()
@@ -186,6 +204,101 @@ export default function ServiceProviderCosts() {
     } catch (error) {
       console.error('Error deleting service provider cost:', error);
       toast.error("Erro ao excluir prestador");
+    }
+  };
+
+  const handleFileUpload = async (costId: string, files: FileList) => {
+    if (files.length === 0) return;
+    
+    setUploadingFiles(prev => ({ ...prev, [costId]: true }));
+    
+    try {
+      const uploadedPaths: string[] = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileName = `${costId}/${Date.now()}_${file.name}`;
+        
+        const { data, error } = await supabase.storage
+          .from('service-provider-files')
+          .upload(fileName, file);
+        
+        if (error) throw error;
+        uploadedPaths.push(data.path);
+      }
+      
+      // Get current files for the cost
+      const cost = costs.find(c => c.id === costId);
+      const currentFiles = cost?.files || [];
+      
+      // Update the cost with new file paths
+      const { error: updateError } = await supabase
+        .from('service_provider_costs')
+        .update({ files: [...currentFiles, ...uploadedPaths] })
+        .eq('id', costId);
+      
+      if (updateError) throw updateError;
+      
+      toast.success(`${files.length} arquivo(s) enviado(s) com sucesso`);
+      fetchCosts();
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast.error("Erro ao enviar arquivos");
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [costId]: false }));
+    }
+  };
+
+  const handleFileDownload = async (filePath: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('service-provider-files')
+        .download(filePath);
+      
+      if (error) throw error;
+      
+      // Create a download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filePath.split('/').pop() || 'file';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error("Erro ao baixar arquivo");
+    }
+  };
+
+  const handleFileRemove = async (costId: string, filePath: string) => {
+    if (!confirm("Tem certeza que deseja remover este arquivo?")) return;
+    
+    try {
+      // Remove from storage
+      const { error: deleteError } = await supabase.storage
+        .from('service-provider-files')
+        .remove([filePath]);
+      
+      if (deleteError) throw deleteError;
+      
+      // Update cost to remove file path
+      const cost = costs.find(c => c.id === costId);
+      const updatedFiles = (cost?.files || []).filter(f => f !== filePath);
+      
+      const { error: updateError } = await supabase
+        .from('service_provider_costs')
+        .update({ files: updatedFiles })
+        .eq('id', costId);
+      
+      if (updateError) throw updateError;
+      
+      toast.success("Arquivo removido com sucesso");
+      fetchCosts();
+    } catch (error) {
+      console.error('Error removing file:', error);
+      toast.error("Erro ao remover arquivo");
     }
   };
 
@@ -620,6 +733,7 @@ export default function ServiceProviderCosts() {
                   <TableHead>Competência</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Arquivos</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -647,6 +761,86 @@ export default function ServiceProviderCosts() {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
                       }).format(cost.amount)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-2">
+                        {/* File upload input */}
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="file"
+                            multiple
+                            id={`file-upload-${cost.id}`}
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                handleFileUpload(cost.id, e.target.files);
+                              }
+                            }}
+                            disabled={uploadingFiles[cost.id]}
+                          />
+                          <Label
+                            htmlFor={`file-upload-${cost.id}`}
+                            className="cursor-pointer"
+                          >
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={uploadingFiles[cost.id]}
+                              asChild
+                            >
+                              <span>
+                                {uploadingFiles[cost.id] ? (
+                                  <span className="flex items-center gap-1">
+                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                    Enviando...
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <Upload className="h-3 w-3" />
+                                    Adicionar
+                                  </span>
+                                )}
+                              </span>
+                            </Button>
+                          </Label>
+                        </div>
+                        
+                        {/* List uploaded files */}
+                        {cost.files && cost.files.length > 0 && (
+                          <div className="space-y-1">
+                            {cost.files.map((file, index) => {
+                              const fileName = file.split('/').pop() || `Arquivo ${index + 1}`;
+                              return (
+                                <div
+                                  key={file}
+                                  className="flex items-center gap-1 text-xs bg-muted rounded px-2 py-1"
+                                >
+                                  <Paperclip className="h-3 w-3" />
+                                  <span className="flex-1 truncate max-w-[100px]" title={fileName}>
+                                    {fileName}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-5 w-5 p-0"
+                                    onClick={() => handleFileDownload(file)}
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-5 w-5 p-0"
+                                    onClick={() => handleFileRemove(cost.id, file)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
