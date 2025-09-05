@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,11 +28,26 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, Package, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
 
 export function Orders() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<OrderFiltersType>({
+    orderNumber: "",
+    status: "all",
+    assignedTo: "all",
+    deadlineFrom: "",
+    deadlineTo: "",
+    attributionFrom: "",
+    attributionTo: "",
+    documentCountMin: "",
+    documentCountMax: "",
+    isUrgent: "all",
+    deliveredFrom: "",
+    deliveredTo: "",
+  });
   const [formData, setFormData] = useState({
     order_number: "",
     document_count: "",
@@ -54,6 +69,20 @@ export function Orders() {
       return data;
     },
     enabled: !!user?.id,
+  });
+
+  // Fetch all profiles for filter dropdown
+  const { data: allProfiles } = useQuery({
+    queryKey: ["profiles-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .order("full_name");
+      
+      if (error) throw error;
+      return data;
+    },
   });
 
   // Fetch orders
@@ -191,10 +220,98 @@ export function Orders() {
   const isMaster = profile?.role === "master";
   const isOperation = profile?.role === "operation";
 
-  // Filter orders for operation users
-  const filteredOrders = isOperation 
-    ? orders?.filter(order => !order.assigned_to || order.assigned_to === user?.id)
-    : orders;
+  // Apply filters
+  const filteredOrders = useMemo(() => {
+    let result = orders || [];
+
+    // Filter for operation users first
+    if (isOperation) {
+      result = result.filter(order => !order.assigned_to || order.assigned_to === user?.id);
+    }
+
+    // Apply search filters
+    if (filters.orderNumber) {
+      result = result.filter(order => 
+        order.order_number.toLowerCase().includes(filters.orderNumber.toLowerCase())
+      );
+    }
+
+    // Status filter
+    if (filters.status !== "all") {
+      result = result.filter(order => {
+        if (filters.status === "available") return order.status_order === "available";
+        if (filters.status === "in_progress") return order.status_order === "in_progress";
+        if (filters.status === "delivered") return order.status_order === "delivered" || order.delivered_at;
+        return true;
+      });
+    }
+
+    // Urgent filter
+    if (filters.isUrgent !== "all") {
+      result = result.filter(order => 
+        filters.isUrgent === "true" ? order.is_urgent : !order.is_urgent
+      );
+    }
+
+    // Assigned to filter
+    if (filters.assignedTo !== "all" && !isOperation) {
+      if (filters.assignedTo === "unassigned") {
+        result = result.filter(order => !order.assigned_to);
+      } else {
+        result = result.filter(order => order.assigned_to === filters.assignedTo);
+      }
+    }
+
+    // Document count filters
+    if (filters.documentCountMin) {
+      result = result.filter(order => 
+        order.document_count >= parseInt(filters.documentCountMin)
+      );
+    }
+    if (filters.documentCountMax) {
+      result = result.filter(order => 
+        order.document_count <= parseInt(filters.documentCountMax)
+      );
+    }
+
+    // Deadline filters
+    if (filters.deadlineFrom) {
+      result = result.filter(order => 
+        new Date(order.deadline) >= new Date(filters.deadlineFrom)
+      );
+    }
+    if (filters.deadlineTo) {
+      result = result.filter(order => 
+        new Date(order.deadline) <= new Date(filters.deadlineTo)
+      );
+    }
+
+    // Attribution date filters
+    if (filters.attributionFrom && !isOperation) {
+      result = result.filter(order => 
+        order.attribution_date && new Date(order.attribution_date) >= new Date(filters.attributionFrom)
+      );
+    }
+    if (filters.attributionTo && !isOperation) {
+      result = result.filter(order => 
+        order.attribution_date && new Date(order.attribution_date) <= new Date(filters.attributionTo)
+      );
+    }
+
+    // Delivered date filters
+    if (filters.deliveredFrom && !isOperation) {
+      result = result.filter(order => 
+        order.delivered_at && new Date(order.delivered_at) >= new Date(filters.deliveredFrom)
+      );
+    }
+    if (filters.deliveredTo && !isOperation) {
+      result = result.filter(order => 
+        order.delivered_at && new Date(order.delivered_at) <= new Date(filters.deliveredTo)
+      );
+    }
+
+    return result;
+  }, [orders, filters, isOperation, user?.id]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -284,6 +401,12 @@ export function Orders() {
               </Dialog>
             )}
           </div>
+
+          <OrderFilters 
+            onFiltersChange={setFilters} 
+            profiles={allProfiles || []}
+            isOperation={isOperation}
+          />
 
           <Card>
             <CardHeader>
