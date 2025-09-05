@@ -219,12 +219,12 @@ export default function ServiceProviderCosts() {
         cost.invoice_number || '-',
         cost.competence,
         cost.status,
-        `R$ ${cost.amount.toFixed(2)}`
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cost.amount)
       ]),
       totals: [
-        { label: 'Total Geral', value: `R$ ${totalAmount.toFixed(2)}` },
-        { label: 'Total Pago', value: `R$ ${totalPaid.toFixed(2)}` },
-        { label: 'Total Pendente', value: `R$ ${totalPending.toFixed(2)}` }
+        { label: 'Total Geral', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalAmount) },
+        { label: 'Total Pago', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPaid) },
+        { label: 'Total Pendente', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPending) }
       ]
     };
     exportToExcel(exportData);
@@ -245,12 +245,12 @@ export default function ServiceProviderCosts() {
         cost.invoice_number || '-',
         cost.competence,
         cost.status,
-        `R$ ${cost.amount.toFixed(2)}`
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cost.amount)
       ]),
       totals: [
-        { label: 'Total Geral', value: `R$ ${totalAmount.toFixed(2)}` },
-        { label: 'Total Pago', value: `R$ ${totalPaid.toFixed(2)}` },
-        { label: 'Total Pendente', value: `R$ ${totalPending.toFixed(2)}` }
+        { label: 'Total Geral', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalAmount) },
+        { label: 'Total Pago', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPaid) },
+        { label: 'Total Pendente', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPending) }
       ]
     };
     exportToPDF(exportData);
@@ -466,19 +466,34 @@ export default function ServiceProviderCosts() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold text-primary">R$ {totalAmount.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-primary">{new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                }).format(totalAmount)}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Total Pago</p>
-                <p className="text-2xl font-bold text-green-600">R$ {totalPaid.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                }).format(totalPaid)}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Total Pendente</p>
-                <p className="text-2xl font-bold text-yellow-600">R$ {totalPending.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-yellow-600">{new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                }).format(totalPending)}</p>
               </CardContent>
             </Card>
           </div>
@@ -518,7 +533,12 @@ export default function ServiceProviderCosts() {
                     <TableCell>{cost.competence}</TableCell>
                     <TableCell>{getStatusBadge(cost.status)}</TableCell>
                     <TableCell className="text-right font-semibold">
-                      R$ {cost.amount.toFixed(2)}
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      }).format(cost.amount)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">

@@ -257,10 +257,10 @@ export default function CompanyCosts() {
         cost.sub_category || '-',
         cost.description,
         cost.observations || '-',
-        `R$ ${cost.amount.toFixed(2)}`
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cost.amount)
       ]),
       totals: [
-        { label: 'Total Geral', value: `R$ ${totalAmount.toFixed(2)}` }
+        { label: 'Total Geral', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalAmount) }
       ]
     };
     exportToExcel(exportData);
@@ -276,10 +276,10 @@ export default function CompanyCosts() {
         cost.sub_category || '-',
         cost.description,
         cost.observations || '-',
-        `R$ ${cost.amount.toFixed(2)}`
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cost.amount)
       ]),
       totals: [
-        { label: 'Total Geral', value: `R$ ${totalAmount.toFixed(2)}` }
+        { label: 'Total Geral', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalAmount) }
       ]
     };
     exportToPDF(exportData);
@@ -445,7 +445,12 @@ export default function CompanyCosts() {
         <CardContent>
             <div className="mb-4 p-4 bg-muted rounded-lg flex justify-between items-center">
               <p className="text-lg font-semibold">
-                Total: <span className="text-primary">R$ {totalAmount.toFixed(2)}</span>
+                Total: <span className="text-primary">{new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                }).format(totalAmount)}</span>
               </p>
               <p className="text-sm text-muted-foreground">
                 {filteredCosts.length} de {costs.length} registros
@@ -475,7 +480,12 @@ export default function CompanyCosts() {
                     <TableCell>{cost.description}</TableCell>
                     <TableCell>{cost.observations || '-'}</TableCell>
                     <TableCell className="text-right">
-                      R$ {cost.amount.toFixed(2)}
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      }).format(cost.amount)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
