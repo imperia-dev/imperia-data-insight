@@ -196,14 +196,14 @@ export default function CompanyCosts() {
     }
 
     // Category filter
-    if (filters.category) {
+    if (filters.category && filters.category !== "all") {
       filtered = filtered.filter(cost => 
         cost.category === filters.category
       );
     }
 
     // SubCategory filter
-    if (filters.subCategory) {
+    if (filters.subCategory && filters.subCategory !== "all") {
       filtered = filtered.filter(cost => 
         cost.sub_category === filters.subCategory
       );

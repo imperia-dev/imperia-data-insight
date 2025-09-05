@@ -21,8 +21,8 @@ export function CompanyCostFilters({ onFiltersChange, categories, subCategories 
   const [filters, setFilters] = useState({
     startDate: null as Date | null,
     endDate: null as Date | null,
-    category: "",
-    subCategory: "",
+    category: "all",
+    subCategory: "all",
     description: "",
     observations: "",
     minAmount: "",
@@ -36,7 +36,7 @@ export function CompanyCostFilters({ onFiltersChange, categories, subCategories 
     
     // Reset subcategory when category changes
     if (key === 'category') {
-      newFilters.subCategory = "";
+      newFilters.subCategory = "all";
     }
     
     setFilters(newFilters);
@@ -47,8 +47,8 @@ export function CompanyCostFilters({ onFiltersChange, categories, subCategories 
     const clearedFilters = {
       startDate: null,
       endDate: null,
-      category: "",
-      subCategory: "",
+      category: "all",
+      subCategory: "all",
       description: "",
       observations: "",
       minAmount: "",
@@ -59,8 +59,8 @@ export function CompanyCostFilters({ onFiltersChange, categories, subCategories 
   };
 
   const hasActiveFilters = () => {
-    return Object.values(filters).some(value => 
-      value !== "" && value !== null
+    return Object.entries(filters).some(([key, value]) => 
+      value !== null && value !== "" && value !== "all"
     );
   };
 
@@ -166,7 +166,7 @@ export function CompanyCostFilters({ onFiltersChange, categories, subCategories 
                   <SelectValue placeholder="Todas as categorias" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
@@ -176,7 +176,7 @@ export function CompanyCostFilters({ onFiltersChange, categories, subCategories 
               </Select>
             </div>
 
-            {filters.category && subCategories[filters.category] && (
+            {filters.category !== "all" && subCategories[filters.category] && (
               <div className="space-y-2">
                 <Label>Sub Categoria</Label>
                 <Select 
@@ -187,7 +187,7 @@ export function CompanyCostFilters({ onFiltersChange, categories, subCategories 
                     <SelectValue placeholder="Todas as subcategorias" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     {subCategories[filters.category].map((subCat) => (
                       <SelectItem key={subCat} value={subCat}>
                         {subCat}
