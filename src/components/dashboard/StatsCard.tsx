@@ -41,7 +41,7 @@ export function StatsCard({
           
           {(change !== undefined || description) && (
             <div className="flex items-center gap-2 mt-3">
-              {change !== undefined && (
+              {change !== undefined && change !== 0 && (
                 <div className={cn("flex items-center gap-1", getTrendColor())}>
                   {getTrendIcon()}
                   <span className="text-sm font-medium">

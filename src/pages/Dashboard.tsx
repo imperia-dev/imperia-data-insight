@@ -115,6 +115,9 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+  const [documentsTranslated, setDocumentsTranslated] = useState(0);
+  const [activeTranslators, setActiveTranslators] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -134,6 +137,72 @@ export default function Dashboard() {
 
     fetchUserProfile();
   }, [user]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [selectedPeriod]);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      // Calculate date filter based on selected period
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (selectedPeriod) {
+        case 'day':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          const dayOfWeek = now.getDay();
+          const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+          startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'quarter':
+          const quarter = Math.floor(now.getMonth() / 3);
+          startDate = new Date(now.getFullYear(), quarter * 3, 1);
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        default:
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+
+      // Fetch delivered orders (documents translated) for the period
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('document_count')
+        .eq('status_order', 'delivered')
+        .gte('delivered_at', startDate.toISOString());
+
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
+      } else {
+        const totalDocuments = ordersData?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        setDocumentsTranslated(totalDocuments);
+      }
+
+      // Fetch active translators (users with role 'operation')
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'operation');
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      } else {
+        setActiveTranslators(profilesData?.length || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -157,7 +226,8 @@ export default function Dashboard() {
               
               <div className="flex items-center gap-3">
                 <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[200px]">
+                    <Calendar className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Período" />
                   </SelectTrigger>
                   <SelectContent>
@@ -168,11 +238,6 @@ export default function Dashboard() {
                     <SelectItem value="year">Este Ano</SelectItem>
                   </SelectContent>
                 </Select>
-                
-                <Button className="bg-gradient-primary hover:opacity-90">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Filtrar Período
-                </Button>
               </div>
             </div>
           </div>
@@ -181,19 +246,23 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatsCard
               title="Documentos Traduzidos"
-              value="1,248"
+              value={loading ? "..." : documentsTranslated.toLocaleString('pt-BR')}
               change={12}
               trend="up"
               icon={<FileText className="h-5 w-5" />}
-              description="vs. mês anterior"
+              description={`${selectedPeriod === 'day' ? 'hoje' : 
+                           selectedPeriod === 'week' ? 'esta semana' : 
+                           selectedPeriod === 'month' ? 'este mês' : 
+                           selectedPeriod === 'quarter' ? 'este trimestre' : 
+                           'este ano'}`}
             />
             <StatsCard
               title="Tradutores Ativos"
-              value="24"
-              change={-5}
-              trend="down"
+              value={loading ? "..." : activeTranslators.toString()}
+              change={0}
+              trend="neutral"
               icon={<Users className="h-5 w-5" />}
-              description="vs. mês anterior"
+              description="usuários operacionais"
             />
             <StatsCard
               title="Taxa de Produtividade"
