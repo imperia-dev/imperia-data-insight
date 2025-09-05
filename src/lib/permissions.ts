@@ -15,7 +15,9 @@ export const rolePermissions: Record<Role, string[]> = {
     '/calendar',
     '/timesheet',
     '/ai-analytics',
-    '/settings'
+    '/settings',
+    '/company-costs',
+    '/service-provider-costs'
   ],
   admin: [
     '/',

@@ -70,6 +70,18 @@ const navigation = [
     roles: ["master"],
   },
   {
+    title: "Custos - Empresa",
+    icon: DollarSign,
+    href: "/company-costs",
+    roles: ["master"],
+  },
+  {
+    title: "Custos - P. Serviço",
+    icon: Users,
+    href: "/service-provider-costs",
+    roles: ["master"],
+  },
+  {
     title: "Carteira",
     icon: Wallet,
     href: "/wallet",

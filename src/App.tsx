@@ -16,6 +16,8 @@ import { DeliveredOrders } from "./pages/DeliveredOrders";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
+import CompanyCosts from "./pages/CompanyCosts";
+import ServiceProviderCosts from "./pages/ServiceProviderCosts";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +99,16 @@ const App = () => (
             <Route path="/settings" element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/company-costs" element={
+              <ProtectedRoute>
+                <CompanyCosts />
+              </ProtectedRoute>
+            } />
+            <Route path="/service-provider-costs" element={
+              <ProtectedRoute>
+                <ServiceProviderCosts />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

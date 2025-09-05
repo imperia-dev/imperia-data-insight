@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_costs: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string | null
+          date: string
+          description: string
+          id: string
+          observations: string | null
+          sub_category: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          created_by?: string | null
+          date: string
+          description: string
+          id?: string
+          observations?: string | null
+          sub_category?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          description?: string
+          id?: string
+          observations?: string | null
+          sub_category?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           assigned_to: string | null
@@ -287,6 +326,63 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      service_provider_costs: {
+        Row: {
+          amount: number
+          cnpj: string | null
+          competence: string
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          days_worked: number | null
+          email: string
+          id: string
+          invoice_number: string | null
+          name: string
+          phone: string | null
+          pix_key: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          cnpj?: string | null
+          competence: string
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          days_worked?: number | null
+          email: string
+          id?: string
+          invoice_number?: string | null
+          name: string
+          phone?: string | null
+          pix_key?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          cnpj?: string | null
+          competence?: string
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          days_worked?: number | null
+          email?: string
+          id?: string
+          invoice_number?: string | null
+          name?: string
+          phone?: string | null
+          pix_key?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
         }
         Relationships: []
       }
