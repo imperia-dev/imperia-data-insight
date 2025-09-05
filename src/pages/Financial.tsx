@@ -66,8 +66,35 @@ export default function Financial() {
   const fetchPaymentData = async () => {
     setLoading(true);
     try {
-      // Fetch orders delivered by service providers
-      const { data: ordersData, error: ordersError } = await supabase
+      // Calculate date filter based on selected period
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (selectedPeriod) {
+        case 'day':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          const dayOfWeek = now.getDay();
+          const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+          startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'quarter':
+          const quarter = Math.floor(now.getMonth() / 3);
+          startDate = new Date(now.getFullYear(), quarter * 3, 1);
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        default:
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+      
+      // Fetch orders delivered by service providers with date filter
+      let query = supabase
         .from('orders')
         .select(`
           id,
@@ -78,7 +105,10 @@ export default function Financial() {
         `)
         .eq('status_order', 'delivered')
         .not('delivered_at', 'is', null)
+        .gte('delivered_at', startDate.toISOString())
         .order('delivered_at', { ascending: false });
+      
+      const { data: ordersData, error: ordersError } = await query;
 
       if (ordersError) throw ordersError;
 
@@ -179,7 +209,8 @@ export default function Financial() {
               
               <div className="flex items-center gap-3">
                 <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[200px]">
+                    <Calendar className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Período" />
                   </SelectTrigger>
                   <SelectContent>
@@ -190,11 +221,6 @@ export default function Financial() {
                     <SelectItem value="year">Este Ano</SelectItem>
                   </SelectContent>
                 </Select>
-                
-                <Button className="bg-gradient-primary hover:opacity-90">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Filtrar Período
-                </Button>
               </div>
             </div>
           </div>
