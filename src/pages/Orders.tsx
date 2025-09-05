@@ -36,6 +36,7 @@ export function Orders() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [lastOrderId, setLastOrderId] = useState("");
   const [isEditingLastOrder, setIsEditingLastOrder] = useState(false);
+  const [tempLastOrderId, setTempLastOrderId] = useState("");
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -107,46 +108,36 @@ export function Orders() {
 
   // Fetch last document ID from system settings
   const { data: lastDocumentSetting } = useQuery({
-    queryKey: ["last-document-setting"],
+    queryKey: ["system-settings", "last_document_id"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("system_settings")
-        .select("*")
+        .select("value")
         .eq("key", "last_document_id")
         .maybeSingle();
       
-      if (error) {
-        console.log("Error fetching last document setting:", error);
-        return null;
-      }
-      return data;
+      if (error) throw error;
+      return data?.value || "";
     },
   });
 
-  // Set the initial value when setting is loaded
-  useEffect(() => {
-    if (lastDocumentSetting?.value) {
-      setLastOrderId(lastDocumentSetting.value);
-    }
-  }, [lastDocumentSetting]);
-
-  // Save last document ID mutation
-  const saveLastDocumentMutation = useMutation({
+  // Update last document ID mutation
+  const updateLastDocumentMutation = useMutation({
     mutationFn: async (value: string) => {
       const { error } = await supabase
         .from("system_settings")
-        .upsert({
-          key: "last_document_id",
+        .upsert({ 
+          key: "last_document_id", 
           value: value,
-          updated_by: user?.id
-        }, {
-          onConflict: "key"
+          updated_by: user?.id 
+        }, { 
+          onConflict: "key" 
         });
       
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["last-document-setting"] });
+      queryClient.invalidateQueries({ queryKey: ["system-settings", "last_document_id"] });
       toast({
         title: "Salvo com sucesso",
         description: "O ID do último documento foi atualizado.",
@@ -161,6 +152,14 @@ export function Orders() {
       });
     },
   });
+
+  // Set initial value when data is loaded
+  useEffect(() => {
+    if (lastDocumentSetting !== undefined) {
+      setLastOrderId(lastDocumentSetting);
+      setTempLastOrderId(lastDocumentSetting);
+    }
+  }, [lastDocumentSetting]);
 
   // Create order mutation (admin and master)
   const createOrderMutation = useMutation({
@@ -478,8 +477,8 @@ export function Orders() {
               <div className="flex gap-2 items-center">
                 <Input
                   placeholder="Digite o ID do pedido"
-                  value={lastOrderId}
-                  onChange={(e) => setLastOrderId(e.target.value)}
+                  value={isEditingLastOrder ? tempLastOrderId : lastOrderId}
+                  onChange={(e) => setTempLastOrderId(e.target.value)}
                   disabled={!isEditingLastOrder}
                   className="max-w-xs"
                 />
@@ -487,21 +486,36 @@ export function Orders() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setIsEditingLastOrder(true)}
+                    onClick={() => {
+                      setIsEditingLastOrder(true);
+                      setTempLastOrderId(lastOrderId);
+                    }}
                     disabled={!isAdmin && !isMaster && profile?.role !== "owner"}
                   >
                     <Edit className="h-4 w-4 mr-1" />
                     Editar
                   </Button>
                 ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => saveLastDocumentMutation.mutate(lastOrderId)}
-                    disabled={saveLastDocumentMutation.isPending}
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    {saveLastDocumentMutation.isPending ? "Salvando..." : "Salvar"}
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => updateLastDocumentMutation.mutate(tempLastOrderId)}
+                      disabled={updateLastDocumentMutation.isPending}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      {updateLastDocumentMutation.isPending ? "Salvando..." : "Salvar"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingLastOrder(false);
+                        setTempLastOrderId(lastOrderId);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </>
                 )}
               </div>
             </CardContent>
