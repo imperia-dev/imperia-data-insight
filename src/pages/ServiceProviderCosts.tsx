@@ -10,6 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ServiceProviderCost {
   id: string;
@@ -30,10 +34,13 @@ interface ServiceProviderCost {
 }
 
 export default function ServiceProviderCosts() {
+  const { user } = useAuth();
   const [costs, setCosts] = useState<ServiceProviderCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCost, setEditingCost] = useState<ServiceProviderCost | null>(null);
+  const { userRole } = useRoleAccess('/service-provider-costs');
+  const [userName, setUserName] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -51,7 +58,22 @@ export default function ServiceProviderCosts() {
 
   useEffect(() => {
     fetchCosts();
-  }, []);
+    fetchUserProfile();
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    if (user) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      if (data && !error) {
+        setUserName(data.full_name);
+      }
+    }
+  };
 
   const fetchCosts = async () => {
     try {
@@ -186,7 +208,11 @@ export default function ServiceProviderCosts() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="min-h-screen bg-background">
+      <Header userName={userName} userRole={userRole} />
+      <Sidebar userRole={userRole} />
+      <div className="md:ml-64 pt-16">
+        <div className="container mx-auto py-8 px-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-2xl font-bold">Custos - Prestadores de Serviço</CardTitle>
@@ -446,6 +472,8 @@ export default function ServiceProviderCosts() {
           </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

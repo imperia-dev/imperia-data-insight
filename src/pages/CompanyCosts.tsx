@@ -12,6 +12,10 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CompanyCost {
   id: string;
@@ -45,10 +49,13 @@ const subCategories: Record<string, string[]> = {
 };
 
 export default function CompanyCosts() {
+  const { user } = useAuth();
   const [costs, setCosts] = useState<CompanyCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCost, setEditingCost] = useState<CompanyCost | null>(null);
+  const { userRole } = useRoleAccess('/company-costs');
+  const [userName, setUserName] = useState<string>("");
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     category: "",
@@ -60,7 +67,22 @@ export default function CompanyCosts() {
 
   useEffect(() => {
     fetchCosts();
-  }, []);
+    fetchUserProfile();
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    if (user) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      if (data && !error) {
+        setUserName(data.full_name);
+      }
+    }
+  };
 
   const fetchCosts = async () => {
     try {
@@ -162,7 +184,11 @@ export default function CompanyCosts() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="min-h-screen bg-background">
+      <Header userName={userName} userRole={userRole} />
+      <Sidebar userRole={userRole} />
+      <div className="md:ml-64 pt-16">
+        <div className="container mx-auto py-8 px-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-2xl font-bold">Custos - Empresa</CardTitle>
@@ -340,6 +366,8 @@ export default function CompanyCosts() {
           </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }
