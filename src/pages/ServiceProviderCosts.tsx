@@ -409,6 +409,44 @@ export default function ServiceProviderCosts() {
   };
 
   const handleExportPDF = () => {
+    // Prepare chart data - group by person
+    const personTotals = filteredCosts.reduce((acc, cost) => {
+      if (!acc[cost.name]) {
+        acc[cost.name] = {
+          name: cost.name,
+          paid: 0,
+          pending: 0,
+          notPaid: 0,
+          total: 0,
+        };
+      }
+      
+      const amount = cost.amount;
+      acc[cost.name].total += amount;
+      
+      if (cost.status === 'Pago') {
+        acc[cost.name].paid += amount;
+      } else if (cost.status === 'Pendente') {
+        acc[cost.name].pending += amount;
+      } else {
+        acc[cost.name].notPaid += amount;
+      }
+      
+      return acc;
+    }, {} as Record<string, any>);
+
+    const chartData = Object.values(personTotals)
+      .map((person: any) => ({
+        label: person.name,
+        value: person.total,
+        formattedValue: new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(person.total),
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Top 10 providers
+
     const exportData = {
       title: 'Custos - Prestadores de Serviço',
       headers: ['Nome', 'Email', 'CPF/CNPJ', 'Telefone', 'Tipo', 'Dias', 'Chave PIX', 'NF', 'Competência', 'Status', 'Valor'],
@@ -429,6 +467,13 @@ export default function ServiceProviderCosts() {
         { label: 'Total Geral', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalAmount) },
         { label: 'Total Pago', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPaid) },
         { label: 'Total Pendente', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPending) }
+      ],
+      charts: [
+        {
+          title: 'Top 10 Prestadores por Valor Total',
+          type: 'bar' as const,
+          data: chartData,
+        }
       ]
     };
     exportToPDF(exportData, 'landscape');

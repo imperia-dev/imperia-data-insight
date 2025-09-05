@@ -411,6 +411,24 @@ export default function CompanyCosts() {
   };
 
   const handleExportPDF = () => {
+    // Prepare chart data
+    const categoryTotals = filteredCosts.reduce((acc, cost) => {
+      acc[cost.category] = (acc[cost.category] || 0) + cost.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = Object.entries(categoryTotals)
+      .map(([category, amount]) => ({
+        label: category,
+        value: amount,
+        percentage: parseFloat(((amount / totalAmount) * 100).toFixed(1)),
+        formattedValue: new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(amount),
+      }))
+      .sort((a, b) => b.value - a.value);
+
     const exportData = {
       title: 'Custos - Empresa',
       headers: ['Data', 'Categoria', 'Sub Categoria', 'Descrição', 'Observações', 'Valor'],
@@ -424,6 +442,18 @@ export default function CompanyCosts() {
       ]),
       totals: [
         { label: 'Total Geral', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalAmount) }
+      ],
+      charts: [
+        {
+          title: 'Distribuição por Categoria',
+          type: 'bar' as const,
+          data: chartData,
+        },
+        {
+          title: 'Proporção de Gastos',
+          type: 'pie' as const,
+          data: chartData,
+        }
       ]
     };
     exportToPDF(exportData);

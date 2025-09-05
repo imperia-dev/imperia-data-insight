@@ -9,6 +9,16 @@ interface ExportData {
   rows: any[][];
   title: string;
   totals?: { label: string; value: string }[];
+  charts?: Array<{
+    title: string;
+    type: 'bar' | 'pie';
+    data: Array<{
+      label: string;
+      value: number;
+      percentage?: number;
+      formattedValue?: string;
+    }>;
+  }>;
 }
 
 export const exportToExcel = (data: ExportData) => {
@@ -166,6 +176,109 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
       doc.text(total.label, 14, yPosition);
       doc.text(total.value, doc.internal.pageSize.getWidth() - 14, yPosition, { align: 'right' });
       yPosition += 6;
+    });
+  }
+  
+  // Add charts if provided
+  if (data.charts && data.charts.length > 0) {
+    // Add new page for charts
+    doc.addPage();
+    
+    let yPosition = 20;
+    
+    data.charts.forEach((chart, index) => {
+      // Chart title
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(44, 62, 80);
+      doc.text(chart.title, doc.internal.pageSize.getWidth() / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+      
+      if (chart.type === 'bar') {
+        // Draw bar chart
+        const barWidth = 15;
+        const maxBarHeight = 40;
+        const chartWidth = Math.min(chart.data.length * (barWidth + 5), doc.internal.pageSize.getWidth() - 40);
+        const startX = (doc.internal.pageSize.getWidth() - chartWidth) / 2;
+        
+        // Find max value for scaling
+        const maxValue = Math.max(...chart.data.map(item => item.value));
+        
+        // Draw bars
+        chart.data.forEach((item, i) => {
+          const barHeight = (item.value / maxValue) * maxBarHeight;
+          const x = startX + i * (barWidth + 5);
+          const y = yPosition + maxBarHeight - barHeight;
+          
+          // Draw bar
+          doc.setFillColor(52, 152, 219); // Blue color
+          doc.rect(x, y, barWidth, barHeight, 'F');
+          
+          // Add value on top of bar
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(44, 62, 80);
+          const formattedValue = item.formattedValue || 
+            new Intl.NumberFormat('pt-BR', { 
+              style: 'currency', 
+              currency: 'BRL',
+              notation: 'compact',
+              maximumFractionDigits: 1
+            }).format(item.value);
+          doc.text(formattedValue, x + barWidth / 2, y - 2, { align: 'center' });
+          
+          // Add label below bar
+          doc.setFontSize(7);
+          // Truncate long labels
+          const label = item.label.length > 15 ? item.label.substring(0, 12) + '...' : item.label;
+          doc.text(label, x + barWidth / 2, yPosition + maxBarHeight + 5, { 
+            align: 'center',
+            angle: 45
+          });
+        });
+        
+        yPosition += maxBarHeight + 25;
+      } else if (chart.type === 'pie') {
+        // Create a simple table for pie chart data
+        const pieData = chart.data.map(item => [
+          item.label,
+          item.formattedValue || new Intl.NumberFormat('pt-BR', { 
+            style: 'currency', 
+            currency: 'BRL' 
+          }).format(item.value),
+          item.percentage ? `${item.percentage}%` : ''
+        ]);
+        
+        autoTable(doc, {
+          head: [['Categoria', 'Valor', 'Percentual']],
+          body: pieData,
+          startY: yPosition,
+          theme: 'striped',
+          styles: {
+            fontSize: 8,
+            cellPadding: 2,
+          },
+          headStyles: {
+            fillColor: [52, 73, 94],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+          },
+          columnStyles: {
+            0: { halign: 'left', cellWidth: 'auto' },
+            1: { halign: 'right', cellWidth: 'auto' },
+            2: { halign: 'center', cellWidth: 30 },
+          },
+          margin: { left: 40, right: 40 },
+        });
+        
+        yPosition = (doc as any).lastAutoTable.finalY + 15;
+      }
+      
+      // Add spacing between charts
+      if (index < data.charts!.length - 1 && yPosition > doc.internal.pageSize.getHeight() - 60) {
+        doc.addPage();
+        yPosition = 20;
+      }
     });
   }
   
