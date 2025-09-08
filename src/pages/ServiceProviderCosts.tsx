@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText, ArrowUpDown, Search, Upload, Paperclip, Download, X } from "lucide-react";
+import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText, ArrowUpDown, Search, Upload, Paperclip, Download, X, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
@@ -48,6 +48,8 @@ export default function ServiceProviderCosts() {
   const [sortBy, setSortBy] = useState("created_desc");
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
   const [selectedFiles, setSelectedFiles] = useState<Record<string, File[]>>({});
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedCostDetails, setSelectedCostDetails] = useState<ServiceProviderCost | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -769,13 +771,9 @@ export default function ServiceProviderCosts() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>CPF/CNPJ</TableHead>
-                  <TableHead>Telefone</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Dias</TableHead>
                   <TableHead>Chave PIX</TableHead>
-                  <TableHead>NF</TableHead>
                   <TableHead>Competência</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
@@ -787,17 +785,13 @@ export default function ServiceProviderCosts() {
                 {filteredCosts.map((cost) => (
                   <TableRow key={cost.id}>
                     <TableCell className="font-medium">{cost.name}</TableCell>
-                    <TableCell>{cost.email}</TableCell>
-                    <TableCell>{cost.cpf || cost.cnpj || '-'}</TableCell>
-                    <TableCell>{cost.phone || '-'}</TableCell>
                     <TableCell>
                       <Badge variant={cost.type === 'CLT' ? 'default' : 'secondary'}>
                         {cost.type}
                       </Badge>
                     </TableCell>
                     <TableCell>{cost.days_worked || '-'}</TableCell>
-                    <TableCell className="max-w-[100px] truncate">{cost.pix_key || '-'}</TableCell>
-                    <TableCell>{cost.invoice_number || '-'}</TableCell>
+                    <TableCell className="max-w-[150px] truncate" title={cost.pix_key || '-'}>{cost.pix_key || '-'}</TableCell>
                     <TableCell>{cost.competence}</TableCell>
                     <TableCell>{getStatusBadge(cost.status)}</TableCell>
                     <TableCell className="text-right font-semibold">
@@ -843,7 +837,7 @@ export default function ServiceProviderCosts() {
                                 ) : (
                                   <span className="flex items-center gap-1">
                                     <Upload className="h-3 w-3" />
-                                    Adicionar
+                                    {cost.files && cost.files.length > 0 ? `(${cost.files.length})` : ''}
                                   </span>
                                 )}
                               </span>
@@ -854,7 +848,7 @@ export default function ServiceProviderCosts() {
                         {/* List uploaded files */}
                         {cost.files && cost.files.length > 0 && (
                           <div className="space-y-1">
-                            {cost.files.map((file, index) => {
+                            {cost.files.slice(0, 1).map((file, index) => {
                               const fileName = file.split('/').pop() || `Arquivo ${index + 1}`;
                               return (
                                 <div
@@ -862,25 +856,12 @@ export default function ServiceProviderCosts() {
                                   className="flex items-center gap-1 text-xs bg-muted rounded px-2 py-1"
                                 >
                                   <Paperclip className="h-3 w-3" />
-                                  <span className="flex-1 truncate max-w-[100px]" title={fileName}>
+                                  <span className="flex-1 truncate max-w-[80px]" title={fileName}>
                                     {fileName}
                                   </span>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0"
-                                    onClick={() => handleFileDownload(file)}
-                                  >
-                                    <Download className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0"
-                                    onClick={() => handleFileRemove(cost.id, file)}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
+                                  {cost.files && cost.files.length > 1 && (
+                                    <span className="text-muted-foreground">+{cost.files.length - 1}</span>
+                                  )}
                                 </div>
                               );
                             })}
@@ -893,7 +874,19 @@ export default function ServiceProviderCosts() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => {
+                            setSelectedCostDetails(cost);
+                            setDetailsDialogOpen(true);
+                          }}
+                          title="Ver detalhes"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleEdit(cost)}
+                          title="Editar"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -901,6 +894,7 @@ export default function ServiceProviderCosts() {
                           size="sm"
                           variant="destructive"
                           onClick={() => handleDelete(cost.id)}
+                          title="Excluir"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -916,6 +910,143 @@ export default function ServiceProviderCosts() {
 
       {/* Payment Chart */}
       <PaymentChart costs={filteredCosts} />
+
+      {/* Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Prestador</DialogTitle>
+          </DialogHeader>
+          {selectedCostDetails && (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Nome</Label>
+                  <p className="font-medium">{selectedCostDetails.name}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Email</Label>
+                  <p className="font-medium">{selectedCostDetails.email}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">CPF</Label>
+                  <p className="font-medium">{selectedCostDetails.cpf || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">CNPJ</Label>
+                  <p className="font-medium">{selectedCostDetails.cnpj || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Telefone</Label>
+                  <p className="font-medium">{selectedCostDetails.phone || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Tipo</Label>
+                  <p>
+                    <Badge variant={selectedCostDetails.type === 'CLT' ? 'default' : 'secondary'}>
+                      {selectedCostDetails.type}
+                    </Badge>
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Dias Trabalhados</Label>
+                  <p className="font-medium">{selectedCostDetails.days_worked || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Chave PIX</Label>
+                  <p className="font-medium break-all">{selectedCostDetails.pix_key || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Número NF</Label>
+                  <p className="font-medium">{selectedCostDetails.invoice_number || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Competência</Label>
+                  <p className="font-medium">{selectedCostDetails.competence}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Status</Label>
+                  <p>{getStatusBadge(selectedCostDetails.status)}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Valor</Label>
+                  <p className="font-medium text-lg">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }).format(selectedCostDetails.amount)}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Files section */}
+              {selectedCostDetails.files && selectedCostDetails.files.length > 0 && (
+                <div>
+                  <Label className="text-muted-foreground">Arquivos Anexados</Label>
+                  <div className="space-y-2 mt-2">
+                    {selectedCostDetails.files.map((file, index) => {
+                      const fileName = file.split('/').pop() || `Arquivo ${index + 1}`;
+                      return (
+                        <div
+                          key={file}
+                          className="flex items-center gap-2 p-2 bg-muted rounded"
+                        >
+                          <Paperclip className="h-4 w-4" />
+                          <span className="flex-1 truncate" title={fileName}>
+                            {fileName}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleFileDownload(file)}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Baixar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              handleFileRemove(selectedCostDetails.id, file);
+                              // Update the selected details to reflect the change
+                              setSelectedCostDetails({
+                                ...selectedCostDetails,
+                                files: selectedCostDetails.files?.filter(f => f !== file)
+                              });
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setDetailsDialogOpen(false)}
+                >
+                  Fechar
+                </Button>
+                <Button
+                  onClick={() => {
+                    handleEdit(selectedCostDetails);
+                    setDetailsDialogOpen(false);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
         </div>
       </div>
     </div>
