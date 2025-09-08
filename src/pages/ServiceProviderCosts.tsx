@@ -27,7 +27,7 @@ interface ServiceProviderCost {
   days_worked: number | null;
   amount: number;
   pix_key: string | null;
-  type: 'CLT' | 'Freelance';
+  type: 'CLT' | 'PJ';
   invoice_number: string | null;
   competence: string;
   status: 'Pago' | 'Não Pago' | 'Pendente';
@@ -57,7 +57,7 @@ export default function ServiceProviderCosts() {
     days_worked: "",
     amount: "",
     pix_key: "",
-    type: "Freelance" as 'CLT' | 'Freelance',
+    type: "PJ" as 'CLT' | 'PJ',
     invoice_number: "",
     competence: new Date().toISOString().slice(0, 7),
     status: "Não Pago" as 'Pago' | 'Não Pago' | 'Pendente',
@@ -144,7 +144,7 @@ export default function ServiceProviderCosts() {
         days_worked: "",
         amount: "",
         pix_key: "",
-        type: "Freelance",
+        type: "PJ",
         invoice_number: "",
         competence: new Date().toISOString().slice(0, 7),
         status: "Não Pago",
@@ -567,7 +567,7 @@ export default function ServiceProviderCosts() {
                   days_worked: "",
                   amount: "",
                   pix_key: "",
-                  type: "Freelance",
+                  type: "PJ",
                   invoice_number: "",
                   competence: new Date().toISOString().slice(0, 7),
                   status: "Não Pago",
@@ -637,14 +637,14 @@ export default function ServiceProviderCosts() {
                     <Label htmlFor="type">Tipo</Label>
                     <Select
                       value={formData.type}
-                      onValueChange={(value: 'CLT' | 'Freelance') => setFormData({ ...formData, type: value })}
+                      onValueChange={(value: 'CLT' | 'PJ') => setFormData({ ...formData, type: value })}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="CLT">CLT</SelectItem>
-                        <SelectItem value="Freelance">Freelance</SelectItem>
+                        <SelectItem value="PJ">PJ</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
