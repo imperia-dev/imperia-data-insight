@@ -61,7 +61,7 @@ const navigation = [
     title: "Produtividade",
     icon: TrendingUp,
     href: "/productivity",
-    roles: ["owner", "master", "admin", "operation"],
+    roles: ["owner", "master", "admin"],
   },
   {
     title: "Financeiro",
