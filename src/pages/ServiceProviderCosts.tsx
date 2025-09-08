@@ -919,65 +919,82 @@ export default function ServiceProviderCosts() {
           </DialogHeader>
           {selectedCostDetails && (
             <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">Nome</Label>
-                  <p className="font-medium">{selectedCostDetails.name}</p>
+              <div className="grid gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Nome</Label>
+                    <p className="font-medium">{selectedCostDetails.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Email</Label>
+                    <p className="font-medium">{selectedCostDetails.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-medium">{selectedCostDetails.email}</p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">CPF</Label>
+                    <p className="font-medium">{selectedCostDetails.cpf || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">CNPJ</Label>
+                    <p className="font-medium">{selectedCostDetails.cnpj || '-'}</p>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">CPF</Label>
-                  <p className="font-medium">{selectedCostDetails.cpf || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">CNPJ</Label>
-                  <p className="font-medium">{selectedCostDetails.cnpj || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Telefone</Label>
-                  <p className="font-medium">{selectedCostDetails.phone || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Tipo</Label>
-                  <p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Telefone</Label>
+                    <p className="font-medium">{selectedCostDetails.phone || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Tipo</Label>
                     <Badge variant={selectedCostDetails.type === 'CLT' ? 'default' : 'secondary'}>
                       {selectedCostDetails.type}
                     </Badge>
-                  </p>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">Dias Trabalhados</Label>
-                  <p className="font-medium">{selectedCostDetails.days_worked || '-'}</p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Dias Trabalhados</Label>
+                    <p className="font-medium">{selectedCostDetails.days_worked || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Chave PIX</Label>
+                    <p className="font-medium">{selectedCostDetails.pix_key || '-'}</p>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">Chave PIX</Label>
-                  <p className="font-medium break-all">{selectedCostDetails.pix_key || '-'}</p>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Número NF</Label>
+                    <p className="font-medium break-all">{selectedCostDetails.invoice_number || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Competência</Label>
+                    <p className="font-medium">{selectedCostDetails.competence}</p>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">Número NF</Label>
-                  <p className="font-medium">{selectedCostDetails.invoice_number || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Competência</Label>
-                  <p className="font-medium">{selectedCostDetails.competence}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Status</Label>
-                  <p>{getStatusBadge(selectedCostDetails.status)}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Valor</Label>
-                  <p className="font-medium text-lg">
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }).format(selectedCostDetails.amount)}
-                  </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Status</Label>
+                    <Badge variant={selectedCostDetails.status === 'Pago' ? 'default' : 'destructive'}>
+                      {selectedCostDetails.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Valor</Label>
+                    <p className="font-medium text-lg">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      }).format(selectedCostDetails.amount)}
+                    </p>
+                  </div>
                 </div>
               </div>
               
