@@ -299,6 +299,7 @@ export function Orders() {
 
   const isAdmin = profile?.role === "admin";
   const isMaster = profile?.role === "master";
+  const isOwner = profile?.role === "owner";
   const isOperation = profile?.role === "operation";
 
   // Apply filters and sorting
@@ -649,7 +650,7 @@ export function Orders() {
                                 className="gap-1 cursor-pointer hover:bg-destructive/90"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (isMaster) {
+                                  if (isMaster || isOwner) {
                                     setSelectedOrderId(order.id);
                                     setSelectedOrder(order);
                                     setUrgentDocumentCount(order.urgent_document_count?.toString() || "");
@@ -706,7 +707,7 @@ export function Orders() {
                         )}
                         <TableCell>
                           <div className="flex gap-2">
-                            {isMaster && (
+                            {(isMaster || isOwner) && (
                               <Button
                                 size="sm"
                                 variant={order.is_urgent ? "destructive" : "outline"}
