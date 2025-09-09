@@ -22,13 +22,16 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle, AlertTriangle, ArrowUpDown } from "lucide-react";
+import { CheckCircle, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 export function DeliveredOrders() {
   const { user } = useAuth();
   const [sortBy, setSortBy] = useState("delivered_desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch user profile
   const { data: profile } = useQuery({
@@ -114,6 +117,24 @@ export function DeliveredOrders() {
     return sorted;
   }, [deliveredOrders, sortBy]);
 
+  // Calculate pagination
+  const totalPages = Math.ceil((sortedOrders?.length || 0) / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = sortedOrders?.slice(startIndex, endIndex);
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
+
+  const handlePageSelect = (page: number) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={profile?.role || "operation"} />
@@ -167,76 +188,138 @@ export function DeliveredOrders() {
                   Nenhum pedido entregue ainda
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID Pedido</TableHead>
-                      <TableHead>Quantidade de Documentos</TableHead>
-                      <TableHead>Data de Atribuição</TableHead>
-                      <TableHead>Prazo Original</TableHead>
-                      <TableHead>Data de Entrega</TableHead>
-                      {isAdminOrMaster && <TableHead>Responsável</TableHead>}
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedOrders?.map((order) => {
-                      const deadlineDate = new Date(order.deadline);
-                      const deliveredDate = new Date(order.delivered_at!);
-                      const isOnTime = deliveredDate <= deadlineDate;
-                      
-                      return (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              {order.order_number}
-                              {order.is_urgent && (
-                                <Badge variant="destructive" className="gap-1">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  Urgente
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>{order.document_count}</TableCell>
-                          <TableCell>
-                            {order.assigned_at 
-                              ? format(new Date(order.assigned_at), "dd/MM/yyyy HH:mm", {
-                                  locale: ptBR,
-                                })
-                              : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {format(deadlineDate, "dd/MM/yyyy HH:mm", {
-                              locale: ptBR,
-                            })}
-                          </TableCell>
-                          <TableCell>
-                            {format(deliveredDate, "dd/MM/yyyy HH:mm", {
-                              locale: ptBR,
-                            })}
-                          </TableCell>
-                          {isAdminOrMaster && (
-                            <TableCell>
-                              {order.profiles?.full_name || order.profiles?.email || "-"}
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID Pedido</TableHead>
+                        <TableHead>Quantidade de Documentos</TableHead>
+                        <TableHead>Data de Atribuição</TableHead>
+                        <TableHead>Prazo Original</TableHead>
+                        <TableHead>Data de Entrega</TableHead>
+                        {isAdminOrMaster && <TableHead>Responsável</TableHead>}
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedOrders?.map((order) => {
+                        const deadlineDate = new Date(order.deadline);
+                        const deliveredDate = new Date(order.delivered_at!);
+                        const isOnTime = deliveredDate <= deadlineDate;
+                        
+                        return (
+                          <TableRow key={order.id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {order.order_number}
+                                {order.is_urgent && (
+                                  <Badge variant="destructive" className="gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Urgente
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
-                          )}
-                          <TableCell>
-                            <span className={cn(
-                              "px-2 py-1 rounded-full text-xs font-medium",
-                              isOnTime
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            )}>
-                              {isOnTime ? "No prazo" : "Atrasado"}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                            <TableCell>{order.document_count}</TableCell>
+                            <TableCell>
+                              {order.assigned_at 
+                                ? format(new Date(order.assigned_at), "dd/MM/yyyy HH:mm", {
+                                    locale: ptBR,
+                                  })
+                                : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {format(deadlineDate, "dd/MM/yyyy HH:mm", {
+                                locale: ptBR,
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              {format(deliveredDate, "dd/MM/yyyy HH:mm", {
+                                locale: ptBR,
+                              })}
+                            </TableCell>
+                            {isAdminOrMaster && (
+                              <TableCell>
+                                {order.profiles?.full_name || order.profiles?.email || "-"}
+                              </TableCell>
+                            )}
+                            <TableCell>
+                              <span className={cn(
+                                "px-2 py-1 rounded-full text-xs font-medium",
+                                isOnTime
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-700"
+                              )}>
+                                {isOnTime ? "No prazo" : "Atrasado"}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pagination Controls */}
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="text-sm text-muted-foreground">
+                      Mostrando {startIndex + 1} - {Math.min(endIndex, sortedOrders?.length || 0)} de {sortedOrders?.length || 0} pedidos
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Anterior
+                      </Button>
+                      
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // Show only certain page numbers for large paginations
+                          if (
+                            totalPages <= 7 ||
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          ) {
+                            return (
+                              <Button
+                                key={page}
+                                variant={page === currentPage ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePageSelect(page)}
+                                className="min-w-[36px]"
+                              >
+                                {page}
+                              </Button>
+                            );
+                          } else if (
+                            page === currentPage - 2 ||
+                            page === currentPage + 2
+                          ) {
+                            return <span key={page} className="px-1">...</span>;
+                          }
+                          return null;
+                        })}
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages || totalPages === 0}
+                      >
+                        Próximo
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
               )}
+            
             </CardContent>
           </Card>
         </main>
