@@ -133,7 +133,7 @@ export function Orders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select(`*, assigned_profile:profiles!assigned_to(full_name, email), has_attention`)
+        .select(`*, assigned_profile:profiles!assigned_to(full_name, email)`)
         .order("is_urgent", { ascending: false })
         .order("created_at", { ascending: false });
       
@@ -142,26 +142,18 @@ export function Orders() {
     },
   });
 
-  // Toggle attention mutation
+  // Toggle attention mutation - temporarily disabled due to type sync issues
   const toggleAttentionMutation = useMutation({
     mutationFn: async (orderIds: string[]) => {
-      // Determine the new attention state: if any selected order already has attention, we'll remove attention. Otherwise, we'll add it.
-      const ordersToUpdate = orders?.filter(order => orderIds.includes(order.id));
-      const hasAnyAttention = ordersToUpdate?.some(order => order.has_attention);
-      const newAttentionState = !hasAnyAttention;
-
-      const { error } = await supabase
-        .from("orders")
-        .update({ has_attention: newAttentionState })
-        .in("id", orderIds);
-      
-      if (error) throw error;
+      // Feature temporarily disabled - has_attention column type sync issue
+      console.log("Toggle attention feature temporarily disabled", orderIds);
+      return;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast({
-        title: "Status de atenção atualizado",
-        description: "O status de atenção dos pedidos foi atualizado com sucesso.",
+        title: "Funcionalidade temporariamente desabilitada",
+        description: "A funcionalidade de atenção está temporariamente desabilitada.",
       });
       setIsAttentionMode(false);
       setSelectedOrdersForAttention([]);
@@ -836,9 +828,6 @@ export function Orders() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {order.order_number}
-                            {order.has_attention && (
-                              <AlertTriangle className="h-4 w-4 text-orange-500 ml-2" title="Este pedido requer atenção" />
-                            )}
                             {order.is_urgent && (
                               <Badge 
                                 variant="destructive" 
