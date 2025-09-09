@@ -534,7 +534,7 @@ export default function Pendencies() {
                     <TableHead>Descrição</TableHead>
                     <TableHead>Tratativa</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
+                    <TableHead>Data de Criação</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -584,7 +584,12 @@ export default function Pendencies() {
                         </TableCell>
                         <TableCell>{getStatusBadge(pendency.status)}</TableCell>
                         <TableCell>
-                          {new Date(pendency.created_at).toLocaleDateString('pt-BR')}
+                          <div className="text-sm">
+                            {new Date(pendency.created_at).toLocaleDateString('pt-BR')}
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(pendency.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Button
