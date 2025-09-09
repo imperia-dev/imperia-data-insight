@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -45,6 +46,10 @@ export function Orders() {
   const [isEditingLastOrder, setIsEditingLastOrder] = useState(false);
   const [tempLastOrderId, setTempLastOrderId] = useState("");
   const [sortBy, setSortBy] = useState("urgent_created");
+  const [urgentDialogOpen, setUrgentDialogOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+  const [urgentDocumentCount, setUrgentDocumentCount] = useState<string>("");
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -253,10 +258,20 @@ export function Orders() {
 
   // Toggle urgent mutation
   const toggleUrgentMutation = useMutation({
-    mutationFn: async ({ orderId, isUrgent }: { orderId: string; isUrgent: boolean }) => {
+    mutationFn: async ({ orderId, isUrgent, urgentDocumentCount }: { orderId: string; isUrgent: boolean; urgentDocumentCount?: number }) => {
+      const updateData: any = { is_urgent: isUrgent };
+      
+      // If setting as urgent, include the document count
+      if (isUrgent && urgentDocumentCount !== undefined) {
+        updateData.urgent_document_count = urgentDocumentCount;
+      } else if (!isUrgent) {
+        // If removing urgency, set count to 0
+        updateData.urgent_document_count = 0;
+      }
+      
       const { error } = await supabase
         .from("orders")
-        .update({ is_urgent: isUrgent })
+        .update(updateData)
         .eq("id", orderId);
       
       if (error) throw error;
@@ -683,10 +698,21 @@ export function Orders() {
                               <Button
                                 size="sm"
                                 variant={order.is_urgent ? "destructive" : "outline"}
-                                onClick={() => toggleUrgentMutation.mutate({
-                                  orderId: order.id,
-                                  isUrgent: !order.is_urgent
-                                })}
+                                onClick={() => {
+                                  if (order.is_urgent) {
+                                    // If already urgent, just remove it
+                                    toggleUrgentMutation.mutate({
+                                      orderId: order.id,
+                                      isUrgent: false
+                                    });
+                                  } else {
+                                    // Open dialog to set urgent document count
+                                    setSelectedOrderId(order.id);
+                                    setSelectedOrder(order);
+                                    setUrgentDocumentCount("");
+                                    setUrgentDialogOpen(true);
+                                  }
+                                }}
                                 disabled={toggleUrgentMutation.isPending}
                               >
                                 <AlertTriangle className="h-4 w-4" />
@@ -711,6 +737,73 @@ export function Orders() {
               )}
             </CardContent>
           </Card>
+
+          {/* Urgent Document Count Dialog */}
+          <Dialog open={urgentDialogOpen} onOpenChange={setUrgentDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Marcar Pedido como Urgente</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Pedido: {selectedOrder?.order_number}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Total de documentos no pedido: {selectedOrder?.document_count}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="urgent-count">Quantidade de Documentos Urgentes *</Label>
+                  <Input
+                    id="urgent-count"
+                    type="number"
+                    min="1"
+                    max={selectedOrder?.document_count || 1}
+                    placeholder="Digite a quantidade"
+                    value={urgentDocumentCount}
+                    onChange={(e) => setUrgentDocumentCount(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Informe quantos documentos deste pedido são urgentes
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUrgentDialogOpen(false);
+                    setUrgentDocumentCount("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => {
+                    const count = parseInt(urgentDocumentCount);
+                    if (count > 0 && count <= (selectedOrder?.document_count || 0)) {
+                      toggleUrgentMutation.mutate({
+                        orderId: selectedOrderId,
+                        isUrgent: true,
+                        urgentDocumentCount: count
+                      });
+                      setUrgentDialogOpen(false);
+                      setUrgentDocumentCount("");
+                    } else {
+                      toast({
+                        title: "Valor inválido",
+                        description: `A quantidade deve estar entre 1 e ${selectedOrder?.document_count}`,
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  disabled={!urgentDocumentCount || toggleUrgentMutation.isPending}
+                >
+                  {toggleUrgentMutation.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>

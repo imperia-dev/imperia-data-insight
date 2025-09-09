@@ -72,6 +72,7 @@ export type Database = {
           project_name: string | null
           status: Database["public"]["Enums"]["document_status"] | null
           updated_at: string | null
+          urgent_document_count: number | null
           word_count: number | null
         }
         Insert: {
@@ -89,6 +90,7 @@ export type Database = {
           project_name?: string | null
           status?: Database["public"]["Enums"]["document_status"] | null
           updated_at?: string | null
+          urgent_document_count?: number | null
           word_count?: number | null
         }
         Update: {
@@ -106,6 +108,7 @@ export type Database = {
           project_name?: string | null
           status?: Database["public"]["Enums"]["document_status"] | null
           updated_at?: string | null
+          urgent_document_count?: number | null
           word_count?: number | null
         }
         Relationships: [

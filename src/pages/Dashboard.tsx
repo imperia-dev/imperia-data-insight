@@ -182,7 +182,7 @@ export default function Dashboard() {
       // Fetch delivered orders (documents translated) for the period
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('document_count, status_order, is_urgent')
+        .select('document_count, status_order, is_urgent, urgent_document_count')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
@@ -194,8 +194,9 @@ export default function Dashboard() {
           .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
         const deliveredDocs = ordersData?.filter(order => order.status_order === 'delivered')
           .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        // Sum urgent_document_count instead of document_count for urgent orders
         const urgentDocs = ordersData?.filter(order => order.is_urgent === true)
-          .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+          .reduce((sum, order) => sum + (order.urgent_document_count || 0), 0) || 0;
         
         setDocumentsTranslated(totalDocuments);
         setDocumentsInProgress(inProgressDocs);
