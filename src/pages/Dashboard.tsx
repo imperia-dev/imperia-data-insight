@@ -12,7 +12,7 @@ import {
   Users,
   TrendingUp,
   DollarSign,
-  Calendar,
+  Calendar as CalendarIconAlias,
   Clock,
   AlertTriangle,
   AlertCircle,
@@ -48,6 +48,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
 import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -131,6 +139,11 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [isCustomRange, setIsCustomRange] = useState(false);
   const [documentsTranslated, setDocumentsTranslated] = useState(0);
   const [documentsInProgress, setDocumentsInProgress] = useState(0);
   const [documentsDelivered, setDocumentsDelivered] = useState(0);
@@ -189,43 +202,50 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboardData();
     fetchEvolutionData();
-  }, [selectedPeriod]);
+  }, [selectedPeriod, dateRange]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Calculate date filter based on selected period
+      // Calculate date filter based on selected period or custom range
       const now = new Date();
       let startDate = new Date();
       let endDate = new Date();
       
-      switch (selectedPeriod) {
-        case 'day':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-          break;
-        case 'week':
-          const dayOfWeek = now.getDay();
-          const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-          startDate = new Date(now.getFullYear(), now.getMonth(), diff);
-          endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
-          break;
-        case 'month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-          break;
-        case 'quarter':
-          const quarter = Math.floor(now.getMonth() / 3);
-          startDate = new Date(now.getFullYear(), quarter * 3, 1);
-          endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
-          break;
-        case 'year':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-          break;
-        default:
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      if (isCustomRange && dateRange.from && dateRange.to) {
+        startDate = new Date(dateRange.from);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(dateRange.to);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        switch (selectedPeriod) {
+          case 'day':
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+            break;
+          case 'week':
+            const dayOfWeek = now.getDay();
+            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+            endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
+            break;
+          case 'month':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            break;
+          case 'quarter':
+            const quarter = Math.floor(now.getMonth() / 3);
+            startDate = new Date(now.getFullYear(), quarter * 3, 1);
+            endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
+            break;
+          case 'year':
+            startDate = new Date(now.getFullYear(), 0, 1);
+            endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+            break;
+          default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        }
       }
 
       // Fetch delivered orders (documents translated) for the period
@@ -531,10 +551,62 @@ export default function Dashboard() {
               </div>
               
               <div className="flex items-center gap-3">
-                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                {/* Date Range Picker */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !dateRange.from && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {dateRange.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
+                            {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                          </>
+                        ) : (
+                          format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                        )
+                      ) : (
+                        <span>Selecionar período</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="range"
+                      selected={{ from: dateRange.from, to: dateRange.to }}
+                      onSelect={(range) => {
+                        if (range?.from || range?.to) {
+                          setDateRange({ from: range?.from, to: range?.to });
+                          setIsCustomRange(true);
+                          setSelectedPeriod(""); // Clear the preset period
+                        }
+                      }}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                      locale={ptBR}
+                      disabled={(date) => date > new Date()}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {/* Period Select */}
+                <Select 
+                  value={selectedPeriod} 
+                  onValueChange={(value) => {
+                    setSelectedPeriod(value);
+                    setIsCustomRange(false);
+                    setDateRange({ from: undefined, to: undefined }); // Clear custom range
+                  }}
+                >
                   <SelectTrigger className="w-[200px]">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Período" />
+                    <CalendarIconAlias className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Período rápido" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="day">Hoje</SelectItem>
