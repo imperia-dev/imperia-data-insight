@@ -20,18 +20,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, CalendarIcon, Filter, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function DeliveredOrders() {
   const { user } = useAuth();
   const [sortBy, setSortBy] = useState("delivered_desc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  
+  // Filter states
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [urgencyFilter, setUrgencyFilter] = useState<string>("all");
+  const [responsibleFilter, setResponsibleFilter] = useState<string>("all");
 
   // Fetch user profile
   const { data: profile } = useQuery({
@@ -117,11 +131,59 @@ export function DeliveredOrders() {
     return sorted;
   }, [deliveredOrders, sortBy]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil((sortedOrders?.length || 0) / itemsPerPage);
+  // Apply filters
+  const filteredOrders = useMemo(() => {
+    if (!sortedOrders) return [];
+    
+    let filtered = [...sortedOrders];
+    
+    // Date range filter
+    if (dateFrom) {
+      filtered = filtered.filter(order => {
+        const deliveredDate = new Date(order.delivered_at!);
+        return deliveredDate >= dateFrom;
+      });
+    }
+    
+    if (dateTo) {
+      const endOfDay = new Date(dateTo);
+      endOfDay.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(order => {
+        const deliveredDate = new Date(order.delivered_at!);
+        return deliveredDate <= endOfDay;
+      });
+    }
+    
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(order => {
+        const deadlineDate = new Date(order.deadline);
+        const deliveredDate = new Date(order.delivered_at!);
+        const isOnTime = deliveredDate <= deadlineDate;
+        return statusFilter === "ontime" ? isOnTime : !isOnTime;
+      });
+    }
+    
+    // Urgency filter
+    if (urgencyFilter !== "all") {
+      filtered = filtered.filter(order => {
+        return urgencyFilter === "urgent" ? order.is_urgent : !order.is_urgent;
+      });
+    }
+    
+    // Responsible filter (for admin/master)
+    if (responsibleFilter !== "all") {
+      filtered = filtered.filter(order => order.assigned_to === responsibleFilter);
+    }
+    
+    return filtered;
+  }, [sortedOrders, dateFrom, dateTo, statusFilter, urgencyFilter, responsibleFilter]);
+
+  // Calculate pagination based on filtered orders
+  const totalPages = Math.ceil((filteredOrders?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedOrders = sortedOrders?.slice(startIndex, endIndex);
+  const paginatedOrders = filteredOrders?.slice(startIndex, endIndex);
 
   const handlePreviousPage = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
@@ -135,6 +197,29 @@ export function DeliveredOrders() {
     setCurrentPage(page);
   };
 
+  const clearFilters = () => {
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setStatusFilter("all");
+    setUrgencyFilter("all");
+    setResponsibleFilter("all");
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = dateFrom || dateTo || statusFilter !== "all" || urgencyFilter !== "all" || responsibleFilter !== "all";
+
+  // Get unique responsible users for filter
+  const responsibleUsers = useMemo(() => {
+    if (!deliveredOrders) return [];
+    const users = new Map();
+    deliveredOrders.forEach(order => {
+      if (order.assigned_to && order.profiles) {
+        users.set(order.assigned_to, order.profiles.full_name || order.profiles.email);
+      }
+    });
+    return Array.from(users, ([id, name]) => ({ id, name }));
+  }, [deliveredOrders]);
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={profile?.role || "operation"} />
@@ -145,6 +230,140 @@ export function DeliveredOrders() {
         <main className="p-4 md:p-6 lg:p-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-foreground mb-4">Pedidos Entregues</h1>
+            
+            {/* Filters Section */}
+            <Card className="mb-4">
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      Filtros
+                    </h3>
+                    {hasActiveFilters && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearFilters}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Limpar filtros
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {/* Date From */}
+                    <div className="space-y-2">
+                      <Label className="text-xs">Data de (Entrega)</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !dateFrom && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Selecione"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={dateFrom}
+                            onSelect={setDateFrom}
+                            locale={ptBR}
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    {/* Date To */}
+                    <div className="space-y-2">
+                      <Label className="text-xs">Data até (Entrega)</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !dateTo && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dateTo ? format(dateTo, "dd/MM/yyyy") : "Selecione"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={dateTo}
+                            onSelect={setDateTo}
+                            locale={ptBR}
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    {/* Status Filter */}
+                    <div className="space-y-2">
+                      <Label className="text-xs">Status</Label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="ontime">No prazo</SelectItem>
+                          <SelectItem value="late">Atrasado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Urgency Filter */}
+                    <div className="space-y-2">
+                      <Label className="text-xs">Urgência</Label>
+                      <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="urgent">Urgentes</SelectItem>
+                          <SelectItem value="normal">Normais</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Responsible Filter (for admin/master) */}
+                    {isAdminOrMaster && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">Responsável</Label>
+                        <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {responsibleUsers.map(user => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Sort controls */}
             <div className="flex justify-end">
               <div className="w-64">
                 <div className="space-y-2">
@@ -262,7 +481,8 @@ export function DeliveredOrders() {
                   {/* Pagination Controls */}
                   <div className="flex items-center justify-between mt-4">
                     <div className="text-sm text-muted-foreground">
-                      Mostrando {startIndex + 1} - {Math.min(endIndex, sortedOrders?.length || 0)} de {sortedOrders?.length || 0} pedidos
+                      Mostrando {filteredOrders.length > 0 ? startIndex + 1 : 0} - {Math.min(endIndex, filteredOrders?.length || 0)} de {filteredOrders?.length || 0} pedidos
+                      {hasActiveFilters && " (filtrados)"}
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -326,8 +546,4 @@ export function DeliveredOrders() {
       </div>
     </div>
   );
-}
-
-function cn(...classes: (string | undefined | boolean)[]) {
-  return classes.filter(Boolean).join(" ");
 }
