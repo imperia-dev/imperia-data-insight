@@ -13,6 +13,7 @@ import {
   Package,
   CheckCircle,
   Wallet,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -80,6 +81,12 @@ const navigation = [
     icon: Users,
     href: "/service-provider-costs",
     roles: ["owner"],
+  },
+  {
+    title: "Pendências",
+    icon: AlertCircle,
+    href: "/pendencies",
+    roles: ["owner", "master", "admin"],
   },
   {
     title: "Carteira",

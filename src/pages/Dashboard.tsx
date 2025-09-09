@@ -13,6 +13,8 @@ import {
   DollarSign,
   Calendar,
   Clock,
+  AlertTriangle,
+  AlertCircle,
 } from "lucide-react";
 import {
   LineChart,
@@ -114,6 +116,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [lineChartData, setLineChartData] = useState<any[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
+  const [urgencies, setUrgencies] = useState(0);
+  const [pendencies, setPendencies] = useState(0);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -180,7 +184,7 @@ export default function Dashboard() {
       // Fetch delivered orders (documents translated) for the period
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('document_count, status_order')
+        .select('document_count, status_order, is_urgent')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
@@ -192,10 +196,27 @@ export default function Dashboard() {
           .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
         const deliveredDocs = ordersData?.filter(order => order.status_order === 'delivered')
           .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        const urgentDocs = ordersData?.filter(order => order.is_urgent === true)
+          .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
         
         setDocumentsTranslated(totalDocuments);
         setDocumentsInProgress(inProgressDocs);
         setDocumentsDelivered(deliveredDocs);
+        setUrgencies(urgentDocs);
+      }
+      
+      // Fetch pendencies for the period
+      const { data: pendenciesData, error: pendenciesError } = await supabase
+        .from('pendencies')
+        .select('error_document_count')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+
+      if (pendenciesError) {
+        console.error('Error fetching pendencies:', pendenciesError);
+      } else {
+        const totalPendencies = pendenciesData?.reduce((sum, pendency) => sum + (pendency.error_document_count || 0), 0) || 0;
+        setPendencies(totalPendencies);
       }
 
       // Fetch active translators (users with role 'operation')
@@ -390,7 +411,7 @@ export default function Dashboard() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
             <StatsCard
               title="Documentos em Andamento"
               value={loading ? "..." : documentsInProgress.toLocaleString('pt-BR')}
@@ -410,6 +431,30 @@ export default function Dashboard() {
               trend="up"
               icon={<FileText className="h-5 w-5" />}
               description={`${selectedPeriod === 'day' ? 'hoje' : 
+                           selectedPeriod === 'week' ? 'esta semana' : 
+                           selectedPeriod === 'month' ? 'este mês' : 
+                           selectedPeriod === 'quarter' ? 'este trimestre' : 
+                           'este ano'}`}
+            />
+            <StatsCard
+              title="Urgências"
+              value={loading ? "..." : urgencies.toLocaleString('pt-BR')}
+              change={-2}
+              trend="down"
+              icon={<AlertTriangle className="h-5 w-5" />}
+              description={`documentos urgentes ${selectedPeriod === 'day' ? 'hoje' : 
+                           selectedPeriod === 'week' ? 'esta semana' : 
+                           selectedPeriod === 'month' ? 'este mês' : 
+                           selectedPeriod === 'quarter' ? 'este trimestre' : 
+                           'este ano'}`}
+            />
+            <StatsCard
+              title="Pendências"
+              value={loading ? "..." : pendencies.toLocaleString('pt-BR')}
+              change={0}
+              trend="neutral"
+              icon={<AlertCircle className="h-5 w-5" />}
+              description={`documentos com erro ${selectedPeriod === 'day' ? 'hoje' : 
                            selectedPeriod === 'week' ? 'esta semana' : 
                            selectedPeriod === 'month' ? 'este mês' : 
                            selectedPeriod === 'quarter' ? 'este trimestre' : 

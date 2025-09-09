@@ -252,6 +252,53 @@ export type Database = {
           },
         ]
       }
+      pendencies: {
+        Row: {
+          c4u_id: string
+          created_at: string
+          created_by: string
+          description: string
+          error_document_count: number
+          error_type: string
+          id: string
+          order_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          c4u_id: string
+          created_at?: string
+          created_by: string
+          description: string
+          error_document_count?: number
+          error_type: string
+          id?: string
+          order_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          c4u_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          error_document_count?: number
+          error_type?: string
+          id?: string
+          order_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendencies_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productivity: {
         Row: {
           created_at: string | null

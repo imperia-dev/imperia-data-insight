@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import CompanyCosts from "./pages/CompanyCosts";
 import ServiceProviderCosts from "./pages/ServiceProviderCosts";
+import Pendencies from "./pages/Pendencies";
 
 const queryClient = new QueryClient();
 
@@ -109,6 +110,11 @@ const App = () => (
             <Route path="/service-provider-costs" element={
               <ProtectedRoute>
                 <ServiceProviderCosts />
+              </ProtectedRoute>
+            } />
+            <Route path="/pendencies" element={
+              <ProtectedRoute>
+                <Pendencies />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
