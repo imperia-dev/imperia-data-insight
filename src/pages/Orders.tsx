@@ -646,7 +646,7 @@ export function Orders() {
                             {order.is_urgent && (
                               <Badge variant="destructive" className="gap-1">
                                 <AlertTriangle className="h-3 w-3" />
-                                Urgente
+                                Urgente ({order.urgent_document_count || 0})
                               </Badge>
                             )}
                           </div>

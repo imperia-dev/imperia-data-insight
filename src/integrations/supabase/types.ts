@@ -207,6 +207,7 @@ export type Database = {
           order_number: string
           status_order: string
           updated_at: string
+          urgent_document_count: number | null
         }
         Insert: {
           assigned_at?: string | null
@@ -222,6 +223,7 @@ export type Database = {
           order_number: string
           status_order?: string
           updated_at?: string
+          urgent_document_count?: number | null
         }
         Update: {
           assigned_at?: string | null
@@ -237,6 +239,7 @@ export type Database = {
           order_number?: string
           status_order?: string
           updated_at?: string
+          urgent_document_count?: number | null
         }
         Relationships: [
           {
