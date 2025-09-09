@@ -55,6 +55,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function Orders() {
   const { user } = useAuth();
@@ -73,6 +74,8 @@ export function Orders() {
   const [hasPendencies, setHasPendencies] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const [isAttentionMode, setIsAttentionMode] = useState(false);
+  const [selectedOrdersForAttention, setSelectedOrdersForAttention] = useState<string[]>([]);
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -130,15 +133,45 @@ export function Orders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select(`
-          *,
-          assigned_profile:profiles!assigned_to(full_name, email)
-        `)
+        .select(`*, assigned_profile:profiles!assigned_to(full_name, email), has_attention`)
         .order("is_urgent", { ascending: false })
         .order("created_at", { ascending: false });
       
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Toggle attention mutation
+  const toggleAttentionMutation = useMutation({
+    mutationFn: async (orderIds: string[]) => {
+      // Determine the new attention state: if any selected order already has attention, we'll remove attention. Otherwise, we'll add it.
+      const ordersToUpdate = orders?.filter(order => orderIds.includes(order.id));
+      const hasAnyAttention = ordersToUpdate?.some(order => order.has_attention);
+      const newAttentionState = !hasAnyAttention;
+
+      const { error } = await supabase
+        .from("orders")
+        .update({ has_attention: newAttentionState })
+        .in("id", orderIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast({
+        title: "Status de atenção atualizado",
+        description: "O status de atenção dos pedidos foi atualizado com sucesso.",
+      });
+      setIsAttentionMode(false);
+      setSelectedOrdersForAttention([]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar atenção",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -734,29 +767,82 @@ export function Orders() {
                 </div>
               ) : (
                 <>
+                  <div className="flex justify-end mb-4">
+                    {isAttentionMode ? (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setIsAttentionMode(false);
+                            setSelectedOrdersForAttention([]);
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={toggleAttentionMutation.isPending || selectedOrdersForAttention.length === 0}
+                          onClick={() => toggleAttentionMutation.mutate(selectedOrdersForAttention)}
+                        >
+                          <Save className="h-4 w-4 mr-1" />
+                          {toggleAttentionMutation.isPending ? "Salvando..." : "Salvar Atenção"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setIsAttentionMode(true)}
+                      >
+                        Atenção
+                      </Button>
+                    )}
+                  </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>ID Pedido</TableHead>
-                        <TableHead>Qtd. Documentos</TableHead>
-                        {(isAdmin || isMaster) && <TableHead>Data Atribuição</TableHead>}
-                        <TableHead>Deadline</TableHead>
-                        {(isAdmin || isMaster) && <TableHead>Data Entrega</TableHead>}
-                        <TableHead>Status</TableHead>
-                        {(isAdmin || isMaster) && <TableHead>Atribuído a</TableHead>}
-                        <TableHead>Ações</TableHead>
+                        {isAttentionMode && <TableHead className="w-10"></TableHead>}
+                        <TableHead className="min-w-[150px]">ID Pedido</TableHead>
+                        <TableHead className="w-[120px]">Qtd. Documentos</TableHead>
+                        {(isAdmin || isMaster) && <TableHead className="w-[180px]">Data Atribuição</TableHead>}
+                        <TableHead className="w-[180px]">Deadline</TableHead>
+                        {(isAdmin || isMaster) && <TableHead className="w-[180px]">Data Entrega</TableHead>}
+                        <TableHead className="w-[150px]">Status</TableHead>
+                        {(isAdmin || isMaster) && <TableHead className="min-w-[150px]">Atribuído a</TableHead>}
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedOrders?.map((order) => (
                       <TableRow key={order.id}>
+                        {isAttentionMode && (
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedOrdersForAttention.includes(order.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedOrdersForAttention((prev) => [...prev, order.id]);
+                                } else {
+                                  setSelectedOrdersForAttention((prev) =>
+                                    prev.filter((id) => id !== order.id)
+                                  );
+                                }
+                              }}
+                              className="mr-2"
+                            />
+                          </TableCell>
+                        )}
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {order.order_number}
+                            {order.has_attention && (
+                              <AlertTriangle className="h-4 w-4 text-orange-500 ml-2" title="Este pedido requer atenção" />
+                            )}
                             {order.is_urgent && (
                               <Badge 
                                 variant="destructive" 
-                                className="gap-1 cursor-pointer hover:bg-destructive/90"
+                                className="gap-1 cursor-pointer hover:bg-destructive/90 ml-2"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (isMaster || isOwner) {
@@ -865,8 +951,8 @@ export function Orders() {
                         </TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
-                </Table>
+                    </TableBody>
+                  </Table>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
