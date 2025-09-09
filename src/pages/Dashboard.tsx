@@ -112,10 +112,8 @@ export default function Dashboard() {
   const [documentsTranslated, setDocumentsTranslated] = useState(0);
   const [documentsInProgress, setDocumentsInProgress] = useState(0);
   const [documentsDelivered, setDocumentsDelivered] = useState(0);
-  const [activeTranslators, setActiveTranslators] = useState(0);
   const [loading, setLoading] = useState(true);
   const [lineChartData, setLineChartData] = useState<any[]>([]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
   const [urgencies, setUrgencies] = useState(0);
   const [pendencies, setPendencies] = useState(0);
 
@@ -217,44 +215,6 @@ export default function Dashboard() {
       } else {
         const totalPendencies = pendenciesData?.reduce((sum, pendency) => sum + (pendency.error_document_count || 0), 0) || 0;
         setPendencies(totalPendencies);
-      }
-
-      // Fetch active translators (users with role 'operation')
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'operation');
-
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-      } else {
-        setActiveTranslators(profilesData?.length || 0);
-      }
-
-      // Fetch total revenue paid to operation users for the period
-      const { data: revenueData, error: revenueError } = await supabase
-        .from('financial_records')
-        .select('amount, user_id')
-        .gte('payment_date', startDate.toISOString().split('T')[0])
-        .lte('payment_date', endDate.toISOString().split('T')[0]);
-
-      if (revenueError) {
-        console.error('Error fetching revenue:', revenueError);
-      } else {
-        // Get operation users
-        const { data: operationUsers } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('role', 'operation');
-        
-        const operationUserIds = operationUsers?.map(u => u.id) || [];
-        
-        // Calculate total revenue for operation users
-        const totalRev = revenueData?.filter(record => 
-          operationUserIds.includes(record.user_id)
-        ).reduce((sum, record) => sum + (Number(record.amount) || 0), 0) || 0;
-        
-        setTotalRevenue(totalRev);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -411,7 +371,7 @@ export default function Dashboard() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatsCard
               title="Documentos em Andamento"
               value={loading ? "..." : documentsInProgress.toLocaleString('pt-BR')}
@@ -455,26 +415,6 @@ export default function Dashboard() {
               trend="neutral"
               icon={<AlertCircle className="h-5 w-5" />}
               description={`documentos com erro ${selectedPeriod === 'day' ? 'hoje' : 
-                           selectedPeriod === 'week' ? 'esta semana' : 
-                           selectedPeriod === 'month' ? 'este mês' : 
-                           selectedPeriod === 'quarter' ? 'este trimestre' : 
-                           'este ano'}`}
-            />
-            <StatsCard
-              title="Tradutores Ativos"
-              value={loading ? "..." : activeTranslators.toString()}
-              change={0}
-              trend="neutral"
-              icon={<Users className="h-5 w-5" />}
-              description="usuários operacionais"
-            />
-            <StatsCard
-              title="Receita Total"
-              value={loading ? "..." : `R$ ${(totalRevenue / 1000).toFixed(1)}k`}
-              change={15}
-              trend="up"
-              icon={<DollarSign className="h-5 w-5" />}
-              description={`pagamentos aos operadores ${selectedPeriod === 'day' ? 'hoje' : 
                            selectedPeriod === 'week' ? 'esta semana' : 
                            selectedPeriod === 'month' ? 'este mês' : 
                            selectedPeriod === 'quarter' ? 'este trimestre' : 
