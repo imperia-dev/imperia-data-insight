@@ -37,8 +37,9 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, Search, AlertCircle } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImportPendenciesDialog } from "@/components/pendencies/ImportPendenciesDialog";
 
 export default function Pendencies() {
   const { user } = useAuth();
@@ -46,6 +47,7 @@ export default function Pendencies() {
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   
   // Form states
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
@@ -254,13 +256,24 @@ export default function Pendencies() {
         <Header userName={userName} userRole={userRole} />
         
         <main className="p-4 md:p-6 lg:p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-black text-foreground">
-              Pendências
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Gerencie as pendências e erros dos pedidos
-            </p>
+          <div className="mb-8 flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-black text-foreground">
+                Pendências
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Gerencie as pendências e erros dos pedidos
+              </p>
+            </div>
+            {(userRole === 'owner' || userRole === 'master' || userRole === 'admin') && (
+              <Button 
+                onClick={() => setShowImportDialog(true)}
+                variant="outline"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importar pendências
+              </Button>
+            )}
           </div>
 
           {/* Form Card */}
@@ -444,6 +457,12 @@ export default function Pendencies() {
           </Card>
         </main>
       </div>
+
+      <ImportPendenciesDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onImportComplete={fetchPendencies}
+      />
     </div>
   );
 }
