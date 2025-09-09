@@ -18,7 +18,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/settings',
     '/company-costs',
     '/service-provider-costs',
-    '/my-orders'
+    '/my-orders',
+    '/pendencies'
   ],
   master: [
     '/',
@@ -33,7 +34,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/calendar',
     '/timesheet',
     '/ai-analytics',
-    '/settings'
+    '/settings',
+    '/pendencies'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
   ],
