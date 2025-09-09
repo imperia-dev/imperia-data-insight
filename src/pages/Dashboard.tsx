@@ -244,7 +244,8 @@ export default function Dashboard() {
         ];
         
         const typeCounts = errorTypes.map(type => {
-          const count = pendenciesData?.filter(p => p.error_type === type.value).length || 0;
+          const pendenciesOfType = pendenciesData?.filter(p => p.error_type === type.value) || [];
+          const count = pendenciesOfType.reduce((sum, pendency) => sum + (pendency.error_document_count || 0), 0);
           return {
             type: type.label,
             count: count
