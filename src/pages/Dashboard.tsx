@@ -40,6 +40,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -121,6 +129,24 @@ export default function Dashboard() {
   const [pendencyTypesData, setPendencyTypesData] = useState<any[]>([]);
   const [urgencyPercentage, setUrgencyPercentage] = useState("0.0");
   const [pendencyPercentage, setPendencyPercentage] = useState("0.0");
+  
+  // Store IDs for each metric
+  const [attributedOrderIds, setAttributedOrderIds] = useState<string[]>([]);
+  const [inProgressOrderIds, setInProgressOrderIds] = useState<string[]>([]);
+  const [deliveredOrderIds, setDeliveredOrderIds] = useState<string[]>([]);
+  const [urgentOrderIds, setUrgentOrderIds] = useState<string[]>([]);
+  const [pendencyIds, setPendencyIds] = useState<string[]>([]);
+  
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState("");
+  const [dialogIds, setDialogIds] = useState<string[]>([]);
+
+  const showDetails = (title: string, ids: string[]) => {
+    setDialogTitle(title);
+    setDialogIds(ids);
+    setDialogOpen(true);
+  };
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -186,14 +212,14 @@ export default function Dashboard() {
       // Fetch delivered orders (documents translated) for the period
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('document_count, status_order, is_urgent, urgent_document_count')
+        .select('id, document_count, status_order, is_urgent, urgent_document_count')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
       // Fetch attributed documents in the period
       const { data: attributedOrdersData, error: attributedError } = await supabase
         .from('orders')
-        .select('document_count')
+        .select('id, document_count')
         .gte('attribution_date', startDate.toISOString())
         .lte('attribution_date', endDate.toISOString());
 
@@ -205,13 +231,18 @@ export default function Dashboard() {
         console.error('Error fetching orders:', ordersError);
       } else {
         totalDocuments = ordersData?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
-        const inProgressDocs = ordersData?.filter(order => order.status_order === 'in_progress')
-          .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
-        const deliveredDocs = ordersData?.filter(order => order.status_order === 'delivered')
-          .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
-        // Sum urgent_document_count instead of document_count for urgent orders
-        const urgentDocs = ordersData?.filter(order => order.is_urgent === true)
-          .reduce((sum, order) => sum + (order.urgent_document_count || 0), 0) || 0;
+        
+        const inProgressOrders = ordersData?.filter(order => order.status_order === 'in_progress') || [];
+        const inProgressDocs = inProgressOrders.reduce((sum, order) => sum + (order.document_count || 0), 0);
+        const inProgressIds = inProgressOrders.map(order => order.id);
+        
+        const deliveredOrders = ordersData?.filter(order => order.status_order === 'delivered') || [];
+        const deliveredDocs = deliveredOrders.reduce((sum, order) => sum + (order.document_count || 0), 0);
+        const deliveredIds = deliveredOrders.map(order => order.id);
+        
+        const urgentOrders = ordersData?.filter(order => order.is_urgent === true) || [];
+        const urgentDocs = urgentOrders.reduce((sum, order) => sum + (order.urgent_document_count || 0), 0);
+        const urgentIds = urgentOrders.map(order => order.id);
         
         // Calculate urgency percentage
         urgencyPercentage = totalDocuments > 0 ? ((urgentDocs / totalDocuments) * 100).toFixed(1) : '0.0';
@@ -221,19 +252,24 @@ export default function Dashboard() {
         setDocumentsDelivered(deliveredDocs);
         setUrgencies(urgentDocs);
         setUrgencyPercentage(urgencyPercentage);
+        setInProgressOrderIds(inProgressIds);
+        setDeliveredOrderIds(deliveredIds);
+        setUrgentOrderIds(urgentIds);
       }
       
       if (attributedError) {
         console.error('Error fetching attributed documents:', attributedError);
       } else {
+        const attributedIds = attributedOrdersData?.map(order => order.id) || [];
         totalAttributedDocs = attributedOrdersData?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
         setAttributedDocuments(totalAttributedDocs);
+        setAttributedOrderIds(attributedIds);
       }
       
       // Fetch pendencies for the period - todas criadas no período
       const { data: pendenciesData, error: pendenciesError } = await supabase
         .from('pendencies')
-        .select('error_type, created_at')
+        .select('id, error_type, created_at')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
@@ -248,8 +284,10 @@ export default function Dashboard() {
         console.error('Error fetching pendencies:', pendenciesError);
       } else {
         // Cada pendência conta como 1
+        const pendencyOrderIds = pendenciesData?.map(p => p.id) || [];
         const totalPendencies = pendenciesData?.length || 0;
         setPendencies(totalPendencies);
+        setPendencyIds(pendencyOrderIds);
         
         // Calculate pendency percentage
         const pendencyPercentage = totalDocuments > 0 ? ((totalPendencies / totalDocuments) * 100).toFixed(1) : '0.0';
@@ -456,6 +494,8 @@ export default function Dashboard() {
                            selectedPeriod === 'month' ? 'este mês' : 
                            selectedPeriod === 'quarter' ? 'este trimestre' : 
                            'este ano'}`}
+              hasDetails={true}
+              onViewDetails={() => showDetails("Documentos Atribuídos - IDs dos Pedidos", attributedOrderIds)}
             />
             <StatsCard
               title="Em Andamento"
@@ -468,6 +508,8 @@ export default function Dashboard() {
                            selectedPeriod === 'month' ? 'este mês' : 
                            selectedPeriod === 'quarter' ? 'este trimestre' : 
                            'este ano'}`}
+              hasDetails={true}
+              onViewDetails={() => showDetails("Em Andamento - IDs dos Pedidos", inProgressOrderIds)}
             />
             <StatsCard
               title="Entregues"
@@ -480,30 +522,28 @@ export default function Dashboard() {
                            selectedPeriod === 'month' ? 'este mês' : 
                            selectedPeriod === 'quarter' ? 'este trimestre' : 
                            'este ano'}`}
+              hasDetails={true}
+              onViewDetails={() => showDetails("Entregues - IDs dos Pedidos", deliveredOrderIds)}
             />
             <StatsCard
               title="Urgências"
-              value={loading ? "..." : `${urgencies.toLocaleString('pt-BR')} (${urgencyPercentage}%)`}
-              change={-2}
-              trend="down"
+              value={loading ? "..." : urgencies.toLocaleString('pt-BR')}
+              change={parseFloat(urgencyPercentage)}
+              trend={parseFloat(urgencyPercentage) > 10 ? "down" : parseFloat(urgencyPercentage) > 5 ? "neutral" : "up"}
               icon={<AlertTriangle className="h-5 w-5" />}
-              description={`documentos urgentes ${selectedPeriod === 'day' ? 'hoje' : 
-                           selectedPeriod === 'week' ? 'esta semana' : 
-                           selectedPeriod === 'month' ? 'este mês' : 
-                           selectedPeriod === 'quarter' ? 'este trimestre' : 
-                           'este ano'}`}
+              description={`${urgencyPercentage}% do total`}
+              hasDetails={true}
+              onViewDetails={() => showDetails("Urgências - IDs dos Pedidos", urgentOrderIds)}
             />
             <StatsCard
               title="Pendências"
-              value={loading ? "..." : `${pendencies.toLocaleString('pt-BR')} (${pendencyPercentage}%)`}
-              change={0}
-              trend="neutral"
+              value={loading ? "..." : pendencies.toLocaleString('pt-BR')}
+              change={parseFloat(pendencyPercentage)}
+              trend={parseFloat(pendencyPercentage) > 5 ? "down" : parseFloat(pendencyPercentage) > 2 ? "neutral" : "up"}
               icon={<AlertCircle className="h-5 w-5" />}
-              description={`documentos com erro ${selectedPeriod === 'day' ? 'hoje' : 
-                           selectedPeriod === 'week' ? 'esta semana' : 
-                           selectedPeriod === 'month' ? 'este mês' : 
-                           selectedPeriod === 'quarter' ? 'este trimestre' : 
-                           'este ano'}`}
+              description={`${pendencyPercentage}% do total`}
+              hasDetails={true}
+              onViewDetails={() => showDetails("Pendências - IDs", pendencyIds)}
             />
           </div>
 

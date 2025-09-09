@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface StatsCardProps {
   title: string;
@@ -10,6 +11,8 @@ interface StatsCardProps {
   icon?: ReactNode;
   description?: string;
   trend?: "up" | "down" | "neutral";
+  onViewDetails?: () => void;
+  hasDetails?: boolean;
 }
 
 export function StatsCard({
@@ -19,6 +22,8 @@ export function StatsCard({
   icon,
   description,
   trend = "neutral",
+  onViewDetails,
+  hasDetails = false,
 }: StatsCardProps) {
   const getTrendIcon = () => {
     if (trend === "up") return <TrendingUp className="h-4 w-4" />;
@@ -33,10 +38,22 @@ export function StatsCard({
   };
 
   return (
-    <Card className="p-6 hover:shadow-lg transition-shadow duration-300 border-0 shadow-md bg-white">
+    <Card className="p-6 hover:shadow-lg transition-shadow duration-300 border-0 shadow-md bg-white relative">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            {hasDetails && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onViewDetails}
+                className="h-6 w-6 p-0 hover:bg-muted"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
           <p className="text-3xl font-black text-foreground mt-2">{value}</p>
           
           {(change !== undefined || description) && (
