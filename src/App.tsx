@@ -19,6 +19,7 @@ import Unauthorized from "./pages/Unauthorized";
 import CompanyCosts from "./pages/CompanyCosts";
 import ServiceProviderCosts from "./pages/ServiceProviderCosts";
 import Pendencies from "./pages/Pendencies";
+import Productivity from "./pages/Productivity";
 
 const queryClient = new QueryClient();
 
@@ -64,7 +65,7 @@ const App = () => (
             } />
             <Route path="/productivity" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Productivity />
               </ProtectedRoute>
             } />
             <Route path="/financial" element={
