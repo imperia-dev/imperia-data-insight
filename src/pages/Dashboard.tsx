@@ -51,6 +51,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+interface OrderData {
+  id: string;
+  order_number: string;
+  document_count: number;
+  status_order: string;
+  is_urgent: boolean;
+  urgent_document_count: number;
+  attribution_date: string;
+  created_at: string;
+  delivered_at: string | null;
+  deadline: string;
+}
+
 const barChartData = [
   { name: "Ana Silva", documentos: 45, valor: 12500 },
   { name: "Carlos Oliveira", documentos: 38, valor: 10200 },
@@ -131,20 +144,26 @@ export default function Dashboard() {
   const [pendencyPercentage, setPendencyPercentage] = useState("0.0");
   
   // Store IDs for each metric
-  const [attributedOrderIds, setAttributedOrderIds] = useState<string[]>([]);
-  const [inProgressOrderIds, setInProgressOrderIds] = useState<string[]>([]);
-  const [deliveredOrderIds, setDeliveredOrderIds] = useState<string[]>([]);
+  const [attributedOrderIds, setAttributedOrderIds] = useState<OrderSummary[]>([]);
+  const [inProgressOrderIds, setInProgressOrderIds] = useState<OrderSummary[]>([]);
+  const [deliveredOrderIds, setDeliveredOrderIds] = useState<OrderSummary[]>([]);
   const [urgentOrderIds, setUrgentOrderIds] = useState<string[]>([]);
   const [pendencyIds, setPendencyIds] = useState<string[]>([]);
   
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState("");
-  const [dialogIds, setDialogIds] = useState<string[]>([]);
+  interface OrderSummary {
+    order_number: string;
+    document_count: number;
+  }
+  const [dialogContentData, setDialogContentData] = useState<string[] | OrderSummary[]>([]);
+  const [isGroupedDialog, setIsGroupedDialog] = useState(false);
 
-  const showDetails = (title: string, ids: string[]) => {
+  const showDetails = (title: string, data: string[] | OrderSummary[], isGrouped: boolean = false) => {
     setDialogTitle(title);
-    setDialogIds(ids);
+    setDialogContentData(data);
+    setIsGroupedDialog(isGrouped);
     setDialogOpen(true);
   };
 
@@ -212,16 +231,20 @@ export default function Dashboard() {
       // Fetch delivered orders (documents translated) for the period
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('id, document_count, status_order, is_urgent, urgent_document_count')
+        .select('id, order_number, document_count, status_order, is_urgent, urgent_document_count, created_at, delivered_at, deadline')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
+      
+      const typedOrdersData: OrderData[] = (ordersData || []) as OrderData[];
 
       // Fetch attributed documents in the period
       const { data: attributedOrdersData, error: attributedError } = await supabase
         .from('orders')
-        .select('id, document_count')
+        .select('id, order_number, document_count, attribution_date') // Adicionado order_number e attribution_date
         .gte('attribution_date', startDate.toISOString())
         .lte('attribution_date', endDate.toISOString());
+      
+      const typedAttributedOrdersData: Pick<OrderData, "id" | "order_number" | "document_count" | "attribution_date">[] = (attributedOrdersData || []) as Pick<OrderData, "id" | "order_number" | "document_count" | "attribution_date">[];
 
       let totalDocuments = 0;
       let urgencyPercentage = '0.0';
@@ -230,19 +253,42 @@ export default function Dashboard() {
       if (ordersError) {
         console.error('Error fetching orders:', ordersError);
       } else {
-        totalDocuments = ordersData?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        totalDocuments = typedOrdersData.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
         
-        const inProgressOrders = ordersData?.filter(order => order.status_order === 'in_progress') || [];
+        const inProgressOrders = typedOrdersData.filter(order => order.status_order === 'in_progress') || [];
         const inProgressDocs = inProgressOrders.reduce((sum, order) => sum + (order.document_count || 0), 0);
-        const inProgressIds = inProgressOrders.map(order => order.id);
+        const groupedInProgressData = new Map<string, number>();
+        inProgressOrders.forEach(order => {
+          const currentCount = groupedInProgressData.get(order.order_number) || 0;
+          groupedInProgressData.set(order.order_number, currentCount + (order.document_count || 0));
+        });
+        const inProgressSummary: OrderSummary[] = Array.from(groupedInProgressData.entries()).map(([order_number, count]) => ({
+          order_number,
+          document_count: count,
+        }));
+        const inProgressIds = inProgressSummary;
         
-        const deliveredOrders = ordersData?.filter(order => order.status_order === 'delivered') || [];
+        const deliveredOrders = typedOrdersData.filter(order => order.status_order === 'delivered') || [];
         const deliveredDocs = deliveredOrders.reduce((sum, order) => sum + (order.document_count || 0), 0);
-        const deliveredIds = deliveredOrders.map(order => order.id);
+        const groupedDeliveredData = new Map<string, number>();
+        deliveredOrders.forEach(order => {
+          const currentCount = groupedDeliveredData.get(order.order_number) || 0;
+          groupedDeliveredData.set(order.order_number, currentCount + (order.document_count || 0));
+        });
+        const deliveredSummary: OrderSummary[] = Array.from(groupedDeliveredData.entries()).map(([order_number, count]) => ({
+          order_number,
+          document_count: count,
+        }));
+        const deliveredIds = deliveredSummary;
         
-        const urgentOrders = ordersData?.filter(order => order.is_urgent === true) || [];
-        const urgentDocs = urgentOrders.reduce((sum, order) => sum + (order.urgent_document_count || 0), 0);
-        const urgentIds = urgentOrders.map(order => order.id);
+        const urgentOrders = typedOrdersData.filter(order => order.is_urgent === true) || [];
+        const urgentDocs = urgentOrders.reduce((sum, order) => sum + (order.urgent_document_count || 0), 0); // Assuming urgent_document_count is part of OrderData
+        const urgentIds: string[] = [];
+        urgentOrders.forEach(order => {
+          for (let i = 0; i < (order.urgent_document_count || 0); i++) {
+            urgentIds.push(order.order_number);
+          }
+        });
         
         // Calculate urgency percentage
         urgencyPercentage = totalDocuments > 0 ? ((urgentDocs / totalDocuments) * 100).toFixed(1) : '0.0';
@@ -260,18 +306,37 @@ export default function Dashboard() {
       if (attributedError) {
         console.error('Error fetching attributed documents:', attributedError);
       } else {
-        const attributedIds = attributedOrdersData?.map(order => order.id) || [];
-        totalAttributedDocs = attributedOrdersData?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        const groupedAttributedData = new Map<string, number>();
+        typedAttributedOrdersData.forEach(order => {
+          const currentCount = groupedAttributedData.get(order.order_number) || 0;
+          groupedAttributedData.set(order.order_number, currentCount + (order.document_count || 0));
+        });
+
+        const attributedSummary: OrderSummary[] = Array.from(groupedAttributedData.entries()).map(([order_number, count]) => ({
+          order_number,
+          document_count: count,
+        }));
+
+        totalAttributedDocs = attributedSummary.reduce((sum, item) => sum + item.document_count, 0);
         setAttributedDocuments(totalAttributedDocs);
-        setAttributedOrderIds(attributedIds);
+        setAttributedOrderIds(attributedSummary);
       }
       
       // Fetch pendencies for the period - todas criadas no período
       const { data: pendenciesData, error: pendenciesError } = await supabase
         .from('pendencies')
-        .select('id, error_type, created_at')
+        .select('id, c4u_id, error_type, created_at, order_id') // Adicionado c4u_id e order_id
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
+
+      interface PendencyData {
+        id: string;
+        c4u_id: string;
+        error_type: string;
+        created_at: string;
+        order_id: string | null; // Adicionando order_id aqui
+      }
+      const typedPendenciesData: PendencyData[] = (pendenciesData || []) as PendencyData[];
 
       // Log para debug
       console.debug('Período selecionado:', { 
@@ -284,7 +349,7 @@ export default function Dashboard() {
         console.error('Error fetching pendencies:', pendenciesError);
       } else {
         // Cada pendência conta como 1
-        const pendencyOrderIds = pendenciesData?.map(p => p.id) || [];
+        const pendencyOrderIds = typedPendenciesData.map(p => p.c4u_id) || []; // Usar c4u_id
         const totalPendencies = pendenciesData?.length || 0;
         setPendencies(totalPendencies);
         setPendencyIds(pendencyOrderIds);
@@ -495,7 +560,7 @@ export default function Dashboard() {
                            selectedPeriod === 'quarter' ? 'este trimestre' : 
                            'este ano'}`}
               hasDetails={true}
-              onViewDetails={() => showDetails("Documentos Atribuídos - IDs dos Pedidos", attributedOrderIds)}
+              onViewDetails={() => showDetails("Documentos Atribuídos - IDs dos Pedidos", attributedOrderIds, true)}
             />
             <StatsCard
               title="Em Andamento"
@@ -509,7 +574,7 @@ export default function Dashboard() {
                            selectedPeriod === 'quarter' ? 'este trimestre' : 
                            'este ano'}`}
               hasDetails={true}
-              onViewDetails={() => showDetails("Em Andamento - IDs dos Pedidos", inProgressOrderIds)}
+              onViewDetails={() => showDetails("Em Andamento - IDs dos Pedidos", inProgressOrderIds, true)}
             />
             <StatsCard
               title="Entregues"
@@ -523,7 +588,7 @@ export default function Dashboard() {
                            selectedPeriod === 'quarter' ? 'este trimestre' : 
                            'este ano'}`}
               hasDetails={true}
-              onViewDetails={() => showDetails("Entregues - IDs dos Pedidos", deliveredOrderIds)}
+              onViewDetails={() => showDetails("Entregues - IDs dos Pedidos", deliveredOrderIds, true)}
             />
             <StatsCard
               title="Urgências"
@@ -533,7 +598,7 @@ export default function Dashboard() {
               icon={<AlertTriangle className="h-5 w-5" />}
               description={`${urgencyPercentage}% do total`}
               hasDetails={true}
-              onViewDetails={() => showDetails("Urgências - IDs dos Pedidos", urgentOrderIds)}
+              onViewDetails={() => showDetails("Urgências - IDs dos Pedidos", urgentOrderIds, false)}
             />
             <StatsCard
               title="Pendências"
@@ -543,7 +608,7 @@ export default function Dashboard() {
               icon={<AlertCircle className="h-5 w-5" />}
               description={`${pendencyPercentage}% do total`}
               hasDetails={true}
-              onViewDetails={() => showDetails("Pendências - IDs", pendencyIds)}
+              onViewDetails={() => showDetails("Pendências - IDs", pendencyIds, false)}
             />
           </div>
 
@@ -676,21 +741,33 @@ export default function Dashboard() {
           <DialogHeader>
             <DialogTitle>{dialogTitle}</DialogTitle>
             <DialogDescription>
-              Total de {dialogIds.length} {dialogIds.length === 1 ? 'registro' : 'registros'}
+              Total de {isGroupedDialog ? (dialogContentData as OrderSummary[]).reduce((sum, item) => sum + item.document_count, 0) : (dialogContentData as string[]).length} {isGroupedDialog ? ((dialogContentData as OrderSummary[]).reduce((sum, item) => sum + item.document_count, 0) === 1 ? 'documento' : 'documentos') : ((dialogContentData as string[]).length === 1 ? 'registro' : 'registros')}
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[400px] w-full rounded-md border p-4">
             <div className="space-y-2">
-              {dialogIds.length > 0 ? (
-                dialogIds.map((id, index) => (
-                  <div
-                    key={id}
-                    className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <span className="text-sm font-medium">#{index + 1}</span>
-                    <code className="text-xs bg-background px-2 py-1 rounded">{id}</code>
-                  </div>
-                ))
+              {dialogContentData.length > 0 ? (
+                isGroupedDialog ? (
+                  (dialogContentData as OrderSummary[]).map((item, index) => (
+                    <div
+                      key={item.order_number}
+                      className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <span className="text-sm font-medium">#{index + 1}</span>
+                      <code className="text-xs bg-background px-2 py-1 rounded">{item.order_number} ({item.document_count} docs)</code>
+                    </div>
+                  ))
+                ) : (
+                  (dialogContentData as string[]).map((id, index) => (
+                    <div
+                      key={id + index} // Use index in key if IDs can be identical and not truly unique without context
+                      className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <span className="text-sm font-medium">#{index + 1}</span>
+                      <code className="text-xs bg-background px-2 py-1 rounded">{id}</code>
+                    </div>
+                  ))
+                )
               ) : (
                 <p className="text-sm text-muted-foreground text-center">
                   Nenhum registro encontrado

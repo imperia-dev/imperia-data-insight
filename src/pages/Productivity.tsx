@@ -7,7 +7,7 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Package, AlertTriangle, Clock, Calendar, AlertCircle, Filter } from "lucide-react";
+import { FileText, Package, AlertTriangle, Clock, Calendar, AlertCircle, Filter, DollarSign } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
@@ -322,7 +322,7 @@ export default function Productivity() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Ganhos Totais</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
