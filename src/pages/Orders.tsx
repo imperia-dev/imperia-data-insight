@@ -34,7 +34,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2 } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
 import {
@@ -47,6 +47,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export function Orders() {
   const { user } = useAuth();
@@ -63,6 +71,8 @@ export function Orders() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<any>(null);
   const [hasPendencies, setHasPendencies] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -519,6 +529,17 @@ export function Orders() {
     return sortedResult;
   }, [orders, filters, isOperation, user?.id, sortBy]);
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, sortBy]);
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={profile?.role || "operation"} />
@@ -712,21 +733,22 @@ export function Orders() {
                   Nenhum pedido encontrado
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID Pedido</TableHead>
-                      <TableHead>Qtd. Documentos</TableHead>
-                      {(isAdmin || isMaster) && <TableHead>Data Atribuição</TableHead>}
-                      <TableHead>Deadline</TableHead>
-                      {(isAdmin || isMaster) && <TableHead>Data Entrega</TableHead>}
-                      <TableHead>Status</TableHead>
-                      {(isAdmin || isMaster) && <TableHead>Atribuído a</TableHead>}
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredOrders?.map((order) => (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID Pedido</TableHead>
+                        <TableHead>Qtd. Documentos</TableHead>
+                        {(isAdmin || isMaster) && <TableHead>Data Atribuição</TableHead>}
+                        <TableHead>Deadline</TableHead>
+                        {(isAdmin || isMaster) && <TableHead>Data Entrega</TableHead>}
+                        <TableHead>Status</TableHead>
+                        {(isAdmin || isMaster) && <TableHead>Atribuído a</TableHead>}
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedOrders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
@@ -845,6 +867,70 @@ export function Orders() {
                     ))}
                   </TableBody>
                 </Table>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="text-sm text-muted-foreground">
+                      Mostrando {startIndex + 1} a {Math.min(endIndex, filteredOrders.length)} de {filteredOrders.length} pedidos
+                    </div>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                            disabled={currentPage === 1}
+                          >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Anterior
+                          </Button>
+                        </PaginationItem>
+                        
+                        {/* Page numbers */}
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <PaginationItem key={i}>
+                              <Button
+                                variant={currentPage === pageNum ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentPage(pageNum)}
+                                className="min-w-[40px]"
+                              >
+                                {pageNum}
+                              </Button>
+                            </PaginationItem>
+                          );
+                        })}
+                        
+                        <PaginationItem>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                            disabled={currentPage === totalPages}
+                          >
+                            Próxima
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                          </Button>
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+                </>
               )}
             </CardContent>
           </Card>
