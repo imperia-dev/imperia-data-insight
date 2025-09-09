@@ -644,7 +644,19 @@ export function Orders() {
                           <div className="flex items-center gap-2">
                             {order.order_number}
                             {order.is_urgent && (
-                              <Badge variant="destructive" className="gap-1">
+                              <Badge 
+                                variant="destructive" 
+                                className="gap-1 cursor-pointer hover:bg-destructive/90"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isMaster) {
+                                    setSelectedOrderId(order.id);
+                                    setSelectedOrder(order);
+                                    setUrgentDocumentCount(order.urgent_document_count?.toString() || "");
+                                    setUrgentDialogOpen(true);
+                                  }
+                                }}
+                              >
                                 <AlertTriangle className="h-3 w-3" />
                                 Urgente ({order.urgent_document_count || 0})
                               </Badge>
