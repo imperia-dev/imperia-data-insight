@@ -37,7 +37,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, Upload, ChevronLeft, ChevronRight, Save } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, Upload, ChevronLeft, ChevronRight, Save, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImportPendenciesDialog } from "@/components/pendencies/ImportPendenciesDialog";
 
@@ -224,6 +224,35 @@ export default function Pendencies() {
       toast({
         title: "Erro",
         description: "Não foi possível remover a pendência.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAllPendencies = async () => {
+    if (!window.confirm('Tem certeza que deseja deletar TODAS as pendências? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('pendencies')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (workaround for delete without where)
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Todas as pendências foram removidas.",
+      });
+
+      fetchPendencies();
+    } catch (error) {
+      console.error('Error deleting all pendencies:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover as pendências.",
         variant: "destructive",
       });
     }
@@ -464,7 +493,35 @@ export default function Pendencies() {
 
           {/* Pendencies Table */}
           <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Pendências Registradas</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Pendências Registradas</h2>
+              
+              <div className="flex gap-2">
+                {(userRole === 'owner' || userRole === 'master') && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDeleteAllPendencies}
+                    className="flex items-center gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Deletar Todas
+                  </Button>
+                )}
+                
+                {(userRole === 'owner' || userRole === 'master' || userRole === 'admin') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowImportDialog(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Importar pendências
+                  </Button>
+                )}
+              </div>
+            </div>
             
             <div className="overflow-x-auto">
               <Table>

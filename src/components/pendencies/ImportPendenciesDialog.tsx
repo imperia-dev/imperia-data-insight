@@ -26,6 +26,8 @@ interface ImportRow {
   c4u_id: string;
   error_type: string;
   description: string;
+  created_at?: string;
+  status?: string;
 }
 
 // Map Portuguese error types to internal values
@@ -69,10 +71,58 @@ export function ImportPendenciesDialog({
     return errorTypeMapping[normalized] || "";
   };
 
+  const parseDate = (dateValue: any): string | null => {
+    if (!dateValue) return null;
+    
+    // Handle Excel serial date numbers
+    if (typeof dateValue === 'number') {
+      const excelEpoch = new Date(1899, 11, 30);
+      const date = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
+      return date.toISOString();
+    }
+    
+    // Handle string dates
+    if (typeof dateValue === 'string') {
+      // Try parsing DD/MM/YYYY format
+      const ddmmyyyy = dateValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (ddmmyyyy) {
+        const [_, day, month, year] = ddmmyyyy;
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return date.toISOString();
+      }
+      
+      // Try ISO format
+      const date = new Date(dateValue);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+    
+    return null;
+  };
+
+  const normalizeStatus = (status: string): string => {
+    if (!status) return 'pending';
+    
+    const normalizedStatus = status.toLowerCase().trim();
+    
+    const statusMap: Record<string, string> = {
+      'pendente': 'pending',
+      'resolvido': 'resolved',
+      'em análise': 'analyzing',
+      'em andamento': 'analyzing',
+      'cancelado': 'cancelled'
+    };
+    
+    return statusMap[normalizedStatus] || 'pending';
+  };
+
   const validateRow = (row: any, index: number): ImportRow | null => {
-    const c4u_id = row["ID C4U"] || row["c4u_id"] || row["C4U ID"] || "";
-    const error_type_raw = row["Tipo de Erro"] || row["error_type"] || row["tipo_erro"] || "";
-    const description = row["Descrição"] || row["description"] || row["descricao"] || "";
+    const c4u_id = row["ID C4U"] || row["ID c4u"] || row["c4u_id"] || row["C4U ID"] || "";
+    const error_type_raw = row["Tipo de Erro"] || row["tipo de erro"] || row["error_type"] || row["tipo_erro"] || "";
+    const description = row["Descrição"] || row["descrição"] || row["description"] || row["descricao"] || "";
+    const created_at_raw = row["created_at"] || row["data"] || row["Data"] || "";
+    const status_raw = row["status"] || row["Status"] || "";
 
     if (!c4u_id) {
       setErrors(prev => [...prev, `Linha ${index + 2}: ID C4U está vazio`]);
@@ -90,10 +140,15 @@ export function ImportPendenciesDialog({
       return null;
     }
 
+    const created_at = parseDate(created_at_raw);
+    const status = normalizeStatus(status_raw);
+
     return {
       c4u_id: c4u_id.toString().trim(),
       error_type,
       description: description.toString().trim(),
+      created_at: created_at || undefined,
+      status
     };
   };
 
@@ -147,15 +202,22 @@ export function ImportPendenciesDialog({
       data.forEach((row, index) => {
         const validRow = validateRow(row, index);
         if (validRow) {
-          validRows.push({
+          const pendencyData: any = {
             c4u_id: validRow.c4u_id,
             error_type: validRow.error_type,
             description: validRow.description,
             created_by: user.id,
-            status: 'pending',
+            status: validRow.status || 'pending',
             error_document_count: 0,
             order_id: null,
-          });
+          };
+          
+          // Only add created_at if it's valid
+          if (validRow.created_at) {
+            pendencyData.created_at = validRow.created_at;
+          }
+          
+          validRows.push(pendencyData);
         }
       });
 
@@ -233,7 +295,7 @@ export function ImportPendenciesDialog({
           <DialogTitle>Importar Pendências</DialogTitle>
           <DialogDescription>
             Faça upload de um arquivo CSV ou XLSX com as pendências. O arquivo deve conter as colunas:
-            "ID C4U", "Tipo de Erro" e "Descrição".
+            "ID C4U", "Tipo de Erro", "Descrição". Opcionalmente: "created_at" (data) e "status".
           </DialogDescription>
         </DialogHeader>
 
