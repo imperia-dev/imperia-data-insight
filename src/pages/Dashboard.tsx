@@ -113,6 +113,7 @@ export default function Dashboard() {
   const [documentsTranslated, setDocumentsTranslated] = useState(0);
   const [documentsInProgress, setDocumentsInProgress] = useState(0);
   const [documentsDelivered, setDocumentsDelivered] = useState(0);
+  const [attributedDocuments, setAttributedDocuments] = useState(0);
   const [loading, setLoading] = useState(true);
   const [lineChartData, setLineChartData] = useState<any[]>([]);
   const [urgencies, setUrgencies] = useState(0);
@@ -189,8 +190,16 @@ export default function Dashboard() {
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
+      // Fetch attributed documents in the period
+      const { data: attributedOrdersData, error: attributedError } = await supabase
+        .from('orders')
+        .select('document_count')
+        .gte('attribution_date', startDate.toISOString())
+        .lte('attribution_date', endDate.toISOString());
+
       let totalDocuments = 0;
       let urgencyPercentage = '0.0';
+      let totalAttributedDocs = 0;
       
       if (ordersError) {
         console.error('Error fetching orders:', ordersError);
@@ -212,6 +221,13 @@ export default function Dashboard() {
         setDocumentsDelivered(deliveredDocs);
         setUrgencies(urgentDocs);
         setUrgencyPercentage(urgencyPercentage);
+      }
+      
+      if (attributedError) {
+        console.error('Error fetching attributed documents:', attributedError);
+      } else {
+        totalAttributedDocs = attributedOrdersData?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        setAttributedDocuments(totalAttributedDocs);
       }
       
       // Fetch pendencies for the period - todas criadas no período
@@ -430,9 +446,19 @@ export default function Dashboard() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <StatsCard
-              title="Documentos em Andamento"
+              title="Documentos Atribuídos"
+              value={loading ? "..." : attributedDocuments.toLocaleString('pt-BR')}
+              icon={<Calendar className="h-5 w-5" />}
+              description={`${selectedPeriod === 'day' ? 'hoje' : 
+                           selectedPeriod === 'week' ? 'esta semana' : 
+                           selectedPeriod === 'month' ? 'este mês' : 
+                           selectedPeriod === 'quarter' ? 'este trimestre' : 
+                           'este ano'}`}
+            />
+            <StatsCard
+              title="Em Andamento"
               value={loading ? "..." : documentsInProgress.toLocaleString('pt-BR')}
               change={5}
               trend="up"
@@ -444,7 +470,7 @@ export default function Dashboard() {
                            'este ano'}`}
             />
             <StatsCard
-              title="Documentos Entregues"
+              title="Entregues"
               value={loading ? "..." : documentsDelivered.toLocaleString('pt-BR')}
               change={12}
               trend="up"
