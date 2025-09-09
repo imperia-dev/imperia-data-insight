@@ -37,9 +37,9 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, Upload, ChevronLeft, ChevronRight, Save, Trash2, CheckCircle2 } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ImportPendenciesDialog } from "@/components/pendencies/ImportPendenciesDialog";
+
 
 export default function Pendencies() {
   const { user } = useAuth();
@@ -47,7 +47,7 @@ export default function Pendencies() {
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [showImportDialog, setShowImportDialog] = useState(false);
+  
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   
@@ -229,64 +229,6 @@ export default function Pendencies() {
     }
   };
 
-  const handleDeleteAllPendencies = async () => {
-    if (!window.confirm('Tem certeza que deseja deletar TODAS as pendências? Esta ação não pode ser desfeita.')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('pendencies')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (workaround for delete without where)
-
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso",
-        description: "Todas as pendências foram removidas.",
-      });
-
-      fetchPendencies();
-    } catch (error) {
-      console.error('Error deleting all pendencies:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível remover as pendências.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleResolveAllPendencies = async () => {
-    if (!window.confirm('Tem certeza que deseja marcar TODAS as pendências pendentes como resolvidas?')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('pendencies')
-        .update({ status: 'resolved' })
-        .eq('status', 'pending');
-
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso",
-        description: "Todas as pendências pendentes foram marcadas como resolvidas.",
-      });
-
-      fetchPendencies();
-    } catch (error) {
-      console.error('Error resolving all pendencies:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível resolver as pendências.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleSaveTreatment = async (pendencyId: string) => {
     const treatment = editingTreatment[pendencyId];
     
@@ -378,24 +320,13 @@ export default function Pendencies() {
         <Header userName={userName} userRole={userRole} />
         
         <main className="p-4 md:p-6 lg:p-8">
-          <div className="mb-8 flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-black text-foreground">
-                Pendências
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Gerencie as pendências e erros dos pedidos
-              </p>
-            </div>
-            {(userRole === 'owner' || userRole === 'master' || userRole === 'admin') && (
-              <Button 
-                onClick={() => setShowImportDialog(true)}
-                variant="outline"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Importar pendências
-              </Button>
-            )}
+          <div className="mb-8">
+            <h1 className="text-3xl font-black text-foreground">
+              Pendências
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Gerencie as pendências e erros dos pedidos
+            </p>
           </div>
 
           {/* Form Card */}
@@ -522,47 +453,7 @@ export default function Pendencies() {
 
           {/* Pendencies Table */}
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Pendências Registradas</h2>
-              
-              <div className="flex gap-2">
-                {(userRole === 'owner' || userRole === 'master') && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleResolveAllPendencies}
-                      className="flex items-center gap-2 text-green-600 border-green-600 hover:bg-green-50"
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Resolver Todas
-                    </Button>
-                    
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleDeleteAllPendencies}
-                      className="flex items-center gap-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Deletar Todas
-                    </Button>
-                  </>
-                )}
-                
-                {(userRole === 'owner' || userRole === 'master' || userRole === 'admin') && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowImportDialog(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Importar pendências
-                  </Button>
-                )}
-              </div>
-            </div>
+            <h2 className="text-xl font-bold mb-4">Pendências Registradas</h2>
             
             <div className="overflow-x-auto">
               <Table>
@@ -712,11 +603,6 @@ export default function Pendencies() {
         </main>
       </div>
 
-      <ImportPendenciesDialog
-        open={showImportDialog}
-        onOpenChange={setShowImportDialog}
-        onImportComplete={fetchPendencies}
-      />
     </div>
   );
 }
