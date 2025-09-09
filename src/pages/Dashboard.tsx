@@ -214,18 +214,25 @@ export default function Dashboard() {
         setUrgencyPercentage(urgencyPercentage);
       }
       
-      // Fetch pendencies for the period - only count pending ones
+      // Fetch pendencies for the period - todas criadas no período
       const { data: pendenciesData, error: pendenciesError } = await supabase
         .from('pendencies')
-        .select('error_document_count, error_type')
-        .eq('status', 'pending') // Only count pending pendencies
+        .select('error_type, created_at')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
+
+      // Log para debug
+      console.debug('Período selecionado:', { 
+        startDate: startDate.toISOString(), 
+        endDate: endDate.toISOString() 
+      });
+      console.debug('Pendências encontradas:', pendenciesData?.length || 0);
 
       if (pendenciesError) {
         console.error('Error fetching pendencies:', pendenciesError);
       } else {
-        const totalPendencies = pendenciesData?.reduce((sum, pendency) => sum + (pendency.error_document_count || 0), 0) || 0;
+        // Cada pendência conta como 1
+        const totalPendencies = pendenciesData?.length || 0;
         setPendencies(totalPendencies);
         
         // Calculate pendency percentage
@@ -258,7 +265,8 @@ export default function Dashboard() {
         
         const typeCounts = errorTypes.map(type => {
           const pendenciesOfType = pendenciesData?.filter(p => p.error_type === type.value) || [];
-          const count = pendenciesOfType.reduce((sum, pendency) => sum + (pendency.error_document_count || 0), 0);
+          // Cada pendência conta como 1
+          const count = pendenciesOfType.length;
           return {
             type: type.label,
             count: count
