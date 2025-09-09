@@ -37,7 +37,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, Upload, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, Upload, ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImportPendenciesDialog } from "@/components/pendencies/ImportPendenciesDialog";
 
@@ -63,6 +63,7 @@ export default function Pendencies() {
   const [pendencies, setPendencies] = useState<any[]>([]);
   const [openOrderSearch, setOpenOrderSearch] = useState(false);
   const [orderSearchValue, setOrderSearchValue] = useState("");
+  const [editingTreatment, setEditingTreatment] = useState<{ [key: string]: string }>({});
 
   const errorTypes = [
     { value: "nao_e_erro", label: "Não é erro" },
@@ -225,7 +226,50 @@ export default function Pendencies() {
         description: "Não foi possível remover a pendência.",
         variant: "destructive",
       });
+    }
   };
+
+  const handleSaveTreatment = async (pendencyId: string) => {
+    const treatment = editingTreatment[pendencyId];
+    
+    if (!treatment || treatment.trim() === '') {
+      toast({
+        title: "Erro",
+        description: "Por favor, insira uma tratativa.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('pendencies')
+        .update({ treatment })
+        .eq('id', pendencyId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Tratativa salva com sucesso.",
+      });
+
+      // Clear the editing state for this pendency
+      setEditingTreatment(prev => {
+        const newState = { ...prev };
+        delete newState[pendencyId];
+        return newState;
+      });
+
+      fetchPendencies();
+    } catch (error) {
+      console.error('Error saving treatment:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar a tratativa.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getErrorTypeLabel = (value: string) => {
@@ -431,6 +475,7 @@ export default function Pendencies() {
                     <TableHead>Tipo de Erro</TableHead>
                     <TableHead>Qtd. Documentos</TableHead>
                     <TableHead>Descrição</TableHead>
+                    <TableHead>Tratativa</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Ações</TableHead>
@@ -454,6 +499,31 @@ export default function Pendencies() {
                         <TableCell>{pendency.error_document_count}</TableCell>
                         <TableCell className="max-w-xs truncate">
                           {pendency.description}
+                        </TableCell>
+                        <TableCell>
+                          {pendency.treatment ? (
+                            <span className="text-sm">{pendency.treatment}</span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                placeholder="Inserir tratativa..."
+                                value={editingTreatment[pendency.id] || ''}
+                                onChange={(e) => setEditingTreatment(prev => ({
+                                  ...prev,
+                                  [pendency.id]: e.target.value
+                                }))}
+                                className="w-40"
+                              />
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleSaveTreatment(pendency.id)}
+                                disabled={!editingTreatment[pendency.id]}
+                              >
+                                <Save className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>{getStatusBadge(pendency.status)}</TableCell>
                         <TableCell>
