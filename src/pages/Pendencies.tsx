@@ -37,7 +37,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, Upload, ChevronLeft, ChevronRight, Save, Trash2 } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, Upload, ChevronLeft, ChevronRight, Save, Trash2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImportPendenciesDialog } from "@/components/pendencies/ImportPendenciesDialog";
 
@@ -253,6 +253,35 @@ export default function Pendencies() {
       toast({
         title: "Erro",
         description: "Não foi possível remover as pendências.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResolveAllPendencies = async () => {
+    if (!window.confirm('Tem certeza que deseja marcar TODAS as pendências pendentes como resolvidas?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('pendencies')
+        .update({ status: 'resolved' })
+        .eq('status', 'pending');
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Todas as pendências pendentes foram marcadas como resolvidas.",
+      });
+
+      fetchPendencies();
+    } catch (error) {
+      console.error('Error resolving all pendencies:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível resolver as pendências.",
         variant: "destructive",
       });
     }
@@ -498,15 +527,27 @@ export default function Pendencies() {
               
               <div className="flex gap-2">
                 {(userRole === 'owner' || userRole === 'master') && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDeleteAllPendencies}
-                    className="flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Deletar Todas
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResolveAllPendencies}
+                      className="flex items-center gap-2 text-green-600 border-green-600 hover:bg-green-50"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Resolver Todas
+                    </Button>
+                    
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteAllPendencies}
+                      className="flex items-center gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Deletar Todas
+                    </Button>
+                  </>
                 )}
                 
                 {(userRole === 'owner' || userRole === 'master' || userRole === 'admin') && (

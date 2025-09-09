@@ -215,10 +215,11 @@ export default function Dashboard() {
         setUrgencyPercentage(urgencyPercentage);
       }
       
-      // Fetch pendencies for the period
+      // Fetch pendencies for the period - only count pending ones
       const { data: pendenciesData, error: pendenciesError } = await supabase
         .from('pendencies')
         .select('error_document_count, error_type')
+        .eq('status', 'pending') // Only count pending pendencies
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
