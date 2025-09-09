@@ -37,7 +37,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, Upload } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImportPendenciesDialog } from "@/components/pendencies/ImportPendenciesDialog";
 
@@ -48,6 +48,8 @@ export default function Pendencies() {
   const [userName, setUserName] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   
   // Form states
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
@@ -223,7 +225,7 @@ export default function Pendencies() {
         description: "Não foi possível remover a pendência.",
         variant: "destructive",
       });
-    }
+  };
   };
 
   const getErrorTypeLabel = (value: string) => {
@@ -246,6 +248,24 @@ export default function Pendencies() {
         {status === 'pending' ? 'Pendente' : status === 'resolved' ? 'Resolvido' : 'Em Andamento'}
       </span>
     );
+  };
+
+  // Calculate pagination
+  const totalPages = Math.ceil((pendencies?.length || 0) / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPendencies = pendencies?.slice(startIndex, endIndex);
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
+
+  const handlePageSelect = (page: number) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -417,14 +437,14 @@ export default function Pendencies() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendencies.length === 0 ? (
+                   {pendencies.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center text-muted-foreground">
                         Nenhuma pendência registrada
                       </TableCell>
                     </TableRow>
                   ) : (
-                    pendencies.map((pendency) => (
+                    paginatedPendencies.map((pendency) => (
                       <TableRow key={pendency.id}>
                         <TableCell className="font-medium">
                           {pendency.orders?.order_number || '-'}
@@ -453,6 +473,67 @@ export default function Pendencies() {
                   )}
                 </TableBody>
               </Table>
+
+              {/* Pagination Controls */}
+              {pendencies.length > 0 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Mostrando {pendencies.length > 0 ? startIndex + 1 : 0} - {Math.min(endIndex, pendencies?.length || 0)} de {pendencies?.length || 0} pendências
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Anterior
+                    </Button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        // Show only certain page numbers for large paginations
+                        if (
+                          totalPages <= 7 ||
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <Button
+                              key={page}
+                              variant={page === currentPage ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handlePageSelect(page)}
+                              className="min-w-[36px]"
+                            >
+                              {page}
+                            </Button>
+                          );
+                        } else if (
+                          page === currentPage - 2 ||
+                          page === currentPage + 2
+                        ) {
+                          return <span key={page} className="px-1">...</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages || totalPages === 0}
+                    >
+                      Próximo
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
         </main>
