@@ -118,6 +118,8 @@ export default function Dashboard() {
   const [urgencies, setUrgencies] = useState(0);
   const [pendencies, setPendencies] = useState(0);
   const [pendencyTypesData, setPendencyTypesData] = useState<any[]>([]);
+  const [urgencyPercentage, setUrgencyPercentage] = useState("0.0");
+  const [pendencyPercentage, setPendencyPercentage] = useState("0.0");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -188,10 +190,13 @@ export default function Dashboard() {
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
+      let totalDocuments = 0;
+      let urgencyPercentage = '0.0';
+      
       if (ordersError) {
         console.error('Error fetching orders:', ordersError);
       } else {
-        const totalDocuments = ordersData?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        totalDocuments = ordersData?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
         const inProgressDocs = ordersData?.filter(order => order.status_order === 'in_progress')
           .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
         const deliveredDocs = ordersData?.filter(order => order.status_order === 'delivered')
@@ -200,10 +205,14 @@ export default function Dashboard() {
         const urgentDocs = ordersData?.filter(order => order.is_urgent === true)
           .reduce((sum, order) => sum + (order.urgent_document_count || 0), 0) || 0;
         
+        // Calculate urgency percentage
+        urgencyPercentage = totalDocuments > 0 ? ((urgentDocs / totalDocuments) * 100).toFixed(1) : '0.0';
+        
         setDocumentsTranslated(totalDocuments);
         setDocumentsInProgress(inProgressDocs);
         setDocumentsDelivered(deliveredDocs);
         setUrgencies(urgentDocs);
+        setUrgencyPercentage(urgencyPercentage);
       }
       
       // Fetch pendencies for the period
@@ -218,6 +227,10 @@ export default function Dashboard() {
       } else {
         const totalPendencies = pendenciesData?.reduce((sum, pendency) => sum + (pendency.error_document_count || 0), 0) || 0;
         setPendencies(totalPendencies);
+        
+        // Calculate pendency percentage
+        const pendencyPercentage = totalDocuments > 0 ? ((totalPendencies / totalDocuments) * 100).toFixed(1) : '0.0';
+        setPendencyPercentage(pendencyPercentage);
         
         // Process pendency types data
         const errorTypes = [
@@ -436,7 +449,7 @@ export default function Dashboard() {
             />
             <StatsCard
               title="Urgências"
-              value={loading ? "..." : urgencies.toLocaleString('pt-BR')}
+              value={loading ? "..." : `${urgencies.toLocaleString('pt-BR')} (${urgencyPercentage}%)`}
               change={-2}
               trend="down"
               icon={<AlertTriangle className="h-5 w-5" />}
@@ -448,7 +461,7 @@ export default function Dashboard() {
             />
             <StatsCard
               title="Pendências"
-              value={loading ? "..." : pendencies.toLocaleString('pt-BR')}
+              value={loading ? "..." : `${pendencies.toLocaleString('pt-BR')} (${pendencyPercentage}%)`}
               change={0}
               trend="neutral"
               icon={<AlertCircle className="h-5 w-5" />}
