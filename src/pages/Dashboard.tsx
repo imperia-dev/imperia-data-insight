@@ -156,31 +156,30 @@ export default function Dashboard() {
       switch (selectedPeriod) {
         case 'day':
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          endDate = now;
+          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
           break;
         case 'week':
           const dayOfWeek = now.getDay();
           const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
           startDate = new Date(now.getFullYear(), now.getMonth(), diff);
-          endDate = new Date(startDate);
-          endDate.setDate(startDate.getDate() + 6);
+          endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
           break;
         case 'month':
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
           break;
         case 'quarter':
           const quarter = Math.floor(now.getMonth() / 3);
           startDate = new Date(now.getFullYear(), quarter * 3, 1);
-          endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0);
+          endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
           break;
         case 'year':
           startDate = new Date(now.getFullYear(), 0, 1);
-          endDate = new Date(now.getFullYear(), 11, 31);
+          endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
           break;
         default:
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
       }
 
       // Fetch delivered orders (documents translated) for the period
