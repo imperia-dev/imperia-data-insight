@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { DocumentTable } from "@/components/documents/DocumentTable";
+import { PendencyTypesChart } from "@/components/dashboard/PendencyTypesChart";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -116,6 +117,7 @@ export default function Dashboard() {
   const [lineChartData, setLineChartData] = useState<any[]>([]);
   const [urgencies, setUrgencies] = useState(0);
   const [pendencies, setPendencies] = useState(0);
+  const [pendencyTypesData, setPendencyTypesData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -207,7 +209,7 @@ export default function Dashboard() {
       // Fetch pendencies for the period
       const { data: pendenciesData, error: pendenciesError } = await supabase
         .from('pendencies')
-        .select('error_document_count')
+        .select('error_document_count, error_type')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
@@ -216,6 +218,40 @@ export default function Dashboard() {
       } else {
         const totalPendencies = pendenciesData?.reduce((sum, pendency) => sum + (pendency.error_document_count || 0), 0) || 0;
         setPendencies(totalPendencies);
+        
+        // Process pendency types data
+        const errorTypes = [
+          { value: "nao_e_erro", label: "Não é erro" },
+          { value: "falta_de_dados", label: "Falta de dados" },
+          { value: "apostila", label: "Apostila" },
+          { value: "erro_em_data", label: "Erro em data" },
+          { value: "nome_separado", label: "Nome separado" },
+          { value: "texto_sem_traduzir", label: "Texto sem traduzir" },
+          { value: "nome_incorreto", label: "Nome incorreto" },
+          { value: "texto_duplicado", label: "Texto duplicado" },
+          { value: "erro_em_crc", label: "Erro em CRC" },
+          { value: "nome_traduzido", label: "Nome traduzido" },
+          { value: "falta_parte_documento", label: "Falta parte do documento" },
+          { value: "erro_digitacao", label: "Erro de digitação" },
+          { value: "sem_assinatura_tradutor", label: "Sem assinatura do tradutor" },
+          { value: "nome_junto", label: "Nome junto" },
+          { value: "traducao_incompleta", label: "Tradução incompleta" },
+          { value: "titulo_incorreto", label: "Título incorreto" },
+          { value: "trecho_sem_traduzir", label: "Trecho sem traduzir" },
+          { value: "matricula_incorreta", label: "Matrícula incorreta" },
+          { value: "espacamento", label: "Espaçamento" },
+          { value: "sem_cabecalho", label: "Sem cabeçalho" },
+        ];
+        
+        const typeCounts = errorTypes.map(type => {
+          const count = pendenciesData?.filter(p => p.error_type === type.value).length || 0;
+          return {
+            type: type.label,
+            count: count
+          };
+        }).filter(item => item.count > 0); // Only show types with pendencies
+        
+        setPendencyTypesData(typeCounts);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -472,31 +508,8 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </ChartCard>
 
-            {/* Pie Chart */}
-            <ChartCard
-              title="Distribuição por Tipo"
-              description="Tipos de documentos"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartCard>
+            {/* Pendency Types Chart */}
+            <PendencyTypesChart data={pendencyTypesData} />
           </div>
 
           {/* Quick Stats */}

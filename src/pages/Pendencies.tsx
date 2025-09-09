@@ -226,31 +226,6 @@ export default function Pendencies() {
     }
   };
 
-  const handleResolveAllPendencies = async () => {
-    try {
-      const { error } = await supabase
-        .from('pendencies')
-        .update({ status: 'resolved' })
-        .neq('status', 'resolved'); // Only update pendencies that aren't already resolved
-
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso",
-        description: "Todas as pendências foram marcadas como resolvidas.",
-      });
-
-      fetchPendencies();
-    } catch (error) {
-      console.error('Error resolving all pendencies:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível resolver todas as pendências.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const getErrorTypeLabel = (value: string) => {
     const type = errorTypes.find(t => t.value === value);
     return type?.label || value;
@@ -425,18 +400,7 @@ export default function Pendencies() {
 
           {/* Pendencies Table */}
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Pendências Registradas</h2>
-              {pendencies.length > 0 && (userRole === 'owner' || userRole === 'master' || userRole === 'admin') && (
-                <Button
-                  variant="outline"
-                  onClick={handleResolveAllPendencies}
-                  size="sm"
-                >
-                  Marcar todas como resolvidas
-                </Button>
-              )}
-            </div>
+            <h2 className="text-xl font-bold mb-4">Pendências Registradas</h2>
             
             <div className="overflow-x-auto">
               <Table>
