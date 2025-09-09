@@ -34,9 +34,19 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function Orders() {
   const { user } = useAuth();
@@ -50,6 +60,9 @@ export function Orders() {
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [urgentDocumentCount, setUrgentDocumentCount] = useState<string>("");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<any>(null);
+  const [hasPendencies, setHasPendencies] = useState(false);
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -291,6 +304,80 @@ export function Orders() {
       });
     },
   });
+
+  // Check pendencies mutation
+  const checkPendenciesMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data, error } = await supabase
+        .from("pendencies")
+        .select("*")
+        .eq("order_id", orderId);
+      
+      if (error) throw error;
+      return data && data.length > 0;
+    },
+  });
+
+  // Delete order mutation
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      // First check if there are pendencies
+      const hasPendencies = await checkPendenciesMutation.mutateAsync(orderId);
+      
+      if (hasPendencies) {
+        // Delete pendencies first
+        const { error: pendenciesError } = await supabase
+          .from("pendencies")
+          .delete()
+          .eq("order_id", orderId);
+        
+        if (pendenciesError) throw pendenciesError;
+      }
+      
+      // Then delete the order
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast({
+        title: "Pedido excluído",
+        description: "O pedido e suas pendências foram excluídos com sucesso.",
+      });
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+      setHasPendencies(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir pedido",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteClick = async (order: any) => {
+    setOrderToDelete(order);
+    // Check if there are pendencies
+    try {
+      const hasPend = await checkPendenciesMutation.mutateAsync(order.id);
+      setHasPendencies(hasPend);
+    } catch {
+      setHasPendencies(false);
+    }
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (orderToDelete) {
+      deleteOrderMutation.mutate(orderToDelete.id);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -732,6 +819,17 @@ export function Orders() {
                                 {order.is_urgent ? "Remover Urgência" : "Marcar Urgente"}
                               </Button>
                             )}
+                            {(isMaster || isOwner) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteClick(order)}
+                                disabled={deleteOrderMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Excluir
+                              </Button>
+                            )}
                             {isOperation && !order.assigned_to && (
                               <Button
                                 size="sm"
@@ -817,6 +915,47 @@ export function Orders() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {hasPendencies ? (
+                    <>
+                      <span className="font-semibold text-destructive">
+                        Atenção: Este pedido possui pendências associadas!
+                      </span>
+                      <br />
+                      <br />
+                      Tem certeza que deseja excluir o pedido <strong>{orderToDelete?.order_number}</strong>?
+                      <br />
+                      As pendências relacionadas também serão excluídas permanentemente.
+                      <br />
+                      <br />
+                      Esta ação não pode ser desfeita.
+                    </>
+                  ) : (
+                    <>
+                      Tem certeza que deseja excluir o pedido <strong>{orderToDelete?.order_number}</strong>?
+                      <br />
+                      Esta ação não pode ser desfeita.
+                    </>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleteOrderMutation.isPending ? "Excluindo..." : "Excluir"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </main>
       </div>
     </div>
