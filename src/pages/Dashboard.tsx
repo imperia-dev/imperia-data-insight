@@ -669,6 +669,37 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
+      
+      {/* Dialog para mostrar IDs */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{dialogTitle}</DialogTitle>
+            <DialogDescription>
+              Total de {dialogIds.length} {dialogIds.length === 1 ? 'registro' : 'registros'}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+            <div className="space-y-2">
+              {dialogIds.length > 0 ? (
+                dialogIds.map((id, index) => (
+                  <div
+                    key={id}
+                    className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <span className="text-sm font-medium">#{index + 1}</span>
+                    <code className="text-xs bg-background px-2 py-1 rounded">{id}</code>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center">
+                  Nenhum registro encontrado
+                </p>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
