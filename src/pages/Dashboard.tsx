@@ -108,6 +108,8 @@ export default function Dashboard() {
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [documentsTranslated, setDocumentsTranslated] = useState(0);
+  const [documentsInProgress, setDocumentsInProgress] = useState(0);
+  const [documentsDelivered, setDocumentsDelivered] = useState(0);
   const [activeTranslators, setActiveTranslators] = useState(0);
   const [loading, setLoading] = useState(true);
   const [lineChartData, setLineChartData] = useState<any[]>([]);
@@ -178,15 +180,22 @@ export default function Dashboard() {
       // Fetch delivered orders (documents translated) for the period
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('document_count')
-        .eq('status_order', 'delivered')
-        .gte('delivered_at', startDate.toISOString());
+        .select('document_count, status_order')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
 
       if (ordersError) {
         console.error('Error fetching orders:', ordersError);
       } else {
         const totalDocuments = ordersData?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        const inProgressDocs = ordersData?.filter(order => order.status_order === 'in_progress')
+          .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        const deliveredDocs = ordersData?.filter(order => order.status_order === 'delivered')
+          .reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        
         setDocumentsTranslated(totalDocuments);
+        setDocumentsInProgress(inProgressDocs);
+        setDocumentsDelivered(deliveredDocs);
       }
 
       // Fetch active translators (users with role 'operation')
@@ -286,13 +295,12 @@ export default function Dashboard() {
           interval = eachDayOfInterval({ start: startDate, end: endDate });
       }
 
-      // Fetch delivered orders for the period
+      // Fetch assigned orders for the period
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('document_count, delivered_at')
-        .eq('status_order', 'delivered')
-        .gte('delivered_at', startDate.toISOString())
-        .lte('delivered_at', endDate.toISOString());
+        .select('document_count, attribution_date')
+        .gte('attribution_date', startDate.toISOString())
+        .lte('attribution_date', endDate.toISOString());
 
       if (ordersError) {
         console.error('Error fetching evolution data:', ordersError);
@@ -326,9 +334,9 @@ export default function Dashboard() {
 
         // Count documents for this interval
         const documentsInInterval = ordersData?.filter(order => {
-          if (!order.delivered_at) return false;
-          const deliveredDate = new Date(order.delivered_at);
-          return deliveredDate >= dateStart && deliveredDate < dateEnd;
+          if (!order.attribution_date) return false;
+          const attributionDate = new Date(order.attribution_date);
+          return attributionDate >= dateStart && attributionDate < dateEnd;
         }).reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
 
         return {
@@ -384,8 +392,20 @@ export default function Dashboard() {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatsCard
-              title="Documentos Traduzidos"
-              value={loading ? "..." : documentsTranslated.toLocaleString('pt-BR')}
+              title="Documentos em Andamento"
+              value={loading ? "..." : documentsInProgress.toLocaleString('pt-BR')}
+              change={5}
+              trend="up"
+              icon={<Clock className="h-5 w-5" />}
+              description={`${selectedPeriod === 'day' ? 'hoje' : 
+                           selectedPeriod === 'week' ? 'esta semana' : 
+                           selectedPeriod === 'month' ? 'este mês' : 
+                           selectedPeriod === 'quarter' ? 'este trimestre' : 
+                           'este ano'}`}
+            />
+            <StatsCard
+              title="Documentos Entregues"
+              value={loading ? "..." : documentsDelivered.toLocaleString('pt-BR')}
               change={12}
               trend="up"
               icon={<FileText className="h-5 w-5" />}
@@ -402,14 +422,6 @@ export default function Dashboard() {
               trend="neutral"
               icon={<Users className="h-5 w-5" />}
               description="usuários operacionais"
-            />
-            <StatsCard
-              title="Taxa de Produtividade"
-              value="87%"
-              change={8}
-              trend="up"
-              icon={<TrendingUp className="h-5 w-5" />}
-              description="média mensal"
             />
             <StatsCard
               title="Receita Total"
@@ -429,7 +441,7 @@ export default function Dashboard() {
           <div className="mb-8">
             <ChartCard
               title={`Evolução ${selectedPeriod === 'day' ? 'Horária' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'Diária' : selectedPeriod === 'quarter' ? 'Semanal' : 'Mensal'}`}
-              description={`Documentos traduzidos ${selectedPeriod === 'day' ? 'por hora' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'por dia' : selectedPeriod === 'quarter' ? 'por semana' : 'por mês'}`}
+              description={`Documentos atribuídos ${selectedPeriod === 'day' ? 'por hora' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'por dia' : selectedPeriod === 'quarter' ? 'por semana' : 'por mês'}`}
               onExport={() => console.log("Export")}
               onFilter={() => console.log("Filter")}
             >
