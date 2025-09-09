@@ -61,13 +61,26 @@ export default function Pendencies() {
   const [orderSearchValue, setOrderSearchValue] = useState("");
 
   const errorTypes = [
-    { value: "translation", label: "Erro de Tradução" },
-    { value: "formatting", label: "Erro de Formatação" },
-    { value: "deadline", label: "Atraso no Prazo" },
-    { value: "client_complaint", label: "Reclamação do Cliente" },
-    { value: "incomplete", label: "Documento Incompleto" },
-    { value: "technical", label: "Erro Técnico" },
-    { value: "other", label: "Outro" },
+    { value: "nao_e_erro", label: "Não é erro" },
+    { value: "falta_de_dados", label: "Falta de dados" },
+    { value: "apostila", label: "Apostila" },
+    { value: "erro_em_data", label: "Erro em data" },
+    { value: "nome_separado", label: "Nome separado" },
+    { value: "texto_sem_traduzir", label: "Texto sem traduzir" },
+    { value: "nome_incorreto", label: "Nome incorreto" },
+    { value: "texto_duplicado", label: "Texto duplicado" },
+    { value: "erro_em_crc", label: "Erro em CRC" },
+    { value: "nome_traduzido", label: "Nome traduzido" },
+    { value: "falta_parte_documento", label: "Falta parte do documento" },
+    { value: "erro_digitacao", label: "Erro de digitação" },
+    { value: "sem_assinatura_tradutor", label: "Sem assinatura do tradutor" },
+    { value: "nome_junto", label: "Nome junto" },
+    { value: "traducao_incompleta", label: "Tradução incompleta" },
+    { value: "titulo_incorreto", label: "Título incorreto" },
+    { value: "trecho_sem_traduzir", label: "Trecho sem traduzir" },
+    { value: "matricula_incorreta", label: "Matrícula incorreta" },
+    { value: "espacamento", label: "Espaçamento" },
+    { value: "sem_cabecalho", label: "Sem cabeçalho" },
   ];
 
   useEffect(() => {
