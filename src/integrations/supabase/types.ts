@@ -271,6 +271,7 @@ export type Database = {
           error_type: string
           id: string
           order_id: string | null
+          old_order_text_id: string | null
           status: string
           treatment: string | null
           updated_at: string
@@ -284,6 +285,7 @@ export type Database = {
           error_type: string
           id?: string
           order_id?: string | null
+          old_order_text_id?: string | null
           status?: string
           treatment?: string | null
           updated_at?: string
@@ -297,6 +299,7 @@ export type Database = {
           error_type?: string
           id?: string
           order_id?: string | null
+          old_order_text_id?: string | null
           status?: string
           treatment?: string | null
           updated_at?: string

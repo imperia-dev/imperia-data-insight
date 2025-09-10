@@ -171,14 +171,15 @@ export default function Pendencies() {
         title: "Erro",
         description: "Por favor, preencha todos os campos obrigatórios.",
         variant: "destructive",
-        });
-        return;
+      });
+      return;
     }
 
     setLoading(true);
     try {
       const { error } = await supabase.from('pendencies').insert({
-        order_id: isOldOrder ? oldOrderId : selectedOrderId, // Use oldOrderId if isOldOrder is true
+        order_id: isOldOrder ? null : selectedOrderId, // Set order_id to NULL if it's an old order
+        old_order_text_id: isOldOrder ? oldOrderId : null, // Save oldOrderId in the new column
         c4u_id: c4uId,
         description,
         error_type: errorType,
@@ -425,8 +426,11 @@ export default function Pendencies() {
                       id="old_order_id"
                       value={oldOrderId}
                       onChange={(e) => setOldOrderId(e.target.value)}
-                      placeholder="Digite o ID do pedido antigo"
+                      placeholder="Ex: a1b2c3d4-e5f6-7890-1234-567890abcdef"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Insira o ID (UUID) do pedido antigo, se aplicável.
+                    </p>
                   </div>
                 )}
 
@@ -521,7 +525,7 @@ export default function Pendencies() {
                     paginatedPendencies.map((pendency) => (
                       <TableRow key={pendency.id}>
                         <TableCell className="font-medium">
-                          {pendency.orders?.order_number || '-'}
+                          {pendency.orders?.order_number || pendency.old_order_text_id || '-'}
                         </TableCell>
                         <TableCell>{pendency.c4u_id}</TableCell>
                         <TableCell>{getErrorTypeLabel(pendency.error_type)}</TableCell>
