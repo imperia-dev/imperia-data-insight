@@ -39,6 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 export default function Pendencies() {
@@ -57,6 +58,7 @@ export default function Pendencies() {
   const [description, setDescription] = useState("");
   const [errorType, setErrorType] = useState("");
   const [errorDocumentCount, setErrorDocumentCount] = useState("");
+  const [isOldOrder, setIsOldOrder] = useState(false);
   
   // Data states
   const [orders, setOrders] = useState<any[]>([]);
@@ -156,7 +158,7 @@ export default function Pendencies() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedOrderId || !c4uId || !description || !errorType || !errorDocumentCount) {
+    if ((!isOldOrder && !selectedOrderId) || !c4uId || !description || !errorType || !errorDocumentCount) {
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos.",
@@ -168,7 +170,7 @@ export default function Pendencies() {
     setLoading(true);
     try {
       const { error } = await supabase.from('pendencies').insert({
-        order_id: selectedOrderId,
+        order_id: isOldOrder ? null : selectedOrderId,
         c4u_id: c4uId,
         description,
         error_type: errorType,
@@ -189,6 +191,7 @@ export default function Pendencies() {
       setDescription("");
       setErrorType("");
       setErrorDocumentCount("");
+      setIsOldOrder(false); // Reset isOldOrder
       
       // Refresh data
       fetchPendencies();
@@ -347,7 +350,8 @@ export default function Pendencies() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={openOrderSearch}
-                        className="w-full justify-between"
+                        className={cn("w-full justify-between", isOldOrder && "bg-gray-100 text-gray-500")}
+                        disabled={isOldOrder}
                       >
                         {selectedOrderId
                           ? orders.find((order) => order.id === selectedOrderId)?.order_number
@@ -390,6 +394,32 @@ export default function Pendencies() {
                     </PopoverContent>
                   </Popover>
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="old-order"
+                    checked={isOldOrder}
+                    onCheckedChange={(checked) => {
+                      setIsOldOrder(checked as boolean);
+                      if (checked) {
+                        setSelectedOrderId(""); // Clear selected order when "old order" is checked
+                      }
+                    }}
+                  />
+                  <Label htmlFor="old-order">Pedido Antigo</Label>
+                </div>
+
+                {isOldOrder && (
+                  <div className="space-y-2">
+                    <Label htmlFor="old_order_id">ID do Pedido Antigo</Label>
+                    <Input
+                      id="old_order_id"
+                      value={c4uId} // Assuming c4uId can be used for old order ID or create a new state
+                      onChange={(e) => setC4uId(e.target.value)} // Update c4uId or a new state
+                      placeholder="Digite o ID do pedido antigo"
+                    />
+                  </div>
+                )}
 
                 {/* C4U ID */}
                 <div className="space-y-2">

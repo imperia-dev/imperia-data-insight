@@ -588,7 +588,7 @@ export function Orders() {
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-foreground">Pedidos</h1>
             
-            {(isAdmin || isMaster) && (
+            {(isAdmin || isMaster || isOwner) && (
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
