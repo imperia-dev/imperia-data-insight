@@ -142,18 +142,30 @@ export function Orders() {
     },
   });
 
-  // Toggle attention mutation - temporarily disabled due to type sync issues
-  const toggleAttentionMutation = useMutation({
+  // Toggle attention mutation
+  const { mutate: toggleAttention, isPending: isToggleAttentionPending } = useMutation({
     mutationFn: async (orderIds: string[]) => {
       // Feature temporarily disabled - has_attention column type sync issue
-      console.log("Toggle attention feature temporarily disabled", orderIds);
-      return;
+      // console.log("Toggle attention feature temporarily disabled", orderIds);
+      // toast({
+      //   variant: "destructive",
+      //   title: "Funcionalidade temporariamente desabilitada",
+      //   description: "A funcionalidade de atenção está temporariamente desabilitada.",
+      // });
+      // return;
+
+      const { error } = await supabase
+        .from("orders")
+        .update({ has_attention: true })
+        .eq("id", orderIds);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast({
-        title: "Funcionalidade temporariamente desabilitada",
-        description: "A funcionalidade de atenção está temporariamente desabilitada.",
+        title: "Atenção marcada",
+        description: "As ordens selecionadas foram marcadas como de atenção.",
       });
       setIsAttentionMode(false);
       setSelectedOrdersForAttention([]);
@@ -774,11 +786,11 @@ export function Orders() {
                         </Button>
                         <Button
                           size="sm"
-                          disabled={toggleAttentionMutation.isPending || selectedOrdersForAttention.length === 0}
-                          onClick={() => toggleAttentionMutation.mutate(selectedOrdersForAttention)}
+                          disabled={isToggleAttentionPending || selectedOrdersForAttention.length === 0}
+                          onClick={() => toggleAttention(selectedOrdersForAttention)}
                         >
                           <Save className="h-4 w-4 mr-1" />
-                          {toggleAttentionMutation.isPending ? "Salvando..." : "Salvar Atenção"}
+                          {isToggleAttentionPending ? "Salvando..." : "Salvar Atenção"}
                         </Button>
                       </div>
                     ) : (
@@ -828,6 +840,19 @@ export function Orders() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {order.order_number}
+                            {order.has_attention && (
+                              <Badge
+                                variant="secondary"
+                                className="gap-1 cursor-pointer hover:bg-secondary/90 ml-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Logic to handle attention badge click if needed
+                                }}
+                              >
+                                <AlertTriangle className="h-3 w-3" />
+                                Atenção
+                              </Badge>
+                            )}
                             {order.is_urgent && (
                               <Badge 
                                 variant="destructive" 

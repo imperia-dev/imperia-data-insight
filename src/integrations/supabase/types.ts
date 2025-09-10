@@ -202,6 +202,7 @@ export type Database = {
           deadline: string
           delivered_at: string | null
           document_count: number
+          has_attention: boolean | null
           id: string
           is_urgent: boolean | null
           order_number: string
@@ -218,6 +219,7 @@ export type Database = {
           deadline: string
           delivered_at?: string | null
           document_count: number
+          has_attention?: boolean | null
           id?: string
           is_urgent?: boolean | null
           order_number: string
@@ -234,6 +236,7 @@ export type Database = {
           deadline?: string
           delivered_at?: string | null
           document_count?: number
+          has_attention?: boolean | null
           id?: string
           is_urgent?: boolean | null
           order_number?: string
