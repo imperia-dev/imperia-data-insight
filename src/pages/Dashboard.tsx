@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
@@ -58,6 +58,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
 
 interface OrderData {
   id: string;
@@ -139,11 +140,6 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined,
-  });
-  const [isCustomRange, setIsCustomRange] = useState(false);
   const [documentsTranslated, setDocumentsTranslated] = useState(0);
   const [documentsInProgress, setDocumentsInProgress] = useState(0);
   const [documentsDelivered, setDocumentsDelivered] = useState(0);
@@ -155,6 +151,10 @@ export default function Dashboard() {
   const [pendencyTypesData, setPendencyTypesData] = useState<any[]>([]);
   const [urgencyPercentage, setUrgencyPercentage] = useState("0.0");
   const [pendencyPercentage, setPendencyPercentage] = useState("0.0");
+  const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
   
   // Store IDs for each metric
   const [attributedOrderIds, setAttributedOrderIds] = useState<OrderSummary[]>([]);
@@ -202,7 +202,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboardData();
     fetchEvolutionData();
-  }, [selectedPeriod, dateRange]);
+  }, [selectedPeriod, customDateRange]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -212,40 +212,29 @@ export default function Dashboard() {
       let startDate = new Date();
       let endDate = new Date();
       
-      if (isCustomRange && dateRange.from && dateRange.to) {
-        startDate = new Date(dateRange.from);
+      if (selectedPeriod === "custom" && customDateRange.from && customDateRange.to) {
+        startDate = new Date(customDateRange.from);
         startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(dateRange.to);
+        endDate = new Date(customDateRange.to);
         endDate.setHours(23, 59, 59, 999);
-      } else {
-        switch (selectedPeriod) {
-          case 'day':
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-            break;
-          case 'week':
-            const dayOfWeek = now.getDay();
-            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            startDate = new Date(now.getFullYear(), now.getMonth(), diff);
-            endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
-            break;
-          case 'month':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-            break;
-          case 'quarter':
-            const quarter = Math.floor(now.getMonth() / 3);
-            startDate = new Date(now.getFullYear(), quarter * 3, 1);
-            endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
-            break;
-          case 'year':
-            startDate = new Date(now.getFullYear(), 0, 1);
-            endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-            break;
-          default:
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        }
+      } else if (selectedPeriod === 'day') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      } else if (selectedPeriod === 'week') {
+        const dayOfWeek = now.getDay();
+        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+        endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
+      } else if (selectedPeriod === 'month') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      } else if (selectedPeriod === 'quarter') {
+        const quarter = Math.floor(now.getMonth() / 3);
+        startDate = new Date(now.getFullYear(), quarter * 3, 1);
+        endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
+      } else if (selectedPeriod === 'year') {
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
       }
 
       // Fetch delivered orders (documents translated) for the period
@@ -551,57 +540,11 @@ export default function Dashboard() {
               </div>
               
               <div className="flex items-center gap-3">
-                {/* Date Range Picker */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "justify-start text-left font-normal",
-                        !dateRange.from && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="h-4 w-4 mr-2" />
-                      {dateRange.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
-                            {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
-                          </>
-                        ) : (
-                          format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
-                        )
-                      ) : (
-                        <span>Selecionar período</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="range"
-                      selected={{ from: dateRange.from, to: dateRange.to }}
-                      onSelect={(range) => {
-                        if (range?.from || range?.to) {
-                          setDateRange({ from: range?.from, to: range?.to });
-                          setIsCustomRange(true);
-                          setSelectedPeriod(""); // Clear the preset period
-                        }
-                      }}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                      locale={ptBR}
-                      disabled={(date) => date > new Date()}
-                    />
-                  </PopoverContent>
-                </Popover>
-
                 {/* Period Select */}
                 <Select 
                   value={selectedPeriod} 
                   onValueChange={(value) => {
                     setSelectedPeriod(value);
-                    setIsCustomRange(false);
-                    setDateRange({ from: undefined, to: undefined }); // Clear custom range
                   }}
                 >
                   <SelectTrigger className="w-[200px]">
@@ -614,8 +557,49 @@ export default function Dashboard() {
                     <SelectItem value="month">Este Mês</SelectItem>
                     <SelectItem value="quarter">Este Trimestre</SelectItem>
                     <SelectItem value="year">Este Ano</SelectItem>
+                    <SelectItem value="custom">Personalizado</SelectItem>
                   </SelectContent>
                 </Select>
+                {selectedPeriod === "custom" && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn(
+                          "w-[220px] justify-start text-left font-normal",
+                          !customDateRange.from && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customDateRange.from ? (
+                          customDateRange.to ? (
+                            `${format(customDateRange.from, "LLL dd, y", { locale: ptBR })} - ${format(
+                              customDateRange.to,
+                              "LLL dd, y",
+                              { locale: ptBR }
+                            )}`
+                          ) : (
+                            format(customDateRange.from, "LLL dd, y", { locale: ptBR })
+                          )
+                        ) : (
+                          <span>Selecione uma data</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <DatePickerCalendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={customDateRange.from || new Date()}
+                        selected={customDateRange}
+                        onSelect={setCustomDateRange}
+                        numberOfMonths={2}
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
             </div>
           </div>
@@ -625,7 +609,7 @@ export default function Dashboard() {
             <StatsCard
               title="Documentos Atribuídos"
               value={loading ? "..." : attributedDocuments.toLocaleString('pt-BR')}
-              icon={<Calendar className="h-5 w-5" />}
+              icon={<CalendarIcon className="h-5 w-5" />}
               description={`${selectedPeriod === 'day' ? 'hoje' : 
                            selectedPeriod === 'week' ? 'esta semana' : 
                            selectedPeriod === 'month' ? 'este mês' : 
