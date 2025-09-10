@@ -56,6 +56,7 @@ export default function Pendencies() {
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [c4uId, setC4uId] = useState("");
   const [description, setDescription] = useState("");
+  const [oldOrderId, setOldOrderId] = useState("");
   const [errorType, setErrorType] = useState("");
   const [errorDocumentCount, setErrorDocumentCount] = useState("");
   const [isOldOrder, setIsOldOrder] = useState(false);
@@ -158,19 +159,26 @@ export default function Pendencies() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if ((!isOldOrder && !selectedOrderId) || !c4uId || !description || !errorType || !errorDocumentCount) {
+    if (
+      (!isOldOrder && !selectedOrderId) ||
+      (isOldOrder && !oldOrderId) || // oldOrderId is required if isOldOrder is true
+      !c4uId ||
+      !description ||
+      !errorType ||
+      !errorDocumentCount
+    ) {
       toast({
         title: "Erro",
-        description: "Por favor, preencha todos os campos.",
+        description: "Por favor, preencha todos os campos obrigatórios.",
         variant: "destructive",
-      });
-      return;
+        });
+        return;
     }
 
     setLoading(true);
     try {
       const { error } = await supabase.from('pendencies').insert({
-        order_id: isOldOrder ? null : selectedOrderId,
+        order_id: isOldOrder ? oldOrderId : selectedOrderId, // Use oldOrderId if isOldOrder is true
         c4u_id: c4uId,
         description,
         error_type: errorType,
@@ -192,6 +200,7 @@ export default function Pendencies() {
       setErrorType("");
       setErrorDocumentCount("");
       setIsOldOrder(false); // Reset isOldOrder
+      setOldOrderId(""); // Reset oldOrderId
       
       // Refresh data
       fetchPendencies();
@@ -414,8 +423,8 @@ export default function Pendencies() {
                     <Label htmlFor="old_order_id">ID do Pedido Antigo</Label>
                     <Input
                       id="old_order_id"
-                      value={c4uId} // Assuming c4uId can be used for old order ID or create a new state
-                      onChange={(e) => setC4uId(e.target.value)} // Update c4uId or a new state
+                      value={oldOrderId}
+                      onChange={(e) => setOldOrderId(e.target.value)}
                       placeholder="Digite o ID do pedido antigo"
                     />
                   </div>
@@ -429,6 +438,7 @@ export default function Pendencies() {
                     value={c4uId}
                     onChange={(e) => setC4uId(e.target.value)}
                     placeholder="Digite o ID C4U"
+                    required={!isOldOrder} // C4U ID is required unless it's an old order
                   />
                 </div>
 
