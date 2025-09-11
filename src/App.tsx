@@ -24,6 +24,11 @@ import DashboardFinanceiro from "./pages/DashboardFinanceiro";
 import DashboardComercial from "./pages/DashboardComercial";
 import DashboardMarketing from "./pages/DashboardMarketing";
 import DashboardTech from "./pages/DashboardTech";
+import Team from "./pages/Team";
+import Reports from "./pages/Reports";
+import Timesheet from "./pages/Timesheet";
+import AIAnalytics from "./pages/AIAnalytics";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -64,7 +69,7 @@ const App = () => (
             } />
             <Route path="/team" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Team />
               </ProtectedRoute>
             } />
             <Route path="/productivity" element={
@@ -84,7 +89,7 @@ const App = () => (
             } />
             <Route path="/reports" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Reports />
               </ProtectedRoute>
             } />
             <Route path="/calendar" element={
@@ -94,17 +99,17 @@ const App = () => (
             } />
             <Route path="/timesheet" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Timesheet />
               </ProtectedRoute>
             } />
             <Route path="/ai-analytics" element={
               <ProtectedRoute>
-                <Dashboard />
+                <AIAnalytics />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Settings />
               </ProtectedRoute>
             } />
             <Route path="/company-costs" element={
