@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
-import heroImage from "@/assets/hero-office.jpg";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -151,7 +150,7 @@ export default function Auth() {
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
         style={{
-          backgroundImage: `url(${heroImage})`,
+          backgroundImage: `url(/lovable-uploads/1d2d4e7e-ccff-43f0-9ceb-df4fc46cc319.png)`,
           filter: isDarkMode ? 'brightness(0.3)' : 'brightness(0.7)',
         }}
       />
