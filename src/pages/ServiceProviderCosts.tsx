@@ -50,6 +50,14 @@ export default function ServiceProviderCosts() {
   const [selectedFiles, setSelectedFiles] = useState<Record<string, File[]>>({});
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedCostDetails, setSelectedCostDetails] = useState<ServiceProviderCost | null>(null);
+  const [isAddCostDialogOpen, setIsAddCostDialogOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
+  const [quickCostData, setQuickCostData] = useState({
+    days_worked: "",
+    amount: "",
+    competence: new Date().toISOString().slice(0, 7),
+    status: "Não Pago" as 'Pago' | 'Não Pago' | 'Pendente',
+  });
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -155,6 +163,57 @@ export default function ServiceProviderCosts() {
     } catch (error) {
       console.error('Error saving service provider cost:', error);
       toast.error("Erro ao salvar prestador");
+    }
+  };
+
+  const handleQuickAddCost = async () => {
+    try {
+      if (!selectedProvider) {
+        toast.error("Selecione um prestador");
+        return;
+      }
+
+      // Find the selected provider's details
+      const provider = uniqueProviders.find(p => p.name === selectedProvider);
+      if (!provider) {
+        toast.error("Prestador não encontrado");
+        return;
+      }
+
+      const costData = {
+        name: provider.name,
+        email: provider.email,
+        cpf: provider.cpf || null,
+        cnpj: provider.cnpj || null,
+        phone: provider.phone || null,
+        days_worked: quickCostData.days_worked ? parseInt(quickCostData.days_worked) : null,
+        amount: parseFloat(quickCostData.amount),
+        pix_key: provider.pix_key || null,
+        type: provider.type,
+        invoice_number: null,
+        competence: quickCostData.competence,
+        status: quickCostData.status,
+      };
+
+      const { error } = await supabase
+        .from('service_provider_costs')
+        .insert([costData]);
+
+      if (error) throw error;
+      
+      toast.success("Custo adicionado com sucesso");
+      setIsAddCostDialogOpen(false);
+      setSelectedProvider("");
+      setQuickCostData({
+        days_worked: "",
+        amount: "",
+        competence: new Date().toISOString().slice(0, 7),
+        status: "Não Pago",
+      });
+      fetchCosts();
+    } catch (error) {
+      console.error('Error adding quick cost:', error);
+      toast.error("Erro ao adicionar custo");
     }
   };
 
@@ -367,6 +426,17 @@ export default function ServiceProviderCosts() {
     return sorted;
   }, [costs, searchTerm, sortBy]);
 
+  // Get unique providers for the dropdown
+  const uniqueProviders = useMemo(() => {
+    const providersMap = new Map<string, ServiceProviderCost>();
+    costs.forEach(cost => {
+      if (!providersMap.has(cost.name)) {
+        providersMap.set(cost.name, cost);
+      }
+    });
+    return Array.from(providersMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [costs]);
+
   const totalAmount = filteredCosts.reduce((sum, cost) => sum + cost.amount, 0);
   const totalPaid = filteredCosts.filter(c => c.status === 'Pago').reduce((sum, cost) => sum + cost.amount, 0);
   const totalPending = filteredCosts.filter(c => c.status !== 'Pago').reduce((sum, cost) => sum + cost.amount, 0);
@@ -556,6 +626,100 @@ export default function ServiceProviderCosts() {
                 <FileText className="h-4 w-4" />
                 Exportar PDF
               </Button>
+              
+              {/* Quick Add Cost Dialog */}
+              <Dialog open={isAddCostDialogOpen} onOpenChange={setIsAddCostDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar Custo
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Custo Rápido</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label htmlFor="provider">Prestador</Label>
+                      <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um prestador" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {uniqueProviders.map((provider) => (
+                            <SelectItem key={provider.id} value={provider.name}>
+                              {provider.name} ({provider.type})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="quick-days">Dias Trabalhados</Label>
+                      <Input
+                        id="quick-days"
+                        type="number"
+                        value={quickCostData.days_worked}
+                        onChange={(e) => setQuickCostData({ ...quickCostData, days_worked: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="quick-competence">Competência</Label>
+                      <Input
+                        id="quick-competence"
+                        type="month"
+                        value={quickCostData.competence}
+                        onChange={(e) => setQuickCostData({ ...quickCostData, competence: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="quick-status">Status</Label>
+                      <Select
+                        value={quickCostData.status}
+                        onValueChange={(value: 'Pago' | 'Não Pago' | 'Pendente') => 
+                          setQuickCostData({ ...quickCostData, status: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pago">Pago</SelectItem>
+                          <SelectItem value="Não Pago">Não Pago</SelectItem>
+                          <SelectItem value="Pendente">Pendente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="quick-amount">Valor (R$)</Label>
+                      <Input
+                        id="quick-amount"
+                        type="number"
+                        step="0.01"
+                        value={quickCostData.amount}
+                        onChange={(e) => setQuickCostData({ ...quickCostData, amount: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    
+                    <Button 
+                      onClick={handleQuickAddCost} 
+                      className="w-full"
+                      disabled={!selectedProvider || !quickCostData.amount || !quickCostData.competence}
+                    >
+                      Adicionar Custo
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              
+              {/* Original Add Provider Dialog */}
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
