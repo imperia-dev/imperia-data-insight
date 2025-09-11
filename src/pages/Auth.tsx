@@ -150,8 +150,10 @@ export default function Auth() {
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
         style={{
-          backgroundImage: `url(/lovable-uploads/1d2d4e7e-ccff-43f0-9ceb-df4fc46cc319.png)`,
-          filter: isDarkMode ? 'brightness(0.3)' : 'brightness(0.7)',
+          backgroundImage: isDarkMode 
+            ? `url(/lovable-uploads/1d2d4e7e-ccff-43f0-9ceb-df4fc46cc319.png)`
+            : `url(/lovable-uploads/e9dd7cb6-a338-4546-aaa5-61c39e9bb699.png)`,
+          filter: isDarkMode ? 'brightness(0.3)' : 'brightness(0.9)',
         }}
       />
       
