@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Eye, EyeOff, FileText } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Logo } from "@/components/layout/Logo";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -123,18 +124,18 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="p-3 rounded-full bg-gradient-primary">
-              <FileText className="h-8 w-8 text-white" />
-            </div>
+        <CardHeader className="space-y-4">
+          <div className="flex items-center justify-center mb-2">
+            <Logo size="lg" />
           </div>
-          <CardTitle className="text-2xl text-center font-bold">
-            Sistema de Tradução
-          </CardTitle>
-          <CardDescription className="text-center">
-            Faça login ou crie sua conta para continuar
-          </CardDescription>
+          <div className="space-y-1">
+            <CardTitle className="text-2xl text-center font-bold">
+              Sistema de Tradução
+            </CardTitle>
+            <CardDescription className="text-center">
+              Faça login ou crie sua conta para continuar
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
