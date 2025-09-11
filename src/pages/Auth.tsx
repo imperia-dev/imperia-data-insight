@@ -130,7 +130,7 @@ export default function Auth() {
           </div>
           <div className="space-y-1">
             <CardTitle className="text-2xl text-center font-bold">
-              Sistema de Tradução
+              Portal de Gestão
             </CardTitle>
             <CardDescription className="text-center">
               Faça login ou crie sua conta para continuar
