@@ -16,6 +16,7 @@ import {
   Clock,
   AlertTriangle,
   AlertCircle,
+  ChevronRight,
 } from "lucide-react";
 import {
   LineChart,
@@ -59,6 +60,15 @@ import { CalendarIcon } from "lucide-react";
 import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface OrderData {
   id: string;
@@ -151,7 +161,7 @@ export default function Dashboard() {
   const [pendencyTypesData, setPendencyTypesData] = useState<any[]>([]);
   const [urgencyPercentage, setUrgencyPercentage] = useState("0.0");
   const [pendencyPercentage, setPendencyPercentage] = useState("0.0");
-  const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date | undefined }>({
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
   });
@@ -162,6 +172,7 @@ export default function Dashboard() {
   const [deliveredOrderIds, setDeliveredOrderIds] = useState<OrderSummary[]>([]);
   const [urgentOrderIds, setUrgentOrderIds] = useState<string[]>([]);
   const [pendencyIds, setPendencyIds] = useState<string[]>([]);
+  const [pendenciesList, setPendenciesList] = useState<any[]>([]);
   
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -334,16 +345,20 @@ export default function Dashboard() {
       // Fetch pendencies for the period - todas criadas no período
       const { data: pendenciesData, error: pendenciesError } = await supabase
         .from('pendencies')
-        .select('id, c4u_id, error_type, created_at, order_id') // Adicionado c4u_id e order_id
+        .select('id, c4u_id, error_type, created_at, order_id, description, status, treatment') 
         .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
+        .lte('created_at', endDate.toISOString())
+        .order('created_at', { ascending: false });
 
       interface PendencyData {
         id: string;
         c4u_id: string;
         error_type: string;
         created_at: string;
-        order_id: string | null; // Adicionando order_id aqui
+        order_id: string | null;
+        description: string;
+        status: string;
+        treatment: string | null;
       }
       const typedPendenciesData: PendencyData[] = (pendenciesData || []) as PendencyData[];
 
@@ -362,6 +377,7 @@ export default function Dashboard() {
         const totalPendencies = pendenciesData?.length || 0;
         setPendencies(totalPendencies);
         setPendencyIds(pendencyOrderIds);
+        setPendenciesList(typedPendenciesData);
         
         // Calculate pendency percentage
         const pendencyPercentage = totalDocuments > 0 ? ((totalPendencies / totalDocuments) * 100).toFixed(1) : '0.0';
@@ -593,7 +609,12 @@ export default function Dashboard() {
                         mode="range"
                         defaultMonth={customDateRange.from || new Date()}
                         selected={customDateRange}
-                        onSelect={setCustomDateRange}
+                        onSelect={(range) => {
+                          setCustomDateRange({
+                            from: range?.from,
+                            to: range?.to
+                          });
+                        }}
                         numberOfMonths={2}
                         locale={ptBR}
                       />
@@ -667,6 +688,101 @@ export default function Dashboard() {
               onViewDetails={() => showDetails("Pendências - IDs", pendencyIds, false)}
             />
           </div>
+
+          {/* Pendencies List */}
+          {pendenciesList.length > 0 && (
+            <div className="mb-8">
+              <div className="bg-card rounded-lg shadow-sm p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Pendências</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {pendenciesList.length} pendência{pendenciesList.length > 1 ? 's' : ''} no período selecionado
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[120px]">C4U ID</TableHead>
+                        <TableHead className="w-[150px]">Tipo de Erro</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead className="w-[100px]">Status</TableHead>
+                        <TableHead className="w-[150px]">Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendenciesList.slice(0, 10).map((pendency) => {
+                        const errorTypeLabel = {
+                          "nao_e_erro": "Não é erro",
+                          "falta_de_dados": "Falta de dados",
+                          "apostila": "Apostila",
+                          "erro_em_data": "Erro em data",
+                          "nome_separado": "Nome separado",
+                          "texto_sem_traduzir": "Texto sem traduzir",
+                          "nome_incorreto": "Nome incorreto",
+                          "texto_duplicado": "Texto duplicado",
+                          "erro_em_crc": "Erro em CRC",
+                          "nome_traduzido": "Nome traduzido",
+                          "falta_parte_documento": "Falta parte do documento",
+                          "erro_digitacao": "Erro de digitação",
+                          "sem_assinatura_tradutor": "Sem assinatura do tradutor",
+                          "nome_junto": "Nome junto",
+                          "traducao_incompleta": "Tradução incompleta",
+                          "titulo_incorreto": "Título incorreto",
+                          "trecho_sem_traduzir": "Trecho sem traduzir",
+                          "matricula_incorreta": "Matrícula incorreta",
+                          "espacamento": "Espaçamento",
+                          "sem_cabecalho": "Sem cabeçalho",
+                        }[pendency.error_type] || pendency.error_type;
+
+                        return (
+                          <TableRow key={pendency.id}>
+                            <TableCell className="font-medium">{pendency.c4u_id}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {errorTypeLabel}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {pendency.description}
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={pendency.status === 'resolved' ? 'outline' : pendency.status === 'pending' ? 'secondary' : 'default'}
+                                className={pendency.status === 'resolved' ? 'border-green-500 text-green-700' : ''}
+                              >
+                                {pendency.status === 'pending' ? 'Pendente' : pendency.status === 'resolved' ? 'Resolvido' : pendency.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {format(new Date(pendency.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                  
+                  {pendenciesList.length > 10 && (
+                    <div className="mt-4 text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.location.href = '/pendencies'}
+                        className="text-primary hover:text-primary/80"
+                      >
+                        Ver todas as {pendenciesList.length} pendências
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Evolution Chart - Full Width */}
           <div className="mb-8">

@@ -157,7 +157,7 @@ export function Orders() {
       const { error } = await supabase
         .from("orders")
         .update({ has_attention: true })
-        .eq("id", orderIds);
+        .in("id", orderIds);
       
       if (error) throw error;
     },
