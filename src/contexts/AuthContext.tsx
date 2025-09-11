@@ -18,10 +18,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Function to check if session is expired (24 hours)
+  const checkSessionExpiry = (session: Session | null) => {
+    if (!session) return false;
+    
+    // Get the session creation time (issued at time in seconds)
+    const issuedAt = session.expires_at ? session.expires_at - 3600 : 0; // expires_at is 1 hour after issued_at
+    const now = Math.floor(Date.now() / 1000); // current time in seconds
+    const twentyFourHours = 24 * 60 * 60; // 24 hours in seconds
+    
+    // Check if more than 24 hours have passed since session was issued
+    if ((now - issuedAt) > twentyFourHours) {
+      return true; // Session is expired
+    }
+    
+    return false;
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        // Check if session is older than 24 hours
+        if (session && checkSessionExpiry(session)) {
+          // Force sign out if session is too old
+          await supabase.auth.signOut();
+          return;
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -33,13 +57,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      // Check if session is older than 24 hours
+      if (session && checkSessionExpiry(session)) {
+        // Force sign out if session is too old
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        navigate('/auth');
+      } else {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Set up interval to check session expiry every minute
+    const intervalId = setInterval(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && checkSessionExpiry(session)) {
+        await supabase.auth.signOut();
+      }
+    }, 60000); // Check every minute
+
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(intervalId);
+    };
   }, [navigate]);
 
   const signOut = async () => {
