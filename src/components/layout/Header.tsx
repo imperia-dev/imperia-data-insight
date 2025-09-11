@@ -1,4 +1,4 @@
-import { Bell, Search, User, ChevronDown, MessageSquareMore, LogOut, MessageCircle } from "lucide-react";
+import { Bell, Search, User, ChevronDown, LogOut, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Logo } from "@/components/layout/Logo";
 
 interface HeaderProps {
   userName: string;
@@ -30,13 +31,7 @@ export function Header({ userName, userRole }: HeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="flex h-16 items-center px-4 md:px-6">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <MessageSquareMore className="h-6 w-6 text-primary" />
-            <span className="text-xl font-black text-primary">impéria</span>
-            <span className="text-xs font-normal text-muted-foreground uppercase tracking-wider">Analytics</span>
-          </div>
-        </div>
+        <Logo size="md" />
 
         {/* Search Bar - Desktop */}
         <div className="hidden md:flex flex-1 items-center px-8">

@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { Logo } from "@/components/layout/Logo";
 import {
   LayoutDashboard,
   FileText,
@@ -137,15 +138,7 @@ export function Sidebar({ userRole }: SidebarProps) {
     <aside className="hidden md:flex h-screen w-64 flex-col fixed left-0 top-0 z-40 border-r bg-white">
       {/* Logo Section */}
       <div className="flex h-16 items-center border-b px-6">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <span className="text-white font-black text-lg">i</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-lg font-black text-primary leading-tight">impéria</span>
-            <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">traduções</span>
-          </div>
-        </div>
+        <Logo size="md" />
       </div>
 
       {/* Navigation */}
