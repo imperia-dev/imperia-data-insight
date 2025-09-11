@@ -474,6 +474,19 @@ export default function Dashboard() {
           endDate = new Date(now.getFullYear(), 11, 31);
           interval = eachMonthOfInterval({ start: startDate, end: endDate });
           break;
+        case 'custom':
+          // Handle custom date range
+          if (customDateRange?.from && customDateRange?.to) {
+            startDate = customDateRange.from;
+            endDate = customDateRange.to;
+            interval = eachDayOfInterval({ start: startDate, end: endDate });
+          } else {
+            // Fallback to month if no custom range selected
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            interval = eachDayOfInterval({ start: startDate, end: endDate });
+          }
+          break;
         default:
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -502,7 +515,7 @@ export default function Dashboard() {
           // Hourly labels
           label = format(date, 'HH:mm', { locale: ptBR });
           dateEnd.setHours(date.getHours() + 1);
-        } else if (selectedPeriod === 'week' || selectedPeriod === 'month') {
+        } else if (selectedPeriod === 'week' || selectedPeriod === 'month' || selectedPeriod === 'custom') {
           // Daily labels
           label = format(date, 'dd/MM', { locale: ptBR });
           dateEnd = new Date(date);
