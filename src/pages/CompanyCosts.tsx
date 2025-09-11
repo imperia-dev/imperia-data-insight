@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown, Upload, Paperclip, Download, X } from "lucide-react";
+import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown, Upload, Paperclip, Download, X, Calendar, FolderOpen, List, MessageSquare, DollarSign, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -642,151 +642,253 @@ export default function CompanyCosts() {
           </div>
         </CardHeader>
         <CardContent>
-            <div className="mb-4 p-4 bg-muted rounded-lg flex justify-between items-center">
-              <p className="text-lg font-semibold">
-                Total: <span className="text-primary">{new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }).format(totalAmount)}</span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {filteredCosts.length} de {costs.length} registros
-              </p>
+            <div className="mb-4 p-6 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-border/50 shadow-sm">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Total de Custos</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }).format(totalAmount)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">
+                    {filteredCosts.length} de {costs.length} registros
+                  </p>
+                  <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden w-32">
+                    <div 
+                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{ width: `${costs.length > 0 ? (filteredCosts.length / costs.length) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border/50 shadow-sm">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Sub Categoria</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Observações</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Arquivos</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                <TableRow className="bg-muted/30 hover:bg-muted/40 transition-colors">
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      Data
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                      Categoria
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <List className="h-4 w-4 text-muted-foreground" />
+                      Sub Categoria
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      Descrição
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                      Observações
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-foreground">
+                    <div className="flex items-center justify-end gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      Valor
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="h-4 w-4 text-muted-foreground" />
+                      Arquivos
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-foreground">
+                    <div className="flex items-center justify-end gap-2">
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      Ações
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCosts.map((cost) => (
-                  <TableRow key={cost.id}>
-                    <TableCell>
-                      {format(new Date(cost.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
-                    </TableCell>
-                    <TableCell>{cost.category}</TableCell>
-                    <TableCell>{cost.sub_category || '-'}</TableCell>
-                    <TableCell>{cost.description}</TableCell>
-                    <TableCell>{cost.observations || '-'}</TableCell>
-                    <TableCell className="text-right">
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      }).format(cost.amount)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-2">
-                        {/* File upload input */}
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="file"
-                            multiple
-                            id={`file-upload-${cost.id}`}
-                            className="hidden"
-                            onChange={(e) => {
-                              if (e.target.files) {
-                                handleFileUpload(cost.id, e.target.files);
-                              }
-                            }}
-                            disabled={uploadingFiles[cost.id]}
-                          />
-                          <Label
-                            htmlFor={`file-upload-${cost.id}`}
-                            className="cursor-pointer"
-                          >
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={uploadingFiles[cost.id]}
-                              asChild
-                            >
-                              <span>
-                                {uploadingFiles[cost.id] ? (
-                                  <span className="flex items-center gap-1">
-                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    Enviando...
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center gap-1">
-                                    <Upload className="h-3 w-3" />
-                                    Adicionar
-                                  </span>
-                                )}
-                              </span>
-                            </Button>
-                          </Label>
-                        </div>
-                        
-                        {/* List uploaded files */}
-                        {cost.files && cost.files.length > 0 && (
-                          <div className="space-y-1">
-                            {cost.files.map((file, index) => {
-                              const fileName = file.split('/').pop() || `Arquivo ${index + 1}`;
-                              return (
-                                <div
-                                  key={file}
-                                  className="flex items-center gap-1 text-xs bg-muted rounded px-2 py-1"
-                                >
-                                  <Paperclip className="h-3 w-3" />
-                                  <span className="flex-1 truncate max-w-[100px]" title={fileName}>
-                                    {fileName}
-                                  </span>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0"
-                                    onClick={() => handleFileDownload(file)}
-                                  >
-                                    <Download className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0"
-                                    onClick={() => handleFileRemove(cost.id, file)}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(cost)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(cost.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                {filteredCosts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-32 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                        <FileText className="h-10 w-10 opacity-40" />
+                        <p className="text-sm">Nenhum custo encontrado</p>
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredCosts.map((cost, index) => (
+                    <TableRow 
+                      key={cost.id}
+                      className={`
+                        hover:bg-muted/20 transition-all duration-200
+                        ${index % 2 === 0 ? 'bg-background' : 'bg-muted/5'}
+                      `}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Calendar className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="font-medium">
+                            {format(new Date(cost.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          {cost.category}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground">
+                          {cost.sub_category || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">{cost.description}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground text-sm">
+                          {cost.observations || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-semibold text-lg text-foreground">
+                          {new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          }).format(cost.amount)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-2">
+                          {/* File upload input */}
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="file"
+                              multiple
+                              id={`file-upload-${cost.id}`}
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files) {
+                                  handleFileUpload(cost.id, e.target.files);
+                                }
+                              }}
+                              disabled={uploadingFiles[cost.id]}
+                            />
+                            <Label
+                              htmlFor={`file-upload-${cost.id}`}
+                              className="cursor-pointer"
+                            >
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={uploadingFiles[cost.id]}
+                                asChild
+                                className="hover:bg-primary/10 transition-colors"
+                              >
+                                <span>
+                                  {uploadingFiles[cost.id] ? (
+                                    <span className="flex items-center gap-1">
+                                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                      <span className="text-xs">Enviando...</span>
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1">
+                                      <Upload className="h-3 w-3" />
+                                      <span className="text-xs">
+                                        {cost.files && cost.files.length > 0 ? `(${cost.files.length})` : 'Adicionar'}
+                                      </span>
+                                    </span>
+                                  )}
+                                </span>
+                              </Button>
+                            </Label>
+                          </div>
+                          
+                          {/* List uploaded files */}
+                          {cost.files && cost.files.length > 0 && (
+                            <div className="space-y-1">
+                              {cost.files.map((file, index) => {
+                                const fileName = file.split('/').pop() || `Arquivo ${index + 1}`;
+                                return (
+                                  <div
+                                    key={file}
+                                    className="flex items-center gap-1 text-xs bg-muted/50 rounded-full px-2 py-1"
+                                  >
+                                    <Paperclip className="h-3 w-3 text-muted-foreground" />
+                                    <span className="flex-1 truncate max-w-[100px]" title={fileName}>
+                                      {fileName}
+                                    </span>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-5 w-5 p-0 hover:bg-primary/10"
+                                        onClick={() => handleFileDownload(file)}
+                                      >
+                                        <Download className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-5 w-5 p-0 hover:bg-destructive/10"
+                                        onClick={() => handleFileRemove(cost.id, file)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(cost)}
+                            title="Editar"
+                            className="hover:bg-primary/10 transition-colors h-8 w-8 p-0"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(cost.id)}
+                            title="Excluir"
+                            className="hover:bg-destructive/10 text-destructive transition-colors h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
