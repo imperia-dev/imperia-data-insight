@@ -997,69 +997,59 @@ export default function ServiceProviderCosts() {
                       }).format(cost.amount)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
                         {/* File upload input */}
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="file"
-                            multiple
-                            id={`file-upload-${cost.id}`}
-                            className="hidden"
-                            onChange={(e) => {
-                              if (e.target.files) {
-                                handleFileUpload(cost.id, e.target.files);
-                              }
-                            }}
+                        <Input
+                          type="file"
+                          multiple
+                          id={`file-upload-${cost.id}`}
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files) {
+                              handleFileUpload(cost.id, e.target.files);
+                            }
+                          }}
+                          disabled={uploadingFiles[cost.id]}
+                        />
+                        <Label
+                          htmlFor={`file-upload-${cost.id}`}
+                          className="cursor-pointer"
+                        >
+                          <Button
+                            size="sm"
+                            variant="outline"
                             disabled={uploadingFiles[cost.id]}
-                          />
-                          <Label
-                            htmlFor={`file-upload-${cost.id}`}
-                            className="cursor-pointer"
+                            asChild
                           >
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={uploadingFiles[cost.id]}
-                              asChild
-                            >
-                              <span>
-                                {uploadingFiles[cost.id] ? (
-                                  <span className="flex items-center gap-1">
-                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    Enviando...
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center gap-1">
-                                    <Upload className="h-3 w-3" />
-                                    {cost.files && cost.files.length > 0 ? `(${cost.files.length})` : ''}
-                                  </span>
-                                )}
-                              </span>
-                            </Button>
-                          </Label>
-                        </div>
+                            <span>
+                              {uploadingFiles[cost.id] ? (
+                                <span className="flex items-center gap-1">
+                                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                  Enviando...
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  <Upload className="h-3 w-3" />
+                                  {cost.files && cost.files.length > 0 ? `(${cost.files.length})` : ''}
+                                </span>
+                              )}
+                            </span>
+                          </Button>
+                        </Label>
                         
-                        {/* List uploaded files */}
+                        {/* View files button */}
                         {cost.files && cost.files.length > 0 && (
-                          <div className="space-y-1">
-                            {cost.files.slice(0, 1).map((file, index) => {
-                              const fileName = file.split('/').pop() || `Arquivo ${index + 1}`;
-                              return (
-                                <div
-                                  key={file}
-                                  className="flex items-center gap-1 text-xs bg-muted rounded px-2 py-1"
-                                >
-                                  <Paperclip className="h-3 w-3" />
-                                  <span className="flex-1 truncate max-w-[80px]" title={fileName}>
-                                    {fileName}
-                                  </span>
-                                  {cost.files && cost.files.length > 1 && (
-                                    <span className="text-muted-foreground">+{cost.files.length - 1}</span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedCostDetails(cost);
+                              setDetailsDialogOpen(true);
+                            }}
+                            title="Ver arquivos"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
