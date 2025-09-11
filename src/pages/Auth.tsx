@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
+import heroImage from "@/assets/hero-office.jpg";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -16,8 +17,31 @@ export default function Auth() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check system preference for dark mode
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    setIsDarkMode(prefersDark);
+    
+    // Apply theme class to root
+    if (prefersDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    if (!isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,8 +146,32 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      {/* Background Image with brightness filter */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
+        style={{
+          backgroundImage: `url(${heroImage})`,
+          filter: isDarkMode ? 'brightness(0.3)' : 'brightness(0.7)',
+        }}
+      />
+      
+      {/* Theme Toggle Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 right-4 z-10 bg-background/80 backdrop-blur-sm border border-border"
+        onClick={toggleTheme}
+      >
+        {isDarkMode ? (
+          <Sun className="h-5 w-5" />
+        ) : (
+          <Moon className="h-5 w-5" />
+        )}
+      </Button>
+
+      {/* Content */}
+      <Card className="w-full max-w-md relative z-10 bg-background/95 backdrop-blur-sm border-border">
         <CardHeader className="space-y-4">
           <div className="flex items-center justify-center mb-2">
             <Logo size="lg" />
