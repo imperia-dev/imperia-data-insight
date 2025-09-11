@@ -153,7 +153,7 @@ export default function Auth() {
           backgroundImage: isDarkMode 
             ? `url(/lovable-uploads/1d2d4e7e-ccff-43f0-9ceb-df4fc46cc319.png)`
             : `url(/lovable-uploads/e9dd7cb6-a338-4546-aaa5-61c39e9bb699.png)`,
-          filter: isDarkMode ? 'brightness(0.3)' : 'brightness(0.9)',
+          filter: isDarkMode ? 'brightness(0.6)' : 'brightness(0.9)',
         }}
       />
       
