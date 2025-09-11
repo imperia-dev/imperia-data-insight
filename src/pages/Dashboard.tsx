@@ -7,6 +7,7 @@ import { DocumentTable } from "@/components/documents/DocumentTable";
 import { PendencyTypesChart } from "@/components/dashboard/PendencyTypesChart";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToPDF } from "@/utils/exportUtils";
 import {
   FileText,
   Users,
@@ -535,6 +536,74 @@ export default function Dashboard() {
     }
   };
 
+  const handleExportPDF = () => {
+    // Prepare indicators data
+    const indicators = [
+      { label: 'Documentos Atribuídos', value: attributedDocuments.toLocaleString('pt-BR') },
+      { label: 'Em Andamento', value: documentsInProgress.toLocaleString('pt-BR') },
+      { label: 'Entregues', value: documentsDelivered.toLocaleString('pt-BR') },
+      { label: 'Urgências', value: `${urgencies.toLocaleString('pt-BR')} (${urgencyPercentage}%)` },
+      { label: 'Pendências', value: `${pendencies.toLocaleString('pt-BR')} (${pendencyPercentage}%)` },
+    ];
+
+    // Prepare pendencies table data
+    const pendenciesTableRows = pendenciesList.slice(0, 20).map(pendency => {
+      const errorTypeLabel = {
+        "nao_e_erro": "Não é erro",
+        "falta_de_dados": "Falta de dados",
+        "apostila": "Apostila",
+        "erro_em_data": "Erro em data",
+        "nome_separado": "Nome separado",
+        "texto_sem_traduzir": "Texto sem traduzir",
+        "nome_incorreto": "Nome incorreto",
+        "texto_duplicado": "Texto duplicado",
+        "erro_em_crc": "Erro em CRC",
+        "nome_traduzido": "Nome traduzido",
+        "falta_parte_documento": "Falta parte do documento",
+        "erro_digitacao": "Erro de digitação",
+        "sem_assinatura_tradutor": "Sem assinatura do tradutor",
+        "nome_junto": "Nome junto",
+        "traducao_incompleta": "Tradução incompleta",
+        "titulo_incorreto": "Título incorreto",
+        "trecho_sem_traduzir": "Trecho sem traduzir",
+        "matricula_incorreta": "Matrícula incorreta",
+        "espacamento": "Espaçamento",
+        "sem_cabecalho": "Sem cabeçalho",
+      }[pendency.error_type] || pendency.error_type;
+
+      return [
+        pendency.c4u_id,
+        errorTypeLabel,
+        pendency.description,
+        pendency.status === 'pending' ? 'Pendente' : pendency.status === 'resolved' ? 'Resolvido' : pendency.status,
+        format(new Date(pendency.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+      ];
+    });
+
+    // Prepare chart data for evolution
+    const evolutionChartData = lineChartData.map(item => ({
+      label: item.label,
+      value: item.documentos,
+      formattedValue: item.documentos.toString()
+    }));
+
+    const exportData = {
+      title: 'Dashboard Operacional',
+      headers: ['C4U ID', 'Tipo de Erro', 'Descrição', 'Status', 'Data'],
+      rows: pendenciesTableRows,
+      totals: indicators,
+      charts: [
+        {
+          title: `Evolução ${selectedPeriod === 'day' ? 'Horária' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'Diária' : selectedPeriod === 'quarter' ? 'Semanal' : 'Mensal'}`,
+          type: 'bar' as const,
+          data: evolutionChartData.slice(0, 15), // Limit to 15 items for readability
+        }
+      ]
+    };
+
+    exportToPDF(exportData, 'portrait');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
@@ -556,6 +625,16 @@ export default function Dashboard() {
               </div>
               
               <div className="flex items-center gap-3">
+                {/* Export PDF Button */}
+                <Button 
+                  onClick={handleExportPDF}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Exportar PDF
+                </Button>
+                
                 {/* Period Select */}
                 <Select 
                   value={selectedPeriod} 
