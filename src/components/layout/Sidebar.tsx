@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Logo } from "@/components/layout/Logo";
 import {
@@ -15,8 +16,19 @@ import {
   CheckCircle,
   Wallet,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SidebarProps {
   userRole: string;
@@ -153,53 +165,98 @@ const navigation = [
 
 export function Sidebar({ userRole }: SidebarProps) {
   const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const filteredNavigation = navigation.filter((item) =>
     userRole ? item.roles.includes(userRole.toLowerCase()) : false
   );
 
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
-    <aside className="hidden md:flex h-screen w-64 flex-col fixed left-0 top-0 z-40 border-r bg-white">
-      {/* Logo Section */}
-      <div className="flex h-16 items-center border-b px-6">
-        <Logo size="md" />
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {filteredNavigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          const Icon = item.icon;
-
-          return (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-                isActive
-                  ? "bg-primary text-white shadow-md"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {item.title}
-            </NavLink>
-          );
-        })}
-      </nav>
-
-      {/* Footer */}
-      <div className="border-t p-4">
-        <div className="rounded-lg bg-gradient-accent p-4">
-          <p className="text-xs font-medium text-primary">
-            Descomplicando traduções,
-          </p>
-          <p className="text-xs font-medium text-primary">
-            potencializando resultados
-          </p>
+    <TooltipProvider>
+      <aside className={cn(
+        "hidden md:flex h-screen flex-col fixed left-0 top-0 z-40 border-r bg-white transition-all duration-300",
+        isCollapsed ? "w-16" : "w-64"
+      )}>
+        {/* Logo Section with Toggle Button */}
+        <div className="flex h-16 items-center justify-between border-b px-4">
+          {!isCollapsed && <Logo size="md" />}
+          <Button
+            onClick={toggleSidebar}
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-8 w-8",
+              isCollapsed && "mx-auto"
+            )}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
         </div>
-      </div>
-    </aside>
+
+        {/* Navigation with Scroll */}
+        <ScrollArea className="flex-1">
+          <nav className="space-y-1 px-2 py-4">
+            {filteredNavigation.map((item) => {
+              const isActive = location.pathname === item.href;
+              const Icon = item.icon;
+
+              const navLink = (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-primary text-white shadow-md"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    isCollapsed && "justify-center px-2"
+                  )}
+                >
+                  <Icon className={cn("h-4 w-4", isCollapsed ? "h-5 w-5" : "")} />
+                  {!isCollapsed && <span>{item.title}</span>}
+                </NavLink>
+              );
+
+              if (isCollapsed) {
+                return (
+                  <Tooltip key={item.href} delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      {navLink}
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium">
+                      {item.title}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return navLink;
+            })}
+          </nav>
+        </ScrollArea>
+
+        {/* Footer */}
+        {!isCollapsed && (
+          <div className="border-t p-4">
+            <div className="rounded-lg bg-gradient-accent p-4">
+              <p className="text-xs font-medium text-primary">
+                Descomplicando traduções,
+              </p>
+              <p className="text-xs font-medium text-primary">
+                potencializando resultados
+              </p>
+            </div>
+          </div>
+        )}
+      </aside>
+    </TooltipProvider>
   );
 }
