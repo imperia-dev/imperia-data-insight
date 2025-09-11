@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Logo } from "@/components/layout/Logo";
+import { useSidebar } from "@/contexts/SidebarContext";
 import {
   LayoutDashboard,
   FileText,
@@ -165,15 +165,11 @@ const navigation = [
 
 export function Sidebar({ userRole }: SidebarProps) {
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   const filteredNavigation = navigation.filter((item) =>
     userRole ? item.roles.includes(userRole.toLowerCase()) : false
   );
-
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
 
   return (
     <TooltipProvider>

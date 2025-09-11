@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, TrendingUp, User, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -33,6 +34,7 @@ interface TopPerformer {
 
 export default function Financial() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
@@ -191,7 +193,7 @@ export default function Financial() {
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
       
-      <div className="md:pl-64">
+      <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
         <main className="p-4 md:p-6 lg:p-8">

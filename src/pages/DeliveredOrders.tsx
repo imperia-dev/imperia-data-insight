@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -36,6 +37,7 @@ import { cn } from "@/lib/utils";
 
 export function DeliveredOrders() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const [sortBy, setSortBy] = useState("delivered_desc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -224,7 +226,7 @@ export function DeliveredOrders() {
     <div className="min-h-screen bg-background">
       <Sidebar userRole={profile?.role || "operation"} />
       
-      <div className="md:pl-64">
+      <div className={mainContainerClass}>
         <Header userName={profile?.full_name || user?.email || ""} userRole={profile?.role || "operation"} />
         
         <main className="p-4 md:p-6 lg:p-8">

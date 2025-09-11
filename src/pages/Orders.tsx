@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -59,6 +60,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export function Orders() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [lastOrderId, setLastOrderId] = useState("");
@@ -581,7 +583,7 @@ export function Orders() {
     <div className="min-h-screen bg-background">
       <Sidebar userRole={profile?.role || "operation"} />
       
-      <div className="md:pl-64">
+      <div className={mainContainerClass}>
         <Header userName={profile?.full_name || user?.email || ""} userRole={profile?.role || "operation"} />
         
         <main className="p-4 md:p-6 lg:p-8">

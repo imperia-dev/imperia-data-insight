@@ -1,39 +1,16 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Construction } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useConstructionPage } from "@/hooks/useConstructionPage";
 
 export default function DashboardComercial() {
-  const { user } = useAuth();
-  const [userRole, setUserRole] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, role')
-          .eq('id', user.id)
-          .single();
-
-        if (data && !error) {
-          setUserName(data.full_name);
-          setUserRole(data.role);
-        }
-      }
-    };
-
-    fetchUserProfile();
-  }, [user]);
+  const { userRole, userName, mainContainerClass } = useConstructionPage();
 
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
-      <div className="md:pl-64">
+      <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
         <main className="container mx-auto p-6">

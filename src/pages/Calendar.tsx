@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,6 +22,7 @@ interface Event {
 
 export default function Calendar() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -135,7 +137,7 @@ export default function Calendar() {
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
       
-      <div className="md:pl-64">
+      <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
         <main className="p-4 md:p-6 lg:p-8">

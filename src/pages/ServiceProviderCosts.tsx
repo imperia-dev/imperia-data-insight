@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText, ArrowUpDown, Search, Upload, Paperclip, Download, X, Eye, Briefcase, Calendar, CreditCard, CalendarDays, CheckCircle, DollarSign, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -38,6 +39,7 @@ interface ServiceProviderCost {
 
 export default function ServiceProviderCosts() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const [costs, setCosts] = useState<ServiceProviderCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -589,7 +591,7 @@ export default function ServiceProviderCosts() {
     <div className="min-h-screen bg-background">
       <Header userName={userName} userRole={userRole} />
       <Sidebar userRole={userRole} />
-      <div className="md:ml-64 pt-16">
+      <div className={`${mainContainerClass} pt-16`}>
         <div className="container mx-auto py-8 px-4">
           {/* Search and Sort bar */}
           <div className="flex gap-4 items-start mb-4">

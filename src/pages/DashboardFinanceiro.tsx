@@ -5,9 +5,11 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
 
 export default function DashboardFinanceiro() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
 
@@ -33,7 +35,7 @@ export default function DashboardFinanceiro() {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
-      <div className="md:pl-64">
+      <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
         <main className="container mx-auto p-6">

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Wallet as WalletIcon, TrendingUp, FileText, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,6 +21,7 @@ interface OrderPayment {
 
 export default function Wallet() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [orders, setOrders] = useState<OrderPayment[]>([]);
@@ -96,7 +98,7 @@ export default function Wallet() {
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
       
-      <div className="md:pl-64">
+      <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
         <main className="p-4 md:p-6 lg:p-8">

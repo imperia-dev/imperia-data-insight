@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Pendencies() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const { toast } = useToast();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
@@ -329,7 +331,7 @@ export default function Pendencies() {
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
       
-      <div className="md:pl-64">
+      <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
         <main className="p-4 md:p-6 lg:p-8">

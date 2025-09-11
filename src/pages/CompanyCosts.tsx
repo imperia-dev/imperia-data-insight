@@ -11,6 +11,7 @@ import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown, Upload, Pap
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -54,6 +55,7 @@ const subCategories: Record<string, string[]> = {
 
 export default function CompanyCosts() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const [costs, setCosts] = useState<CompanyCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -467,7 +469,7 @@ export default function CompanyCosts() {
     <div className="min-h-screen bg-background">
       <Header userName={userName} userRole={userRole} />
       <Sidebar userRole={userRole} />
-      <div className="md:ml-64 pt-16">
+      <div className={`${mainContainerClass} pt-16`}>
         <div className="container mx-auto py-8 px-4">
           {/* Filters and Sort Component */}
           <div className="flex gap-4 items-start mb-4">
