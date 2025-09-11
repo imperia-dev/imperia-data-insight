@@ -19,7 +19,11 @@ export const rolePermissions: Record<Role, string[]> = {
     '/company-costs',
     '/service-provider-costs',
     '/my-orders',
-    '/pendencies'
+    '/pendencies',
+    '/dashboard-financeiro',
+    '/dashboard-comercial',
+    '/dashboard-marketing',
+    '/dashboard-tech'
   ],
   master: [
     '/',

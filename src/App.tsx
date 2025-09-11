@@ -20,6 +20,10 @@ import CompanyCosts from "./pages/CompanyCosts";
 import ServiceProviderCosts from "./pages/ServiceProviderCosts";
 import Pendencies from "./pages/Pendencies";
 import Productivity from "./pages/Productivity";
+import DashboardFinanceiro from "./pages/DashboardFinanceiro";
+import DashboardComercial from "./pages/DashboardComercial";
+import DashboardMarketing from "./pages/DashboardMarketing";
+import DashboardTech from "./pages/DashboardTech";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +120,26 @@ const App = () => (
             <Route path="/pendencies" element={
               <ProtectedRoute>
                 <Pendencies />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard-financeiro" element={
+              <ProtectedRoute>
+                <DashboardFinanceiro />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard-comercial" element={
+              <ProtectedRoute>
+                <DashboardComercial />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard-marketing" element={
+              <ProtectedRoute>
+                <DashboardMarketing />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard-tech" element={
+              <ProtectedRoute>
+                <DashboardTech />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

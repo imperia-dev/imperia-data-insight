@@ -24,7 +24,7 @@ interface SidebarProps {
 
 const navigation = [
   {
-    title: "Dashboard",
+    title: "Dashboard Operação",
     icon: LayoutDashboard,
     href: "/",
     roles: ["owner", "master", "admin"],
@@ -124,6 +124,30 @@ const navigation = [
     icon: Settings,
     href: "/settings",
     roles: ["owner", "master", "admin"],
+  },
+  {
+    title: "Dashboard Financeiro",
+    icon: TrendingUp,
+    href: "/dashboard-financeiro",
+    roles: ["owner"],
+  },
+  {
+    title: "Dashboard Comercial",
+    icon: TrendingUp,
+    href: "/dashboard-comercial",
+    roles: ["owner"],
+  },
+  {
+    title: "Dashboard Marketing",
+    icon: TrendingUp,
+    href: "/dashboard-marketing",
+    roles: ["owner"],
+  },
+  {
+    title: "Dashboard Tech",
+    icon: TrendingUp,
+    href: "/dashboard-tech",
+    roles: ["owner"],
   },
 ];
 

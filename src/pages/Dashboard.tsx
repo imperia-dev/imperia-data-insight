@@ -630,7 +630,7 @@ export default function Dashboard() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-black text-foreground">
-                  Dashboard Operacional
+                  Dashboard Operação
                 </h1>
                 <p className="text-muted-foreground mt-1">
                   Acompanhe as métricas e performance da sua operação
