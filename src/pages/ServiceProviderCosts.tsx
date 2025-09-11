@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText, ArrowUpDown, Search, Upload, Paperclip, Download, X, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, User, FileSpreadsheet, FileText, ArrowUpDown, Search, Upload, Paperclip, Download, X, Eye, Briefcase, Calendar, CreditCard, CalendarDays, CheckCircle, DollarSign, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
@@ -926,119 +926,256 @@ export default function ServiceProviderCosts() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold text-primary">{new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }).format(totalAmount)}</p>
+            <Card className="border-border/50 shadow-sm hover:shadow-md transition-all duration-200">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-muted-foreground">Total</p>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  }).format(totalAmount)}
+                </p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground">Total Pago</p>
-                <p className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }).format(totalPaid)}</p>
+            <Card className="border-border/50 shadow-sm hover:shadow-md transition-all duration-200">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-muted-foreground">Total Pago</p>
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                </div>
+                <p className="text-3xl font-bold text-green-600">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  }).format(totalPaid)}
+                </p>
+                <div className="mt-2 h-1.5 bg-green-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-green-500 rounded-full transition-all duration-500"
+                    style={{ width: `${totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0}%` }}
+                  />
+                </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground">Total Pendente</p>
-                <p className="text-2xl font-bold text-yellow-600">{new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }).format(totalPending)}</p>
+            <Card className="border-border/50 shadow-sm hover:shadow-md transition-all duration-200">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-muted-foreground">Total Pendente</p>
+                  <CalendarDays className="h-4 w-4 text-yellow-500" />
+                </div>
+                <p className="text-3xl font-bold text-yellow-600">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  }).format(totalPending)}
+                </p>
+                <div className="mt-2 h-1.5 bg-yellow-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-yellow-500 rounded-full transition-all duration-500"
+                    style={{ width: `${totalAmount > 0 ? (totalPending / totalAmount) * 100 : 0}%` }}
+                  />
+                </div>
               </CardContent>
             </Card>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border/50 shadow-sm">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Dias</TableHead>
-                  <TableHead>Chave PIX</TableHead>
-                  <TableHead>Competência</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Arquivos</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                <TableRow className="bg-muted/30 hover:bg-muted/40 transition-colors">
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      Nome
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-muted-foreground" />
+                      Tipo
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      Dias
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-muted-foreground" />
+                      Chave PIX
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                      Competência
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                      Status
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-foreground">
+                    <div className="flex items-center justify-end gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      Valor
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      Arquivos
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-foreground">
+                    <div className="flex items-center justify-end gap-2">
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      Ações
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCosts.map((cost) => (
-                  <TableRow key={cost.id}>
-                    <TableCell className="font-medium">{cost.name}</TableCell>
-                    <TableCell>
-                      <Badge variant={cost.type === 'CLT' ? 'default' : 'secondary'}>
-                        {cost.type}
-                      </Badge>
+                {filteredCosts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-32 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                        <FileText className="h-10 w-10 opacity-40" />
+                        <p className="text-sm">Nenhum custo encontrado</p>
+                      </div>
                     </TableCell>
-                    <TableCell>{cost.days_worked || '-'}</TableCell>
-                    <TableCell className="max-w-[150px] truncate" title={cost.pix_key || '-'}>{cost.pix_key || '-'}</TableCell>
-                    <TableCell>{cost.competence}</TableCell>
-                    <TableCell>{getStatusBadge(cost.status)}</TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      }).format(cost.amount)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {/* File upload input */}
-                        <Input
-                          type="file"
-                          multiple
-                          id={`file-upload-${cost.id}`}
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files) {
-                              handleFileUpload(cost.id, e.target.files);
-                            }
-                          }}
-                          disabled={uploadingFiles[cost.id]}
-                        />
-                        <Label
-                          htmlFor={`file-upload-${cost.id}`}
-                          className="cursor-pointer"
-                        >
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={uploadingFiles[cost.id]}
-                            asChild
-                          >
-                            <span>
-                              {uploadingFiles[cost.id] ? (
-                                <span className="flex items-center gap-1">
-                                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                  Enviando...
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-1">
-                                  <Upload className="h-3 w-3" />
-                                  {cost.files && cost.files.length > 0 ? `(${cost.files.length})` : ''}
-                                </span>
-                              )}
+                  </TableRow>
+                ) : (
+                  filteredCosts.map((cost, index) => (
+                    <TableRow 
+                      key={cost.id} 
+                      className={`
+                        hover:bg-muted/20 transition-all duration-200
+                        ${index % 2 === 0 ? 'bg-background' : 'bg-muted/5'}
+                      `}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-xs font-semibold text-primary">
+                              {cost.name.charAt(0).toUpperCase()}
                             </span>
-                          </Button>
-                        </Label>
-                        
-                        {/* View files button */}
-                        {cost.files && cost.files.length > 0 && (
+                          </div>
+                          <span className="font-medium text-foreground">{cost.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={cost.type === 'CLT' ? 'default' : 'secondary'}
+                          className="font-medium shadow-sm"
+                        >
+                          {cost.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground">
+                          {cost.days_worked || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-[150px] truncate text-muted-foreground" title={cost.pix_key || '-'}>
+                          {cost.pix_key || '-'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <CalendarDays className="h-3 w-3 text-muted-foreground" />
+                          <span>{cost.competence}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(cost.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-semibold text-lg text-foreground">
+                          {new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          }).format(cost.amount)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {/* File upload input */}
+                          <Input
+                            type="file"
+                            multiple
+                            id={`file-upload-${cost.id}`}
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                handleFileUpload(cost.id, e.target.files);
+                              }
+                            }}
+                            disabled={uploadingFiles[cost.id]}
+                          />
+                          <Label
+                            htmlFor={`file-upload-${cost.id}`}
+                            className="cursor-pointer"
+                          >
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={uploadingFiles[cost.id]}
+                              asChild
+                              className="hover:bg-primary/10 transition-colors"
+                            >
+                              <span>
+                                {uploadingFiles[cost.id] ? (
+                                  <span className="flex items-center gap-1">
+                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                    <span className="text-xs">Enviando...</span>
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <Upload className="h-3 w-3" />
+                                    {cost.files && cost.files.length > 0 && (
+                                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                                        {cost.files.length}
+                                      </Badge>
+                                    )}
+                                  </span>
+                                )}
+                              </span>
+                            </Button>
+                          </Label>
+                          
+                          {/* View files button */}
+                          {cost.files && cost.files.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedCostDetails(cost);
+                                setDetailsDialogOpen(true);
+                              }}
+                              title="Ver arquivos"
+                              className="hover:bg-primary/10 transition-colors"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1046,46 +1183,34 @@ export default function ServiceProviderCosts() {
                               setSelectedCostDetails(cost);
                               setDetailsDialogOpen(true);
                             }}
-                            title="Ver arquivos"
+                            title="Ver detalhes"
+                            className="hover:bg-primary/10 transition-colors h-8 w-8 p-0"
                           >
-                            <Eye className="h-3 w-3" />
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedCostDetails(cost);
-                            setDetailsDialogOpen(true);
-                          }}
-                          title="Ver detalhes"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(cost)}
-                          title="Editar"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(cost.id)}
-                          title="Excluir"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(cost)}
+                            title="Editar"
+                            className="hover:bg-primary/10 transition-colors h-8 w-8 p-0"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(cost.id)}
+                            title="Excluir"
+                            className="hover:bg-destructive/10 text-destructive transition-colors h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
