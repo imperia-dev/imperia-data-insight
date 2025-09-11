@@ -519,14 +519,39 @@ export default function ServiceProviderCosts() {
       .sort((a, b) => b.value - a.value)
       .slice(0, 10); // Top 10 providers
 
+    // Group costs by status for pie chart
+    const statusData = [
+      {
+        label: 'Pago',
+        value: filteredCosts.filter(c => c.status === 'Pago').reduce((sum, c) => sum + c.amount, 0),
+        formattedValue: new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(filteredCosts.filter(c => c.status === 'Pago').reduce((sum, c) => sum + c.amount, 0)),
+      },
+      {
+        label: 'Não Pago',
+        value: filteredCosts.filter(c => c.status === 'Não Pago').reduce((sum, c) => sum + c.amount, 0),
+        formattedValue: new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(filteredCosts.filter(c => c.status === 'Não Pago').reduce((sum, c) => sum + c.amount, 0)),
+      },
+      {
+        label: 'Pendente',
+        value: filteredCosts.filter(c => c.status === 'Pendente').reduce((sum, c) => sum + c.amount, 0),
+        formattedValue: new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(filteredCosts.filter(c => c.status === 'Pendente').reduce((sum, c) => sum + c.amount, 0)),
+      },
+    ].filter(item => item.value > 0);
+
     const exportData = {
       title: 'Custos - Prestadores de Serviço',
-      headers: ['Nome', 'Email', 'CPF/CNPJ', 'Telefone', 'Tipo', 'Dias', 'Chave PIX', 'NF', 'Competência', 'Status', 'Valor'],
+      headers: ['Nome', 'Tipo', 'Dias', 'Chave PIX', 'NF', 'Competência', 'Status', 'Valor'],
       rows: filteredCosts.map(cost => [
         cost.name,
-        cost.email,
-        cost.cpf || cost.cnpj || '-',
-        cost.phone || '-',
         cost.type,
         cost.days_worked?.toString() || '-',
         cost.pix_key || '-',
@@ -545,6 +570,11 @@ export default function ServiceProviderCosts() {
           title: 'Top 10 Prestadores por Valor Total',
           type: 'bar' as const,
           data: chartData,
+        },
+        {
+          title: 'Distribuição por Status',
+          type: 'pie' as const,
+          data: statusData,
         }
       ]
     };

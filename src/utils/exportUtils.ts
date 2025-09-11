@@ -110,11 +110,53 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
     { align: 'center' }
   );
   
+  let startY = 35;
+  
+  // Add summary cards if totals are provided (similar to the app layout)
+  if (data.totals && data.totals.length > 0) {
+    const cardWidth = (doc.internal.pageSize.getWidth() - 40) / data.totals.length - 5;
+    const cardHeight = 20;
+    const cardY = startY;
+    
+    data.totals.forEach((total, index) => {
+      const cardX = 20 + (index * (cardWidth + 5));
+      
+      // Draw card background with rounded corners effect
+      doc.setFillColor(249, 250, 251); // Light gray background
+      doc.setDrawColor(229, 231, 235); // Border color
+      doc.setLineWidth(0.5);
+      doc.roundedRect(cardX, cardY, cardWidth, cardHeight, 2, 2, 'FD');
+      
+      // Add label
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(107, 114, 128); // Gray text
+      doc.text(total.label, cardX + 5, cardY + 7);
+      
+      // Add value with color based on label
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      
+      // Set color based on total type
+      if (total.label.toLowerCase().includes('pago') && !total.label.toLowerCase().includes('não')) {
+        doc.setTextColor(34, 197, 94); // Green for paid
+      } else if (total.label.toLowerCase().includes('pendente') || total.label.toLowerCase().includes('não pago')) {
+        doc.setTextColor(234, 179, 8); // Yellow/orange for pending
+      } else {
+        doc.setTextColor(59, 130, 246); // Blue for total
+      }
+      
+      doc.text(total.value, cardX + 5, cardY + 15);
+    });
+    
+    startY = cardY + cardHeight + 10;
+  }
+  
   // Add table
   autoTable(doc, {
     head: [data.headers],
     body: data.rows,
-    startY: 35,
+    startY: startY,
     theme: 'grid',
     styles: {
       font: 'helvetica',
@@ -138,17 +180,14 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
     columnStyles: {
       0: { halign: 'left', cellWidth: 'auto' },
       1: { halign: 'left', cellWidth: 'auto' },
-      2: { halign: 'left', cellWidth: 'auto' },
+      2: { halign: 'center', cellWidth: 'auto' },
       3: { halign: 'left', cellWidth: 'auto' },
       4: { halign: 'center', cellWidth: 'auto' },
       5: { halign: 'center', cellWidth: 'auto' },
-      6: { halign: 'left', cellWidth: 'auto' },
-      7: { halign: 'center', cellWidth: 'auto' },
-      8: { halign: 'center', cellWidth: 'auto' },
-      9: { halign: 'center', cellWidth: 'auto' },
+      6: { halign: 'center', cellWidth: 'auto' },
       [data.headers.length - 1]: { halign: 'right', cellWidth: 'auto' },
     },
-    margin: { top: 35, left: 10, right: 10 },
+    margin: { top: startY, left: 10, right: 10 },
     didDrawPage: (data) => {
       // Add page number
       const pageCount = doc.internal.pages.length - 1;
@@ -162,22 +201,6 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
       );
     },
   });
-  
-  // Add totals if provided
-  if (data.totals && data.totals.length > 0) {
-    const finalY = (doc as any).lastAutoTable.finalY || 50;
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(44, 62, 80);
-    
-    let yPosition = finalY + 10;
-    data.totals.forEach(total => {
-      doc.text(total.label, 14, yPosition);
-      doc.text(total.value, doc.internal.pageSize.getWidth() - 14, yPosition, { align: 'right' });
-      yPosition += 6;
-    });
-  }
   
   // Add charts if provided
   if (data.charts && data.charts.length > 0) {
