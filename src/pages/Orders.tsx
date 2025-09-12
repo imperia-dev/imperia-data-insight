@@ -536,10 +536,7 @@ export function Orders() {
     switch (sortBy) {
       case "most_recent":
         sortedResult.sort((a, b) => {
-          // Sort by urgency first, then by creation date
-          if (a.is_urgent !== b.is_urgent) {
-            return a.is_urgent ? -1 : 1;
-          }
+          // Sort by creation date only (most recent first)
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
         break;
@@ -925,17 +922,7 @@ export function Orders() {
                           <div className="flex items-center gap-2">
                             {order.order_number}
                             {order.has_attention && (
-                              <Badge
-                                variant="secondary"
-                                className="gap-1 cursor-pointer hover:bg-secondary/90 ml-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Logic to handle attention badge click if needed
-                                }}
-                              >
-                                <AlertTriangle className="h-3 w-3" />
-                                Atenção
-                              </Badge>
+                              <Clock className="h-5 w-5 text-red-400" />
                             )}
                             {order.is_urgent && (
                               <Badge 
