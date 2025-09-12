@@ -288,24 +288,101 @@ export default function Pendencies() {
     }
   };
 
+  const handleResolve = async (pendencyId: string) => {
+    try {
+      const { error } = await supabase
+        .from('pendencies')
+        .update({ status: 'resolved' })
+        .eq('id', pendencyId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Pendência marcada como resolvida.",
+      });
+
+      fetchPendencies();
+    } catch (error) {
+      console.error('Error resolving pendency:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível resolver a pendência.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleDelay = async () => {
+    if (selectedPendencies.size === 0) {
+      toast({
+        title: "Erro",
+        description: "Selecione pelo menos uma pendência.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const pendencyIds = Array.from(selectedPendencies);
+      
+      // Toggle delay status for selected pendencies
+      const { data: pendenciesToUpdate, error: fetchError } = await supabase
+        .from('pendencies')
+        .select('id, has_delay')
+        .in('id', pendencyIds);
+
+      if (fetchError) throw fetchError;
+
+      // Determine if we should set or unset delay
+      const hasDelayCount = pendenciesToUpdate?.filter(p => p.has_delay).length || 0;
+      const shouldSetDelay = hasDelayCount < (pendenciesToUpdate?.length || 0) / 2;
+
+      const { error } = await supabase
+        .from('pendencies')
+        .update({ has_delay: shouldSetDelay })
+        .in('id', pendencyIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: shouldSetDelay 
+          ? "Pendências marcadas com atraso." 
+          : "Marcação de atraso removida.",
+      });
+
+      setSelectedPendencies(new Set());
+      fetchPendencies();
+    } catch (error) {
+      console.error('Error toggling delay:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status de atraso.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getErrorTypeLabel = (value: string) => {
     const type = errorTypes.find(t => t.value === value);
     return type?.label || value;
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, hasDelay?: boolean) => {
     const statusStyles = {
-      pending: "bg-yellow-100 text-yellow-800",
-      resolved: "bg-green-100 text-green-800",
-      in_progress: "bg-blue-100 text-blue-800",
+      pending: hasDelay ? "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400",
+      resolved: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
+      in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
     };
 
     return (
       <span className={cn(
-        "px-2 py-1 rounded-full text-xs font-medium",
-        statusStyles[status as keyof typeof statusStyles] || "bg-gray-100 text-gray-800"
+        "px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1",
+        statusStyles[status as keyof typeof statusStyles] || "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
       )}>
-        {status === 'pending' ? 'Pendente' : status === 'resolved' ? 'Resolvido' : 'Em Andamento'}
+        {hasDelay && status === 'pending' && <Clock className="h-3 w-3" />}
+        {status === 'pending' ? (hasDelay ? 'Atrasado' : 'Pendente') : status === 'resolved' ? 'Resolvido' : 'Em Andamento'}
       </span>
     );
   };
@@ -498,6 +575,19 @@ export default function Pendencies() {
             </form>
           </Card>
 
+          {/* Action Buttons */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant="outline"
+              onClick={handleToggleDelay}
+              disabled={selectedPendencies.size === 0}
+              className="flex items-center gap-2"
+            >
+              <Clock className="h-4 w-4" />
+              Marcar Atraso ({selectedPendencies.size})
+            </Button>
+          </div>
+
           {/* Pendencies Table */}
           <Card className="p-6">
             <h2 className="text-xl font-bold mb-4">Pendências Registradas</h2>
@@ -506,6 +596,22 @@ export default function Pendencies() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedPendencies.size === paginatedPendencies?.length && paginatedPendencies?.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            const newSelected = new Set(selectedPendencies);
+                            paginatedPendencies?.forEach(p => newSelected.add(p.id));
+                            setSelectedPendencies(newSelected);
+                          } else {
+                            const newSelected = new Set(selectedPendencies);
+                            paginatedPendencies?.forEach(p => newSelected.delete(p.id));
+                            setSelectedPendencies(newSelected);
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead>Pedido</TableHead>
                     <TableHead>ID C4U</TableHead>
                     <TableHead>Tipo de Erro</TableHead>
@@ -520,13 +626,27 @@ export default function Pendencies() {
                 <TableBody>
                    {pendencies.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center text-muted-foreground">
                         Nenhuma pendência registrada
                       </TableCell>
                     </TableRow>
                   ) : (
                     paginatedPendencies.map((pendency) => (
                       <TableRow key={pendency.id}>
+                        <TableCell className="w-12">
+                          <Checkbox
+                            checked={selectedPendencies.has(pendency.id)}
+                            onCheckedChange={(checked) => {
+                              const newSelected = new Set(selectedPendencies);
+                              if (checked) {
+                                newSelected.add(pendency.id);
+                              } else {
+                                newSelected.delete(pendency.id);
+                              }
+                              setSelectedPendencies(newSelected);
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">
                           {pendency.orders?.order_number || pendency.old_order_text_id || '-'}
                         </TableCell>
@@ -561,7 +681,7 @@ export default function Pendencies() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell>{getStatusBadge(pendency.status)}</TableCell>
+                        <TableCell>{getStatusBadge(pendency.status, pendency.has_delay)}</TableCell>
                         <TableCell>
                           <div className="text-sm">
                             {new Date(pendency.created_at).toLocaleDateString('pt-BR')}
@@ -571,13 +691,25 @@ export default function Pendencies() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeletePendency(pendency.id)}
-                          >
-                            Remover
-                          </Button>
+                          <div className="flex gap-1">
+                            {pendency.status !== 'resolved' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleResolve(pendency.id)}
+                                title="Marcar como resolvido"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeletePendency(pendency.id)}
+                            >
+                              Remover
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))

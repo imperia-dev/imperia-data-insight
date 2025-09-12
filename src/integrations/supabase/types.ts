@@ -269,9 +269,10 @@ export type Database = {
           description: string
           error_document_count: number
           error_type: string
+          has_delay: boolean | null
           id: string
-          order_id: string | null
           old_order_text_id: string | null
+          order_id: string | null
           status: string
           treatment: string | null
           updated_at: string
@@ -283,9 +284,10 @@ export type Database = {
           description: string
           error_document_count?: number
           error_type: string
+          has_delay?: boolean | null
           id?: string
-          order_id?: string | null
           old_order_text_id?: string | null
+          order_id?: string | null
           status?: string
           treatment?: string | null
           updated_at?: string
@@ -297,9 +299,10 @@ export type Database = {
           description?: string
           error_document_count?: number
           error_type?: string
+          has_delay?: boolean | null
           id?: string
-          order_id?: string | null
           old_order_text_id?: string | null
+          order_id?: string | null
           status?: string
           treatment?: string | null
           updated_at?: string
