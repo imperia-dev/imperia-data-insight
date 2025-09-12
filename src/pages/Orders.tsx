@@ -943,8 +943,17 @@ export function Orders() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {order.order_number}
-                            {order.has_attention && (
+                            {order.has_delay && (
                               <Clock className="h-5 w-5 text-red-400" />
+                            )}
+                            {order.has_attention && (
+                              <Badge
+                                variant="secondary"
+                                className="gap-1 ml-2"
+                              >
+                                <AlertTriangle className="h-3 w-3" />
+                                Atenção
+                              </Badge>
                             )}
                             {order.is_urgent && (
                               <Badge 
