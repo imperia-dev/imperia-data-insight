@@ -78,44 +78,20 @@ export default function DashboardFinanceiro() {
           startDate.setMonth(now.getMonth() - 1);
       }
       
-      // Fetch documents count - with proper RLS consideration
-      console.log('Fetching documents from:', startDate.toISOString(), 'to:', now.toISOString());
-      
-      // Try to get all documents without date filter first to ensure we have data
-      const { count: totalCount, error: totalError } = await supabase
-        .from('documents')
-        .select('*', { count: 'exact', head: true });
-      
-      console.log('Total documents in database:', totalCount, 'Error:', totalError);
-      
-      // Now get filtered by date
-      const { count, error } = await supabase
-        .from('documents')
-        .select('*', { count: 'exact', head: true })
+      // Fetch orders and sum document_count
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('document_count')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', now.toISOString());
       
-      console.log('Documents in period:', count, 'Error:', error);
-      
-      if (!error && count !== null) {
-        setDocumentQuantity(count);
-      } else if (!totalError && totalCount !== null && selectedPeriod === 'year') {
-        // If year period and no results, use total count
-        setDocumentQuantity(totalCount);
+      if (!error && orders) {
+        // Sum all document_count values
+        const totalDocuments = orders.reduce((sum, order) => sum + (order.document_count || 0), 0);
+        setDocumentQuantity(totalDocuments);
       } else {
-        // If still no results, check if we have any documents at all
-        if (totalCount === 0 || totalCount === null) {
-          console.log('No documents found in database or permission issue');
-          // Use example data for demonstration
-          const exampleCounts = {
-            'day': 45,
-            'week': 315,
-            'month': 1350,
-            'quarter': 4050,
-            'year': 16200
-          };
-          setDocumentQuantity(exampleCounts[selectedPeriod] || 1350);
-        }
+        console.error('Error fetching orders:', error);
+        setDocumentQuantity(0);
       }
       
       setLoading(false);
