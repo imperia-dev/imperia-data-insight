@@ -899,7 +899,7 @@ export function Orders() {
                         {(isAdmin || isMaster) && <TableHead className="w-[180px]">Data Entrega</TableHead>}
                         <TableHead className="w-[150px]">Status</TableHead>
                         {(isAdmin || isMaster) && <TableHead className="min-w-[150px]">Atribuído a</TableHead>}
-                        <TableHead className="text-right">Ações</TableHead>
+                        <TableHead className="text-left">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1007,8 +1007,8 @@ export function Orders() {
                             {order.assigned_profile?.full_name || "-"}
                           </TableCell>
                         )}
-                        <TableCell>
-                          <div className="flex gap-2 justify-start">
+                        <TableCell className="text-left">
+                          <div className="flex gap-2 justify-start items-center">
                             {(isMaster || isOwner) && (
                               <Button
                                 size="sm"
