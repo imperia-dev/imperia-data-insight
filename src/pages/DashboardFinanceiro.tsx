@@ -153,14 +153,23 @@ export default function DashboardFinanceiro() {
   const faturamentoTotal = documentQuantity * 50;
   const lucroLiquido = faturamentoTotal - (companyCosts + serviceProviderCosts);
 
-  // Dados de exemplo para os gráficos
+  // Dados reais de documentos por mês
+  const documentosPorMes = {
+    jun: 1881,
+    jul: 2636,
+    ago: 3044,
+  };
+  
+  // Dados de faturamento com valores reais para junho, julho e agosto
   const faturamentoData = [
     { mes: "Jan", valor: 45000 },
     { mes: "Fev", valor: 52000 },
     { mes: "Mar", valor: 48000 },
     { mes: "Abr", valor: 61000 },
     { mes: "Mai", valor: 59000 },
-    { mes: "Jun", valor: 67000 },
+    { mes: "Jun", valor: documentosPorMes.jun * 50 }, // 1881 * 50 = 94.050
+    { mes: "Jul", valor: documentosPorMes.jul * 50 }, // 2636 * 50 = 131.800
+    { mes: "Ago", valor: documentosPorMes.ago * 50 }, // 3044 * 50 = 152.200
   ];
 
   const custoPorDocumento = [
