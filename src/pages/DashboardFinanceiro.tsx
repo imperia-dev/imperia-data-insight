@@ -44,21 +44,56 @@ export default function DashboardFinanceiro() {
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
-  
-  // Calculate documents based on period
-  const getDocumentQuantity = () => {
-    switch(selectedPeriod) {
-      case 'day': return 120;
-      case 'week': return 840;
-      case 'month': return 3600;
-      case 'quarter': return 10800;
-      case 'year': return 43200;
-      default: return 3600;
-    }
-  };
-  
-  const documentQuantity = getDocumentQuantity();
-  const faturamentoTotal = documentQuantity * 50;
+  const [documentQuantity, setDocumentQuantity] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch real document count based on period
+  useEffect(() => {
+    const fetchDocumentCount = async () => {
+      if (!user) return;
+      
+      setLoading(true);
+      
+      // Calculate date range based on selected period
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch(selectedPeriod) {
+        case 'day':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'quarter':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+        default:
+          startDate.setMonth(now.getMonth() - 1);
+      }
+      
+      // Fetch documents count
+      const { count, error } = await supabase
+        .from('documents')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', now.toISOString());
+      
+      if (!error && count !== null) {
+        setDocumentQuantity(count);
+      }
+      
+      setLoading(false);
+    };
+    
+    fetchDocumentCount();
+  }, [user, selectedPeriod]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -78,6 +113,8 @@ export default function DashboardFinanceiro() {
 
     fetchUserProfile();
   }, [user]);
+  
+  const faturamentoTotal = documentQuantity * 50;
 
   // Dados de exemplo para os gráficos
   const faturamentoData = [
@@ -166,9 +203,9 @@ export default function DashboardFinanceiro() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
               title="Faturamento Total"
-              value={formatCurrency(faturamentoTotal)}
+              value={loading ? "Carregando..." : formatCurrency(faturamentoTotal)}
               icon={<DollarSign className="h-5 w-5" />}
-              description={`${documentQuantity.toLocaleString('pt-BR')} docs × R$ 50`}
+              description={loading ? "Calculando..." : `${documentQuantity.toLocaleString('pt-BR')} docs × R$ 50`}
             />
             <StatsCard
               title="Lucro Líquido"
