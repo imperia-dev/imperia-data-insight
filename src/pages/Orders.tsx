@@ -78,9 +78,9 @@ export function Orders() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [isAttentionMode, setIsAttentionMode] = useState(false);
-  const [selectedOrdersForAttention, setSelectedOrdersForAttention] = useState<string[]>([]);
+  const [selectedAttentionOrders, setSelectedAttentionOrders] = useState<Set<string>>(new Set());
   const [isDelayMode, setIsDelayMode] = useState(false);
-  const [selectedOrdersForDelay, setSelectedOrdersForDelay] = useState<string[]>([]);
+  const [selectedDelayOrders, setSelectedDelayOrders] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -94,6 +94,8 @@ export function Orders() {
     isUrgent: "all",
     deliveredFrom: "",
     deliveredTo: "",
+    hasAttention: "all",
+    hasDelay: "all",
   });
   const [formData, setFormData] = useState({
     order_number: "",
@@ -173,7 +175,7 @@ export function Orders() {
         description: "As ordens selecionadas foram marcadas como de atenção.",
       });
       setIsAttentionMode(false);
-      setSelectedOrdersForAttention([]);
+      setSelectedAttentionOrders(new Set());
     },
     onError: (error: any) => {
       toast({
@@ -471,6 +473,20 @@ export function Orders() {
     if (filters.isUrgent !== "all") {
       result = result.filter(order => 
         filters.isUrgent === "true" ? order.is_urgent : !order.is_urgent
+      );
+    }
+
+    // Attention filter
+    if (filters.hasAttention !== "all") {
+      result = result.filter(order => 
+        filters.hasAttention === "true" ? order.has_attention : !order.has_attention
+      );
+    }
+
+    // Delay filter
+    if (filters.hasDelay !== "all") {
+      result = result.filter(order => 
+        filters.hasDelay === "true" ? order.has_delay : !order.has_delay
       );
     }
 
@@ -791,15 +807,15 @@ export function Orders() {
                           variant="outline"
                           onClick={() => {
                             setIsAttentionMode(false);
-                            setSelectedOrdersForAttention([]);
+                            setSelectedAttentionOrders(new Set());
                           }}
                         >
                           Cancelar
                         </Button>
                         <Button
                           size="sm"
-                          disabled={isToggleAttentionPending || selectedOrdersForAttention.length === 0}
-                          onClick={() => toggleAttention(selectedOrdersForAttention)}
+                          disabled={isToggleAttentionPending || selectedAttentionOrders.size === 0}
+                          onClick={() => toggleAttention(Array.from(selectedAttentionOrders))}
                         >
                           <Save className="h-4 w-4 mr-1" />
                           {isToggleAttentionPending ? "Salvando..." : "Salvar Atenção"}
@@ -812,30 +828,30 @@ export function Orders() {
                           variant="outline"
                           onClick={() => {
                             setIsDelayMode(false);
-                            setSelectedOrdersForDelay([]);
+                            setSelectedDelayOrders(new Set());
                           }}
                         >
                           Cancelar
                         </Button>
                         <Button
                           size="sm"
-                          disabled={selectedOrdersForDelay.length === 0}
+                          disabled={selectedDelayOrders.size === 0}
                           onClick={async () => {
                             try {
                               const { error } = await supabase
                                 .from("orders")
-                                .update({ has_attention: true })
-                                .in("id", selectedOrdersForDelay);
+                                .update({ has_delay: true })
+                                .in("id", Array.from(selectedDelayOrders));
                               
                               if (error) throw error;
                               
                               queryClient.invalidateQueries({ queryKey: ["orders"] });
                               toast({
                                 title: "Atrasos marcados",
-                                description: `${selectedOrdersForDelay.length} pedido(s) marcado(s) com atraso.`,
+                                description: `${selectedDelayOrders.size} pedido(s) marcado(s) com atraso.`,
                               });
                               setIsDelayMode(false);
-                              setSelectedOrdersForDelay([]);
+                              setSelectedDelayOrders(new Set());
                             } catch (error: any) {
                               toast({
                                 title: "Erro ao marcar atrasos",
@@ -846,7 +862,7 @@ export function Orders() {
                           }}
                         >
                           <Save className="h-4 w-4 mr-1" />
-                          Salvar Atrasos ({selectedOrdersForDelay.length})
+                          Salvar Atrasos ({selectedDelayOrders.size})
                         </Button>
                       </div>
                     ) : (
@@ -892,25 +908,29 @@ export function Orders() {
                             <Checkbox
                               checked={
                                 isAttentionMode 
-                                  ? selectedOrdersForAttention.includes(order.id)
-                                  : selectedOrdersForDelay.includes(order.id)
+                                  ? selectedAttentionOrders.has(order.id)
+                                  : selectedDelayOrders.has(order.id)
                               }
                               onCheckedChange={(checked) => {
                                 if (isAttentionMode) {
                                   if (checked) {
-                                    setSelectedOrdersForAttention((prev) => [...prev, order.id]);
+                                    setSelectedAttentionOrders((prev) => new Set([...prev, order.id]));
                                   } else {
-                                    setSelectedOrdersForAttention((prev) =>
-                                      prev.filter((id) => id !== order.id)
-                                    );
+                                    setSelectedAttentionOrders((prev) => {
+                                      const newSet = new Set(prev);
+                                      newSet.delete(order.id);
+                                      return newSet;
+                                    });
                                   }
                                 } else if (isDelayMode) {
                                   if (checked) {
-                                    setSelectedOrdersForDelay((prev) => [...prev, order.id]);
+                                    setSelectedDelayOrders((prev) => new Set([...prev, order.id]));
                                   } else {
-                                    setSelectedOrdersForDelay((prev) =>
-                                      prev.filter((id) => id !== order.id)
-                                    );
+                                    setSelectedDelayOrders((prev) => {
+                                      const newSet = new Set(prev);
+                                      newSet.delete(order.id);
+                                      return newSet;
+                                    });
                                   }
                                 }
                               }}

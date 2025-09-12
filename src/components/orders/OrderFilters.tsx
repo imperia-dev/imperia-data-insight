@@ -26,6 +26,8 @@ export interface OrderFilters {
   isUrgent: string;
   deliveredFrom: string;
   deliveredTo: string;
+  hasAttention: string;
+  hasDelay: string;
 }
 
 export function OrderFilters({ onFiltersChange, profiles, isOperation }: OrderFiltersProps) {
@@ -42,6 +44,8 @@ export function OrderFilters({ onFiltersChange, profiles, isOperation }: OrderFi
     isUrgent: "all",
     deliveredFrom: "",
     deliveredTo: "",
+    hasAttention: "all",
+    hasDelay: "all",
   });
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -66,6 +70,8 @@ export function OrderFilters({ onFiltersChange, profiles, isOperation }: OrderFi
       isUrgent: "all",
       deliveredFrom: "",
       deliveredTo: "",
+      hasAttention: "all",
+      hasDelay: "all",
     };
     setFilters(clearedFilters);
     onFiltersChange(clearedFilters);
@@ -84,7 +90,9 @@ export function OrderFilters({ onFiltersChange, profiles, isOperation }: OrderFi
       filters.documentCountMax !== "" ||
       filters.isUrgent !== "all" ||
       filters.deliveredFrom !== "" ||
-      filters.deliveredTo !== ""
+      filters.deliveredTo !== "" ||
+      filters.hasAttention !== "all" ||
+      filters.hasDelay !== "all"
     );
   };
 
@@ -166,6 +174,42 @@ export function OrderFilters({ onFiltersChange, profiles, isOperation }: OrderFi
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="true">Urgente</SelectItem>
                   <SelectItem value="false">Não Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Com Atenção */}
+            <div>
+              <Label htmlFor="hasAttention">Com Atenção</Label>
+              <Select
+                value={filters.hasAttention}
+                onValueChange={(value) => handleFilterChange("hasAttention", value)}
+              >
+                <SelectTrigger id="hasAttention">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="true">Com Atenção</SelectItem>
+                  <SelectItem value="false">Sem Atenção</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Com Atraso */}
+            <div>
+              <Label htmlFor="hasDelay">Com Atraso</Label>
+              <Select
+                value={filters.hasDelay}
+                onValueChange={(value) => handleFilterChange("hasDelay", value)}
+              >
+                <SelectTrigger id="hasDelay">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="true">Com Atraso</SelectItem>
+                  <SelectItem value="false">Sem Atraso</SelectItem>
                 </SelectContent>
               </Select>
             </div>
