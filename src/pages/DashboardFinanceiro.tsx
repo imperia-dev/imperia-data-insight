@@ -266,13 +266,20 @@ export default function DashboardFinanceiro() {
     { tipo: "Urgente", custo: 1.30, quantidade: documentStats.urgente, total: documentStats.urgente * 1.30 },
   ];
 
-  // Use real company costs data if available, otherwise use example data
-  const despesasOperacionais = companyCostsDetails.length > 0 ? companyCostsDetails : [
-    { categoria: "Infraestrutura", valor: 8500, percentual: 35 },
-    { categoria: "Software", valor: 5200, percentual: 21 },
-    { categoria: "Marketing", valor: 3800, percentual: 16 },
-    { categoria: "Administrativo", valor: 6900, percentual: 28 },
-  ];
+  // Calculate percentages for company costs
+  const totalDespesas = companyCostsDetails.reduce((sum, item) => sum + item.valor, 0) || 24400;
+  const despesasOperacionais = companyCostsDetails.length > 0 
+    ? companyCostsDetails.map(item => ({
+        categoria: item.categoria,
+        valor: item.valor,
+        percentual: totalDespesas > 0 ? ((item.valor / totalDespesas) * 100).toFixed(1) : '0'
+      }))
+    : [
+        { categoria: "Infraestrutura", valor: 8500, percentual: ((8500 / 24400) * 100).toFixed(1) },
+        { categoria: "Software", valor: 5200, percentual: ((5200 / 24400) * 100).toFixed(1) },
+        { categoria: "Marketing", valor: 3800, percentual: ((3800 / 24400) * 100).toFixed(1) },
+        { categoria: "Administrativo", valor: 6900, percentual: ((6900 / 24400) * 100).toFixed(1) },
+      ];
 
   const folhaPagamento = [
     { mes: "Jan", tradutores: 28000, admin: 12000, total: 40000 },
@@ -521,7 +528,7 @@ export default function DashboardFinanceiro() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ categoria, percentual }) => `${categoria} ${percentual}%`}
+                        label={({ categoria, percentual }) => `${percentual}%`}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="valor"
@@ -531,7 +538,10 @@ export default function DashboardFinanceiro() {
                         ))}
                       </Pie>
                       <Tooltip 
-                        formatter={(value: any) => formatCurrency(value)}
+                        formatter={(value: any, name: any, props: any) => [
+                          formatCurrency(value),
+                          `${props.payload.categoria} (${props.payload.percentual}%)`
+                        ]}
                         contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
                       />
                     </PieChart>
@@ -556,9 +566,10 @@ export default function DashboardFinanceiro() {
                           <span className="font-bold">{formatCurrency(item.valor)}</span>
                         </div>
                         <div className="ml-5">
+                          <div className="text-xs text-muted-foreground mb-1">{item.percentual}% do total</div>
                           <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className="h-full rounded-full"
+                              className="h-full rounded-full transition-all duration-500"
                               style={{ 
                                 width: `${item.percentual}%`,
                                 backgroundColor: COLORS[index % COLORS.length]
