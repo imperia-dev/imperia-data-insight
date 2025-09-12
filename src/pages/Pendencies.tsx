@@ -38,7 +38,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -69,6 +69,7 @@ export default function Pendencies() {
   const [openOrderSearch, setOpenOrderSearch] = useState(false);
   const [orderSearchValue, setOrderSearchValue] = useState("");
   const [editingTreatment, setEditingTreatment] = useState<{ [key: string]: string }>({});
+  const [selectedPendencies, setSelectedPendencies] = useState<Set<string>>(new Set());
 
   const errorTypes = [
     { value: "nao_e_erro", label: "Não é erro" },
