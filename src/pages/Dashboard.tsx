@@ -736,8 +736,6 @@ export default function Dashboard() {
             <StatsCard
               title="Em Andamento"
               value={loading ? "..." : documentsInProgress.toLocaleString('pt-BR')}
-              change={5}
-              trend="up"
               icon={<Clock className="h-5 w-5" />}
               description={`${selectedPeriod === 'day' ? 'hoje' : 
                            selectedPeriod === 'week' ? 'esta semana' : 
@@ -750,8 +748,6 @@ export default function Dashboard() {
             <StatsCard
               title="Entregues"
               value={loading ? "..." : documentsDelivered.toLocaleString('pt-BR')}
-              change={12}
-              trend="up"
               icon={<FileText className="h-5 w-5" />}
               description={`${selectedPeriod === 'day' ? 'hoje' : 
                            selectedPeriod === 'week' ? 'esta semana' : 
@@ -764,8 +760,6 @@ export default function Dashboard() {
             <StatsCard
               title="Urgências"
               value={loading ? "..." : urgencies.toLocaleString('pt-BR')}
-              change={parseFloat(urgencyPercentage)}
-              trend={parseFloat(urgencyPercentage) > 10 ? "down" : parseFloat(urgencyPercentage) > 5 ? "neutral" : "up"}
               icon={<AlertTriangle className="h-5 w-5" />}
               description={`${urgencyPercentage}% do total`}
               hasDetails={true}
@@ -774,8 +768,6 @@ export default function Dashboard() {
             <StatsCard
               title="Pendências"
               value={loading ? "..." : pendencies.toLocaleString('pt-BR')}
-              change={parseFloat(pendencyPercentage)}
-              trend={parseFloat(pendencyPercentage) > 5 ? "down" : parseFloat(pendencyPercentage) > 2 ? "neutral" : "up"}
               icon={<AlertCircle className="h-5 w-5" />}
               description={`${pendencyPercentage}% do total`}
               hasDetails={true}
@@ -803,6 +795,7 @@ export default function Dashboard() {
                         <TableHead className="w-[120px]">C4U ID</TableHead>
                         <TableHead className="w-[150px]">Tipo de Erro</TableHead>
                         <TableHead>Descrição</TableHead>
+                        <TableHead>Tratativa</TableHead>
                         <TableHead className="w-[100px]">Status</TableHead>
                         <TableHead className="w-[150px]">Data</TableHead>
                       </TableRow>
@@ -842,6 +835,9 @@ export default function Dashboard() {
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {pendency.description}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {pendency.treatment || '-'}
                             </TableCell>
                             <TableCell>
                               <Badge 
