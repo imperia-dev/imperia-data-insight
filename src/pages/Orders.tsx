@@ -1006,7 +1006,7 @@ export function Orders() {
                           </TableCell>
                         )}
                         <TableCell>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 justify-start">
                             {(isMaster || isOwner) && (
                               <Button
                                 size="sm"
