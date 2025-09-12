@@ -3,6 +3,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import imperiaLogoVertical from '@/assets/imperia-logo-vertical.png';
+import imperiaLogoIcon from '@/assets/imperia-logo-icon.png';
 
 interface ExportData {
   headers: string[];
@@ -100,10 +102,43 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   // Set fonts and colors
   doc.setFont('helvetica');
   
-  // Add title
+  // Add logos
+  try {
+    // Add company logo in the top left corner
+    const logoHeight = 15;
+    const logoWidth = 40; // Approximate aspect ratio for the vertical logo
+    doc.addImage(imperiaLogoVertical, 'PNG', 15, 10, logoWidth, logoHeight);
+    
+    // Add watermark logo in the background on each page
+    const addWatermark = () => {
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const watermarkSize = Math.min(pageWidth, pageHeight) * 0.25;
+      const watermarkX = (pageWidth - watermarkSize) / 2;
+      const watermarkY = (pageHeight - watermarkSize) / 2;
+      
+      // Save current graphics state
+      doc.saveGraphicsState();
+      // Set very low opacity for watermark
+      doc.setGState(new (doc as any).GState({ opacity: 0.03 }));
+      doc.addImage(imperiaLogoIcon, 'PNG', watermarkX, watermarkY, watermarkSize, watermarkSize);
+      // Restore graphics state
+      doc.restoreGraphicsState();
+    };
+    
+    // Add watermark to first page
+    addWatermark();
+    
+    // Store function to add watermark on new pages
+    (doc as any).addWatermark = addWatermark;
+  } catch (error) {
+    console.warn('Could not load logos for PDF:', error);
+  }
+  
+  // Add title (moved down slightly to not overlap with logo)
   doc.setFontSize(20);
   doc.setTextColor(44, 62, 80); // Dark blue-gray
-  doc.text(data.title, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+  doc.text(data.title, doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
   
   // Add date
   doc.setFontSize(10);
@@ -111,7 +146,7 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   doc.text(
     `Exportado em ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
     doc.internal.pageSize.getWidth() / 2,
-    28,
+    33,
     { align: 'center' }
   );
   
@@ -258,6 +293,11 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
       },
       margin: { left: 10, right: 10 },
       didDrawPage: (data) => {
+        // Add watermark on each new page
+        if ((doc as any).addWatermark && data.pageNumber > 1) {
+          (doc as any).addWatermark();
+        }
+        
         // Add page number
         const pageCount = doc.internal.pages.length - 1;
         doc.setFontSize(8);
@@ -276,6 +316,11 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   if (data.charts && data.charts.length > 0) {
     // Add new page for charts
     doc.addPage();
+    
+    // Add watermark to charts page
+    if ((doc as any).addWatermark) {
+      (doc as any).addWatermark();
+    }
     
     // Main title for charts section
     doc.setFontSize(16);
@@ -314,6 +359,10 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
           yPosition += 100; // Add space for new row of charts
           if (yPosition > doc.internal.pageSize.getHeight() - 100) {
             doc.addPage();
+            // Add watermark to new page
+            if ((doc as any).addWatermark) {
+              (doc as any).addWatermark();
+            }
             yPosition = 35;
           }
         }
