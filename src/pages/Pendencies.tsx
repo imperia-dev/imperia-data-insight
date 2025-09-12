@@ -38,7 +38,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle, Clock } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -69,8 +69,6 @@ export default function Pendencies() {
   const [openOrderSearch, setOpenOrderSearch] = useState(false);
   const [orderSearchValue, setOrderSearchValue] = useState("");
   const [editingTreatment, setEditingTreatment] = useState<{ [key: string]: string }>({});
-  const [selectedPendencies, setSelectedPendencies] = useState<Set<string>>(new Set());
-  const [isDelayMode, setIsDelayMode] = useState(false);
 
   const errorTypes = [
     { value: "nao_e_erro", label: "Não é erro" },
@@ -314,75 +312,25 @@ export default function Pendencies() {
     }
   };
 
-  const handleToggleDelayMode = () => {
-    if (isDelayMode) {
-      // Cancel delay mode
-      setIsDelayMode(false);
-      setSelectedPendencies(new Set());
-    } else {
-      // Enter delay mode
-      setIsDelayMode(true);
-      setSelectedPendencies(new Set());
-    }
-  };
-
-  const handleSaveDelays = async () => {
-    if (selectedPendencies.size === 0) {
-      toast({
-        title: "Erro",
-        description: "Selecione pelo menos uma pendência.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const pendencyIds = Array.from(selectedPendencies);
-      
-      const { error } = await supabase
-        .from('pendencies')
-        .update({ has_delay: true })
-        .in('id', pendencyIds);
-
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso",
-        description: `${pendencyIds.length} pendência(s) marcada(s) com atraso.`,
-      });
-
-      setSelectedPendencies(new Set());
-      setIsDelayMode(false);
-      fetchPendencies();
-    } catch (error) {
-      console.error('Error setting delays:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível marcar as pendências com atraso.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const getErrorTypeLabel = (value: string) => {
     const type = errorTypes.find(t => t.value === value);
     return type?.label || value;
   };
 
-  const getStatusBadge = (status: string, hasDelay?: boolean) => {
+  const getStatusBadge = (status: string) => {
     const statusStyles = {
-      pending: hasDelay ? "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400",
+      pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400",
       resolved: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
       in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
     };
 
     return (
       <span className={cn(
-        "px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1",
+        "px-2 py-1 rounded-full text-xs font-medium",
         statusStyles[status as keyof typeof statusStyles] || "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
       )}>
-        {hasDelay && status === 'pending' && <Clock className="h-3 w-3" />}
-        {status === 'pending' ? (hasDelay ? 'Atrasado' : 'Pendente') : status === 'resolved' ? 'Resolvido' : 'Em Andamento'}
+        {status === 'pending' ? 'Pendente' : status === 'resolved' ? 'Resolvido' : 'Em Andamento'}
       </span>
     );
   };
@@ -575,40 +523,6 @@ export default function Pendencies() {
             </form>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 mb-4">
-            {!isDelayMode ? (
-              <Button
-                variant="outline"
-                onClick={handleToggleDelayMode}
-                className="flex items-center gap-2"
-              >
-                <Clock className="h-4 w-4" />
-                Marcar Atraso
-              </Button>
-            ) : (
-              <div className="flex gap-2 items-center">
-                <Button
-                  variant="default"
-                  onClick={handleSaveDelays}
-                  disabled={selectedPendencies.size === 0}
-                  className="flex items-center gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  Salvar Atrasos ({selectedPendencies.size})
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleToggleDelayMode}
-                >
-                  Cancelar
-                </Button>
-                <span className="text-sm text-muted-foreground ml-2">
-                  Selecione as pendências com atraso
-                </span>
-              </div>
-            )}
-          </div>
 
           {/* Pendencies Table */}
           <Card className="p-6">
@@ -618,22 +532,6 @@ export default function Pendencies() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {isDelayMode && (
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={selectedPendencies.size === paginatedPendencies?.length && paginatedPendencies?.length > 0}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              const newSelected = new Set(selectedPendencies);
-                              paginatedPendencies?.forEach(p => newSelected.add(p.id));
-                              setSelectedPendencies(newSelected);
-                            } else {
-                              setSelectedPendencies(new Set());
-                            }
-                          }}
-                        />
-                      </TableHead>
-                    )}
                     <TableHead>Pedido</TableHead>
                     <TableHead>ID C4U</TableHead>
                     <TableHead>Tipo de Erro</TableHead>
@@ -648,29 +546,13 @@ export default function Pendencies() {
                 <TableBody>
                    {pendencies.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={isDelayMode ? 10 : 9} className="text-center text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground">
                         Nenhuma pendência registrada
                       </TableCell>
                     </TableRow>
                   ) : (
                     paginatedPendencies.map((pendency) => (
                       <TableRow key={pendency.id}>
-                        {isDelayMode && (
-                          <TableCell className="w-12">
-                            <Checkbox
-                              checked={selectedPendencies.has(pendency.id)}
-                              onCheckedChange={(checked) => {
-                                const newSelected = new Set(selectedPendencies);
-                                if (checked) {
-                                  newSelected.add(pendency.id);
-                                } else {
-                                  newSelected.delete(pendency.id);
-                                }
-                                setSelectedPendencies(newSelected);
-                              }}
-                            />
-                          </TableCell>
-                        )}
                         <TableCell className="font-medium">
                           {pendency.orders?.order_number || pendency.old_order_text_id || '-'}
                         </TableCell>
@@ -705,7 +587,7 @@ export default function Pendencies() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell>{getStatusBadge(pendency.status, pendency.has_delay)}</TableCell>
+                        <TableCell>{getStatusBadge(pendency.status)}</TableCell>
                         <TableCell>
                           <div className="text-sm">
                             {new Date(pendency.created_at).toLocaleDateString('pt-BR')}

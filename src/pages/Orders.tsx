@@ -33,9 +33,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
 import {
@@ -66,7 +67,7 @@ export function Orders() {
   const [lastOrderId, setLastOrderId] = useState("");
   const [isEditingLastOrder, setIsEditingLastOrder] = useState(false);
   const [tempLastOrderId, setTempLastOrderId] = useState("");
-  const [sortBy, setSortBy] = useState("urgent_created");
+  const [sortBy, setSortBy] = useState("most_recent");
   const [urgentDialogOpen, setUrgentDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [urgentDocumentCount, setUrgentDocumentCount] = useState<string>("");
@@ -78,6 +79,8 @@ export function Orders() {
   const itemsPerPage = 20;
   const [isAttentionMode, setIsAttentionMode] = useState(false);
   const [selectedOrdersForAttention, setSelectedOrdersForAttention] = useState<string[]>([]);
+  const [isDelayMode, setIsDelayMode] = useState(false);
+  const [selectedOrdersForDelay, setSelectedOrdersForDelay] = useState<string[]>([]);
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -531,6 +534,15 @@ export function Orders() {
     // Apply sorting
     const sortedResult = [...result];
     switch (sortBy) {
+      case "most_recent":
+        sortedResult.sort((a, b) => {
+          // Sort by urgency first, then by creation date
+          if (a.is_urgent !== b.is_urgent) {
+            return a.is_urgent ? -1 : 1;
+          }
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+        break;
       case "urgent_created":
         sortedResult.sort((a, b) => {
           if (a.is_urgent !== b.is_urgent) {
@@ -685,6 +697,7 @@ export function Orders() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="most_recent">Mais Recente</SelectItem>
                     <SelectItem value="urgent_created">Urgente + Mais Recente</SelectItem>
                     <SelectItem value="deadline_asc">Prazo (Mais Próximo)</SelectItem>
                     <SelectItem value="deadline_desc">Prazo (Mais Distante)</SelectItem>
@@ -773,7 +786,7 @@ export function Orders() {
                 </div>
               ) : (
                 <>
-                  <div className="flex justify-end mb-4">
+                  <div className="flex justify-end mb-4 gap-2">
                     {isAttentionMode ? (
                       <div className="flex items-center gap-2">
                         <Button
@@ -795,20 +808,75 @@ export function Orders() {
                           {isToggleAttentionPending ? "Salvando..." : "Salvar Atenção"}
                         </Button>
                       </div>
+                    ) : isDelayMode ? (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setIsDelayMode(false);
+                            setSelectedOrdersForDelay([]);
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={selectedOrdersForDelay.length === 0}
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase
+                                .from("orders")
+                                .update({ has_attention: true })
+                                .in("id", selectedOrdersForDelay);
+                              
+                              if (error) throw error;
+                              
+                              queryClient.invalidateQueries({ queryKey: ["orders"] });
+                              toast({
+                                title: "Atrasos marcados",
+                                description: `${selectedOrdersForDelay.length} pedido(s) marcado(s) com atraso.`,
+                              });
+                              setIsDelayMode(false);
+                              setSelectedOrdersForDelay([]);
+                            } catch (error: any) {
+                              toast({
+                                title: "Erro ao marcar atrasos",
+                                description: error.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <Save className="h-4 w-4 mr-1" />
+                          Salvar Atrasos ({selectedOrdersForDelay.length})
+                        </Button>
+                      </div>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setIsAttentionMode(true)}
-                      >
-                        Atenção
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIsAttentionMode(true)}
+                        >
+                          Atenção
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIsDelayMode(true)}
+                          className="flex items-center gap-2"
+                        >
+                          <Clock className="h-4 w-4" />
+                          Marcar Atraso
+                        </Button>
+                      </>
                     )}
                   </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        {isAttentionMode && <TableHead className="w-10"></TableHead>}
+                        {(isAttentionMode || isDelayMode) && <TableHead className="w-10"></TableHead>}
                         <TableHead className="min-w-[150px]">ID Pedido</TableHead>
                         <TableHead className="w-[120px]">Qtd. Documentos</TableHead>
                         {(isAdmin || isMaster) && <TableHead className="w-[180px]">Data Atribuição</TableHead>}
@@ -822,17 +890,31 @@ export function Orders() {
                     <TableBody>
                       {paginatedOrders?.map((order) => (
                       <TableRow key={order.id}>
-                        {isAttentionMode && (
+                        {(isAttentionMode || isDelayMode) && (
                           <TableCell>
                             <Checkbox
-                              checked={selectedOrdersForAttention.includes(order.id)}
+                              checked={
+                                isAttentionMode 
+                                  ? selectedOrdersForAttention.includes(order.id)
+                                  : selectedOrdersForDelay.includes(order.id)
+                              }
                               onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedOrdersForAttention((prev) => [...prev, order.id]);
-                                } else {
-                                  setSelectedOrdersForAttention((prev) =>
-                                    prev.filter((id) => id !== order.id)
-                                  );
+                                if (isAttentionMode) {
+                                  if (checked) {
+                                    setSelectedOrdersForAttention((prev) => [...prev, order.id]);
+                                  } else {
+                                    setSelectedOrdersForAttention((prev) =>
+                                      prev.filter((id) => id !== order.id)
+                                    );
+                                  }
+                                } else if (isDelayMode) {
+                                  if (checked) {
+                                    setSelectedOrdersForDelay((prev) => [...prev, order.id]);
+                                  } else {
+                                    setSelectedOrdersForDelay((prev) =>
+                                      prev.filter((id) => id !== order.id)
+                                    );
+                                  }
                                 }
                               }}
                               className="mr-2"
@@ -1148,8 +1230,4 @@ export function Orders() {
       </div>
     </div>
   );
-}
-
-function cn(...classes: (string | undefined | boolean)[]) {
-  return classes.filter(Boolean).join(" ");
 }
