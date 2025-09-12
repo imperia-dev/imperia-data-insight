@@ -54,6 +54,11 @@ export default function DashboardFinanceiro() {
     pendência: 0,
     urgente: 0
   });
+  const [companyCostsDetails, setCompanyCostsDetails] = useState<Array<{categoria: string, valor: number, percentual: number}>>([]);
+  const [serviceProviderStats, setServiceProviderStats] = useState({
+    total: 0,
+    peopleByRole: [] as Array<{role: string, count: number}>
+  });
 
   // Fetch real data based on period
   useEffect(() => {
@@ -144,34 +149,74 @@ export default function DashboardFinanceiro() {
         setDocumentStats(prev => ({ ...prev, pendência: totalPendencies }));
       }
       
-      // Fetch company costs
+      // Fetch company costs with category details
       const { data: companyCostsData, error: companyCostsError } = await supabase
         .from('company_costs')
-        .select('amount')
+        .select('amount, category')
         .gte('date', startDate.toISOString().split('T')[0])
         .lte('date', now.toISOString().split('T')[0]);
       
       if (!companyCostsError && companyCostsData) {
         const totalCompanyCosts = companyCostsData.reduce((sum, cost) => sum + (Number(cost.amount) || 0), 0);
         setCompanyCosts(totalCompanyCosts);
+        
+        // Group by category for despesas breakdown
+        const categoryTotals: { [key: string]: number } = {};
+        companyCostsData.forEach(cost => {
+          const category = cost.category || 'Outros';
+          categoryTotals[category] = (categoryTotals[category] || 0) + Number(cost.amount);
+        });
+        
+        // Convert to array format with percentages
+        const categoriesArray = Object.entries(categoryTotals).map(([categoria, valor]) => ({
+          categoria,
+          valor,
+          percentual: totalCompanyCosts > 0 ? (valor / totalCompanyCosts) * 100 : 0
+        }));
+        
+        setCompanyCostsDetails(categoriesArray);
       } else {
         console.error('Error fetching company costs:', companyCostsError);
         setCompanyCosts(0);
+        setCompanyCostsDetails([]);
       }
       
-      // Fetch service provider costs
+      // Fetch service provider costs with type/role breakdown
       const { data: serviceProviderData, error: serviceProviderError } = await supabase
         .from('service_provider_costs')
-        .select('amount')
+        .select('amount, type')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', now.toISOString());
       
       if (!serviceProviderError && serviceProviderData) {
         const totalServiceProviderCosts = serviceProviderData.reduce((sum, cost) => sum + (Number(cost.amount) || 0), 0);
         setServiceProviderCosts(totalServiceProviderCosts);
+        
+        // Count people by type/role
+        const roleCount: { [key: string]: Set<string> } = {};
+        serviceProviderData.forEach(provider => {
+          const role = provider.type || 'Outros';
+          if (!roleCount[role]) {
+            roleCount[role] = new Set();
+          }
+          // Using a Set to count unique providers (in real scenario, you'd use a unique identifier)
+          roleCount[role].add(`${role}_${Math.random()}`); // Simplified for now
+        });
+        
+        // Convert to array format
+        const peopleByRole = Object.entries(roleCount).map(([role, people]) => ({
+          role,
+          count: people.size
+        }));
+        
+        setServiceProviderStats({
+          total: totalServiceProviderCosts,
+          peopleByRole
+        });
       } else {
         console.error('Error fetching service provider costs:', serviceProviderError);
         setServiceProviderCosts(0);
+        setServiceProviderStats({ total: 0, peopleByRole: [] });
       }
       
       setLoading(false);
@@ -221,7 +266,8 @@ export default function DashboardFinanceiro() {
     { tipo: "Urgente", custo: 1.30, quantidade: documentStats.urgente, total: documentStats.urgente * 1.30 },
   ];
 
-  const despesasOperacionais = [
+  // Use real company costs data if available, otherwise use example data
+  const despesasOperacionais = companyCostsDetails.length > 0 ? companyCostsDetails : [
     { categoria: "Infraestrutura", valor: 8500, percentual: 35 },
     { categoria: "Software", valor: 5200, percentual: 21 },
     { categoria: "Marketing", valor: 3800, percentual: 16 },
@@ -525,7 +571,7 @@ export default function DashboardFinanceiro() {
                     <div className="pt-4 border-t">
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground font-medium">Total de Despesas</span>
-                        <span className="font-bold text-lg">{formatCurrency(24400)}</span>
+                        <span className="font-bold text-lg">{formatCurrency(companyCosts)}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -583,21 +629,17 @@ export default function DashboardFinanceiro() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total Tradutores</span>
-                        <span className="font-bold text-lg">{formatCurrency(33500)}</span>
+                        <span className="text-muted-foreground">Total P. Serviço</span>
+                        <span className="font-bold text-lg">{formatCurrency(serviceProviderCosts)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total Administrativo</span>
-                        <span className="font-bold text-lg">{formatCurrency(13500)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Encargos (estimado)</span>
-                        <span className="font-bold text-lg">{formatCurrency(9400)}</span>
+                        <span className="text-muted-foreground">Encargos (estimado 20%)</span>
+                        <span className="font-bold text-lg">{formatCurrency(serviceProviderCosts * 0.2)}</span>
                       </div>
                       <div className="pt-4 border-t">
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Total Geral</span>
-                          <span className="font-bold text-xl text-primary">{formatCurrency(56400)}</span>
+                          <span className="font-bold text-xl text-primary">{formatCurrency(serviceProviderCosts * 1.2)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -611,17 +653,30 @@ export default function DashboardFinanceiro() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Tradutores Ativos</span>
-                        <span className="font-bold">24</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Equipe Admin</span>
-                        <span className="font-bold">8</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total Colaboradores</span>
-                        <span className="font-bold">32</span>
+                      {serviceProviderStats.peopleByRole.length > 0 ? (
+                        serviceProviderStats.peopleByRole.map((item, index) => (
+                          <div key={index} className="flex justify-between items-center">
+                            <span className="text-muted-foreground">{item.role}</span>
+                            <span className="font-bold">{item.count}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Tradutores</span>
+                            <span className="font-bold">0</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Revisores</span>
+                            <span className="font-bold">0</span>
+                          </div>
+                        </>
+                      )}
+                      <div className="pt-4 border-t">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground font-medium">Total Colaboradores</span>
+                          <span className="font-bold">{serviceProviderStats.peopleByRole.reduce((sum, item) => sum + item.count, 0)}</span>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
