@@ -4,7 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { DocumentTable } from "@/components/documents/DocumentTable";
-import { PendencyTypesChart } from "@/components/dashboard/PendencyTypesChart";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
@@ -561,11 +561,6 @@ export default function Dashboard() {
       { label: 'Pendências', value: `${pendencies.toLocaleString('pt-BR')} (${pendencyPercentage}%)` },
     ];
 
-    // Prepare tratativa data - show top 10 pendency types
-    const tratativaRows = pendencyTypesData.slice(0, 10).map(item => [
-      item.type,
-      item.count.toString()
-    ]);
 
     // Prepare pendencies table data - limit to 10 for better fit
     const pendenciesTableRows = pendenciesList.slice(0, 10).map(pendency => {
@@ -596,6 +591,7 @@ export default function Dashboard() {
         pendency.c4u_id,
         errorTypeLabel,
         pendency.description.substring(0, 50) + (pendency.description.length > 50 ? '...' : ''),
+        pendency.treatment || '-',
         pendency.status === 'pending' ? 'Pendente' : pendency.status === 'resolved' ? 'Resolvido' : pendency.status,
         format(new Date(pendency.created_at), "dd/MM/yyyy", { locale: ptBR })
       ];
@@ -610,7 +606,7 @@ export default function Dashboard() {
 
     const exportData = {
       title: 'Dashboard Operacional',
-      headers: ['C4U ID', 'Tipo de Erro', 'Descrição', 'Status', 'Data'],
+      headers: ['C4U ID', 'Tipo de Erro', 'Descrição', 'Tratativa', 'Status', 'Data'],
       rows: pendenciesTableRows,
       totals: indicators,
       charts: [
@@ -618,14 +614,6 @@ export default function Dashboard() {
           title: `Evolução ${selectedPeriod === 'day' ? 'Horária' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'Diária' : selectedPeriod === 'quarter' ? 'Semanal' : 'Mensal'}`,
           type: 'bar' as const,
           data: evolutionChartData.slice(0, 10), // Limit to 10 items for better readability in landscape
-        }
-      ],
-      // Add tratativa data as an additional table
-      additionalTables: [
-        {
-          title: 'Tipos de Tratativa',
-          headers: ['Tipo', 'Quantidade'],
-          rows: tratativaRows
         }
       ]
     };
@@ -938,8 +926,73 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </ChartCard>
 
-            {/* Pendency Types Chart */}
-            <PendencyTypesChart data={pendencyTypesData} />
+            {/* Table of Recent Pendencies */}
+            <div className="rounded-lg border bg-card shadow-sm">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Pendências Recentes</h3>
+                <ScrollArea className="h-[400px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>C4U ID</TableHead>
+                        <TableHead>Tipo de Erro</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Tratativa</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendenciesList.slice(0, 10).map((pendency) => {
+                        const errorTypeLabels: Record<string, string> = {
+                          "nao_e_erro": "Não é erro",
+                          "falta_de_dados": "Falta de dados",
+                          "apostila": "Apostila",
+                          "erro_em_data": "Erro em data",
+                          "nome_separado": "Nome separado",
+                          "texto_sem_traduzir": "Texto sem traduzir",
+                          "nome_incorreto": "Nome incorreto",
+                          "texto_duplicado": "Texto duplicado",
+                          "erro_em_crc": "Erro em CRC",
+                          "nome_traduzido": "Nome traduzido",
+                          "falta_parte_documento": "Falta parte do documento",
+                          "erro_digitacao": "Erro de digitação",
+                          "sem_assinatura_tradutor": "Sem assinatura do tradutor",
+                          "nome_junto": "Nome junto",
+                          "traducao_incompleta": "Tradução incompleta",
+                          "titulo_incorreto": "Título incorreto",
+                          "trecho_sem_traduzir": "Trecho sem traduzir",
+                          "matricula_incorreta": "Matrícula incorreta",
+                          "espacamento": "Espaçamento",
+                          "sem_cabecalho": "Sem cabeçalho",
+                        };
+                        
+                        return (
+                          <TableRow key={pendency.id}>
+                            <TableCell className="font-medium">#{pendency.c4u_id}</TableCell>
+                            <TableCell>{errorTypeLabels[pendency.error_type] || pendency.error_type}</TableCell>
+                            <TableCell className="max-w-[200px] truncate" title={pendency.description}>
+                              {pendency.description}
+                            </TableCell>
+                            <TableCell>{pendency.treatment || '-'}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={pendency.status === 'resolved' ? 'default' : 'secondary'}
+                              >
+                                {pendency.status === 'resolved' ? 'Resolvido' : 'Pendente'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(pendency.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
+            </div>
           </div>
 
           {/* Quick Stats */}
