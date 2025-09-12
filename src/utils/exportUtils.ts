@@ -336,7 +336,7 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
         const startX = chartX + (chartWidth - totalBarsWidth) / 2;
         
         // Find max value for scaling
-        const maxValue = Math.max(...chart.data.map(item => item.value));
+        const maxValue = Math.max(...chart.data.map(item => item.value)) || 1; // Prevent division by zero
         
         // Draw background grid
         doc.setDrawColor(230, 230, 230);
@@ -348,23 +348,29 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
         
         // Draw bars with gradient effect
         chart.data.forEach((item, i) => {
-          const barHeight = (item.value / maxValue) * maxBarHeight;
+          const barHeight = Math.max(0, (item.value / maxValue) * maxBarHeight) || 0;
           const x = startX + i * (barWidth + barSpacing);
           const y = chartStartY + maxBarHeight - barHeight;
           
-          // Draw bar with gradient effect (simulated with multiple rectangles)
-          const gradientSteps = 5;
-          for (let step = 0; step < gradientSteps; step++) {
+          // Only draw bar if height is valid
+          if (barHeight > 0 && !isNaN(barHeight)) {
+            // Draw bar with gradient effect (simulated with multiple rectangles)
+            const gradientSteps = 5;
             const stepHeight = barHeight / gradientSteps;
-            const stepY = y + (step * stepHeight);
-            const blueValue = 219 - (step * 15); // Gradient from lighter to darker
-            doc.setFillColor(52, 152, blueValue);
-            doc.rect(x, stepY, barWidth, stepHeight, 'F');
+            
+            if (stepHeight > 0 && !isNaN(stepHeight)) {
+              for (let step = 0; step < gradientSteps; step++) {
+                const stepY = y + (step * stepHeight);
+                const blueValue = 219 - (step * 15); // Gradient from lighter to darker
+                doc.setFillColor(52, 152, blueValue);
+                doc.rect(x, stepY, barWidth, stepHeight, 'F');
+              }
+              
+              // Add shadow effect (simplified without alpha)
+              doc.setFillColor(230, 230, 230);
+              doc.rect(x + 1, y + barHeight, barWidth, 1, 'F');
+            }
           }
-          
-          // Add shadow effect (simplified without alpha)
-          doc.setFillColor(230, 230, 230);
-          doc.rect(x + 1, y + barHeight, barWidth, 1, 'F');
           
           // Add value on top of bar
           doc.setFontSize(7);
