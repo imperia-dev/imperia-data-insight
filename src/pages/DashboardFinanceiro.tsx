@@ -48,6 +48,12 @@ export default function DashboardFinanceiro() {
   const [companyCosts, setCompanyCosts] = useState(0);
   const [serviceProviderCosts, setServiceProviderCosts] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<Array<{mes: string, valor: number}>>([]);
+  const [documentStats, setDocumentStats] = useState({
+    tradução: 0,
+    pendência: 0,
+    urgente: 0
+  });
 
   // Fetch real data based on period
   useEffect(() => {
@@ -83,16 +89,59 @@ export default function DashboardFinanceiro() {
       // Fetch orders and sum document_count
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
-        .select('document_count')
+        .select('document_count, urgent_document_count, created_at')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', now.toISOString());
       
       if (!ordersError && orders) {
         const totalDocuments = orders.reduce((sum, order) => sum + (order.document_count || 0), 0);
+        const totalUrgent = orders.reduce((sum, order) => sum + (order.urgent_document_count || 0), 0);
         setDocumentQuantity(totalDocuments);
+        
+        // Process monthly revenue data
+        const monthlyData: { [key: string]: number } = {};
+        orders.forEach(order => {
+          const date = new Date(order.created_at);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          monthlyData[monthKey] = (monthlyData[monthKey] || 0) + (order.document_count || 0);
+        });
+        
+        // Convert to array format for chart
+        const revenueData = Object.entries(monthlyData)
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([key, count]) => {
+            const [year, month] = key.split('-');
+            const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            return {
+              mes: monthNames[parseInt(month) - 1],
+              valor: count * 50
+            };
+          });
+        
+        setMonthlyRevenue(revenueData);
+        
+        // Set document stats (tradução = total non-urgent, urgente = urgent)
+        setDocumentStats({
+          tradução: totalDocuments - totalUrgent,
+          pendência: 0, // Will be fetched from pendencies table
+          urgente: totalUrgent
+        });
       } else {
         console.error('Error fetching orders:', ordersError);
         setDocumentQuantity(0);
+        setMonthlyRevenue([]);
+      }
+      
+      // Fetch pendencies count
+      const { data: pendencies, error: pendenciesError } = await supabase
+        .from('pendencies')
+        .select('error_document_count')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', now.toISOString());
+      
+      if (!pendenciesError && pendencies) {
+        const totalPendencies = pendencies.reduce((sum, p) => sum + (p.error_document_count || 0), 0);
+        setDocumentStats(prev => ({ ...prev, pendência: totalPendencies }));
       }
       
       // Fetch company costs
@@ -153,29 +202,23 @@ export default function DashboardFinanceiro() {
   const faturamentoTotal = documentQuantity * 50;
   const lucroLiquido = faturamentoTotal - (companyCosts + serviceProviderCosts);
 
-  // Dados reais de documentos por mês
-  const documentosPorMes = {
-    jun: 1881,
-    jul: 2636,
-    ago: 3044,
-  };
-  
-  // Dados de faturamento com valores reais para junho, julho e agosto
-  const faturamentoData = [
+  // Use real monthly revenue data if available, otherwise use static example data
+  const faturamentoData = monthlyRevenue.length > 0 ? monthlyRevenue : [
     { mes: "Jan", valor: 45000 },
     { mes: "Fev", valor: 52000 },
     { mes: "Mar", valor: 48000 },
     { mes: "Abr", valor: 61000 },
     { mes: "Mai", valor: 59000 },
-    { mes: "Jun", valor: documentosPorMes.jun * 50 }, // 1881 * 50 = 94.050
-    { mes: "Jul", valor: documentosPorMes.jul * 50 }, // 2636 * 50 = 131.800
-    { mes: "Ago", valor: documentosPorMes.ago * 50 }, // 3044 * 50 = 152.200
+    { mes: "Jun", valor: 94050 },
+    { mes: "Jul", valor: 131800 },
+    { mes: "Ago", valor: 152200 },
   ];
 
+  // Real document stats with cost calculation
   const custoPorDocumento = [
-    { tipo: "Tradução", custo: 1.30, quantidade: 1500 },
-    { tipo: "Revisão", custo: 0.80, quantidade: 800 },
-    { tipo: "Urgente", custo: 2.50, quantidade: 200 },
+    { tipo: "Tradução", custo: 1.30, quantidade: documentStats.tradução, total: documentStats.tradução * 1.30 },
+    { tipo: "Pendência", custo: 1.30, quantidade: documentStats.pendência, total: documentStats.pendência * 1.30 },
+    { tipo: "Urgente", custo: 1.30, quantidade: documentStats.urgente, total: documentStats.urgente * 1.30 },
   ];
 
   const despesasOperacionais = [
@@ -361,12 +404,11 @@ export default function DashboardFinanceiro() {
                       <YAxis className="text-xs" />
                       <Tooltip 
                         formatter={(value: any, name: string) => 
-                          name === 'custo' ? formatCurrency(value) : value
+                          name === 'total' ? formatCurrency(value) : value
                         }
                         contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
                       />
-                      <Bar dataKey="custo" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                      <Bar dataKey="quantidade" fill="hsl(var(--secondary))" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartCard>
@@ -378,27 +420,40 @@ export default function DashboardFinanceiro() {
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
                       {custoPorDocumento.map((item, index) => (
-                        <div key={index} className="space-y-2">
+                        <div key={index} className="p-3 border rounded-lg space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="font-medium">{item.tipo}</span>
-                            <span className="text-sm text-muted-foreground">{item.quantidade} docs</span>
+                            <span className="font-medium text-lg">{item.tipo}</span>
+                            <span className="text-sm text-muted-foreground">{item.quantidade.toLocaleString('pt-BR')} docs</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-primary rounded-full"
-                                style={{ width: `${(item.quantidade / 2500) * 100}%` }}
-                              />
-                            </div>
-                            <span className="text-sm font-bold">{formatCurrency(item.custo)}</span>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                              {item.quantidade.toLocaleString('pt-BR')} × {formatCurrency(item.custo)}
+                            </span>
+                            <span className="text-lg font-bold text-primary">
+                              {formatCurrency(item.total)}
+                            </span>
+                          </div>
+                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min((item.quantidade / Math.max(...custoPorDocumento.map(c => c.quantidade))) * 100, 100)}%` }}
+                            />
                           </div>
                         </div>
                       ))}
                     </div>
                     <div className="pt-4 border-t">
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Custo Médio Total</span>
-                        <span className="font-bold text-lg">{formatCurrency(1.36)}</span>
+                        <span className="text-muted-foreground">Total de Documentos</span>
+                        <span className="font-bold text-lg">
+                          {custoPorDocumento.reduce((sum, item) => sum + item.quantidade, 0).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-muted-foreground">Custo Total</span>
+                        <span className="font-bold text-lg text-primary">
+                          {formatCurrency(custoPorDocumento.reduce((sum, item) => sum + item.total, 0))}
+                        </span>
                       </div>
                     </div>
                   </CardContent>
