@@ -552,17 +552,23 @@ export default function Dashboard() {
   };
 
   const handleExportPDF = () => {
-    // Prepare indicators data
+    // Prepare indicators data with better labels
     const indicators = [
-      { label: 'Documentos Atribuídos', value: attributedDocuments.toLocaleString('pt-BR') },
+      { label: 'Atribuídos', value: attributedDocuments.toLocaleString('pt-BR') },
       { label: 'Em Andamento', value: documentsInProgress.toLocaleString('pt-BR') },
       { label: 'Entregues', value: documentsDelivered.toLocaleString('pt-BR') },
       { label: 'Urgências', value: `${urgencies.toLocaleString('pt-BR')} (${urgencyPercentage}%)` },
       { label: 'Pendências', value: `${pendencies.toLocaleString('pt-BR')} (${pendencyPercentage}%)` },
     ];
 
-    // Prepare pendencies table data
-    const pendenciesTableRows = pendenciesList.slice(0, 20).map(pendency => {
+    // Prepare tratativa data - show top 10 pendency types
+    const tratativaRows = pendencyTypesData.slice(0, 10).map(item => [
+      item.type,
+      item.count.toString()
+    ]);
+
+    // Prepare pendencies table data - limit to 10 for better fit
+    const pendenciesTableRows = pendenciesList.slice(0, 10).map(pendency => {
       const errorTypeLabel = {
         "nao_e_erro": "Não é erro",
         "falta_de_dados": "Falta de dados",
@@ -589,9 +595,9 @@ export default function Dashboard() {
       return [
         pendency.c4u_id,
         errorTypeLabel,
-        pendency.description,
+        pendency.description.substring(0, 50) + (pendency.description.length > 50 ? '...' : ''),
         pendency.status === 'pending' ? 'Pendente' : pendency.status === 'resolved' ? 'Resolvido' : pendency.status,
-        format(new Date(pendency.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+        format(new Date(pendency.created_at), "dd/MM/yyyy", { locale: ptBR })
       ];
     });
 
@@ -611,12 +617,21 @@ export default function Dashboard() {
         {
           title: `Evolução ${selectedPeriod === 'day' ? 'Horária' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'Diária' : selectedPeriod === 'quarter' ? 'Semanal' : 'Mensal'}`,
           type: 'bar' as const,
-          data: evolutionChartData.slice(0, 15), // Limit to 15 items for readability
+          data: evolutionChartData.slice(0, 10), // Limit to 10 items for better readability in landscape
+        }
+      ],
+      // Add tratativa data as an additional table
+      additionalTables: [
+        {
+          title: 'Tipos de Tratativa',
+          headers: ['Tipo', 'Quantidade'],
+          rows: tratativaRows
         }
       ]
     };
 
-    exportToPDF(exportData, 'portrait');
+    // Force landscape orientation for better layout
+    exportToPDF(exportData, 'landscape');
   };
 
   return (

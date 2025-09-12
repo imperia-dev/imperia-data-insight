@@ -19,6 +19,11 @@ interface ExportData {
       formattedValue?: string;
     }>;
   }>;
+  additionalTables?: Array<{
+    title: string;
+    headers: string[];
+    rows: any[][];
+  }>;
 }
 
 export const exportToExcel = (data: ExportData) => {
@@ -114,27 +119,37 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   
   // Add summary cards if totals are provided (similar to the app layout)
   if (data.totals && data.totals.length > 0) {
-    const cardWidth = (doc.internal.pageSize.getWidth() - 40) / data.totals.length - 5;
+    const isLandscape = doc.internal.pageSize.getWidth() > doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const cardsPerRow = isLandscape ? Math.min(data.totals.length, 5) : Math.min(data.totals.length, 3);
+    const cardWidth = (pageWidth - 40 - ((cardsPerRow - 1) * 5)) / cardsPerRow;
     const cardHeight = 20;
     const cardY = startY;
     
     data.totals.forEach((total, index) => {
-      const cardX = 20 + (index * (cardWidth + 5));
+      const row = Math.floor(index / cardsPerRow);
+      const col = index % cardsPerRow;
+      const cardX = 20 + (col * (cardWidth + 5));
+      const currentCardY = cardY + (row * (cardHeight + 5));
       
       // Draw card background with rounded corners effect
       doc.setFillColor(249, 250, 251); // Light gray background
       doc.setDrawColor(229, 231, 235); // Border color
       doc.setLineWidth(0.5);
-      doc.roundedRect(cardX, cardY, cardWidth, cardHeight, 2, 2, 'FD');
+      doc.roundedRect(cardX, currentCardY, cardWidth, cardHeight, 2, 2, 'FD');
       
-      // Add label
-      doc.setFontSize(9);
+      // Add label - truncate if too long
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(107, 114, 128); // Gray text
-      doc.text(total.label, cardX + 5, cardY + 7);
+      const maxLabelLength = Math.floor(cardWidth / 2);
+      const truncatedLabel = total.label.length > maxLabelLength ? 
+        total.label.substring(0, maxLabelLength - 3) + '...' : 
+        total.label;
+      doc.text(truncatedLabel, cardX + 5, currentCardY + 7);
       
       // Add value with color based on label
-      doc.setFontSize(14);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       
       // Set color based on total type
@@ -146,61 +161,116 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
         doc.setTextColor(59, 130, 246); // Blue for total
       }
       
-      doc.text(total.value, cardX + 5, cardY + 15);
+      doc.text(total.value, cardX + 5, currentCardY + 15);
     });
     
-    startY = cardY + cardHeight + 10;
+    const totalRows = Math.ceil(data.totals.length / cardsPerRow);
+    startY = cardY + (totalRows * (cardHeight + 5)) + 5;
   }
   
-  // Add table
-  autoTable(doc, {
-    head: [data.headers],
-    body: data.rows,
-    startY: startY,
-    theme: 'grid',
-    styles: {
-      font: 'helvetica',
-      fontSize: 8,
-      cellPadding: 2,
-      textColor: [44, 62, 80],
-      lineColor: [189, 195, 199],
-      lineWidth: 0.1,
-      overflow: 'linebreak',
-    },
-    headStyles: {
-      fillColor: [52, 73, 94],
-      textColor: [255, 255, 255],
-      fontSize: 9,
-      fontStyle: 'bold',
-      halign: 'center',
-    },
-    alternateRowStyles: {
-      fillColor: [245, 248, 250],
-    },
-    columnStyles: {
-      0: { halign: 'left', cellWidth: 'auto' },
-      1: { halign: 'left', cellWidth: 'auto' },
-      2: { halign: 'center', cellWidth: 'auto' },
-      3: { halign: 'left', cellWidth: 'auto' },
-      4: { halign: 'center', cellWidth: 'auto' },
-      5: { halign: 'center', cellWidth: 'auto' },
-      6: { halign: 'center', cellWidth: 'auto' },
-      [data.headers.length - 1]: { halign: 'right', cellWidth: 'auto' },
-    },
-    margin: { top: startY, left: 10, right: 10 },
-    didDrawPage: (data) => {
-      // Add page number
-      const pageCount = doc.internal.pages.length - 1;
-      doc.setFontSize(8);
-      doc.setTextColor(127, 140, 141);
-      doc.text(
-        `Página ${data.pageNumber} de ${pageCount}`,
-        doc.internal.pageSize.getWidth() / 2,
-        doc.internal.pageSize.getHeight() - 10,
-        { align: 'center' }
-      );
-    },
-  });
+  // Add additional tables first if provided
+  if (data.additionalTables && data.additionalTables.length > 0) {
+    data.additionalTables.forEach((additionalTable) => {
+      // Add table title
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(44, 62, 80);
+      doc.text(additionalTable.title, 20, startY + 5);
+      
+      // Add table
+      autoTable(doc, {
+        head: [additionalTable.headers],
+        body: additionalTable.rows,
+        startY: startY + 10,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 8,
+          cellPadding: 2,
+          textColor: [44, 62, 80],
+          lineColor: [189, 195, 199],
+          lineWidth: 0.1,
+          overflow: 'linebreak',
+        },
+        headStyles: {
+          fillColor: [52, 73, 94],
+          textColor: [255, 255, 255],
+          fontSize: 9,
+          fontStyle: 'bold',
+          halign: 'center',
+        },
+        alternateRowStyles: {
+          fillColor: [245, 248, 250],
+        },
+        columnStyles: {
+          0: { halign: 'left', cellWidth: 'auto' },
+          1: { halign: 'center', cellWidth: 'auto' },
+        },
+        margin: { left: 20, right: 20 },
+      });
+      
+      // Update startY for next element
+      startY = (doc as any).lastAutoTable.finalY + 10;
+    });
+  }
+  
+  // Add main table
+  if (data.rows && data.rows.length > 0) {
+    // Add table title if there are additional tables
+    if (data.additionalTables && data.additionalTables.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(44, 62, 80);
+      doc.text('Pendências Recentes', 20, startY + 5);
+      startY += 10;
+    }
+    
+    autoTable(doc, {
+      head: [data.headers],
+      body: data.rows,
+      startY: startY,
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 7,
+        cellPadding: 1.5,
+        textColor: [44, 62, 80],
+        lineColor: [189, 195, 199],
+        lineWidth: 0.1,
+        overflow: 'linebreak',
+      },
+      headStyles: {
+        fillColor: [52, 73, 94],
+        textColor: [255, 255, 255],
+        fontSize: 8,
+        fontStyle: 'bold',
+        halign: 'center',
+      },
+      alternateRowStyles: {
+        fillColor: [245, 248, 250],
+      },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 'auto' },
+        1: { halign: 'left', cellWidth: 'auto' },
+        2: { halign: 'left', cellWidth: 'auto' },
+        3: { halign: 'center', cellWidth: 'auto' },
+        4: { halign: 'center', cellWidth: 'auto' },
+      },
+      margin: { left: 10, right: 10 },
+      didDrawPage: (data) => {
+        // Add page number
+        const pageCount = doc.internal.pages.length - 1;
+        doc.setFontSize(8);
+        doc.setTextColor(127, 140, 141);
+        doc.text(
+          `Página ${data.pageNumber} de ${pageCount}`,
+          doc.internal.pageSize.getWidth() / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+      },
+    });
+  }
   
   // Add charts if provided
   if (data.charts && data.charts.length > 0) {
