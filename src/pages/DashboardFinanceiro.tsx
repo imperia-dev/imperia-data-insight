@@ -151,7 +151,7 @@ export default function DashboardFinanceiro() {
   }, [user]);
   
   const faturamentoTotal = documentQuantity * 50;
-  const lucroLiquido = faturamentoTotal - companyCosts - serviceProviderCosts;
+  const lucroLiquido = faturamentoTotal - (companyCosts + serviceProviderCosts);
 
   // Dados de exemplo para os gráficos
   const faturamentoData = [
