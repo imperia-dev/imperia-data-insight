@@ -104,24 +104,35 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   
   // Add logos
   try {
-    // Add company logo in the top left corner
-    const logoHeight = 15;
-    const logoWidth = 40; // Approximate aspect ratio for the vertical logo
+    // Add company logo in the top left corner with correct aspect ratio
+    const logoHeight = 20;
+    const logoWidth = logoHeight * 2; // Maintain 2:1 aspect ratio
     doc.addImage(imperiaLogoVertical, 'PNG', 15, 10, logoWidth, logoHeight);
     
-    // Add watermark logo in the background on each page
+    // Add watermark logos in a grid pattern across the page
     const addWatermark = () => {
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const watermarkSize = Math.min(pageWidth, pageHeight) * 0.25;
-      const watermarkX = (pageWidth - watermarkSize) / 2;
-      const watermarkY = (pageHeight - watermarkSize) / 2;
+      const watermarkSize = 35; // Smaller size for each watermark
+      const cols = 4; // Number of columns
+      const rows = 6; // Number of rows
+      const spacingX = pageWidth / cols;
+      const spacingY = pageHeight / rows;
       
       // Save current graphics state
       doc.saveGraphicsState();
-      // Set very low opacity for watermark
+      // Set very low opacity for watermarks
       doc.setGState(new (doc as any).GState({ opacity: 0.03 }));
-      doc.addImage(imperiaLogoIcon, 'PNG', watermarkX, watermarkY, watermarkSize, watermarkSize);
+      
+      // Create grid of watermarks
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const x = (col * spacingX) + (spacingX - watermarkSize) / 2;
+          const y = (row * spacingY) + (spacingY - watermarkSize) / 2;
+          doc.addImage(imperiaLogoIcon, 'PNG', x, y, watermarkSize, watermarkSize);
+        }
+      }
+      
       // Restore graphics state
       doc.restoreGraphicsState();
     };
