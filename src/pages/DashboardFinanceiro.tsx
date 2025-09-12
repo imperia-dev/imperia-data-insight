@@ -44,6 +44,21 @@ export default function DashboardFinanceiro() {
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+  
+  // Calculate documents based on period
+  const getDocumentQuantity = () => {
+    switch(selectedPeriod) {
+      case 'day': return 120;
+      case 'week': return 840;
+      case 'month': return 3600;
+      case 'quarter': return 10800;
+      case 'year': return 43200;
+      default: return 3600;
+    }
+  };
+  
+  const documentQuantity = getDocumentQuantity();
+  const faturamentoTotal = documentQuantity * 50;
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -151,35 +166,27 @@ export default function DashboardFinanceiro() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
               title="Faturamento Total"
-              value={formatCurrency(67000)}
-              change={12.5}
+              value={formatCurrency(faturamentoTotal)}
               icon={<DollarSign className="h-5 w-5" />}
-              trend="up"
-              description="vs. mês anterior"
+              description={`${documentQuantity.toLocaleString('pt-BR')} docs × R$ 50`}
             />
             <StatsCard
               title="Lucro Líquido"
-              value={formatCurrency(16500)}
-              change={8.3}
+              value={formatCurrency(0)}
               icon={<TrendingUp className="h-5 w-5" />}
-              trend="up"
-              description="Margem: 24.6%"
+              description="Margem: 0%"
             />
             <StatsCard
-              title="Despesas Totais"
-              value={formatCurrency(45000)}
-              change={4.2}
-              icon={<TrendingDown className="h-5 w-5" />}
-              trend="down"
-              description="Aumento controlado"
+              title="Custos - Empresa"
+              value={formatCurrency(24400)}
+              icon={<Briefcase className="h-5 w-5" />}
+              description="Despesas operacionais"
             />
             <StatsCard
-              title="Fluxo de Caixa"
-              value={formatCurrency(22000)}
-              change={29.4}
-              icon={<Wallet className="h-5 w-5" />}
-              trend="up"
-              description="Saldo positivo"
+              title="Custos - P. Serviço"
+              value={formatCurrency(20600)}
+              icon={<Users className="h-5 w-5" />}
+              description="Prestadores de serviço"
             />
           </div>
 
