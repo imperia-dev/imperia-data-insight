@@ -871,7 +871,9 @@ export function Orders() {
                           size="sm"
                           variant="outline"
                           onClick={() => setIsAttentionMode(true)}
+                          className="flex items-center gap-2"
                         >
+                          <AlertTriangle className="h-4 w-4" />
                           Atenção
                         </Button>
                         <Button
