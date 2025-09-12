@@ -45,11 +45,13 @@ export default function DashboardFinanceiro() {
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [documentQuantity, setDocumentQuantity] = useState(0);
+  const [companyCosts, setCompanyCosts] = useState(0);
+  const [serviceProviderCosts, setServiceProviderCosts] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Fetch real document count based on period
+  // Fetch real data based on period
   useEffect(() => {
-    const fetchDocumentCount = async () => {
+    const fetchFinancialData = async () => {
       if (!user) return;
       
       setLoading(true);
@@ -79,25 +81,54 @@ export default function DashboardFinanceiro() {
       }
       
       // Fetch orders and sum document_count
-      const { data: orders, error } = await supabase
+      const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('document_count')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', now.toISOString());
       
-      if (!error && orders) {
-        // Sum all document_count values
+      if (!ordersError && orders) {
         const totalDocuments = orders.reduce((sum, order) => sum + (order.document_count || 0), 0);
         setDocumentQuantity(totalDocuments);
       } else {
-        console.error('Error fetching orders:', error);
+        console.error('Error fetching orders:', ordersError);
         setDocumentQuantity(0);
+      }
+      
+      // Fetch company costs
+      const { data: companyCostsData, error: companyCostsError } = await supabase
+        .from('company_costs')
+        .select('amount')
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', now.toISOString().split('T')[0]);
+      
+      if (!companyCostsError && companyCostsData) {
+        const totalCompanyCosts = companyCostsData.reduce((sum, cost) => sum + (Number(cost.amount) || 0), 0);
+        setCompanyCosts(totalCompanyCosts);
+      } else {
+        console.error('Error fetching company costs:', companyCostsError);
+        setCompanyCosts(0);
+      }
+      
+      // Fetch service provider costs
+      const { data: serviceProviderData, error: serviceProviderError } = await supabase
+        .from('service_provider_costs')
+        .select('amount')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', now.toISOString());
+      
+      if (!serviceProviderError && serviceProviderData) {
+        const totalServiceProviderCosts = serviceProviderData.reduce((sum, cost) => sum + (Number(cost.amount) || 0), 0);
+        setServiceProviderCosts(totalServiceProviderCosts);
+      } else {
+        console.error('Error fetching service provider costs:', serviceProviderError);
+        setServiceProviderCosts(0);
       }
       
       setLoading(false);
     };
     
-    fetchDocumentCount();
+    fetchFinancialData();
   }, [user, selectedPeriod]);
 
   useEffect(() => {
@@ -120,6 +151,7 @@ export default function DashboardFinanceiro() {
   }, [user]);
   
   const faturamentoTotal = documentQuantity * 50;
+  const lucroLiquido = faturamentoTotal - companyCosts - serviceProviderCosts;
 
   // Dados de exemplo para os gráficos
   const faturamentoData = [
@@ -214,19 +246,19 @@ export default function DashboardFinanceiro() {
             />
             <StatsCard
               title="Lucro Líquido"
-              value={formatCurrency(0)}
+              value={loading ? "Carregando..." : formatCurrency(lucroLiquido)}
               icon={<TrendingUp className="h-5 w-5" />}
-              description="Margem: 0%"
+              description={loading ? "Calculando..." : `Margem: ${lucroLiquido > 0 ? ((lucroLiquido / faturamentoTotal) * 100).toFixed(1) : '0'}%`}
             />
             <StatsCard
               title="Custos - Empresa"
-              value={formatCurrency(24400)}
+              value={loading ? "Carregando..." : formatCurrency(companyCosts)}
               icon={<Briefcase className="h-5 w-5" />}
               description="Despesas operacionais"
             />
             <StatsCard
               title="Custos - P. Serviço"
-              value={formatCurrency(20600)}
+              value={loading ? "Carregando..." : formatCurrency(serviceProviderCosts)}
               icon={<Users className="h-5 w-5" />}
               description="Prestadores de serviço"
             />
