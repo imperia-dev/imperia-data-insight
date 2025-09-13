@@ -105,8 +105,8 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   // Add logos
   try {
     // Add company logo in the top left corner with correct aspect ratio
-    const logoHeight = 20;
-    const logoWidth = logoHeight * 2; // Maintain 2:1 aspect ratio
+    const logoHeight = 15;
+    const logoWidth = logoHeight * 3.5; // Maintain correct vertical logo aspect ratio
     doc.addImage(imperiaLogoVertical, 'PNG', 15, 10, logoWidth, logoHeight);
     
     // Add watermark logos in a grid pattern across the page

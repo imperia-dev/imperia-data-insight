@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
-import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, eachHourOfInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
 import {
@@ -439,14 +439,10 @@ export default function Dashboard() {
       switch (selectedPeriod) {
         case 'day':
           // For today, show hourly data
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          endDate = now;
-          // Create hourly intervals for today
-          interval = Array.from({ length: 24 }, (_, i) => {
-            const date = new Date(startDate);
-            date.setHours(i);
-            return date;
-          });
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+          // Use eachHourOfInterval for proper hourly intervals
+          interval = eachHourOfInterval({ start: startDate, end: endDate });
           break;
         case 'week':
           // Show daily data for this week
@@ -514,8 +510,9 @@ export default function Dashboard() {
         let dateEnd = new Date(date);
         
         if (selectedPeriod === 'day') {
-          // Hourly labels
-          label = format(date, 'HH:mm', { locale: ptBR });
+          // Hourly labels - show only the hour
+          label = format(date, 'HH:00', { locale: ptBR });
+          dateEnd = new Date(date);
           dateEnd.setHours(date.getHours() + 1);
         } else if (selectedPeriod === 'week' || selectedPeriod === 'month' || selectedPeriod === 'custom') {
           // Daily labels
