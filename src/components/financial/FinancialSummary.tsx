@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { TrendingUp, TrendingDown, DollarSign, Receipt, Calculator, Target } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { FinancialEntryForm } from './FinancialEntryForm';
 
 interface SummaryData {
   revenue: number;
@@ -128,6 +129,7 @@ export function FinancialSummary() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Resumo Financeiro</h2>
         <div className="flex gap-2">
+          <FinancialEntryForm onSuccess={fetchSummaryData} />
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[150px]">
               <SelectValue />
