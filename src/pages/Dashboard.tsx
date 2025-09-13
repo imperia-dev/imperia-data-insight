@@ -554,8 +554,8 @@ export default function Dashboard() {
       { label: 'Atribuídos', value: attributedDocuments.toLocaleString('pt-BR') },
       { label: 'Em Andamento', value: documentsInProgress.toLocaleString('pt-BR') },
       { label: 'Entregues', value: documentsDelivered.toLocaleString('pt-BR') },
-      { label: 'Urgências', value: `${urgencies.toLocaleString('pt-BR')} (${urgencyPercentage}%)` },
-      { label: 'Pendências', value: `${pendencies.toLocaleString('pt-BR')} (${pendencyPercentage}%)` },
+      { label: 'Urgências', value: urgencies.toLocaleString('pt-BR') },
+      { label: 'Pendências', value: pendencies.toLocaleString('pt-BR') },
     ];
 
 
