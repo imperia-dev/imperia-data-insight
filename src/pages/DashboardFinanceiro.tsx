@@ -1,905 +1,141 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { SidebarProvider } from '@/contexts/SidebarContext';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { Header } from '@/components/layout/Header';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  TrendingUp, 
-  TrendingDown, 
   DollarSign, 
-  FileText,
-  Briefcase,
-  Users,
-  Wallet,
-  ChartBar,
-  ArrowUpRight,
-  ArrowDownRight
-} from "lucide-react";
-import { Header } from "@/components/layout/Header";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { usePageLayout } from "@/hooks/usePageLayout";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { ChartCard } from "@/components/dashboard/ChartCard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from "recharts";
+  FileText, 
+  TrendingUp, 
+  Calculator, 
+  Banknote,
+  Target,
+  BarChart3
+} from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+
+// Import all financial components
+import { FinancialSummary } from '@/components/financial/FinancialSummary';
+import { DREStatement } from '@/components/financial/DREStatement';
+import { BalanceSheet } from '@/components/financial/BalanceSheet';
+import { CashFlow } from '@/components/financial/CashFlow';
+import { FinancialIndicators } from '@/components/financial/FinancialIndicators';
+import { UnitEconomics } from '@/components/financial/UnitEconomics';
+import { FinancialProjections } from '@/components/financial/FinancialProjections';
 
 export default function DashboardFinanceiro() {
   const { user } = useAuth();
-  const { mainContainerClass } = usePageLayout();
-  const [userRole, setUserRole] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
-  const [selectedPeriod, setSelectedPeriod] = useState("month");
-  const [documentQuantity, setDocumentQuantity] = useState(0);
-  const [companyCosts, setCompanyCosts] = useState(0);
-  const [serviceProviderCosts, setServiceProviderCosts] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [monthlyRevenue, setMonthlyRevenue] = useState<Array<{mes: string, valor: number}>>([]);
-  const [documentStats, setDocumentStats] = useState({
-    tradução: 0,
-    pendência: 0,
-    urgente: 0
-  });
-  const [companyCostsDetails, setCompanyCostsDetails] = useState<Array<{categoria: string, valor: number, percentual: number}>>([]);
-  const [serviceProviderStats, setServiceProviderStats] = useState({
-    total: 0,
-    peopleByRole: [] as Array<{role: string, count: number}>
-  });
-
-  // Fetch real data based on period
-  useEffect(() => {
-    const fetchFinancialData = async () => {
-      if (!user) return;
-      
-      setLoading(true);
-      
-      // Calculate date range based on selected period
-      const now = new Date();
-      let startDate = new Date();
-      
-      switch(selectedPeriod) {
-        case 'day':
-          startDate.setHours(0, 0, 0, 0);
-          break;
-        case 'week':
-          startDate.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          startDate.setMonth(now.getMonth() - 1);
-          break;
-        case 'quarter':
-          startDate.setMonth(now.getMonth() - 3);
-          break;
-        case 'year':
-          startDate.setFullYear(now.getFullYear() - 1);
-          break;
-        default:
-          startDate.setMonth(now.getMonth() - 1);
-      }
-      
-      // Fetch orders and sum document_count
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select('document_count, urgent_document_count, created_at')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', now.toISOString());
-      
-      if (!ordersError && orders) {
-        const totalDocuments = orders.reduce((sum, order) => sum + (order.document_count || 0), 0);
-        const totalUrgent = orders.reduce((sum, order) => sum + (order.urgent_document_count || 0), 0);
-        setDocumentQuantity(totalDocuments);
-        
-        // Process monthly revenue data
-        const monthlyData: { [key: string]: number } = {};
-        orders.forEach(order => {
-          const date = new Date(order.created_at);
-          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          monthlyData[monthKey] = (monthlyData[monthKey] || 0) + (order.document_count || 0);
-        });
-        
-        // Convert to array format for chart
-        const revenueData = Object.entries(monthlyData)
-          .sort((a, b) => a[0].localeCompare(b[0]))
-          .map(([key, count]) => {
-            const [year, month] = key.split('-');
-            const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-            return {
-              mes: monthNames[parseInt(month) - 1],
-              valor: count * 50
-            };
-          });
-        
-        setMonthlyRevenue(revenueData);
-        
-        // Set document stats (tradução = total non-urgent, urgente = urgent)
-        setDocumentStats({
-          tradução: totalDocuments - totalUrgent,
-          pendência: 0, // Will be fetched from pendencies table
-          urgente: totalUrgent
-        });
-      } else {
-        console.error('Error fetching orders:', ordersError);
-        setDocumentQuantity(0);
-        setMonthlyRevenue([]);
-      }
-      
-      // Fetch pendencies count
-      const { data: pendencies, error: pendenciesError } = await supabase
-        .from('pendencies')
-        .select('error_document_count')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', now.toISOString());
-      
-      if (!pendenciesError && pendencies) {
-        const totalPendencies = pendencies.reduce((sum, p) => sum + (p.error_document_count || 0), 0);
-        setDocumentStats(prev => ({ ...prev, pendência: totalPendencies }));
-      }
-      
-      // Fetch company costs with category details
-      const { data: companyCostsData, error: companyCostsError } = await supabase
-        .from('company_costs')
-        .select('amount, category')
-        .gte('date', startDate.toISOString().split('T')[0])
-        .lte('date', now.toISOString().split('T')[0]);
-      
-      if (!companyCostsError && companyCostsData) {
-        const totalCompanyCosts = companyCostsData.reduce((sum, cost) => sum + (Number(cost.amount) || 0), 0);
-        setCompanyCosts(totalCompanyCosts);
-        
-        // Group by category for despesas breakdown
-        const categoryTotals: { [key: string]: number } = {};
-        companyCostsData.forEach(cost => {
-          const category = cost.category || 'Outros';
-          categoryTotals[category] = (categoryTotals[category] || 0) + Number(cost.amount);
-        });
-        
-        // Convert to array format with percentages
-        const categoriesArray = Object.entries(categoryTotals).map(([categoria, valor]) => ({
-          categoria,
-          valor,
-          percentual: totalCompanyCosts > 0 ? (valor / totalCompanyCosts) * 100 : 0
-        }));
-        
-        setCompanyCostsDetails(categoriesArray);
-      } else {
-        console.error('Error fetching company costs:', companyCostsError);
-        setCompanyCosts(0);
-        setCompanyCostsDetails([]);
-      }
-      
-      // Fetch service provider costs with type/role breakdown
-      const { data: serviceProviderData, error: serviceProviderError } = await supabase
-        .from('service_provider_costs')
-        .select('amount, type')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', now.toISOString());
-      
-      if (!serviceProviderError && serviceProviderData) {
-        const totalServiceProviderCosts = serviceProviderData.reduce((sum, cost) => sum + (Number(cost.amount) || 0), 0);
-        setServiceProviderCosts(totalServiceProviderCosts);
-        
-        // Count people by type/role
-        const roleCount: { [key: string]: Set<string> } = {};
-        serviceProviderData.forEach(provider => {
-          const role = provider.type || 'Outros';
-          if (!roleCount[role]) {
-            roleCount[role] = new Set();
-          }
-          // Using a Set to count unique providers (in real scenario, you'd use a unique identifier)
-          roleCount[role].add(`${role}_${Math.random()}`); // Simplified for now
-        });
-        
-        // Convert to array format
-        const peopleByRole = Object.entries(roleCount).map(([role, people]) => ({
-          role,
-          count: people.size
-        }));
-        
-        setServiceProviderStats({
-          total: totalServiceProviderCosts,
-          peopleByRole
-        });
-      } else {
-        console.error('Error fetching service provider costs:', serviceProviderError);
-        setServiceProviderCosts(0);
-        setServiceProviderStats({ total: 0, peopleByRole: [] });
-      }
-      
-      setLoading(false);
-    };
-    
-    fetchFinancialData();
-  }, [user, selectedPeriod]);
+  const [activeTab, setActiveTab] = useState('summary');
+  const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, role')
-          .eq('id', user.id)
-          .single();
-
-        if (data && !error) {
-          setUserName(data.full_name);
-          setUserRole(data.role);
-        }
-      }
-    };
-
-    fetchUserProfile();
+    if (user) {
+      fetchUserProfile();
+    }
   }, [user]);
-  
-  const faturamentoTotal = documentQuantity * 50;
-  const lucroLiquido = faturamentoTotal - (companyCosts + serviceProviderCosts);
 
-  // Use real monthly revenue data if available, otherwise use static example data
-  const faturamentoData = monthlyRevenue.length > 0 ? monthlyRevenue : [
-    { mes: "Jan", valor: 45000 },
-    { mes: "Fev", valor: 52000 },
-    { mes: "Mar", valor: 48000 },
-    { mes: "Abr", valor: 61000 },
-    { mes: "Mai", valor: 59000 },
-    { mes: "Jun", valor: 94050 },
-    { mes: "Jul", valor: 131800 },
-    { mes: "Ago", valor: 152200 },
-  ];
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, role')
+        .eq('id', user?.id)
+        .single();
 
-  // Real document stats with cost calculation
-  const custoPorDocumento = [
-    { tipo: "Tradução", custo: 1.30, quantidade: documentStats.tradução, total: documentStats.tradução * 1.30 },
-    { tipo: "Pendência", custo: 1.30, quantidade: documentStats.pendência, total: documentStats.pendência * 1.30 },
-    { tipo: "Urgente", custo: 1.30, quantidade: documentStats.urgente, total: documentStats.urgente * 1.30 },
-  ];
+      if (error) throw error;
 
-  // Calculate percentages for company costs
-  const totalDespesas = companyCostsDetails.reduce((sum, item) => sum + item.valor, 0) || 24400;
-  const despesasOperacionais = companyCostsDetails.length > 0 
-    ? companyCostsDetails.map(item => ({
-        categoria: item.categoria,
-        valor: item.valor,
-        percentual: totalDespesas > 0 ? ((item.valor / totalDespesas) * 100).toFixed(1) : '0'
-      }))
-    : [
-        { categoria: "Infraestrutura", valor: 8500, percentual: ((8500 / 24400) * 100).toFixed(1) },
-        { categoria: "Software", valor: 5200, percentual: ((5200 / 24400) * 100).toFixed(1) },
-        { categoria: "Marketing", valor: 3800, percentual: ((3800 / 24400) * 100).toFixed(1) },
-        { categoria: "Administrativo", valor: 6900, percentual: ((6900 / 24400) * 100).toFixed(1) },
-      ];
-
-  const folhaPagamento = [
-    { mes: "Jan", tradutores: 28000, admin: 12000, total: 40000 },
-    { mes: "Fev", tradutores: 30000, admin: 12000, total: 42000 },
-    { mes: "Mar", tradutores: 29500, admin: 12500, total: 42000 },
-    { mes: "Abr", tradutores: 32000, admin: 13000, total: 45000 },
-    { mes: "Mai", tradutores: 31000, admin: 13000, total: 44000 },
-    { mes: "Jun", tradutores: 33500, admin: 13500, total: 47000 },
-  ];
-
-  const fluxoCaixa = [
-    { mes: "Jan", entrada: 45000, saida: 38000, saldo: 7000 },
-    { mes: "Fev", entrada: 52000, saida: 41000, saldo: 11000 },
-    { mes: "Mar", entrada: 48000, saida: 39000, saldo: 9000 },
-    { mes: "Abr", entrada: 61000, saida: 43000, saldo: 18000 },
-    { mes: "Mai", entrada: 59000, saida: 42000, saldo: 17000 },
-    { mes: "Jun", entrada: 67000, saida: 45000, saldo: 22000 },
-  ];
-
-  const analiseDE = {
-    receita: 67000,
-    custos: 45000,
-    lucroOperacional: 22000,
-    margemLucro: 32.8,
-    impostos: 5500,
-    lucroLiquido: 16500,
+      if (data) {
+        setUserName(data.full_name || 'Usuário');
+        setUserRole(data.role || 'operation');
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
   };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
-  const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar userRole={userRole} />
-      <div className={mainContainerClass}>
-        <Header userName={userName} userRole={userRole} />
+    <SidebarProvider>
+      <div className="flex h-screen bg-background">
+        <Sidebar userRole={userRole} />
         
-        <main className="container mx-auto p-6">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Dashboard Financeiro</h1>
-            <div className="flex items-center gap-4">
-              <select 
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="px-4 py-2 border rounded-lg bg-background"
-              >
-                <option value="day">Hoje</option>
-                <option value="week">Esta Semana</option>
-                <option value="month">Este Mês</option>
-                <option value="quarter">Trimestre</option>
-                <option value="year">Este Ano</option>
-              </select>
+        <div className="flex-1 flex flex-col">
+          <Header userName={userName} userRole={userRole} />
+          
+          <main className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-7xl mx-auto space-y-6">
+              {/* Page Header */}
+              <div>
+                <h1 className="text-3xl font-bold">Módulo Financeiro</h1>
+                <p className="text-muted-foreground">Gestão financeira completa com análise de demonstrativos e indicadores</p>
+              </div>
+
+              {/* Main Content Tabs */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <TabsList className="grid w-full grid-cols-7">
+                  <TabsTrigger value="summary" className="flex items-center gap-1">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="hidden lg:inline">Resumo</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="dre" className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden lg:inline">DRE</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="balance" className="flex items-center gap-1">
+                    <BarChart3 className="h-4 w-4" />
+                    <span className="hidden lg:inline">Balanço</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="cashflow" className="flex items-center gap-1">
+                    <Banknote className="h-4 w-4" />
+                    <span className="hidden lg:inline">Fluxo Caixa</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="indicators" className="flex items-center gap-1">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="hidden lg:inline">Indicadores</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="unit" className="flex items-center gap-1">
+                    <Calculator className="h-4 w-4" />
+                    <span className="hidden lg:inline">Unit Economics</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="projections" className="flex items-center gap-1">
+                    <Target className="h-4 w-4" />
+                    <span className="hidden lg:inline">Projeções</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="summary">
+                  <FinancialSummary />
+                </TabsContent>
+
+                <TabsContent value="dre">
+                  <DREStatement />
+                </TabsContent>
+
+                <TabsContent value="balance">
+                  <BalanceSheet />
+                </TabsContent>
+
+                <TabsContent value="cashflow">
+                  <CashFlow />
+                </TabsContent>
+
+                <TabsContent value="indicators">
+                  <FinancialIndicators />
+                </TabsContent>
+
+                <TabsContent value="unit">
+                  <UnitEconomics />
+                </TabsContent>
+
+                <TabsContent value="projections">
+                  <FinancialProjections />
+                </TabsContent>
+              </Tabs>
             </div>
-          </div>
-
-          {/* Cards de Resumo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatsCard
-              title="Faturamento Total"
-              value={loading ? "Carregando..." : formatCurrency(faturamentoTotal)}
-              icon={<DollarSign className="h-5 w-5" />}
-              description={loading ? "Calculando..." : `${documentQuantity.toLocaleString('pt-BR')} docs × R$ 50`}
-            />
-            <StatsCard
-              title="Lucro Líquido"
-              value={loading ? "Carregando..." : formatCurrency(lucroLiquido)}
-              icon={<TrendingUp className="h-5 w-5" />}
-              description={loading ? "Calculando..." : `Margem: ${lucroLiquido > 0 ? ((lucroLiquido / faturamentoTotal) * 100).toFixed(1) : '0'}%`}
-            />
-            <StatsCard
-              title="Custos - Empresa"
-              value={loading ? "Carregando..." : formatCurrency(companyCosts)}
-              icon={<Briefcase className="h-5 w-5" />}
-              description="Despesas operacionais"
-            />
-            <StatsCard
-              title="Custos - P. Serviço"
-              value={loading ? "Carregando..." : formatCurrency(serviceProviderCosts)}
-              icon={<Users className="h-5 w-5" />}
-              description="Prestadores de serviço"
-            />
-          </div>
-
-          <Tabs defaultValue="faturamento" className="space-y-6">
-            <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full">
-              <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
-              <TabsTrigger value="custos">Custo/Doc</TabsTrigger>
-              <TabsTrigger value="despesas">Despesas</TabsTrigger>
-              <TabsTrigger value="folha">Folha</TabsTrigger>
-              <TabsTrigger value="caixa">Caixa</TabsTrigger>
-              <TabsTrigger value="dre">Análise DRE</TabsTrigger>
-            </TabsList>
-
-            {/* Faturamento */}
-            <TabsContent value="faturamento" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartCard 
-                  title="Evolução do Faturamento"
-                  description="Últimos 6 meses"
-                >
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={faturamentoData}>
-                      <defs>
-                        <linearGradient id="colorFaturamento" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="mes" className="text-xs" />
-                      <YAxis className="text-xs" />
-                      <Tooltip 
-                        formatter={(value: any) => formatCurrency(value)}
-                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="valor"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        fill="url(#colorFaturamento)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-
-                <div className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Métricas de Faturamento</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Ticket Médio</span>
-                        <span className="font-bold text-lg">{formatCurrency(2233)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Crescimento Mensal</span>
-                        <span className="font-bold text-lg text-green-500">+12.5%</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Meta do Mês</span>
-                        <div className="text-right">
-                          <span className="font-bold text-lg">87%</span>
-                          <div className="text-xs text-muted-foreground">de R$ 77.000</div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Projeção Fim do Mês</span>
-                        <span className="font-bold text-lg">{formatCurrency(72500)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* Custo por Documento */}
-            <TabsContent value="custos" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartCard 
-                  title="Custo por Tipo de Documento"
-                  description="Análise de custos unitários"
-                >
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={custoPorDocumento}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="tipo" className="text-xs" />
-                      <YAxis className="text-xs" />
-                      <Tooltip 
-                        formatter={(value: any, name: string) => 
-                          name === 'total' ? formatCurrency(value) : value
-                        }
-                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
-                      />
-                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Análise de Custos</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      {custoPorDocumento.map((item, index) => (
-                        <div key={index} className="p-3 border rounded-lg space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium text-lg">{item.tipo}</span>
-                            <span className="text-sm text-muted-foreground">{item.quantidade.toLocaleString('pt-BR')} docs</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">
-                              {item.quantidade.toLocaleString('pt-BR')} × {formatCurrency(item.custo)}
-                            </span>
-                            <span className="text-lg font-bold text-primary">
-                              {formatCurrency(item.total)}
-                            </span>
-                          </div>
-                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-primary rounded-full transition-all duration-300"
-                              style={{ width: `${Math.min((item.quantidade / Math.max(...custoPorDocumento.map(c => c.quantidade))) * 100, 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="pt-4 border-t">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total de Documentos</span>
-                        <span className="font-bold text-lg">
-                          {custoPorDocumento.reduce((sum, item) => sum + item.quantidade, 0).toLocaleString('pt-BR')}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-muted-foreground">Custo Total</span>
-                        <span className="font-bold text-lg text-primary">
-                          {formatCurrency(custoPorDocumento.reduce((sum, item) => sum + item.total, 0))}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Despesas Operacionais */}
-            <TabsContent value="despesas" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartCard 
-                  title="Distribuição de Despesas"
-                  description="Por categoria"
-                >
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={despesasOperacionais}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ categoria, percentual }) => `${percentual}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="valor"
-                      >
-                        {despesasOperacionais.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value: any, name: any, props: any) => [
-                          formatCurrency(value),
-                          `${props.payload.categoria} (${props.payload.percentual}%)`
-                        ]}
-                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Detalhamento de Despesas</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {despesasOperacionais.map((item, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                            />
-                            <span className="font-medium">{item.categoria}</span>
-                          </div>
-                          <span className="font-bold">{formatCurrency(item.valor)}</span>
-                        </div>
-                        <div className="ml-5">
-                          <div className="text-xs text-muted-foreground mb-1">{item.percentual}% do total</div>
-                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                            <div 
-                              className="h-full rounded-full transition-all duration-500"
-                              style={{ 
-                                width: `${item.percentual}%`,
-                                backgroundColor: COLORS[index % COLORS.length]
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="pt-4 border-t">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground font-medium">Total de Despesas</span>
-                        <span className="font-bold text-lg">{formatCurrency(companyCosts)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Folha de Pagamento */}
-            <TabsContent value="folha" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartCard 
-                  title="Evolução da Folha de Pagamento"
-                  description="Últimos 6 meses"
-                >
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={folhaPagamento}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="mes" className="text-xs" />
-                      <YAxis className="text-xs" />
-                      <Tooltip 
-                        formatter={(value: any) => formatCurrency(value)}
-                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
-                      />
-                      <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="tradutores" 
-                        stroke="hsl(var(--primary))" 
-                        strokeWidth={2}
-                        name="Tradutores"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="admin" 
-                        stroke="hsl(var(--secondary))" 
-                        strokeWidth={2}
-                        name="Administrativo"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="total" 
-                        stroke="hsl(var(--accent))" 
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                        name="Total"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-
-                <div className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Resumo da Folha</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total P. Serviço</span>
-                        <span className="font-bold text-lg">{formatCurrency(serviceProviderCosts)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Encargos (estimado 20%)</span>
-                        <span className="font-bold text-lg">{formatCurrency(serviceProviderCosts * 0.2)}</span>
-                      </div>
-                      <div className="pt-4 border-t">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Total Geral</span>
-                          <span className="font-bold text-xl text-primary">{formatCurrency(serviceProviderCosts * 1.2)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Users className="h-5 w-5" />
-                        Equipe
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {serviceProviderStats.peopleByRole.length > 0 ? (
-                        serviceProviderStats.peopleByRole.map((item, index) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <span className="text-muted-foreground">{item.role}</span>
-                            <span className="font-bold">{item.count}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <>
-                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Tradutores</span>
-                            <span className="font-bold">0</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Revisores</span>
-                            <span className="font-bold">0</span>
-                          </div>
-                        </>
-                      )}
-                      <div className="pt-4 border-t">
-                        <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground font-medium">Total Colaboradores</span>
-                          <span className="font-bold">{serviceProviderStats.peopleByRole.reduce((sum, item) => sum + item.count, 0)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* Fluxo de Caixa */}
-            <TabsContent value="caixa" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartCard 
-                  title="Fluxo de Caixa Mensal"
-                  description="Entradas vs Saídas"
-                >
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={fluxoCaixa}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="mes" className="text-xs" />
-                      <YAxis className="text-xs" />
-                      <Tooltip 
-                        formatter={(value: any) => formatCurrency(value)}
-                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
-                      />
-                      <Legend />
-                      <Bar dataKey="entrada" fill="hsl(var(--primary))" name="Entradas" radius={[8, 8, 0, 0]} />
-                      <Bar dataKey="saida" fill="hsl(var(--destructive))" name="Saídas" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-
-                <div className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Resumo do Caixa</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Saldo Anterior</span>
-                        <span className="font-bold text-lg">{formatCurrency(45000)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total de Entradas</span>
-                        <span className="font-bold text-lg text-green-500">
-                          <ArrowUpRight className="inline h-4 w-4 mr-1" />
-                          {formatCurrency(67000)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total de Saídas</span>
-                        <span className="font-bold text-lg text-red-500">
-                          <ArrowDownRight className="inline h-4 w-4 mr-1" />
-                          {formatCurrency(45000)}
-                        </span>
-                      </div>
-                      <div className="pt-4 border-t">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Saldo Atual</span>
-                          <span className="font-bold text-xl text-primary">{formatCurrency(67000)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Projeções</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Próximo Mês</span>
-                        <span className="font-bold">{formatCurrency(71000)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Próximo Trimestre</span>
-                        <span className="font-bold">{formatCurrency(225000)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Capital de Giro</span>
-                        <span className="font-bold text-green-500">Saudável</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* Análise DRE */}
-            <TabsContent value="dre" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Demonstração do Resultado do Exercício</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center py-2">
-                          <span className="font-medium">Receita Bruta</span>
-                          <span className="font-bold">{formatCurrency(analiseDE.receita)}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 text-sm text-muted-foreground">
-                          <span className="ml-4">(-) Impostos sobre vendas</span>
-                          <span>-{formatCurrency(6700)}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-t font-medium">
-                          <span>Receita Líquida</span>
-                          <span>{formatCurrency(60300)}</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center py-2 text-sm text-muted-foreground">
-                          <span className="ml-4">(-) Custo dos Serviços</span>
-                          <span>-{formatCurrency(28000)}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-t font-medium">
-                          <span>Lucro Bruto</span>
-                          <span>{formatCurrency(32300)}</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center py-2 text-sm text-muted-foreground">
-                          <span className="ml-4">(-) Despesas Operacionais</span>
-                          <span>-{formatCurrency(10300)}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-t font-medium">
-                          <span>Lucro Operacional (EBIT)</span>
-                          <span>{formatCurrency(analiseDE.lucroOperacional)}</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center py-2 text-sm text-muted-foreground">
-                          <span className="ml-4">(-) Impostos</span>
-                          <span>-{formatCurrency(analiseDE.impostos)}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-t border-b-2 border-b-primary">
-                          <span className="font-bold text-lg">Lucro Líquido</span>
-                          <span className="font-bold text-lg text-primary">{formatCurrency(analiseDE.lucroLiquido)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <div className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Indicadores</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-3">
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm text-muted-foreground">Margem Bruta</span>
-                            <span className="font-bold">48.2%</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div className="bg-primary h-2 rounded-full" style={{ width: '48.2%' }} />
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm text-muted-foreground">Margem Operacional</span>
-                            <span className="font-bold">{analiseDE.margemLucro}%</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div className="bg-secondary h-2 rounded-full" style={{ width: `${analiseDE.margemLucro}%` }} />
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm text-muted-foreground">Margem Líquida</span>
-                            <span className="font-bold">24.6%</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div className="bg-accent h-2 rounded-full" style={{ width: '24.6%' }} />
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <ChartBar className="h-5 w-5" />
-                        Performance
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">ROI</span>
-                        <span className="font-bold text-green-500">+18.5%</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">EBITDA</span>
-                        <span className="font-bold">{formatCurrency(24500)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Ponto de Equilíbrio</span>
-                        <span className="font-bold">{formatCurrency(38000)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
