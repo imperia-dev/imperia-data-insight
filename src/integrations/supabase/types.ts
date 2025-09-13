@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      balance_sheet_items: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          created_by: string | null
+          date: string
+          description: string
+          id: string
+          type: Database["public"]["Enums"]["balance_sheet_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          description: string
+          id?: string
+          type: Database["public"]["Enums"]["balance_sheet_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          description?: string
+          id?: string
+          type?: Database["public"]["Enums"]["balance_sheet_type"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      cash_flow_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_financing: boolean | null
+          is_investment: boolean | null
+          is_operational: boolean | null
+          name: string
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_financing?: boolean | null
+          is_investment?: boolean | null
+          is_operational?: boolean | null
+          name: string
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_financing?: boolean | null
+          is_investment?: boolean | null
+          is_operational?: boolean | null
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
       company_costs: {
         Row: {
           amount: number
@@ -127,6 +193,138 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      financial_entries: {
+        Row: {
+          accounting_method: string | null
+          amount: number
+          category: string
+          created_at: string | null
+          created_by: string | null
+          date: string
+          description: string
+          document_ref: string | null
+          id: string
+          is_fixed: boolean | null
+          is_variable: boolean | null
+          payment_method: string | null
+          status: string | null
+          subcategory: string | null
+          tax_amount: number | null
+          type: Database["public"]["Enums"]["financial_entry_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          accounting_method?: string | null
+          amount: number
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          description: string
+          document_ref?: string | null
+          id?: string
+          is_fixed?: boolean | null
+          is_variable?: boolean | null
+          payment_method?: string | null
+          status?: string | null
+          subcategory?: string | null
+          tax_amount?: number | null
+          type: Database["public"]["Enums"]["financial_entry_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          accounting_method?: string | null
+          amount?: number
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          description?: string
+          document_ref?: string | null
+          id?: string
+          is_fixed?: boolean | null
+          is_variable?: boolean | null
+          payment_method?: string | null
+          status?: string | null
+          subcategory?: string | null
+          tax_amount?: number | null
+          type?: Database["public"]["Enums"]["financial_entry_type"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      financial_indicators: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          date: string
+          id: string
+          indicator_name: string
+          updated_at: string | null
+          value: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          date: string
+          id?: string
+          indicator_name: string
+          updated_at?: string | null
+          value?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          indicator_name?: string
+          updated_at?: string | null
+          value?: number | null
+        }
+        Relationships: []
+      }
+      financial_projections: {
+        Row: {
+          actual_value: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          metric_type: string
+          notes: string | null
+          projected_value: number
+          projection_date: string
+          scenario: Database["public"]["Enums"]["scenario_type"]
+          updated_at: string | null
+          variance: number | null
+        }
+        Insert: {
+          actual_value?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          metric_type: string
+          notes?: string | null
+          projected_value: number
+          projection_date: string
+          scenario: Database["public"]["Enums"]["scenario_type"]
+          updated_at?: string | null
+          variance?: number | null
+        }
+        Update: {
+          actual_value?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          metric_type?: string
+          notes?: string | null
+          projected_value?: number
+          projection_date?: string
+          scenario?: Database["public"]["Enums"]["scenario_type"]
+          updated_at?: string | null
+          variance?: number | null
+        }
+        Relationships: []
       }
       financial_records: {
         Row: {
@@ -487,6 +685,63 @@ export type Database = {
         }
         Relationships: []
       }
+      unit_economics: {
+        Row: {
+          arpu: number | null
+          avg_ticket: number | null
+          cac: number | null
+          churn_rate: number | null
+          created_at: string | null
+          created_by: string | null
+          customer_count: number | null
+          id: string
+          ltv: number | null
+          marketing_spend: number | null
+          month: string
+          new_customers: number | null
+          purchase_frequency: number | null
+          retention_months: number | null
+          sales_spend: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          arpu?: number | null
+          avg_ticket?: number | null
+          cac?: number | null
+          churn_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_count?: number | null
+          id?: string
+          ltv?: number | null
+          marketing_spend?: number | null
+          month: string
+          new_customers?: number | null
+          purchase_frequency?: number | null
+          retention_months?: number | null
+          sales_spend?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          arpu?: number | null
+          avg_ticket?: number | null
+          cac?: number | null
+          churn_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_count?: number | null
+          id?: string
+          ltv?: number | null
+          marketing_spend?: number | null
+          month?: string
+          new_customers?: number | null
+          purchase_frequency?: number | null
+          retention_months?: number | null
+          sales_spend?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -498,12 +753,21 @@ export type Database = {
       }
     }
     Enums: {
+      balance_sheet_type:
+        | "current_asset"
+        | "non_current_asset"
+        | "current_liability"
+        | "non_current_liability"
+        | "equity"
+      cash_flow_method: "direct" | "indirect"
       document_status:
         | "pending"
         | "in_progress"
         | "review"
         | "completed"
         | "delivered"
+      financial_entry_type: "revenue" | "expense" | "tax" | "deduction"
+      scenario_type: "pessimistic" | "realistic" | "optimistic"
       user_role: "master" | "admin" | "operation" | "owner"
     }
     CompositeTypes: {
@@ -632,6 +896,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      balance_sheet_type: [
+        "current_asset",
+        "non_current_asset",
+        "current_liability",
+        "non_current_liability",
+        "equity",
+      ],
+      cash_flow_method: ["direct", "indirect"],
       document_status: [
         "pending",
         "in_progress",
@@ -639,6 +911,8 @@ export const Constants = {
         "completed",
         "delivered",
       ],
+      financial_entry_type: ["revenue", "expense", "tax", "deduction"],
+      scenario_type: ["pessimistic", "realistic", "optimistic"],
       user_role: ["master", "admin", "operation", "owner"],
     },
   },
