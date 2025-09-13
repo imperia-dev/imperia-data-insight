@@ -8,7 +8,7 @@ import { SidebarProvider } from "./contexts/SidebarContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Documents from "./pages/Documents";
-import Financial from "./pages/Financial";
+
 import Wallet from "./pages/Wallet";
 import Calendar from "./pages/Calendar";
 import { Orders } from "./pages/Orders";
@@ -77,11 +77,6 @@ const App = () => (
             <Route path="/productivity" element={
               <ProtectedRoute>
                 <Productivity />
-              </ProtectedRoute>
-            } />
-            <Route path="/financial" element={
-              <ProtectedRoute>
-                <Financial />
               </ProtectedRoute>
             } />
             <Route path="/wallet" element={

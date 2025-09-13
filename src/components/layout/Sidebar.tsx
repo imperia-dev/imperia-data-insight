@@ -60,12 +60,6 @@ const navigation = [
     roles: ["owner", "master", "admin"],
   },
   {
-    title: "Financeiro",
-    icon: DollarSign,
-    href: "/financial",
-    roles: ["owner", "master"],
-  },
-  {
     title: "Custos - Empresa",
     icon: DollarSign,
     href: "/company-costs",
