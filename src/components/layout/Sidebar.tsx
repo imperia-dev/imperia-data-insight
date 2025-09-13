@@ -42,6 +42,30 @@ const navigation = [
     roles: ["owner", "master", "admin"],
   },
   {
+    title: "Dashboard Financeiro",
+    icon: TrendingUp,
+    href: "/dashboard-financeiro",
+    roles: ["owner"],
+  },
+  {
+    title: "Dashboard Comercial",
+    icon: TrendingUp,
+    href: "/dashboard-comercial",
+    roles: ["owner"],
+  },
+  {
+    title: "Dashboard Marketing",
+    icon: TrendingUp,
+    href: "/dashboard-marketing",
+    roles: ["owner"],
+  },
+  {
+    title: "Dashboard Tech",
+    icon: TrendingUp,
+    href: "/dashboard-tech",
+    roles: ["owner"],
+  },
+  {
     title: "Pedidos",
     icon: FileText,
     href: "/orders",
@@ -57,6 +81,12 @@ const navigation = [
     title: "Pendências",
     icon: AlertCircle,
     href: "/pendencies",
+    roles: ["owner", "master", "admin"],
+  },
+  {
+    title: "Produtividade",
+    icon: TrendingUp,
+    href: "/productivity",
     roles: ["owner", "master", "admin"],
   },
   {
@@ -87,12 +117,6 @@ const navigation = [
     title: "Equipe",
     icon: Users,
     href: "/team",
-    roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "Produtividade",
-    icon: TrendingUp,
-    href: "/productivity",
     roles: ["owner", "master", "admin"],
   },
   {
@@ -130,30 +154,6 @@ const navigation = [
     icon: Settings,
     href: "/settings",
     roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "Dashboard Financeiro",
-    icon: TrendingUp,
-    href: "/dashboard-financeiro",
-    roles: ["owner"],
-  },
-  {
-    title: "Dashboard Comercial",
-    icon: TrendingUp,
-    href: "/dashboard-comercial",
-    roles: ["owner"],
-  },
-  {
-    title: "Dashboard Marketing",
-    icon: TrendingUp,
-    href: "/dashboard-marketing",
-    roles: ["owner"],
-  },
-  {
-    title: "Dashboard Tech",
-    icon: TrendingUp,
-    href: "/dashboard-tech",
-    roles: ["owner"],
   },
 ];
 
