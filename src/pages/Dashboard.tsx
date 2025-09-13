@@ -761,7 +761,7 @@ export default function Dashboard() {
               title="Urgências"
               value={loading ? "..." : urgencies.toLocaleString('pt-BR')}
               icon={<AlertTriangle className="h-5 w-5" />}
-              description={`${urgencyPercentage}% do total`}
+              description={`${urgencyPercentage}%`}
               hasDetails={true}
               onViewDetails={() => showDetails("Urgências - IDs dos Pedidos", urgentOrderIds, false)}
             />
@@ -769,7 +769,7 @@ export default function Dashboard() {
               title="Pendências"
               value={loading ? "..." : pendencies.toLocaleString('pt-BR')}
               icon={<AlertCircle className="h-5 w-5" />}
-              description={`${pendencyPercentage}% do total`}
+              description={`${pendencyPercentage}%`}
               hasDetails={true}
               onViewDetails={() => showDetails("Pendências - IDs", pendencyIds, false)}
             />
