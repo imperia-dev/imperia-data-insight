@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
+import { ErrorTypesChart } from "@/components/dashboard/ErrorTypesChart";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -611,6 +612,26 @@ export default function Dashboard() {
           title: `Evolução ${selectedPeriod === 'day' ? 'Horária' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'Diária' : selectedPeriod === 'quarter' ? 'Semanal' : 'Mensal'}`,
           type: 'bar' as const,
           data: evolutionChartData.slice(0, 10), // Limit to 10 items for better readability in landscape
+        },
+        {
+          title: "Distribuição de Tipos de Erro",
+          type: 'bar' as const,
+          data: pendencyTypesData.slice(0, 8).map(item => ({
+            label: item.type,
+            value: item.count,
+            formattedValue: item.count.toString()
+          }))
+        }
+      ],
+      additionalTables: [
+        {
+          title: "Tipos de Erro - Estatísticas",
+          headers: ["Tipo de Erro", "Quantidade", "Percentual"],
+          rows: pendencyTypesData.map(item => [
+            item.type,
+            item.count.toString(),
+            pendencies > 0 ? `${((item.count / pendencies) * 100).toFixed(1)}%` : '0%'
+          ])
         }
       ]
     };
@@ -902,7 +923,7 @@ export default function Dashboard() {
             </ChartCard>
           </div>
 
-          {/* Performance Chart - Below Evolution */}
+          {/* Performance Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Bar Chart */}
             <ChartCard
@@ -927,14 +948,12 @@ export default function Dashboard() {
             <div className="rounded-lg border bg-card shadow-sm">
               <div className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Pendências Recentes</h3>
-                <ScrollArea className="h-[400px]">
+                <ScrollArea className="h-[300px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>C4U ID</TableHead>
                         <TableHead>Tipo de Erro</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead>Tratativa</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Data</TableHead>
                       </TableRow>
@@ -967,11 +986,7 @@ export default function Dashboard() {
                         return (
                           <TableRow key={pendency.id}>
                             <TableCell className="font-medium">#{pendency.c4u_id}</TableCell>
-                            <TableCell>{errorTypeLabels[pendency.error_type] || pendency.error_type}</TableCell>
-                            <TableCell className="max-w-[200px] truncate" title={pendency.description}>
-                              {pendency.description}
-                            </TableCell>
-                            <TableCell>{pendency.treatment || '-'}</TableCell>
+                            <TableCell className="text-xs">{errorTypeLabels[pendency.error_type] || pendency.error_type}</TableCell>
                             <TableCell>
                               <Badge 
                                 variant={pendency.status === 'resolved' ? 'default' : 'secondary'}
@@ -979,8 +994,8 @@ export default function Dashboard() {
                                 {pendency.status === 'resolved' ? 'Resolvido' : 'Pendente'}
                               </Badge>
                             </TableCell>
-                            <TableCell>
-                              {format(new Date(pendency.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                            <TableCell className="text-xs">
+                              {format(new Date(pendency.created_at), 'dd/MM', { locale: ptBR })}
                             </TableCell>
                           </TableRow>
                         );
@@ -990,6 +1005,17 @@ export default function Dashboard() {
                 </ScrollArea>
               </div>
             </div>
+          </div>
+
+          {/* Error Types Chart */}
+          <div className="mb-8">
+            <ErrorTypesChart 
+              data={pendencyTypesData.map(item => ({
+                type: item.type,
+                count: item.count,
+                label: item.type
+              }))} 
+            />
           </div>
 
           {/* Quick Stats */}
