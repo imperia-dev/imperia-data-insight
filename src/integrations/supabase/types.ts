@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          accessed_fields: string[] | null
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          operation: string
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessed_fields?: string[] | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          operation: string
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessed_fields?: string[] | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          operation?: string
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       balance_sheet_items: {
         Row: {
           amount: number
@@ -611,9 +647,11 @@ export type Database = {
           files: string[] | null
           id: string
           invoice_number: string | null
+          last_sensitive_access: string | null
           name: string
           phone: string | null
           pix_key: string | null
+          sensitive_access_count: number | null
           status: string
           type: string
           updated_at: string
@@ -630,9 +668,11 @@ export type Database = {
           files?: string[] | null
           id?: string
           invoice_number?: string | null
+          last_sensitive_access?: string | null
           name: string
           phone?: string | null
           pix_key?: string | null
+          sensitive_access_count?: number | null
           status?: string
           type: string
           updated_at?: string
@@ -649,9 +689,11 @@ export type Database = {
           files?: string[] | null
           id?: string
           invoice_number?: string | null
+          last_sensitive_access?: string | null
           name?: string
           phone?: string | null
           pix_key?: string | null
+          sensitive_access_count?: number | null
           status?: string
           type?: string
           updated_at?: string
@@ -744,12 +786,109 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      security_monitoring_dashboard: {
+        Row: {
+          access_count: number | null
+          first_access: string | null
+          last_access: string | null
+          operation: string | null
+          table_name: string | null
+          user_id: string | null
+          user_name: string | null
+          user_role: Database["public"]["Enums"]["user_role"] | null
+        }
+        Relationships: []
+      }
+      service_provider_costs_masked: {
+        Row: {
+          amount: number | null
+          cnpj_masked: string | null
+          competence: string | null
+          cpf_masked: string | null
+          created_at: string | null
+          created_by: string | null
+          days_worked: number | null
+          email: string | null
+          files: string[] | null
+          id: string | null
+          invoice_number: string | null
+          name: string | null
+          phone: string | null
+          pix_key_masked: string | null
+          status: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          cnpj_masked?: never
+          competence?: string | null
+          cpf_masked?: never
+          created_at?: string | null
+          created_by?: string | null
+          days_worked?: number | null
+          email?: never
+          files?: string[] | null
+          id?: string | null
+          invoice_number?: string | null
+          name?: string | null
+          phone?: never
+          pix_key_masked?: never
+          status?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          cnpj_masked?: never
+          competence?: string | null
+          cpf_masked?: never
+          created_at?: string | null
+          created_by?: string | null
+          days_worked?: number | null
+          email?: never
+          files?: string[] | null
+          id?: string | null
+          invoice_number?: string | null
+          name?: string | null
+          phone?: never
+          pix_key_masked?: never
+          status?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      check_sensitive_data_rate_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      get_service_provider_sensitive_data: {
+        Args: { p_id: string }
+        Returns: {
+          cnpj: string
+          cpf: string
+          pix_key: string
+        }[]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      log_sensitive_data_access: {
+        Args: {
+          p_fields?: string[]
+          p_operation: string
+          p_record_id?: string
+          p_table_name: string
+        }
+        Returns: undefined
+      }
+      mask_sensitive_string: {
+        Args: { input_text: string; mask_type?: string }
+        Returns: string
       }
     }
     Enums: {

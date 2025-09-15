@@ -17,17 +17,20 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { PaymentChart } from "@/components/serviceProviderCosts/PaymentChart";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Shield, AlertTriangle, Lock } from "lucide-react";
 
 interface ServiceProviderCost {
   id: string;
   name: string;
   email: string;
-  cpf: string | null;
-  cnpj: string | null;
+  cpf_masked?: string | null;
+  cnpj_masked?: string | null;
   phone: string | null;
   days_worked: number | null;
   amount: number;
-  pix_key: string | null;
+  pix_key_masked?: string | null;
   type: 'CLT' | 'PJ';
   invoice_number: string | null;
   competence: string;
@@ -35,6 +38,10 @@ interface ServiceProviderCost {
   files?: string[];
   created_at: string;
   updated_at: string;
+  // For edit form - will fetch real data when needed
+  cpf?: string | null;
+  cnpj?: string | null;
+  pix_key?: string | null;
 }
 
 export default function ServiceProviderCosts() {
@@ -54,6 +61,9 @@ export default function ServiceProviderCosts() {
   const [selectedCostDetails, setSelectedCostDetails] = useState<ServiceProviderCost | null>(null);
   const [isAddCostDialogOpen, setIsAddCostDialogOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<string>("");
+  const [showSensitiveData, setShowSensitiveData] = useState(false);
+  const [sensitiveDataAlert, setSensitiveDataAlert] = useState(false);
+  const [viewingSensitiveFor, setViewingSensitiveFor] = useState<string | null>(null);
   const [quickCostData, setQuickCostData] = useState({
     days_worked: "",
     amount: "",
@@ -96,8 +106,9 @@ export default function ServiceProviderCosts() {
 
   const fetchCosts = async () => {
     try {
+      // Use the masked view for displaying data
       const { data, error } = await supabase
-        .from('service_provider_costs')
+        .from('service_provider_costs_masked')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -108,6 +119,41 @@ export default function ServiceProviderCosts() {
       toast.error("Erro ao carregar custos de prestadores");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to fetch sensitive data for a specific provider (for editing)
+  const fetchSensitiveData = async (costId: string): Promise<{ cpf: string | null; cnpj: string | null; pix_key: string | null } | null> => {
+    try {
+      // Log the access attempt
+      await supabase.rpc('log_sensitive_data_access', {
+        p_table_name: 'service_provider_costs',
+        p_operation: 'view_sensitive',
+        p_record_id: costId,
+        p_fields: ['cpf', 'cnpj', 'pix_key']
+      });
+
+      // Fetch the actual sensitive data
+      const { data, error } = await supabase.rpc('get_service_provider_sensitive_data', {
+        p_id: costId
+      });
+
+      if (error) {
+        if (error.message?.includes('Rate limit exceeded')) {
+          toast.error("Limite de acesso excedido. Tente novamente mais tarde.");
+        } else if (error.message?.includes('Unauthorized')) {
+          toast.error("Você não tem permissão para acessar dados sensíveis.");
+        } else {
+          throw error;
+        }
+        return null;
+      }
+
+      return data?.[0] || null;
+    } catch (error) {
+      console.error('Error fetching sensitive data:', error);
+      toast.error("Erro ao carregar dados sensíveis");
+      return null;
     }
   };
 
@@ -219,23 +265,40 @@ export default function ServiceProviderCosts() {
     }
   };
 
-  const handleEdit = (cost: ServiceProviderCost) => {
+  const handleEdit = async (cost: ServiceProviderCost) => {
+    // Show alert before accessing sensitive data
+    setSensitiveDataAlert(true);
+    setViewingSensitiveFor(cost.id);
+  };
+
+  const confirmEditWithSensitiveData = async () => {
+    if (!viewingSensitiveFor) return;
+    
+    const cost = costs.find(c => c.id === viewingSensitiveFor);
+    if (!cost) return;
+
+    setSensitiveDataAlert(false);
+    
+    // Fetch sensitive data for editing
+    const sensitiveData = await fetchSensitiveData(viewingSensitiveFor);
+    
     setEditingCost(cost);
     setFormData({
       name: cost.name,
       email: cost.email,
-      cpf: cost.cpf || "",
-      cnpj: cost.cnpj || "",
+      cpf: sensitiveData?.cpf || "",
+      cnpj: sensitiveData?.cnpj || "",
       phone: cost.phone || "",
       days_worked: cost.days_worked?.toString() || "",
       amount: cost.amount.toString(),
-      pix_key: cost.pix_key || "",
+      pix_key: sensitiveData?.pix_key || "",
       type: cost.type,
       invoice_number: cost.invoice_number || "",
       competence: cost.competence,
       status: cost.status,
     });
     setIsDialogOpen(true);
+    setViewingSensitiveFor(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -463,11 +526,11 @@ export default function ServiceProviderCosts() {
       rows: filteredCosts.map(cost => [
         cost.name,
         cost.email,
-        cost.cpf || cost.cnpj || '-',
+        cost.cpf_masked || cost.cnpj_masked || '-',
         cost.phone || '-',
         cost.type,
         cost.days_worked?.toString() || '-',
-        cost.pix_key || '-',
+        cost.pix_key_masked || '-',
         cost.invoice_number || '-',
         cost.competence,
         cost.status,
@@ -637,6 +700,23 @@ export default function ServiceProviderCosts() {
             </div>
           </div>
           
+      {/* Security Notice Banner */}
+      <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <div className="flex items-start gap-3">
+          <Shield className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
+              Proteção de Dados Sensíveis Ativada
+            </h4>
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+              CPF, CNPJ e Chaves PIX estão protegidos e mascarados para sua segurança. 
+              Apenas proprietários podem visualizar dados completos ao editar registros. 
+              Todos os acessos são monitorados e registrados.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="flex flex-row items-center justify-between">
@@ -1092,8 +1172,9 @@ export default function ServiceProviderCosts() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <div className="max-w-[150px] truncate text-muted-foreground" title={cost.pix_key || '-'}>
-                          {cost.pix_key || '-'}
+                        <div className="max-w-[150px] truncate text-muted-foreground flex items-center gap-1">
+                          <Lock className="h-3 w-3" />
+                          <span title="Dados sensíveis protegidos">{cost.pix_key_masked || '-'}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -1244,12 +1325,18 @@ export default function ServiceProviderCosts() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm text-muted-foreground">CPF</Label>
-                    <p className="font-medium">{selectedCostDetails.cpf || '-'}</p>
+                    <Label className="text-sm text-muted-foreground">
+                      <Lock className="h-3 w-3 inline mr-1" />
+                      CPF (Protegido)
+                    </Label>
+                    <p className="font-medium text-muted-foreground">{selectedCostDetails.cpf_masked || '-'}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">CNPJ</Label>
-                    <p className="font-medium">{selectedCostDetails.cnpj || '-'}</p>
+                    <Label className="text-sm text-muted-foreground">
+                      <Lock className="h-3 w-3 inline mr-1" />
+                      CNPJ (Protegido)
+                    </Label>
+                    <p className="font-medium text-muted-foreground">{selectedCostDetails.cnpj_masked || '-'}</p>
                   </div>
                 </div>
 
@@ -1272,8 +1359,11 @@ export default function ServiceProviderCosts() {
                     <p className="font-medium">{selectedCostDetails.days_worked || '-'}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Chave PIX</Label>
-                    <p className="font-medium">{selectedCostDetails.pix_key || '-'}</p>
+                    <Label className="text-sm text-muted-foreground">
+                      <Lock className="h-3 w-3 inline mr-1" />
+                      Chave PIX (Protegida)
+                    </Label>
+                    <p className="font-medium text-muted-foreground">{selectedCostDetails.pix_key_masked || '-'}</p>
                   </div>
                 </div>
 
@@ -1375,6 +1465,54 @@ export default function ServiceProviderCosts() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Alert Dialog for Sensitive Data Access */}
+      <AlertDialog open={sensitiveDataAlert} onOpenChange={setSensitiveDataAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-yellow-500" />
+              Acesso a Dados Sensíveis
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Atenção: Esta ação será registrada</p>
+                    <p className="text-sm mt-1">
+                      Você está prestes a acessar dados sensíveis protegidos (CPF, CNPJ, Chave PIX). 
+                      Este acesso será registrado em nosso sistema de auditoria para fins de segurança e conformidade.
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-muted p-3 rounded-md">
+                  <p className="text-sm font-medium mb-2">Informações de Segurança:</p>
+                  <ul className="text-sm space-y-1 ml-4">
+                    <li>• Todos os acessos são monitorados e registrados</li>
+                    <li>• Limite de 100 acessos por hora</li>
+                    <li>• Dados são mascarados por padrão para proteção</li>
+                    <li>• Apenas proprietários podem visualizar dados completos</li>
+                  </ul>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Deseja continuar e acessar os dados sensíveis para edição?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmEditWithSensitiveData}
+              className="bg-yellow-600 hover:bg-yellow-700"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Acessar Dados Protegidos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
         </div>
       </div>
     </div>
