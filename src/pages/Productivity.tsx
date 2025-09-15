@@ -126,16 +126,26 @@ export default function Financial() {
 
       // Fetch all user profiles for the assigned users
       const userIds = [...new Set(ordersData?.map(order => order.assigned_to).filter(Boolean) || [])];
-      const { data: profilesData } = await supabase
+      console.log('Productivity - User IDs to fetch profiles for:', userIds);
+      
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .in('id', userIds);
+      
+      if (profilesError) {
+        console.error('Productivity - Error fetching profiles:', profilesError);
+      }
+      
+      console.log('Productivity - Profiles fetched:', profilesData);
       
       // Create a map of user IDs to names
       const userNamesMap = new Map<string, string>();
       profilesData?.forEach(profile => {
         userNamesMap.set(profile.id, profile.full_name);
       });
+      
+      console.log('Productivity - User names map:', Array.from(userNamesMap.entries()));
 
       // Calculate payments based on R$ 1.30 per document
       const PAYMENT_PER_DOCUMENT = 1.30;
