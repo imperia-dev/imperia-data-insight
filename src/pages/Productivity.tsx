@@ -198,8 +198,8 @@ export default function Financial() {
       total_amount: payment.total_amount
     }));
   
-  // Check if ranking should be visible (owner and master can see it)
-  const canSeeRanking = userRole === 'owner' || userRole === 'master';
+  // Check if ranking should be visible (owner, master and operation can see it)
+  const canSeeRanking = userRole === 'owner' || userRole === 'master' || userRole === 'operation';
   console.log('Productivity - Can see ranking:', canSeeRanking, 'Role:', userRole);
 
   return (
