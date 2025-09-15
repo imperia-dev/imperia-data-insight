@@ -1006,6 +1006,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      test_backup: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       track_failed_access: {
         Args: { p_user_id: string }
         Returns: undefined
