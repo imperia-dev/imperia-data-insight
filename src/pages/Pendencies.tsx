@@ -563,18 +563,19 @@ export default function Pendencies() {
                           {pendency.description}
                         </TableCell>
                         <TableCell>
-                          {pendency.treatment ? (
+                          {pendency.treatment && (userRole !== 'owner' && userRole !== 'master') ? (
                             <span className="text-sm">{pendency.treatment}</span>
                           ) : (
                             <div className="flex items-center gap-2">
                               <Input
-                                placeholder="Inserir tratativa..."
+                                placeholder={pendency.treatment || "Inserir tratativa..."}
                                 value={editingTreatment[pendency.id] || ''}
                                 onChange={(e) => setEditingTreatment(prev => ({
                                   ...prev,
                                   [pendency.id]: e.target.value
                                 }))}
                                 className="w-40"
+                                title={pendency.treatment ? `Atual: ${pendency.treatment}` : ''}
                               />
                               <Button
                                 size="sm"
