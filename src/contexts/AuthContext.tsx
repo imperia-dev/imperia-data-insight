@@ -18,17 +18,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Function to check if session is expired (24 hours)
+  // Function to check if session is expired (12 hours)
   const checkSessionExpiry = (session: Session | null) => {
     if (!session) return false;
     
     // Get the session creation time (issued at time in seconds)
     const issuedAt = session.expires_at ? session.expires_at - 3600 : 0; // expires_at is 1 hour after issued_at
     const now = Math.floor(Date.now() / 1000); // current time in seconds
-    const twentyFourHours = 24 * 60 * 60; // 24 hours in seconds
+    const twelveHours = 12 * 60 * 60; // 12 hours in seconds
     
-    // Check if more than 24 hours have passed since session was issued
-    if ((now - issuedAt) > twentyFourHours) {
+    // Check if more than 12 hours have passed since session was issued
+    if ((now - issuedAt) > twelveHours) {
       return true; // Session is expired
     }
     
