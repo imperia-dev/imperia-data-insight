@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown, Upload, Paperclip, Download, X, Calendar, FolderOpen, List, MessageSquare, DollarSign, Settings } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown, Upload, Paperclip, Download, X, Calendar, FolderOpen, List, MessageSquare, DollarSign, Settings, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +67,8 @@ export default function CompanyCosts() {
   const [sortBy, setSortBy] = useState("date_desc");
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
   const [selectedFiles, setSelectedFiles] = useState<Record<string, File[]>>({});
+  const [selectedCostDetails, setSelectedCostDetails] = useState<CompanyCost | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     category: "",
@@ -782,87 +785,64 @@ export default function CompanyCosts() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
                           {/* File upload input */}
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="file"
-                              multiple
-                              id={`file-upload-${cost.id}`}
-                              className="hidden"
-                              onChange={(e) => {
-                                if (e.target.files) {
-                                  handleFileUpload(cost.id, e.target.files);
-                                }
-                              }}
+                          <Input
+                            type="file"
+                            multiple
+                            id={`file-upload-${cost.id}`}
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                handleFileUpload(cost.id, e.target.files);
+                              }
+                            }}
+                            disabled={uploadingFiles[cost.id]}
+                          />
+                          <Label
+                            htmlFor={`file-upload-${cost.id}`}
+                            className="cursor-pointer"
+                          >
+                            <Button
+                              size="sm"
+                              variant="outline"
                               disabled={uploadingFiles[cost.id]}
-                            />
-                            <Label
-                              htmlFor={`file-upload-${cost.id}`}
-                              className="cursor-pointer"
+                              asChild
+                              className="hover:bg-primary/10 transition-colors"
                             >
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={uploadingFiles[cost.id]}
-                                asChild
-                                className="hover:bg-primary/10 transition-colors"
-                              >
-                                <span>
-                                  {uploadingFiles[cost.id] ? (
-                                    <span className="flex items-center gap-1">
-                                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                      <span className="text-xs">Enviando...</span>
-                                    </span>
-                                  ) : (
-                                    <span className="flex items-center gap-1">
-                                      <Upload className="h-3 w-3" />
-                                      <span className="text-xs">
-                                        {cost.files && cost.files.length > 0 ? `(${cost.files.length})` : 'Adicionar'}
-                                      </span>
-                                    </span>
-                                  )}
-                                </span>
-                              </Button>
-                            </Label>
-                          </div>
+                              <span>
+                                {uploadingFiles[cost.id] ? (
+                                  <span className="flex items-center gap-1">
+                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                    <span className="text-xs">Enviando...</span>
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <Upload className="h-3 w-3" />
+                                    {cost.files && cost.files.length > 0 && (
+                                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                                        {cost.files.length}
+                                      </Badge>
+                                    )}
+                                  </span>
+                                )}
+                              </span>
+                            </Button>
+                          </Label>
                           
-                          {/* List uploaded files */}
+                          {/* View files button */}
                           {cost.files && cost.files.length > 0 && (
-                            <div className="space-y-1">
-                              {cost.files.map((file, index) => {
-                                const fileName = file.split('/').pop() || `Arquivo ${index + 1}`;
-                                return (
-                                  <div
-                                    key={file}
-                                    className="flex items-center gap-1 text-xs bg-muted/50 rounded-full px-2 py-1"
-                                  >
-                                    <Paperclip className="h-3 w-3 text-muted-foreground" />
-                                    <span className="flex-1 truncate max-w-[100px]" title={fileName}>
-                                      {fileName}
-                                    </span>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-5 w-5 p-0 hover:bg-primary/10"
-                                        onClick={() => handleFileDownload(file)}
-                                      >
-                                        <Download className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-5 w-5 p-0 hover:bg-destructive/10"
-                                        onClick={() => handleFileRemove(cost.id, file)}
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedCostDetails(cost);
+                                setDetailsDialogOpen(true);
+                              }}
+                              className="hover:bg-primary/10"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
                           )}
                         </div>
                       </TableCell>
@@ -901,6 +881,93 @@ export default function CompanyCosts() {
       <CategoryChart costs={filteredCosts} />
         </div>
       </div>
+      {/* Details Dialog for viewing files */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Custo</DialogTitle>
+          </DialogHeader>
+          {selectedCostDetails && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Data</p>
+                  <p className="font-medium">
+                    {format(new Date(selectedCostDetails.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Categoria</p>
+                  <p className="font-medium">{selectedCostDetails.category}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Descrição</p>
+                  <p className="font-medium">{selectedCostDetails.description}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Valor</p>
+                  <p className="font-medium">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL'
+                    }).format(selectedCostDetails.amount)}
+                  </p>
+                </div>
+              </div>
+              
+              {selectedCostDetails.observations && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Observações</p>
+                  <p className="font-medium">{selectedCostDetails.observations}</p>
+                </div>
+              )}
+              
+              {selectedCostDetails.files && selectedCostDetails.files.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Arquivos Anexados</p>
+                  <div className="space-y-2">
+                    {selectedCostDetails.files.map((file, index) => {
+                      const fileName = file.split('/').pop() || `Arquivo ${index + 1}`;
+                      return (
+                        <div
+                          key={file}
+                          className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Paperclip className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{fileName}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleFileDownload(file)}
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              Baixar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                handleFileRemove(selectedCostDetails.id, file);
+                                setDetailsDialogOpen(false);
+                              }}
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Remover
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
