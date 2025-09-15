@@ -606,9 +606,11 @@ export type Database = {
           created_at: string | null
           daily_rate: number | null
           email: string
+          failed_access_attempts: number | null
           full_name: string
           hourly_rate: number | null
           id: string
+          last_failed_access: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
         }
@@ -616,9 +618,11 @@ export type Database = {
           created_at?: string | null
           daily_rate?: number | null
           email: string
+          failed_access_attempts?: number | null
           full_name: string
           hourly_rate?: number | null
           id: string
+          last_failed_access?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
@@ -626,11 +630,46 @@ export type Database = {
           created_at?: string | null
           daily_rate?: number | null
           email?: string
+          failed_access_attempts?: number | null
           full_name?: string
           hourly_rate?: number | null
           id?: string
+          last_failed_access?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          severity: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -827,12 +866,12 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           days_worked?: number | null
-          email?: never
+          email?: string | null
           files?: string[] | null
           id?: string | null
           invoice_number?: string | null
           name?: string | null
-          phone?: never
+          phone?: string | null
           pix_key_masked?: never
           status?: string | null
           type?: string | null
@@ -846,12 +885,12 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           days_worked?: number | null
-          email?: never
+          email?: string | null
           files?: string[] | null
           id?: string | null
           invoice_number?: string | null
           name?: string | null
-          phone?: never
+          phone?: string | null
           pix_key_masked?: never
           status?: string | null
           type?: string | null
@@ -877,6 +916,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      log_security_event: {
+        Args: { p_details?: Json; p_event_type: string; p_severity: string }
+        Returns: undefined
+      }
       log_sensitive_data_access: {
         Args: {
           p_fields?: string[]
@@ -889,6 +932,18 @@ export type Database = {
       mask_sensitive_string: {
         Args: { input_text: string; mask_type?: string }
         Returns: string
+      }
+      reset_failed_attempts: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      track_failed_access: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      validate_sensitive_access: {
+        Args: { p_table_name: string; p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
