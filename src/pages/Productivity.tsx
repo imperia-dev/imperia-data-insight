@@ -108,8 +108,7 @@ export default function Financial() {
           id,
           assigned_to,
           document_count,
-          delivered_at,
-          profiles!orders_assigned_to_fkey(full_name)
+          delivered_at
         `)
         .eq('status_order', 'delivered')
         .not('delivered_at', 'is', null)
@@ -125,6 +124,19 @@ export default function Financial() {
       
       console.log('Productivity - Orders fetched:', ordersData?.length || 0, 'orders');
 
+      // Fetch all user profiles for the assigned users
+      const userIds = [...new Set(ordersData?.map(order => order.assigned_to).filter(Boolean) || [])];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+      
+      // Create a map of user IDs to names
+      const userNamesMap = new Map<string, string>();
+      profilesData?.forEach(profile => {
+        userNamesMap.set(profile.id, profile.full_name);
+      });
+
       // Calculate payments based on R$ 1.30 per document
       const PAYMENT_PER_DOCUMENT = 1.30;
       
@@ -138,7 +150,7 @@ export default function Financial() {
         
         const date = new Date(order.delivered_at).toISOString().split('T')[0];
         const userId = order.assigned_to;
-        const userName = order.profiles?.full_name || 'Unknown';
+        const userName = userNamesMap.get(userId) || 'Unknown';
         const amount = (order.document_count || 0) * PAYMENT_PER_DOCUMENT;
         
         // Daily payments aggregation
