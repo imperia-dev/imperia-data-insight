@@ -181,7 +181,12 @@ export default function Financial() {
   const totalPayments = accumulatedPayments.reduce((sum, payment) => sum + payment.total_amount, 0);
   
   // Get top 3 performers
-  const topPerformers: TopPerformer[] = accumulatedPayments
+  // Filter out "Hellem Coelho" for operation role
+  const filteredPayments = userRole === 'operation' 
+    ? accumulatedPayments.filter(payment => payment.user_name !== 'Hellem Coelho')
+    : accumulatedPayments;
+  
+  const topPerformers: TopPerformer[] = filteredPayments
     .slice(0, 3)
     .map(payment => ({
       user_name: payment.user_name,
@@ -227,49 +232,51 @@ export default function Financial() {
             </div>
           </div>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total de Pagamentos</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(totalPayments)}</div>
-                <p className="text-xs text-muted-foreground">
-                  Período selecionado
-                </p>
-              </CardContent>
-            </Card>
+          {/* Summary Cards - Hide for operation role */}
+          {userRole !== 'operation' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Pagamentos</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(totalPayments)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Período selecionado
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Prestadores Ativos</CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{accumulatedPayments.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  Com pagamentos registrados
-                </p>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Prestadores Ativos</CardTitle>
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{accumulatedPayments.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Com pagamentos registrados
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Média por Prestador</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(accumulatedPayments.length > 0 ? totalPayments / accumulatedPayments.length : 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Valor médio
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Média por Prestador</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(accumulatedPayments.length > 0 ? totalPayments / accumulatedPayments.length : 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Valor médio
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Top 3 Performers Card */}
           <Card className="mb-8">
@@ -321,91 +328,95 @@ export default function Financial() {
             </CardContent>
           </Card>
 
-          {/* Daily Payments Table */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Pagamentos por Dia por Prestador</CardTitle>
-              <CardDescription>
-                Detalhamento diário dos pagamentos realizados
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Carregando dados...
-                </div>
-              ) : dailyPayments.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum pagamento registrado no período
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Prestador</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {dailyPayments.map((payment, index) => (
-                      <TableRow key={`${payment.user_id}-${payment.date}-${index}`}>
-                        <TableCell>
-                          {payment.date ? format(new Date(payment.date), "dd/MM/yyyy", { locale: ptBR }) : '-'}
-                        </TableCell>
-                        <TableCell>{payment.user_name}</TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(payment.amount)}
-                        </TableCell>
+          {/* Daily Payments Table - Hide for operation role */}
+          {userRole !== 'operation' && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Pagamentos por Dia por Prestador</CardTitle>
+                <CardDescription>
+                  Detalhamento diário dos pagamentos realizados
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Carregando dados...
+                  </div>
+                ) : dailyPayments.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum pagamento registrado no período
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Prestador</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {dailyPayments.map((payment, index) => (
+                        <TableRow key={`${payment.user_id}-${payment.date}-${index}`}>
+                          <TableCell>
+                            {payment.date ? format(new Date(payment.date), "dd/MM/yyyy", { locale: ptBR }) : '-'}
+                          </TableCell>
+                          <TableCell>{payment.user_name}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(payment.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Accumulated Payments Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Pagamento Acumulado por Prestador</CardTitle>
-              <CardDescription>
-                Total acumulado no período selecionado
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Carregando dados...
-                </div>
-              ) : accumulatedPayments.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum pagamento registrado no período
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Prestador</TableHead>
-                      <TableHead className="text-center">Documentos</TableHead>
-                      <TableHead className="text-right">Total Acumulado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {accumulatedPayments.map((payment) => (
-                      <TableRow key={payment.user_id}>
-                        <TableCell className="font-medium">{payment.user_name}</TableCell>
-                        <TableCell className="text-center">{payment.total_documents}</TableCell>
-                        <TableCell className="text-right font-bold text-primary">
-                          {formatCurrency(payment.total_amount)}
-                        </TableCell>
+          {/* Accumulated Payments Table - Hide for operation role */}
+          {userRole !== 'operation' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Pagamento Acumulado por Prestador</CardTitle>
+                <CardDescription>
+                  Total acumulado no período selecionado
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Carregando dados...
+                  </div>
+                ) : accumulatedPayments.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum pagamento registrado no período
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Prestador</TableHead>
+                        <TableHead className="text-center">Documentos</TableHead>
+                        <TableHead className="text-right">Total Acumulado</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {accumulatedPayments.map((payment) => (
+                        <TableRow key={payment.user_id}>
+                          <TableCell className="font-medium">{payment.user_name}</TableCell>
+                          <TableCell className="text-center">{payment.total_documents}</TableCell>
+                          <TableCell className="text-right font-bold text-primary">
+                            {formatCurrency(payment.total_amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </main>
       </div>
     </div>
