@@ -180,14 +180,14 @@ export default function Financial() {
 
   const totalPayments = accumulatedPayments.reduce((sum, payment) => sum + payment.total_amount, 0);
   
-  // Get top 3 performers
+  // Get top 5 performers (was top 3)
   // Filter out "Hellem Coelho" for operation role
   const filteredPayments = userRole === 'operation' 
     ? accumulatedPayments.filter(payment => payment.user_name !== 'Hellem Coelho')
     : accumulatedPayments;
   
   const topPerformers: TopPerformer[] = filteredPayments
-    .slice(0, 3)
+    .slice(0, 5) // Changed from 3 to 5
     .map(payment => ({
       user_name: payment.user_name,
       document_count: payment.total_documents,
@@ -278,11 +278,11 @@ export default function Financial() {
             </div>
           )}
 
-          {/* Top 3 Performers Card */}
+          {/* Top 5 Performers Card */}
           <Card className="mb-8">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Top 3 Prestadores</CardTitle>
+                <CardTitle>Top 5 Prestadores</CardTitle>
                 <CardDescription>
                   Ranking dos prestadores com mais documentos traduzidos
                 </CardDescription>
@@ -303,10 +303,12 @@ export default function Financial() {
                   {topPerformers.map((performer, index) => (
                     <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                       <div className="flex items-center gap-4">
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-white ${
-                          index === 0 ? 'bg-gradient-to-r from-yellow-500 to-amber-500' :
-                          index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
-                          'bg-gradient-to-r from-orange-600 to-orange-700'
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-white ${
+                        index === 0 ? 'bg-gradient-to-r from-yellow-500 to-amber-500' :
+                        index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
+                        index === 2 ? 'bg-gradient-to-r from-orange-600 to-orange-700' :
+                        index === 3 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                        'bg-gradient-to-r from-purple-500 to-purple-600'
                         }`}>
                           {index + 1}º
                         </div>
