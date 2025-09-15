@@ -59,7 +59,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/my-orders',
     '/delivered-orders',
     '/wallet',
-    // Removed: '/productivity'
+    '/productivity'
   ]
 };
 
