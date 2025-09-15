@@ -99,6 +99,8 @@ export default function Financial() {
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       }
       
+      console.log('Productivity - Fetching orders from:', startDate.toISOString(), 'Period:', selectedPeriod);
+      
       // Fetch orders delivered by service providers with date filter
       let query = supabase
         .from('orders')
@@ -116,7 +118,12 @@ export default function Financial() {
       
       const { data: ordersData, error: ordersError } = await query;
 
-      if (ordersError) throw ordersError;
+      if (ordersError) {
+        console.error('Productivity - Error fetching orders:', ordersError);
+        throw ordersError;
+      }
+      
+      console.log('Productivity - Orders fetched:', ordersData?.length || 0, 'orders');
 
       // Calculate payments based on R$ 1.30 per document
       const PAYMENT_PER_DOCUMENT = 1.30;
@@ -124,6 +131,8 @@ export default function Financial() {
       const dailyPaymentsMap = new Map<string, PaymentData>();
       const accumulatedMap = new Map<string, AccumulatedPayment>();
 
+      console.log('Productivity - Processing orders for payments...');
+      
       ordersData?.forEach(order => {
         if (!order.assigned_to || !order.delivered_at) return;
         
@@ -160,6 +169,9 @@ export default function Financial() {
           });
         }
       });
+      
+      console.log('Productivity - Accumulated payments map size:', accumulatedMap.size);
+      console.log('Productivity - User role during data processing:', userRole);
 
       setDailyPayments(Array.from(dailyPaymentsMap.values()).sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -190,6 +202,10 @@ export default function Financial() {
     ? accumulatedPayments.filter(payment => payment.user_name !== 'Hellem Coelho')
     : accumulatedPayments;
   
+  console.log('Productivity - Accumulated payments before filter:', accumulatedPayments.length);
+  console.log('Productivity - Filtered payments (after removing Hellem if operation):', filteredPayments.length);
+  console.log('Productivity - Current userRole for filtering:', userRole);
+  
   const topPerformers: TopPerformer[] = filteredPayments
     .slice(0, 5)
     .map(payment => ({
@@ -197,6 +213,8 @@ export default function Financial() {
       document_count: payment.total_documents,
       total_amount: payment.total_amount
     }));
+  
+  console.log('Productivity - Top performers count:', topPerformers.length);
   
   // Check if ranking should be visible (owner, master and operation can see it)
   // Only check after userRole is loaded
