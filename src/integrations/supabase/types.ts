@@ -973,19 +973,6 @@ export type Database = {
           total_size_gb: number
         }[]
       }
-      get_security_monitoring_data: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          access_count: number
-          first_access: string
-          last_access: string
-          operation: string
-          table_name: string
-          user_id: string
-          user_name: string
-          user_role: Database["public"]["Enums"]["user_role"]
-        }[]
-      }
       get_service_provider_sensitive_data: {
         Args: { p_id: string }
         Returns: {
