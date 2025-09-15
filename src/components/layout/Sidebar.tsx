@@ -87,7 +87,7 @@ const navigation = [
     title: "Produtividade",
     icon: TrendingUp,
     href: "/productivity",
-    roles: ["owner", "master", "admin"],
+    roles: ["owner", "master", "admin", "operation"],
   },
   {
     title: "Custos - Empresa",
