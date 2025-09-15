@@ -41,6 +41,15 @@ import { useToast } from "@/hooks/use-toast";
 import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Edit2, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 
 export default function Pendencies() {
@@ -69,6 +78,8 @@ export default function Pendencies() {
   const [openOrderSearch, setOpenOrderSearch] = useState(false);
   const [orderSearchValue, setOrderSearchValue] = useState("");
   const [editingTreatment, setEditingTreatment] = useState<{ [key: string]: string }>({});
+  const [editingPendency, setEditingPendency] = useState<any | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const errorTypes = [
     { value: "nao_e_erro", label: "Não é erro" },
@@ -307,6 +318,50 @@ export default function Pendencies() {
       toast({
         title: "Erro",
         description: "Não foi possível resolver a pendência.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditPendency = (pendency: any) => {
+    setEditingPendency({
+      ...pendency,
+      order_id: pendency.order_id || '',
+      old_order_text_id: pendency.old_order_text_id || '',
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleUpdatePendency = async () => {
+    if (!editingPendency) return;
+
+    try {
+      const { error } = await supabase
+        .from('pendencies')
+        .update({
+          c4u_id: editingPendency.c4u_id,
+          description: editingPendency.description,
+          error_type: editingPendency.error_type,
+          error_document_count: editingPendency.error_document_count,
+          treatment: editingPendency.treatment,
+        })
+        .eq('id', editingPendency.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Pendência atualizada com sucesso.",
+      });
+
+      setEditModalOpen(false);
+      setEditingPendency(null);
+      fetchPendencies();
+    } catch (error) {
+      console.error('Error updating pendency:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a pendência.",
         variant: "destructive",
       });
     }
@@ -599,6 +654,16 @@ export default function Pendencies() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
+                            {(userRole === 'owner' || userRole === 'master' || userRole === 'admin') && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditPendency(pendency)}
+                                title="Editar pendência"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            )}
                             {pendency.status !== 'resolved' && (
                               <Button
                                 variant="outline"
@@ -609,13 +674,15 @@ export default function Pendencies() {
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeletePendency(pendency.id)}
-                            >
-                              Remover
-                            </Button>
+                            {(userRole === 'owner' || userRole === 'master') && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeletePendency(pendency.id)}
+                              >
+                                Remover
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -689,6 +756,102 @@ export default function Pendencies() {
         </main>
       </div>
 
+      {/* Edit Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Pendência</DialogTitle>
+            <DialogDescription>
+              Atualize as informações da pendência
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingPendency && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>ID C4U</Label>
+                  <Input
+                    value={editingPendency.c4u_id}
+                    onChange={(e) => setEditingPendency({
+                      ...editingPendency,
+                      c4u_id: e.target.value
+                    })}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Tipo de Erro</Label>
+                  <Select 
+                    value={editingPendency.error_type} 
+                    onValueChange={(value) => setEditingPendency({
+                      ...editingPendency,
+                      error_type: value
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {errorTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Quantidade de Documentos</Label>
+                  <Input
+                    type="number"
+                    value={editingPendency.error_document_count}
+                    onChange={(e) => setEditingPendency({
+                      ...editingPendency,
+                      error_document_count: parseInt(e.target.value)
+                    })}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea
+                  value={editingPendency.description}
+                  onChange={(e) => setEditingPendency({
+                    ...editingPendency,
+                    description: e.target.value
+                  })}
+                  rows={4}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Tratativa</Label>
+                <Textarea
+                  value={editingPendency.treatment || ''}
+                  onChange={(e) => setEditingPendency({
+                    ...editingPendency,
+                    treatment: e.target.value
+                  })}
+                  placeholder="Inserir tratativa..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdatePendency}>
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
