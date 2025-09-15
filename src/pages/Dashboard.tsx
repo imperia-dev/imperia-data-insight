@@ -560,8 +560,8 @@ export default function Dashboard() {
     ];
 
 
-    // Prepare pendencies table data - limit to 10 for better fit
-    const pendenciesTableRows = pendenciesList.slice(0, 10).map(pendency => {
+    // Prepare pendencies table data - include all pendencies in export
+    const pendenciesTableRows = pendenciesList.map(pendency => {
       const errorTypeLabel = {
         "nao_e_erro": "Não é erro",
         "falta_de_dados": "Falta de dados",
