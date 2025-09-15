@@ -60,6 +60,39 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## 🔐 Security Best Practices
+
+### Environment Variables
+
+This project follows strict security practices for managing environment variables:
+
+#### Public Variables (Frontend)
+- **Prefix**: Variables starting with `VITE_` are exposed to the frontend
+- **Examples**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- **Usage**: Only for non-sensitive data that can be safely exposed
+
+#### Private Variables (Backend Only)
+- **Storage**: Use Supabase Secrets for sensitive data
+- **Access**: Only accessible in Edge Functions via `Deno.env.get()`
+- **Examples**: `SUPABASE_SERVICE_ROLE_KEY`, `PAGPAY_SECRET`, `WEBHOOK_SECRET`
+- **NEVER**: Never expose these in frontend code or commit to repository
+
+### Important Security Rules
+
+1. **Never commit .env files** - All .env variations are ignored by git
+2. **Never use service_role key in frontend** - This key has full database access
+3. **Store secrets in Supabase** - Use Supabase dashboard to manage production secrets
+4. **Use Edge Functions for sensitive operations** - Process webhooks and API calls server-side
+5. **SSL is automatic** - Lovable provides automatic SSL via Let's Encrypt
+
+### Managing Secrets in Lovable
+
+1. **Development**: Use local .env file (never commit it)
+2. **Production**: Add secrets via Supabase dashboard:
+   - Go to Project Settings → Functions → Secrets
+   - Add your secret variables there
+   - Access in Edge Functions with `Deno.env.get("SECRET_NAME")`
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/414fc41e-176f-45f7-9f94-7be36a4ca341) and click on Share -> Publish.
