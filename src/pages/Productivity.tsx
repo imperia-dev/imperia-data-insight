@@ -199,7 +199,8 @@ export default function Financial() {
     }));
   
   // Check if ranking should be visible (owner, master and operation can see it)
-  const canSeeRanking = userRole === 'owner' || userRole === 'master' || userRole === 'operation';
+  // Only check after userRole is loaded
+  const canSeeRanking = userRole && (userRole === 'owner' || userRole === 'master' || userRole === 'operation');
   console.log('Productivity - Can see ranking:', canSeeRanking, 'Role:', userRole);
 
   return (
@@ -294,8 +295,8 @@ export default function Financial() {
             </div>
           )}
 
-          {/* Top 5 Performers Card - Visible for owner and master */}
-          {canSeeRanking && (
+          {/* Top 5 Performers Card - Visible for owner, master and operation */}
+          {canSeeRanking && userRole && (
             <Card className="mb-8">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
