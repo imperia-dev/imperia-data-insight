@@ -50,6 +50,59 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_logs: {
+        Row: {
+          backup_date: string
+          backup_type: string | null
+          created_at: string | null
+          created_by: string | null
+          duration_seconds: number | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          size_mb: number | null
+          status: string | null
+          storage_location: string | null
+          tables_backed_up: number | null
+        }
+        Insert: {
+          backup_date: string
+          backup_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          size_mb?: number | null
+          status?: string | null
+          storage_location?: string | null
+          tables_backed_up?: number | null
+        }
+        Update: {
+          backup_date?: string
+          backup_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          size_mb?: number | null
+          status?: string | null
+          storage_location?: string | null
+          tables_backed_up?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_logs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       balance_sheet_items: {
         Row: {
           amount: number
@@ -903,6 +956,22 @@ export type Database = {
       check_sensitive_data_rate_limit: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      cleanup_old_backups: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      get_backup_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avg_duration_minutes: number
+          failed_backups: number
+          last_backup_date: string
+          last_successful_backup: string
+          successful_backups: number
+          total_backups: number
+          total_size_gb: number
+        }[]
       }
       get_service_provider_sensitive_data: {
         Args: { p_id: string }
