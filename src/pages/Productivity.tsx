@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, TrendingUp, User, Trophy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +55,9 @@ export default function Financial() {
         if (data && !error) {
           setUserName(data.full_name);
           setUserRole(data.role);
+          console.log('Productivity - User role loaded:', data.role, 'User name:', data.full_name);
+        } else {
+          console.error('Productivity - Error loading user profile:', error);
         }
       }
     };
@@ -180,19 +184,23 @@ export default function Financial() {
 
   const totalPayments = accumulatedPayments.reduce((sum, payment) => sum + payment.total_amount, 0);
   
-  // Get top 5 performers (was top 3)
-  // Filter out "Hellem Coelho" for operation role
+  // Get top 5 performers
+  // Only filter "Hellem Coelho" for operation role
   const filteredPayments = userRole === 'operation' 
     ? accumulatedPayments.filter(payment => payment.user_name !== 'Hellem Coelho')
     : accumulatedPayments;
   
   const topPerformers: TopPerformer[] = filteredPayments
-    .slice(0, 5) // Changed from 3 to 5
+    .slice(0, 5)
     .map(payment => ({
       user_name: payment.user_name,
       document_count: payment.total_documents,
       total_amount: payment.total_amount
     }));
+  
+  // Check if ranking should be visible (owner and master can see it)
+  const canSeeRanking = userRole === 'owner' || userRole === 'master';
+  console.log('Productivity - Can see ranking:', canSeeRanking, 'Role:', userRole);
 
   return (
     <div className="min-h-screen bg-background">
@@ -209,9 +217,17 @@ export default function Financial() {
                 <h1 className="text-3xl font-black text-foreground">
                   Financeiro
                 </h1>
-                <p className="text-muted-foreground mt-1">
-                  Gestão de pagamentos e relatórios financeiros
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-muted-foreground">
+                    Gestão de pagamentos e relatórios financeiros
+                  </p>
+                  {userRole && (
+                    <Badge variant={userRole === 'owner' ? 'default' : userRole === 'master' ? 'secondary' : 'outline'} className="gap-1">
+                      <Shield className="h-3 w-3" />
+                      {userRole === 'owner' ? 'Owner' : userRole === 'master' ? 'Master' : userRole === 'admin' ? 'Admin' : 'Operation'}
+                    </Badge>
+                  )}
+                </div>
               </div>
               
               <div className="flex items-center gap-3">
@@ -278,18 +294,19 @@ export default function Financial() {
             </div>
           )}
 
-          {/* Top 5 Performers Card */}
-          <Card className="mb-8">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Top 5 Prestadores</CardTitle>
-                <CardDescription>
-                  Ranking dos prestadores com mais documentos traduzidos
-                </CardDescription>
-              </div>
-              <Trophy className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
+          {/* Top 5 Performers Card - Visible for owner and master */}
+          {canSeeRanking && (
+            <Card className="mb-8">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Top 5 Prestadores</CardTitle>
+                  <CardDescription>
+                    Ranking dos prestadores com mais documentos traduzidos
+                  </CardDescription>
+                </div>
+                <Trophy className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
               {loading ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Carregando dados...
@@ -329,6 +346,7 @@ export default function Financial() {
               )}
             </CardContent>
           </Card>
+          )}
 
           {/* Daily Payments Table - Hide for operation role */}
           {userRole !== 'operation' && (
