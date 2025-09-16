@@ -795,6 +795,10 @@ export default function Dashboard() {
       { label: 'Entregues', value: documentsDelivered.toLocaleString('pt-BR') },
       { label: 'Urgências', value: urgencies.toLocaleString('pt-BR') },
       { label: 'Pendências', value: pendencies.toLocaleString('pt-BR') },
+      { label: 'Atrasos', value: delays.toLocaleString('pt-BR') },
+      { label: 'Menor Nota IA', value: lowestScore.toFixed(2) },
+      { label: 'Média IA', value: averageScore.toFixed(2) },
+      { label: 'Maior Nota IA', value: highestScore.toFixed(2) },
     ];
 
 
