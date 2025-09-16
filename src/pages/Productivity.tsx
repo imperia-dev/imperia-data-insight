@@ -79,6 +79,7 @@ export default function Financial() {
       switch (selectedPeriod) {
         case 'day':
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          startDate.setHours(0, 0, 0, 0);
           break;
         case 'week':
           const dayOfWeek = now.getDay();
@@ -99,7 +100,14 @@ export default function Financial() {
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       }
       
-      console.log('Productivity - Fetching orders from:', startDate.toISOString(), 'Period:', selectedPeriod);
+      // Add end date for 'day' period to filter only today's records
+      let endDate: Date | null = null;
+      if (selectedPeriod === 'day') {
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        endDate.setHours(23, 59, 59, 999);
+      }
+      
+      console.log('Productivity - Fetching orders from:', startDate.toISOString(), 'to:', endDate?.toISOString() || 'no limit', 'Period:', selectedPeriod);
       
       // Fetch orders delivered by service providers with date filter
       let query = supabase
@@ -112,8 +120,14 @@ export default function Financial() {
         `)
         .eq('status_order', 'delivered')
         .not('delivered_at', 'is', null)
-        .gte('delivered_at', startDate.toISOString())
-        .order('delivered_at', { ascending: false });
+        .gte('delivered_at', startDate.toISOString());
+      
+      // Add upper limit for 'day' period
+      if (endDate) {
+        query = query.lte('delivered_at', endDate.toISOString());
+      }
+      
+      query = query.order('delivered_at', { ascending: false });
       
       const { data: ordersData, error: ordersError } = await query;
 
