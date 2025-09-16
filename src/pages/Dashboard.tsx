@@ -90,13 +90,7 @@ interface OrderData {
   deadline: string;
 }
 
-const barChartData = [
-  { name: "Ana Silva", documentos: 45, valor: 12500 },
-  { name: "Carlos Oliveira", documentos: 38, valor: 10200 },
-  { name: "Maria Santos", documentos: 42, valor: 11800 },
-  { name: "João Costa", documentos: 35, valor: 9500 },
-  { name: "Beatriz Lima", documentos: 40, valor: 11000 },
-];
+// Removed mock data - will be replaced with real data from database
 
 const pieChartData = [
   { name: "Técnico", value: 45, color: "#4A5568" },
@@ -190,6 +184,8 @@ export default function Dashboard() {
   const [pendencyIds, setPendencyIds] = useState<string[]>([]);
   const [delayedOrderIds, setDelayedOrderIds] = useState<OrderSummary[]>([]);
   const [pendenciesList, setPendenciesList] = useState<any[]>([]);
+  const [translatorPerformanceData, setTranslatorPerformanceData] = useState<any[]>([]);
+  const [translatorLoading, setTranslatorLoading] = useState(false);
   
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -226,6 +222,69 @@ export default function Dashboard() {
 
     fetchUserProfile();
   }, [user]);
+
+  // Fetch translator performance data
+  const fetchTranslatorPerformance = async () => {
+    setTranslatorLoading(true);
+    try {
+      const { startDate, endDate } = getDateRange();
+      
+      // First get users with operation role
+      const { data: operationUsers, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('role', 'operation');
+      
+      if (usersError) {
+        console.error('Error fetching operation users:', usersError);
+        setTranslatorLoading(false);
+        return;
+      }
+      
+      if (!operationUsers || operationUsers.length === 0) {
+        setTranslatorPerformanceData([]);
+        setTranslatorLoading(false);
+        return;
+      }
+      
+      // Fetch delivered orders for each operation user
+      const performancePromises = operationUsers.map(async (user) => {
+        const { data: orders, error: ordersError } = await supabase
+          .from('orders')
+          .select('document_count')
+          .eq('assigned_to', user.id)
+          .eq('status_order', 'delivered')
+          .gte('delivered_at', startDate.toISOString())
+          .lte('delivered_at', endDate.toISOString());
+        
+        if (ordersError) {
+          console.error(`Error fetching orders for user ${user.id}:`, ordersError);
+          return { name: user.full_name, documentos: 0 };
+        }
+        
+        const totalDocuments = orders?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+        
+        return {
+          name: user.full_name,
+          documentos: totalDocuments
+        };
+      });
+      
+      const performanceData = await Promise.all(performancePromises);
+      
+      // Sort by documents count and take top 5
+      const sortedData = performanceData
+        .sort((a, b) => b.documentos - a.documentos)
+        .filter(item => item.documentos > 0)
+        .slice(0, 5);
+      
+      setTranslatorPerformanceData(sortedData);
+    } catch (error) {
+      console.error('Error fetching translator performance:', error);
+    } finally {
+      setTranslatorLoading(false);
+    }
+  };
 
   // Helper function to get date range based on selected period
   const getDateRange = () => {
@@ -714,6 +773,20 @@ export default function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 5 * 60 * 1000); // Refresh every 5 minutes
+    return () => clearInterval(interval);
+  }, [selectedPeriod, customDateRange]);
+
+  useEffect(() => {
+    fetchEvolutionData();
+  }, [selectedPeriod, customDateRange]);
+
+  useEffect(() => {
+    fetchTranslatorPerformance();
+  }, [selectedPeriod, customDateRange]);
+
   const handleExportPDF = () => {
     // Prepare indicators data with better labels
     const indicators = [
@@ -1151,20 +1224,36 @@ export default function Dashboard() {
             {/* Bar Chart */}
             <ChartCard
               title="Performance por Tradutor"
-              description="Top 5 tradutores do mês"
+              description={`Top 5 tradutores ${
+                selectedPeriod === 'day' ? 'de hoje' :
+                selectedPeriod === 'week' ? 'desta semana' :
+                selectedPeriod === 'month' ? 'deste mês' :
+                selectedPeriod === 'quarter' ? 'deste trimestre' :
+                selectedPeriod === 'year' ? 'deste ano' :
+                'do período selecionado'
+              }`}
               onExport={() => console.log("Export")}
             >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={barChartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" className="text-xs" angle={-45} textAnchor="end" />
-                  <YAxis className="text-xs" />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="documentos" fill="hsl(var(--primary))" name="Documentos" />
-                  <Bar dataKey="valor" fill="hsl(var(--accent))" name="Valor (R$)" />
-                </BarChart>
-              </ResponsiveContainer>
+              {translatorLoading ? (
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="text-muted-foreground">Carregando dados...</div>
+                </div>
+              ) : translatorPerformanceData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={translatorPerformanceData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="name" className="text-xs" angle={-45} textAnchor="end" />
+                    <YAxis className="text-xs" />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="documentos" fill="hsl(var(--primary))" name="Documentos" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="text-muted-foreground">Nenhum documento entregue no período</div>
+                </div>
+              )}
             </ChartCard>
 
             {/* Table of Recent Pendencies */}
