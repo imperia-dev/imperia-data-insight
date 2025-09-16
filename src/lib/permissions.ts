@@ -4,6 +4,7 @@ export type Role = 'owner' | 'master' | 'admin' | 'operation';
 export const rolePermissions: Record<Role, string[]> = {
   owner: [
     '/',
+    '/dashboard-operacao',
     '/my-orders',
     '/orders',
     '/delivered-orders',
@@ -27,6 +28,7 @@ export const rolePermissions: Record<Role, string[]> = {
   ],
   master: [
     '/',
+    '/dashboard-operacao',
     '/orders',
     '/delivered-orders',
     '/documents',
