@@ -49,6 +49,11 @@ const App = () => (
                 <DeliveredOrders />
               </ProtectedRoute>
             } />
+            <Route path="/dashboard-operacao" element={
+              <ProtectedRoute>
+                <DeliveredOrders />
+              </ProtectedRoute>
+            } />
             <Route path="/orders" element={
               <ProtectedRoute>
                 <Orders />

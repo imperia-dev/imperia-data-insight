@@ -38,8 +38,8 @@ const navigation = [
   {
     title: "Dashboard Operação",
     icon: LayoutDashboard,
-    href: "/",
-    roles: ["owner", "master", "admin"],
+    href: "/dashboard-operacao",
+    roles: ["owner", "master", "admin", "operation"],
   },
   {
     title: "Dashboard Financeiro",
