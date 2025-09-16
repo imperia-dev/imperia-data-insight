@@ -572,9 +572,21 @@ export default function Dashboard() {
         setPendencyIds(pendencyOrderIds);
         setPendenciesList(typedPendenciesData);
         
-        // Calculate pendency percentage
-        const pendencyPercentage = totalDocuments > 0 ? ((totalPendencies / totalDocuments) * 100).toFixed(1) : '0.0';
-        setPendencyPercentage(pendencyPercentage);
+        // Calculate different percentages based on attributed documents
+        // 1. Porcentagem de "Não é erro" em relação ao total de documentos atribuídos
+        const notErrorPendencies = typedPendenciesData.filter(p => p.error_type === 'nao_e_erro').length;
+        const notErrorPercentage = totalAttributedDocs > 0 ? ((notErrorPendencies / totalAttributedDocs) * 100).toFixed(1) : '0.0';
+        
+        // 2. Porcentagem de erros reais (todos menos "não é erro") em relação ao total de documentos atribuídos
+        const realErrorPendencies = typedPendenciesData.filter(p => p.error_type !== 'nao_e_erro').length;
+        const realErrorPercentage = totalAttributedDocs > 0 ? ((realErrorPendencies / totalAttributedDocs) * 100).toFixed(1) : '0.0';
+        
+        // 3. Porcentagem total de pendências em relação ao total de documentos criados no período
+        const totalPendencyPercentage = totalDocuments > 0 ? ((totalPendencies / totalDocuments) * 100).toFixed(1) : '0.0';
+        
+        // Create a formatted description for the pendencies card
+        const pendencyDescription = `${notErrorPercentage}% - Não é erro | ${realErrorPercentage}% - Erros | ${totalPendencyPercentage}% - Total`;
+        setPendencyPercentage(pendencyDescription);
         
         // Process pendency types data
         const errorTypes = [
