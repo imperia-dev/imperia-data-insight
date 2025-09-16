@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { exportToPDF } from "@/utils/exportUtils";
+import { toast } from "@/hooks/use-toast";
 import {
   FileText,
   Users,
@@ -22,6 +23,7 @@ import {
   AlertTriangle,
   AlertCircle,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import {
   LineChart,
@@ -172,6 +174,9 @@ export default function Dashboard() {
   const [lowestScore, setLowestScore] = useState<number>(0);
   const [averageScore, setAverageScore] = useState<number>(0);
   const [highestScore, setHighestScore] = useState<number>(0);
+  const [sheetsLoading, setSheetsLoading] = useState(false);
+  const [lastSheetsUpdate, setLastSheetsUpdate] = useState<Date | null>(null);
+  const [sheetsError, setSheetError] = useState<string | null>(null);
   const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
@@ -221,10 +226,87 @@ export default function Dashboard() {
     fetchUserProfile();
   }, [user]);
 
+  // Fetch Google Sheets data function
+  const fetchGoogleSheetsData = async () => {
+    setSheetsLoading(true);
+    setSheetError(null);
+    
+    try {
+      console.log('Fetching Google Sheets data...');
+      const response = await fetch('https://docs.google.com/spreadsheets/d/16P4o2pDyAM9WFjb-v4HfDuyQe7OhtML8WlhnO-c7dEQ/export?format=csv&gid=533199022');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch sheet data: ${response.status}`);
+      }
+      
+      const csvText = await response.text();
+      console.log('CSV data received, parsing...');
+      
+      // Parse CSV data
+      const lines = csvText.split('\n');
+      const scores: number[] = [];
+      
+      // Skip header rows and process data
+      for (let i = 2; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line) {
+          const columns = line.split(',');
+          // Column 6 (index 6) contains "Total Divergências" 
+          const scoreValue = columns[6]?.trim();
+          if (scoreValue && !isNaN(Number(scoreValue))) {
+            scores.push(Number(scoreValue));
+          }
+        }
+      }
+      
+      console.log(`Found ${scores.length} scores`);
+      
+      if (scores.length > 0) {
+        const min = Math.min(...scores);
+        const max = Math.max(...scores);
+        const avg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+        
+        setLowestScore(min);
+        setHighestScore(max);
+        setAverageScore(Number(avg.toFixed(1)));
+        setLastSheetsUpdate(new Date());
+        
+        toast({
+          title: "Dados atualizados",
+          description: `${scores.length} notas carregadas com sucesso`,
+        });
+      } else {
+        throw new Error('Nenhuma nota encontrada na planilha');
+      }
+    } catch (error) {
+      console.error('Error fetching Google Sheets data:', error);
+      setSheetError(error instanceof Error ? error.message : 'Erro ao buscar dados');
+      toast({
+        title: "Erro ao atualizar",
+        description: error instanceof Error ? error.message : "Não foi possível carregar os dados da planilha",
+        variant: "destructive",
+      });
+    } finally {
+      setSheetsLoading(false);
+    }
+  };
+
+  // Initial load and dependencies effect
   useEffect(() => {
     fetchDashboardData();
     fetchEvolutionData();
+    fetchGoogleSheetsData(); // Load Google Sheets data on initial load
   }, [selectedPeriod, customDateRange]);
+
+  // Auto-refresh Google Sheets data every 30 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing Google Sheets data...');
+      fetchGoogleSheetsData();
+    }, 30 * 60 * 1000); // 30 minutes
+
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -449,41 +531,6 @@ export default function Dashboard() {
         // Calculate delay percentage
         const delayPercentage = totalDocuments > 0 ? ((totalDelayedDocs / totalDocuments) * 100).toFixed(1) : '0.0';
         setDelayPercentage(delayPercentage);
-      }
-      
-      // Fetch and process Google Sheets data for AI scores
-      try {
-        const response = await fetch('https://docs.google.com/spreadsheets/d/16P4o2pDyAM9WFjb-v4HfDuyQe7OhtML8WlhnO-c7dEQ/export?format=csv&gid=1969671802');
-        const csvText = await response.text();
-        
-        // Parse CSV data
-        const lines = csvText.split('\n');
-        const scores: number[] = [];
-        
-        // Skip header rows and process data
-        for (let i = 2; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line) {
-            const columns = line.split(',');
-            // Column 6 (index 6) contains "Total Divergências" 
-            const scoreValue = columns[6]?.trim();
-            if (scoreValue && !isNaN(Number(scoreValue))) {
-              scores.push(Number(scoreValue));
-            }
-          }
-        }
-        
-        if (scores.length > 0) {
-          const min = Math.min(...scores);
-          const max = Math.max(...scores);
-          const avg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-          
-          setLowestScore(min);
-          setHighestScore(max);
-          setAverageScore(Number(avg.toFixed(1)));
-        }
-      } catch (error) {
-        console.error('Error fetching Google Sheets data:', error);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -859,35 +906,59 @@ export default function Dashboard() {
           </div>
           
           {/* Second row with Delays and AI Score indicators */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatsCard
-              title="Atrasos"
-              value={loading ? "..." : delays.toLocaleString('pt-BR')}
-              icon={<Clock className="h-5 w-5" />}
-              description={`${delayPercentage}%`}
-              trend={delays > 0 ? "down" : "neutral"}
-            />
-            <StatsCard
-              title="Menor Nota"
-              value={loading ? "..." : lowestScore.toLocaleString('pt-BR')}
-              icon={<TrendingDown className="h-5 w-5" />}
-              description="Menor divergência"
-              trend="up"
-            />
-            <StatsCard
-              title="Média"
-              value={loading ? "..." : averageScore.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-              icon={<Activity className="h-5 w-5" />}
-              description="Média de divergências"
-              trend="neutral"
-            />
-            <StatsCard
-              title="Maior Nota"
-              value={loading ? "..." : highestScore.toLocaleString('pt-BR')}
-              icon={<TrendingUp className="h-5 w-5" />}
-              description="Maior divergência"
-              trend="down"
-            />
+          <div className="mb-8">
+            {/* Refresh button and last update info */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Indicadores de Desempenho</h3>
+              <div className="flex items-center gap-4">
+                {lastSheetsUpdate && (
+                  <span className="text-sm text-muted-foreground">
+                    Última atualização: {format(lastSheetsUpdate, "HH:mm", { locale: ptBR })}
+                  </span>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={fetchGoogleSheetsData}
+                  disabled={sheetsLoading}
+                  className="gap-2"
+                >
+                  <RefreshCw className={cn("h-4 w-4", sheetsLoading && "animate-spin")} />
+                  {sheetsLoading ? "Atualizando..." : "Atualizar Notas"}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatsCard
+                title="Atrasos"
+                value={loading ? "..." : delays.toLocaleString('pt-BR')}
+                icon={<Clock className="h-5 w-5" />}
+                description={`${delayPercentage}%`}
+                trend={delays > 0 ? "down" : "neutral"}
+              />
+              <StatsCard
+                title="Menor Nota"
+                value={sheetsLoading ? "..." : lowestScore.toLocaleString('pt-BR')}
+                icon={<TrendingDown className="h-5 w-5" />}
+                description="Menor divergência"
+                trend="up"
+              />
+              <StatsCard
+                title="Média"
+                value={sheetsLoading ? "..." : averageScore.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                icon={<Activity className="h-5 w-5" />}
+                description="Média de divergências"
+                trend="neutral"
+              />
+              <StatsCard
+                title="Maior Nota"
+                value={sheetsLoading ? "..." : highestScore.toLocaleString('pt-BR')}
+                icon={<TrendingUp className="h-5 w-5" />}
+                description="Maior divergência"
+                trend="down"
+              />
+            </div>
           </div>
 
           {/* Pendencies List */}
