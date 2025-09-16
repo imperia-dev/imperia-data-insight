@@ -46,12 +46,12 @@ const App = () => (
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/" element={
               <ProtectedRoute>
-                <DeliveredOrders />
+                <Dashboard />
               </ProtectedRoute>
             } />
             <Route path="/dashboard-operacao" element={
               <ProtectedRoute>
-                <DeliveredOrders />
+                <Dashboard />
               </ProtectedRoute>
             } />
             <Route path="/orders" element={
