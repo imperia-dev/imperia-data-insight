@@ -40,7 +40,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/timesheet',
     '/ai-analytics',
     '/settings',
-    '/pendencies'
+    '/pendencies',
+    '/demand-control'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
   ],
