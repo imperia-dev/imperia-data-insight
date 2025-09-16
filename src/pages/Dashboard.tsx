@@ -188,6 +188,7 @@ export default function Dashboard() {
   const [deliveredOrderIds, setDeliveredOrderIds] = useState<OrderSummary[]>([]);
   const [urgentOrderIds, setUrgentOrderIds] = useState<string[]>([]);
   const [pendencyIds, setPendencyIds] = useState<string[]>([]);
+  const [delayedOrderIds, setDelayedOrderIds] = useState<OrderSummary[]>([]);
   const [pendenciesList, setPendenciesList] = useState<any[]>([]);
   
   // Dialog state
@@ -226,6 +227,40 @@ export default function Dashboard() {
     fetchUserProfile();
   }, [user]);
 
+  // Helper function to get date range based on selected period
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate = new Date();
+    let endDate = new Date();
+    
+    if (selectedPeriod === "custom" && customDateRange.from && customDateRange.to) {
+      startDate = new Date(customDateRange.from);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(customDateRange.to);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (selectedPeriod === 'day') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    } else if (selectedPeriod === 'week') {
+      const dayOfWeek = now.getDay();
+      const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+      startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+      endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
+    } else if (selectedPeriod === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (selectedPeriod === 'quarter') {
+      const quarter = Math.floor(now.getMonth() / 3);
+      startDate = new Date(now.getFullYear(), quarter * 3, 1);
+      endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
+    } else if (selectedPeriod === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    }
+    
+    return { startDate, endDate };
+  };
+
   // Fetch Google Sheets data function
   const fetchGoogleSheetsData = async () => {
     setSheetsLoading(true);
@@ -246,8 +281,8 @@ export default function Dashboard() {
       const lines = csvText.split('\n');
       const scores: number[] = [];
       
-      // Debug: log first few lines to understand structure
-      console.log('First 5 lines of CSV:', lines.slice(0, 5));
+      // Get date range for filtering
+      const { startDate, endDate } = getDateRange();
       
       // Skip header row (index 0) and process data starting from index 1
       for (let i = 1; i < lines.length; i++) {
@@ -256,22 +291,37 @@ export default function Dashboard() {
           // Try both comma and tab as separators
           const columns = line.includes('\t') ? line.split('\t') : line.split(',');
           
-          // Column C (index 2) contains the scores based on the sheet structure
+          // Column C (index 2) contains the scores
           const scoreValue = columns[2]?.trim();
+          // Column D (index 3) contains the date "Data da Análise"
+          const dateValue = columns[3]?.trim();
           
-          // Debug log
-          if (i < 5) {
-            console.log(`Line ${i}: columns = ${columns.join(' | ')}, score = ${scoreValue}`);
-          }
-          
-          // Check if it's a valid number
-          if (scoreValue && !isNaN(Number(scoreValue))) {
-            scores.push(Number(scoreValue));
+          // Parse date and check if within selected period
+          if (dateValue && scoreValue && !isNaN(Number(scoreValue))) {
+            let analysisDate: Date | null = null;
+            
+            // Try parsing date in DD/MM/YYYY format
+            if (dateValue.includes('/')) {
+              const parts = dateValue.split('/');
+              if (parts.length === 3) {
+                const [day, month, year] = parts;
+                analysisDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+              }
+            } else if (dateValue.includes('-')) {
+              // Try ISO format
+              analysisDate = new Date(dateValue);
+            }
+            
+            // Check if date is valid and within selected period
+            if (analysisDate && !isNaN(analysisDate.getTime()) && 
+                analysisDate >= startDate && analysisDate <= endDate) {
+              scores.push(Number(scoreValue));
+            }
           }
         }
       }
       
-      console.log(`Found ${scores.length} scores`);
+      console.log(`Found ${scores.length} scores for selected period`);
       
       if (scores.length > 0) {
         const min = Math.min(...scores);
@@ -285,10 +335,16 @@ export default function Dashboard() {
         
         toast({
           title: "Dados atualizados",
-          description: `${scores.length} notas carregadas com sucesso`,
+          description: `${scores.length} notas carregadas para o período selecionado`,
         });
       } else {
-        throw new Error('Nenhuma nota encontrada na planilha');
+        setLowestScore(0);
+        setHighestScore(0);
+        setAverageScore(0);
+        toast({
+          title: "Sem dados",
+          description: "Nenhuma nota encontrada para o período selecionado",
+        });
       }
     } catch (error) {
       console.error('Error fetching Google Sheets data:', error);
@@ -323,35 +379,8 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Calculate date filter based on selected period or custom range
-      const now = new Date();
-      let startDate = new Date();
-      let endDate = new Date();
-      
-      if (selectedPeriod === "custom" && customDateRange.from && customDateRange.to) {
-        startDate = new Date(customDateRange.from);
-        startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(customDateRange.to);
-        endDate.setHours(23, 59, 59, 999);
-      } else if (selectedPeriod === 'day') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      } else if (selectedPeriod === 'week') {
-        const dayOfWeek = now.getDay();
-        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        startDate = new Date(now.getFullYear(), now.getMonth(), diff);
-        endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
-      } else if (selectedPeriod === 'month') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-      } else if (selectedPeriod === 'quarter') {
-        const quarter = Math.floor(now.getMonth() / 3);
-        startDate = new Date(now.getFullYear(), quarter * 3, 1);
-        endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
-      } else if (selectedPeriod === 'year') {
-        startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-      }
+      // Use the helper function to get date range
+      const { startDate, endDate } = getDateRange();
 
       // Fetch delivered orders (documents translated) for the period
       const { data: ordersData, error: ordersError } = await supabase
@@ -537,8 +566,23 @@ export default function Dashboard() {
         console.error('Error fetching delayed orders:', delayedError);
       } else {
         const delayedOrders = delayedOrdersData || [];
-        const totalDelayedDocs = delayedOrders.reduce((sum, order) => sum + (order.document_count || 0), 0);
+        
+        // Group by order_number for details view
+        const groupedDelayedData = new Map<string, number>();
+        delayedOrders.forEach(order => {
+          const currentCount = groupedDelayedData.get(order.order_number) || 0;
+          groupedDelayedData.set(order.order_number, currentCount + (order.document_count || 0));
+        });
+        
+        const delayedSummary: OrderSummary[] = Array.from(groupedDelayedData.entries()).map(([order_number, count]) => ({
+          order_number,
+          document_count: count,
+        }));
+        
+        const totalDelayedDocs = delayedSummary.reduce((sum, item) => sum + item.document_count, 0);
+        
         setDelays(totalDelayedDocs);
+        setDelayedOrderIds(delayedSummary);
         
         // Calculate delay percentage
         const delayPercentage = totalDocuments > 0 ? ((totalDelayedDocs / totalDocuments) * 100).toFixed(1) : '0.0';
@@ -948,6 +992,8 @@ export default function Dashboard() {
                 icon={<Clock className="h-5 w-5" />}
                 description={`${delayPercentage}%`}
                 trend={delays > 0 ? "down" : "neutral"}
+                hasDetails={true}
+                onViewDetails={() => showDetails("Atrasos - IDs dos Pedidos", delayedOrderIds, true)}
               />
               <StatsCard
                 title="Menor Nota"
