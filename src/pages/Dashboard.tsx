@@ -14,6 +14,8 @@ import {
   FileText,
   Users,
   TrendingUp,
+  TrendingDown,
+  Activity,
   DollarSign,
   Calendar as CalendarIconAlias,
   Clock,
@@ -167,6 +169,9 @@ export default function Dashboard() {
   const [pendencyPercentage, setPendencyPercentage] = useState("0.0");
   const [delays, setDelays] = useState(0);
   const [delayPercentage, setDelayPercentage] = useState("0.0");
+  const [lowestScore, setLowestScore] = useState<number>(0);
+  const [averageScore, setAverageScore] = useState<number>(0);
+  const [highestScore, setHighestScore] = useState<number>(0);
   const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
@@ -444,6 +449,41 @@ export default function Dashboard() {
         // Calculate delay percentage
         const delayPercentage = totalDocuments > 0 ? ((totalDelayedDocs / totalDocuments) * 100).toFixed(1) : '0.0';
         setDelayPercentage(delayPercentage);
+      }
+      
+      // Fetch and process Google Sheets data for AI scores
+      try {
+        const response = await fetch('https://docs.google.com/spreadsheets/d/16P4o2pDyAM9WFjb-v4HfDuyQe7OhtML8WlhnO-c7dEQ/export?format=csv&gid=1969671802');
+        const csvText = await response.text();
+        
+        // Parse CSV data
+        const lines = csvText.split('\n');
+        const scores: number[] = [];
+        
+        // Skip header rows and process data
+        for (let i = 2; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line) {
+            const columns = line.split(',');
+            // Column 6 (index 6) contains "Total Divergências" 
+            const scoreValue = columns[6]?.trim();
+            if (scoreValue && !isNaN(Number(scoreValue))) {
+              scores.push(Number(scoreValue));
+            }
+          }
+        }
+        
+        if (scores.length > 0) {
+          const min = Math.min(...scores);
+          const max = Math.max(...scores);
+          const avg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+          
+          setLowestScore(min);
+          setHighestScore(max);
+          setAverageScore(Number(avg.toFixed(1)));
+        }
+      } catch (error) {
+        console.error('Error fetching Google Sheets data:', error);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -818,14 +858,35 @@ export default function Dashboard() {
             />
           </div>
           
-          {/* Second row with Delays indicator */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+          {/* Second row with Delays and AI Score indicators */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
               title="Atrasos"
               value={loading ? "..." : delays.toLocaleString('pt-BR')}
               icon={<Clock className="h-5 w-5" />}
               description={`${delayPercentage}%`}
               trend={delays > 0 ? "down" : "neutral"}
+            />
+            <StatsCard
+              title="Menor Nota"
+              value={loading ? "..." : lowestScore.toLocaleString('pt-BR')}
+              icon={<TrendingDown className="h-5 w-5" />}
+              description="Menor divergência"
+              trend="up"
+            />
+            <StatsCard
+              title="Média"
+              value={loading ? "..." : averageScore.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+              icon={<Activity className="h-5 w-5" />}
+              description="Média de divergências"
+              trend="neutral"
+            />
+            <StatsCard
+              title="Maior Nota"
+              value={loading ? "..." : highestScore.toLocaleString('pt-BR')}
+              icon={<TrendingUp className="h-5 w-5" />}
+              description="Maior divergência"
+              trend="down"
             />
           </div>
 
