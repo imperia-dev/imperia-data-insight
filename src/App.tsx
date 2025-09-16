@@ -46,7 +46,7 @@ const App = () => (
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/" element={
               <ProtectedRoute>
-                <delivered-orders />
+                <DeliveredOrders />
               </ProtectedRoute>
             } />
             <Route path="/orders" element={
