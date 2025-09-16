@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Save, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 
 interface UserLimit {
   id?: string;
@@ -24,6 +27,8 @@ interface UserLimit {
 }
 
 export function DemandControl() {
+  const { userRole } = useRoleAccess('/demand-control');
+  const { sidebarOffsetClass } = useSidebarOffset();
   const [users, setUsers] = useState<UserLimit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -134,27 +139,32 @@ export function DemandControl() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-96 mt-2" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-background">
+        <Sidebar userRole={userRole || 'owner'} />
+        <div className={`container mx-auto py-8 transition-all duration-300 ${sidebarOffsetClass}`}>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-96 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Card>
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole || 'owner'} />
+      <div className={`container mx-auto py-8 px-4 transition-all duration-300 ${sidebarOffsetClass}`}>
+        <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Users className="h-6 w-6 text-primary" />
@@ -214,6 +224,7 @@ export function DemandControl() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
