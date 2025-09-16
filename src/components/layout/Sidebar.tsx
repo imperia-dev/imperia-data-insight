@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -118,6 +119,12 @@ const navigation = [
     icon: Users,
     href: "/team",
     roles: ["owner", "master", "admin"],
+  },
+  {
+    title: "Controle de Demanda",
+    icon: ClipboardList,
+    href: "/demand-control",
+    roles: ["owner", "master"],
   },
   {
     title: "Meus Pedidos",
