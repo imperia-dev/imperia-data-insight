@@ -123,7 +123,7 @@ const navigation = [
     title: "Meus Pedidos",
     icon: Package,
     href: "/my-orders",
-    roles: ["operation"],
+    roles: ["owner", "operation"],
   },
   {
     title: "Relatórios",
