@@ -24,7 +24,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/dashboard-financeiro',
     '/dashboard-comercial',
     '/dashboard-marketing',
-    '/dashboard-tech'
+    '/dashboard-tech',
+    '/demand-control'
   ],
   master: [
     '/',
