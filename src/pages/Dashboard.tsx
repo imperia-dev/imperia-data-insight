@@ -585,7 +585,7 @@ export default function Dashboard() {
         const totalPendencyPercentage = totalDocuments > 0 ? ((totalPendencies / totalDocuments) * 100).toFixed(1) : '0.0';
         
         // Create a formatted description for the pendencies card
-        const pendencyDescription = `${notErrorPercentage}% - Não é erro | ${realErrorPercentage}% - Erros | ${totalPendencyPercentage}% - Total`;
+        const pendencyDescription = `${notErrorPercentage}% - Não é erro ${realErrorPercentage}% - Erros ${totalPendencyPercentage}% - Total`;
         setPendencyPercentage(pendencyDescription);
         
         // Process pendency types data
