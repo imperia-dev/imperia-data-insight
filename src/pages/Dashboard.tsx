@@ -584,8 +584,8 @@ export default function Dashboard() {
         // 3. Porcentagem total de pendências em relação ao total de documentos criados no período
         const totalPendencyPercentage = totalDocuments > 0 ? ((totalPendencies / totalDocuments) * 100).toFixed(1) : '0.0';
         
-        // Create a formatted description for the pendencies card
-        const pendencyDescription = `${notErrorPercentage}% - Não é erro | ${realErrorPercentage}% - Erros | ${totalPendencyPercentage}% - Total`;
+        // Create a formatted description for the pendencies card with line breaks
+        const pendencyDescription = `${notErrorPercentage}% - Não é erro\n${realErrorPercentage}% - Erros\n${totalPendencyPercentage}% - Total`;
         setPendencyPercentage(pendencyDescription);
         
         // Process pendency types data

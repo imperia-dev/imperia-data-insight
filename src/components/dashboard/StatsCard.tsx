@@ -67,7 +67,7 @@ export function StatsCard({
                 </div>
               )}
               {description && (
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-muted-foreground whitespace-pre-line">
                   {description}
                 </span>
               )}
