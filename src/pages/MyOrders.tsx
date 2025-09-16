@@ -17,8 +17,9 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Package, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Package, CheckCircle, Clock, AlertTriangle, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function MyOrders() {
   const { user } = useAuth();
@@ -75,6 +76,28 @@ export function MyOrders() {
     },
   });
 
+  // Fetch user's concurrent order limit
+  const { data: userLimit } = useQuery({
+    queryKey: ["user-order-limit", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from("user_document_limits")
+        .select("concurrent_order_limit")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching user limit:", error);
+      }
+
+      // Return default limit if not found
+      return data || { concurrent_order_limit: 2 };
+    },
+    enabled: !!user?.id,
+  });
+
   // Mark order as delivered mutation
   const deliverOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
@@ -109,6 +132,14 @@ export function MyOrders() {
   // Take order mutation
   const takeOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
+      // Check if user has reached the concurrent order limit
+      const currentOrderCount = myOrders?.length || 0;
+      const maxConcurrentOrders = userLimit?.concurrent_order_limit || 2;
+      
+      if (currentOrderCount >= maxConcurrentOrders) {
+        throw new Error(`Você já possui ${currentOrderCount} pedido(s) em andamento. Finalize um pedido antes de pegar outro.`);
+      }
+
       const { error } = await supabase
         .from("orders")
         .update({
@@ -141,6 +172,11 @@ export function MyOrders() {
     },
   });
 
+  // Calculate if user can take more orders
+  const currentOrderCount = myOrders?.length || 0;
+  const maxConcurrentOrders = userLimit?.concurrent_order_limit || 2;
+  const canTakeMoreOrders = currentOrderCount < maxConcurrentOrders;
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={profile?.role || "operation"} />
@@ -150,6 +186,27 @@ export function MyOrders() {
         
         <main className="p-4 md:p-6 lg:p-8">
           <h1 className="text-3xl font-bold text-foreground mb-6">Meus Pedidos</h1>
+
+          {/* Order Status Badge */}
+          <div className="mb-6 flex items-center gap-4">
+            <Badge 
+              variant={canTakeMoreOrders ? "default" : "secondary"}
+              className="px-4 py-2"
+            >
+              <span className="font-medium">
+                {currentOrderCount}/{maxConcurrentOrders} pedidos em andamento
+              </span>
+            </Badge>
+            {!canTakeMoreOrders && (
+              <Alert className="flex-1">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Você atingiu o limite de {maxConcurrentOrders} pedidos simultâneos. 
+                  Finalize um pedido para pegar outro.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
 
           {/* Available Orders */}
           <Card className="mb-6">
@@ -209,7 +266,8 @@ export function MyOrders() {
                           <Button
                             size="sm"
                             onClick={() => takeOrderMutation.mutate(order.id)}
-                            disabled={takeOrderMutation.isPending}
+                            disabled={takeOrderMutation.isPending || !canTakeMoreOrders}
+                            title={!canTakeMoreOrders ? `Você já possui ${currentOrderCount} pedido(s) em andamento` : undefined}
                           >
                             Pegar Pedido
                           </Button>

@@ -878,6 +878,7 @@ export type Database = {
       }
       user_document_limits: {
         Row: {
+          concurrent_order_limit: number
           created_at: string
           created_by: string | null
           daily_limit: number
@@ -886,6 +887,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          concurrent_order_limit?: number
           created_at?: string
           created_by?: string | null
           daily_limit?: number
@@ -894,6 +896,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          concurrent_order_limit?: number
           created_at?: string
           created_by?: string | null
           daily_limit?: number

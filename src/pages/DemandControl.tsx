@@ -24,6 +24,7 @@ interface UserLimit {
   full_name: string;
   email: string;
   daily_limit: number;
+  concurrent_order_limit: number;
 }
 
 export function DemandControl() {
@@ -65,7 +66,8 @@ export function DemandControl() {
           user_id: profile.id,
           full_name: profile.full_name,
           email: profile.email,
-          daily_limit: limit?.daily_limit || 10
+          daily_limit: limit?.daily_limit || 10,
+          concurrent_order_limit: limit?.concurrent_order_limit || 2
         };
       }) || [];
 
@@ -82,11 +84,11 @@ export function DemandControl() {
     }
   };
 
-  const handleLimitChange = (userId: string, value: string) => {
-    const newLimit = parseInt(value) || 0;
+  const handleLimitChange = (userId: string, field: 'daily_limit' | 'concurrent_order_limit', value: string) => {
+    const numValue = parseInt(value) || 0;
     setUsers(prev => prev.map(user => 
       user.user_id === userId 
-        ? { ...user, daily_limit: newLimit }
+        ? { ...user, [field]: numValue }
         : user
     ));
   };
@@ -101,6 +103,7 @@ export function DemandControl() {
           .from("user_document_limits")
           .update({ 
             daily_limit: user.daily_limit,
+            concurrent_order_limit: user.concurrent_order_limit,
             updated_at: new Date().toISOString()
           })
           .eq("id", user.id);
@@ -112,15 +115,16 @@ export function DemandControl() {
           .from("user_document_limits")
           .insert({ 
             user_id: user.user_id,
-            daily_limit: user.daily_limit
+            daily_limit: user.daily_limit,
+            concurrent_order_limit: user.concurrent_order_limit
           });
 
         if (error) throw error;
       }
 
       toast({
-        title: "Limite salvo",
-        description: `Limite diário de ${user.full_name} atualizado para ${user.daily_limit} documentos`,
+        title: "Limites salvos",
+        description: `Limites de ${user.full_name} atualizados com sucesso`,
       });
 
       // Refresh data to get the updated IDs
@@ -185,7 +189,8 @@ export function DemandControl() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead className="w-[200px]">Limite Diário</TableHead>
+                  <TableHead className="w-[150px]">Limite Diário</TableHead>
+                  <TableHead className="w-[150px]">Limite Simultâneo</TableHead>
                   <TableHead className="w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -200,8 +205,20 @@ export function DemandControl() {
                         min="0"
                         max="999"
                         value={user.daily_limit}
-                        onChange={(e) => handleLimitChange(user.user_id, e.target.value)}
-                        className="w-32"
+                        onChange={(e) => handleLimitChange(user.user_id, 'daily_limit', e.target.value)}
+                        className="w-24"
+                        title="Limite de documentos por dia"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={user.concurrent_order_limit}
+                        onChange={(e) => handleLimitChange(user.user_id, 'concurrent_order_limit', e.target.value)}
+                        className="w-24"
+                        title="Máximo de pedidos simultâneos"
                       />
                     </TableCell>
                     <TableCell>
