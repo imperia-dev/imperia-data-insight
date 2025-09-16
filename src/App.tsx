@@ -30,7 +30,6 @@ import Reports from "./pages/Reports";
 import Timesheet from "./pages/Timesheet";
 import AIAnalytics from "./pages/AIAnalytics";
 import Settings from "./pages/Settings";
-import DashboardOperacao from "./pages/DashboardOperacao";
 
 const queryClient = new QueryClient();
 
@@ -147,7 +146,7 @@ const App = () => (
             } />
             <Route path="/dashboard-operacao" element={
               <ProtectedRoute>
-                <DashboardOperacao />
+                <DeliveredOrders />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
