@@ -3,7 +3,7 @@ export type Role = 'owner' | 'master' | 'admin' | 'operation';
 // Define which roles can access which routes
 export const rolePermissions: Record<Role, string[]> = {
   owner: [
-    '/dashboard-operacao',
+    '/',
     '/my-orders',
     '/orders',
     '/delivered-orders',
@@ -26,7 +26,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/dashboard-tech'
   ],
   master: [
-    '/dashboard-operacao',
+    '/',
     '/orders',
     '/delivered-orders',
     '/documents',
@@ -43,7 +43,7 @@ export const rolePermissions: Record<Role, string[]> = {
     // Removed: '/service-provider-costs'
   ],
   admin: [
-    '/dashboard-operacao',
+    '/',
     '/orders',
     '/delivered-orders',
     '/documents',
