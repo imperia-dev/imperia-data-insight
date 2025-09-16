@@ -246,13 +246,25 @@ export default function Dashboard() {
       const lines = csvText.split('\n');
       const scores: number[] = [];
       
-      // Skip header rows and process data
-      for (let i = 2; i < lines.length; i++) {
+      // Debug: log first few lines to understand structure
+      console.log('First 5 lines of CSV:', lines.slice(0, 5));
+      
+      // Skip header row (index 0) and process data starting from index 1
+      for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (line) {
-          const columns = line.split(',');
-          // Column 6 (index 6) contains "Total Divergências" 
-          const scoreValue = columns[6]?.trim();
+          // Try both comma and tab as separators
+          const columns = line.includes('\t') ? line.split('\t') : line.split(',');
+          
+          // Column C (index 2) contains the scores based on the sheet structure
+          const scoreValue = columns[2]?.trim();
+          
+          // Debug log
+          if (i < 5) {
+            console.log(`Line ${i}: columns = ${columns.join(' | ')}, score = ${scoreValue}`);
+          }
+          
+          // Check if it's a valid number
           if (scoreValue && !isNaN(Number(scoreValue))) {
             scores.push(Number(scoreValue));
           }
