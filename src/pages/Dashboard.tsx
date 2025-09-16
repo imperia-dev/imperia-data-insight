@@ -165,6 +165,8 @@ export default function Dashboard() {
   const [pendencyTypesData, setPendencyTypesData] = useState<any[]>([]);
   const [urgencyPercentage, setUrgencyPercentage] = useState("0.0");
   const [pendencyPercentage, setPendencyPercentage] = useState("0.0");
+  const [delays, setDelays] = useState(0);
+  const [delayPercentage, setDelayPercentage] = useState("0.0");
   const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
@@ -422,6 +424,26 @@ export default function Dashboard() {
         }).filter(item => item.count > 0); // Only show types with pendencies
         
         setPendencyTypesData(typeCounts);
+      }
+      
+      // Fetch documents with delay (has_delay = true) 
+      const { data: delayedOrdersData, error: delayedError } = await supabase
+        .from('orders')
+        .select('id, order_number, document_count, has_delay')
+        .eq('has_delay', true)
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+      
+      if (delayedError) {
+        console.error('Error fetching delayed orders:', delayedError);
+      } else {
+        const delayedOrders = delayedOrdersData || [];
+        const totalDelayedDocs = delayedOrders.reduce((sum, order) => sum + (order.document_count || 0), 0);
+        setDelays(totalDelayedDocs);
+        
+        // Calculate delay percentage
+        const delayPercentage = totalDocuments > 0 ? ((totalDelayedDocs / totalDocuments) * 100).toFixed(1) : '0.0';
+        setDelayPercentage(delayPercentage);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -793,6 +815,17 @@ export default function Dashboard() {
               description={`${pendencyPercentage}%`}
               hasDetails={true}
               onViewDetails={() => showDetails("Pendências - IDs", pendencyIds, false)}
+            />
+          </div>
+          
+          {/* Second row with Delays indicator */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+            <StatsCard
+              title="Atrasos"
+              value={loading ? "..." : delays.toLocaleString('pt-BR')}
+              icon={<Clock className="h-5 w-5" />}
+              description={`${delayPercentage}%`}
+              trend={delays > 0 ? "down" : "neutral"}
             />
           </div>
 
