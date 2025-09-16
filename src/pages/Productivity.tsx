@@ -6,12 +6,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 interface PaymentData {
   user_id: string;
@@ -42,6 +47,10 @@ export default function Financial() {
   const [dailyPayments, setDailyPayments] = useState<PaymentData[]>([]);
   const [accumulatedPayments, setAccumulatedPayments] = useState<AccumulatedPayment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+  const [customStartTime, setCustomStartTime] = useState("00:00");
+  const [customEndTime, setCustomEndTime] = useState("23:59");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -66,48 +75,76 @@ export default function Financial() {
   }, [user]);
 
   useEffect(() => {
-    fetchPaymentData();
-  }, [selectedPeriod]);
+    if (selectedPeriod !== 'custom' || (customStartDate && customEndDate)) {
+      fetchPaymentData();
+    }
+  }, [selectedPeriod, customStartDate, customEndDate, customStartTime, customEndTime]);
 
   const fetchPaymentData = async () => {
     setLoading(true);
     try {
-      // Calculate date filter based on selected period
       const now = new Date();
-      let startDate = new Date();
+      let startDate: Date;
+      let endDate: Date;
       
-      switch (selectedPeriod) {
-        case 'day':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          startDate.setHours(0, 0, 0, 0);
-          break;
-        case 'week':
-          const dayOfWeek = now.getDay();
-          const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-          startDate = new Date(now.getFullYear(), now.getMonth(), diff);
-          break;
-        case 'month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          break;
-        case 'quarter':
-          const quarter = Math.floor(now.getMonth() / 3);
-          startDate = new Date(now.getFullYear(), quarter * 3, 1);
-          break;
-        case 'year':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          break;
-        default:
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
+        // Custom period with time
+        startDate = new Date(customStartDate);
+        const [startHour, startMinute] = customStartTime.split(':').map(Number);
+        startDate.setHours(startHour, startMinute, 0, 0);
+        
+        endDate = new Date(customEndDate);
+        const [endHour, endMinute] = customEndTime.split(':').map(Number);
+        endDate.setHours(endHour, endMinute, 59, 999);
+      } else {
+        // For predefined periods, use local date boundaries
+        switch (selectedPeriod) {
+          case 'day':
+            // Today at 00:00:00 local time
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+            break;
+          case 'week':
+            const dayOfWeek = now.getDay();
+            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            startDate = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
+            endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
+            break;
+          case 'month':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            endDate = new Date(now.getFullYear(), now.getMonth(), lastDay, 23, 59, 59, 999);
+            break;
+          case 'quarter':
+            const quarter = Math.floor(now.getMonth() / 3);
+            startDate = new Date(now.getFullYear(), quarter * 3, 1, 0, 0, 0, 0);
+            const endMonth = quarter * 3 + 2;
+            const lastDayOfQuarter = new Date(now.getFullYear(), endMonth + 1, 0).getDate();
+            endDate = new Date(now.getFullYear(), endMonth, lastDayOfQuarter, 23, 59, 59, 999);
+            break;
+          case 'year':
+            startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+            endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+            break;
+          default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+            const lastDayDefault = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            endDate = new Date(now.getFullYear(), now.getMonth(), lastDayDefault, 23, 59, 59, 999);
+        }
       }
       
-      // Add end date for 'day' period to filter only today's records
-      let endDate: Date | null = null;
-      if (selectedPeriod === 'day') {
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        endDate.setHours(23, 59, 59, 999);
-      }
+      // Adjust for Brazilian timezone (UTC-3)
+      const timezoneOffset = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+      const startDateUTC = new Date(startDate.getTime() + timezoneOffset);
+      const endDateUTC = new Date(endDate.getTime() + timezoneOffset);
       
-      console.log('Productivity - Fetching orders from:', startDate.toISOString(), 'to:', endDate?.toISOString() || 'no limit', 'Period:', selectedPeriod);
+      console.log('Productivity - Date filter:', {
+        period: selectedPeriod,
+        localStart: format(startDate, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
+        localEnd: format(endDate, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
+        utcStart: startDateUTC.toISOString(),
+        utcEnd: endDateUTC.toISOString()
+      });
       
       // Fetch orders delivered by service providers with date filter
       let query = supabase
@@ -120,14 +157,9 @@ export default function Financial() {
         `)
         .eq('status_order', 'delivered')
         .not('delivered_at', 'is', null)
-        .gte('delivered_at', startDate.toISOString());
-      
-      // Add upper limit for 'day' period
-      if (endDate) {
-        query = query.lte('delivered_at', endDate.toISOString());
-      }
-      
-      query = query.order('delivered_at', { ascending: false });
+        .gte('delivered_at', startDateUTC.toISOString())
+        .lte('delivered_at', endDateUTC.toISOString())
+        .order('delivered_at', { ascending: false });
       
       const { data: ordersData, error: ordersError } = await query;
 
@@ -285,7 +317,7 @@ export default function Financial() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
                 <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                   <SelectTrigger className="w-[200px]">
                     <Calendar className="h-4 w-4 mr-2" />
@@ -297,8 +329,77 @@ export default function Financial() {
                     <SelectItem value="month">Este Mês</SelectItem>
                     <SelectItem value="quarter">Este Trimestre</SelectItem>
                     <SelectItem value="year">Este Ano</SelectItem>
+                    <SelectItem value="custom">Personalizado</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                {selectedPeriod === 'custom' && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "justify-start text-left font-normal",
+                            !customStartDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customStartDate ? format(customStartDate, "dd/MM/yyyy") : "Data inicial"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={customStartDate}
+                          onSelect={setCustomStartDate}
+                          className="pointer-events-auto"
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <Input
+                      type="time"
+                      value={customStartTime}
+                      onChange={(e) => setCustomStartTime(e.target.value)}
+                      className="w-24"
+                    />
+                    
+                    <span className="text-muted-foreground">até</span>
+                    
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "justify-start text-left font-normal",
+                            !customEndDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customEndDate ? format(customEndDate, "dd/MM/yyyy") : "Data final"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={customEndDate}
+                          onSelect={setCustomEndDate}
+                          className="pointer-events-auto"
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <Input
+                      type="time"
+                      value={customEndTime}
+                      onChange={(e) => setCustomEndTime(e.target.value)}
+                      className="w-24"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -453,7 +554,7 @@ export default function Financial() {
           {userRole !== 'operation' && (
             <Card>
               <CardHeader>
-                <CardTitle>Pagamento Acumulado por Prestador</CardTitle>
+                <CardTitle>Pagamentos Acumulados por Prestador</CardTitle>
                 <CardDescription>
                   Total acumulado no período selecionado
                 </CardDescription>
