@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { ArrowDownIcon, ArrowUpIcon, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { formatCurrency } from '@/lib/currency';
 
 interface CashFlowData {
   operational: {
@@ -52,47 +53,52 @@ export function CashFlow() {
     try {
       const startDate = getStartDate(period);
       
-      // Fetch cash flow categories
-      const { data: categories } = await supabase
-        .from('cash_flow_categories')
-        .select('*');
+      // Fetch expenses with chart of accounts for DFC activity classification
+      const { data: expenses, error } = await supabase
+        .from('expenses')
+        .select(`
+          amount_base,
+          data_pagamento,
+          tipo_lancamento,
+          chart_of_accounts!inner (
+            dfc_activity,
+            name
+          )
+        `)
+        .gte('data_pagamento', startDate.toISOString())
+        .not('data_pagamento', 'is', null)
+        .not('chart_of_accounts.dfc_activity', 'is', null);
 
-      // Fetch financial entries
-      const { data: entries } = await supabase
+      if (error) throw error;
+
+      // Fetch revenue from financial_entries (temporary until migrated)
+      const { data: revenues } = await supabase
         .from('financial_entries')
         .select('*')
         .gte('date', startDate.toISOString())
-        .eq('accounting_method', 'cash');
+        .eq('type', 'revenue');
 
-      if (!entries) return;
-
-      // Calculate cash flows by category
+      // Calculate cash flows by DFC activity
       let operational = { inflows: 0, outflows: 0, net: 0 };
       let investment = { inflows: 0, outflows: 0, net: 0 };
       let financing = { inflows: 0, outflows: 0, net: 0 };
 
-      entries.forEach(entry => {
-        const amount = Number(entry.amount);
-        const category = categories?.find(c => c.name === entry.category);
+      // Add revenues to operational inflows
+      revenues?.forEach(rev => {
+        operational.inflows += Number(rev.amount);
+      });
+
+      // Process expenses by DFC activity
+      expenses?.forEach(expense => {
+        const amount = Number(expense.amount_base);
+        const activity = expense.chart_of_accounts?.dfc_activity;
         
-        if (category?.is_operational) {
-          if (entry.type === 'revenue') {
-            operational.inflows += amount;
-          } else if (entry.type === 'expense') {
-            operational.outflows += amount;
-          }
-        } else if (category?.is_investment) {
-          if (entry.type === 'revenue') {
-            investment.inflows += amount;
-          } else if (entry.type === 'expense') {
-            investment.outflows += amount;
-          }
-        } else if (category?.is_financing) {
-          if (entry.type === 'revenue') {
-            financing.inflows += amount;
-          } else if (entry.type === 'expense') {
-            financing.outflows += amount;
-          }
+        if (activity === 'OPERATING') {
+          operational.outflows += amount;
+        } else if (activity === 'INVESTING') {
+          investment.outflows += amount;
+        } else if (activity === 'FINANCING') {
+          financing.outflows += amount;
         }
       });
 
@@ -101,7 +107,7 @@ export function CashFlow() {
       financing.net = financing.inflows - financing.outflows;
 
       const netChange = operational.net + investment.net + financing.net;
-      const beginningBalance = 50000; // Placeholder
+      const beginningBalance = 50000; // Placeholder - should fetch from balance sheet
       const endingBalance = beginningBalance + netChange;
 
       setCashFlowData({
@@ -187,12 +193,7 @@ export function CashFlow() {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
+  // Removed local formatCurrency - using imported one
 
   const hasNegativeBalance = cashFlowData.endingBalance < 0;
   const hasCriticalCash = cashFlowData.endingBalance < 10000 && cashFlowData.endingBalance > 0;

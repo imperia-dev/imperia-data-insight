@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 
 interface DREData {
   grossRevenue: number;
@@ -56,37 +57,81 @@ export function DREStatement() {
 
   const fetchDREData = async () => {
     try {
-      // Fetch financial entries based on period and accounting method
+      // Fetch from unified expenses table with chart of accounts
       const startDate = getStartDate(period);
-      const { data: entries, error } = await supabase
+      const dateField = accountingMethod === 'accrual' ? 'data_competencia' : 'data_pagamento';
+      
+      // Fetch expenses with chart of accounts details
+      const { data: expenses, error: expensesError } = await supabase
+        .from('expenses')
+        .select(`
+          amount_base,
+          chart_of_accounts!inner (
+            dre_section,
+            name,
+            code
+          ),
+          fixo_variavel
+        `)
+        .gte(dateField, startDate.toISOString())
+        .not('chart_of_accounts.dre_section', 'is', null);
+
+      if (expensesError) throw expensesError;
+
+      // Fetch financial entries for revenue (still using old table)
+      const { data: revenues, error: revenueError } = await supabase
         .from('financial_entries')
         .select('*')
         .gte('date', startDate.toISOString())
-        .eq('accounting_method', accountingMethod);
+        .eq('type', 'revenue');
 
-      if (error) throw error;
+      if (revenueError) throw revenueError;
 
-      // Calculate DRE components
-      const grossRevenue = entries?.filter(e => e.type === 'revenue').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
-      const taxes = entries?.filter(e => e.type === 'tax').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
-      const deductions = entries?.filter(e => e.type === 'deduction').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      // Calculate DRE components based on chart of accounts sections
+      const grossRevenue = revenues?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      
+      const taxes = expenses?.filter(e => 
+        e.chart_of_accounts?.dre_section === 'DEDUCTIONS'
+      ).reduce((sum, e) => sum + Number(e.amount_base), 0) || 0;
+      
+      const deductions = 0; // Placeholder
       const netRevenue = grossRevenue - taxes - deductions;
       
-      const directCosts = entries?.filter(e => e.type === 'expense' && e.category === 'cost_of_goods').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      const directCosts = expenses?.filter(e => 
+        e.chart_of_accounts?.dre_section === 'COGS'
+      ).reduce((sum, e) => sum + Number(e.amount_base), 0) || 0;
+      
       const grossProfit = netRevenue - directCosts;
       const grossMargin = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
       
-      const variableExpenses = entries?.filter(e => e.type === 'expense' && e.is_variable).reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      const variableExpenses = expenses?.filter(e => 
+        e.chart_of_accounts?.dre_section === 'VAR_EXP' || 
+        (e.fixo_variavel === 'variavel' && e.chart_of_accounts?.dre_section === 'FIXED_EXP')
+      ).reduce((sum, e) => sum + Number(e.amount_base), 0) || 0;
+      
       const contributionMargin = grossProfit - variableExpenses;
       
-      const fixedExpenses = entries?.filter(e => e.type === 'expense' && e.is_fixed).reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      const fixedExpenses = expenses?.filter(e => 
+        e.chart_of_accounts?.dre_section === 'FIXED_EXP' && 
+        e.fixo_variavel !== 'variavel'
+      ).reduce((sum, e) => sum + Number(e.amount_base), 0) || 0;
+      
       const ebitda = contributionMargin - fixedExpenses;
       
-      // Placeholder values for depreciation, financial result, and income tax
-      const depreciation = 0;
-      const financialResult = 0;
+      const depreciation = expenses?.filter(e => 
+        e.chart_of_accounts?.dre_section === 'DEPREC_AMORT'
+      ).reduce((sum, e) => sum + Number(e.amount_base), 0) || 0;
+      
+      const financialResult = expenses?.filter(e => 
+        e.chart_of_accounts?.dre_section === 'FIN_RESULT'
+      ).reduce((sum, e) => sum + Number(e.amount_base), 0) || 0;
+      
       const lair = ebitda - depreciation - financialResult;
-      const incomeTax = lair > 0 ? lair * 0.275 : 0; // 27.5% placeholder
+      
+      const incomeTax = expenses?.filter(e => 
+        e.chart_of_accounts?.dre_section === 'INCOME_TAX'
+      ).reduce((sum, e) => sum + Number(e.amount_base), 0) || 0;
+      
       const netProfit = lair - incomeTax;
       const netMargin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
 
@@ -134,12 +179,7 @@ export function DREStatement() {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
+  // Removed local formatCurrency - using imported one
 
   const renderIndicator = (value: number) => {
     if (value > 0) {
