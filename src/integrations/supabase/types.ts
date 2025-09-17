@@ -169,6 +169,56 @@ export type Database = {
         }
         Relationships: []
       }
+      chart_of_accounts: {
+        Row: {
+          code: string
+          created_at: string | null
+          dfc_activity: Database["public"]["Enums"]["dfc_activity_type"] | null
+          dre_section: Database["public"]["Enums"]["dre_section_type"] | null
+          id: string
+          is_active: boolean | null
+          is_cac: boolean | null
+          name: string
+          org_id: string | null
+          parent_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          dfc_activity?: Database["public"]["Enums"]["dfc_activity_type"] | null
+          dre_section?: Database["public"]["Enums"]["dre_section_type"] | null
+          id?: string
+          is_active?: boolean | null
+          is_cac?: boolean | null
+          name: string
+          org_id?: string | null
+          parent_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          dfc_activity?: Database["public"]["Enums"]["dfc_activity_type"] | null
+          dre_section?: Database["public"]["Enums"]["dre_section_type"] | null
+          id?: string
+          is_active?: boolean | null
+          is_cac?: boolean | null
+          name?: string
+          org_id?: string | null
+          parent_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_of_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_costs: {
         Row: {
           amount: number
@@ -210,6 +260,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      cost_centers: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          org_id: string | null
+          parent_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          org_id?: string | null
+          parent_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          org_id?: string | null
+          parent_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_centers_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents: {
         Row: {
@@ -279,6 +370,216 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_allocations: {
+        Row: {
+          amount_allocated: number | null
+          centro_custo_id: string | null
+          created_at: string | null
+          driver: string | null
+          driver_value: number | null
+          expense_id: string
+          id: string
+          percent: number
+          projeto_cliente_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_allocated?: number | null
+          centro_custo_id?: string | null
+          created_at?: string | null
+          driver?: string | null
+          driver_value?: number | null
+          expense_id: string
+          id?: string
+          percent: number
+          projeto_cliente_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_allocated?: number | null
+          centro_custo_id?: string | null
+          created_at?: string | null
+          driver?: string | null
+          driver_value?: number | null
+          expense_id?: string
+          id?: string
+          percent?: number
+          projeto_cliente_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_allocations_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "company_costs_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "service_provider_costs_masked_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "service_provider_costs_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_projeto_cliente_id_fkey"
+            columns: ["projeto_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          amount_base: number | null
+          amount_original: number
+          capex_opex: Database["public"]["Enums"]["expense_nature"] | null
+          centro_custo_id: string | null
+          conta_contabil_id: string
+          created_at: string | null
+          created_by: string | null
+          currency: string
+          data_competencia: string
+          data_emissao: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          description: string
+          document_ref: string | null
+          exchange_rate: number
+          files: string[] | null
+          fixo_variavel:
+            | Database["public"]["Enums"]["expense_classification"]
+            | null
+          fornecedor_id: string | null
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          org_id: string | null
+          payment_method: string | null
+          projeto_cliente_id: string | null
+          status: Database["public"]["Enums"]["expense_status"]
+          tipo_fornecedor: string | null
+          tipo_lancamento: Database["public"]["Enums"]["expense_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          amount_base?: number | null
+          amount_original: number
+          capex_opex?: Database["public"]["Enums"]["expense_nature"] | null
+          centro_custo_id?: string | null
+          conta_contabil_id: string
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string
+          data_competencia: string
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          description: string
+          document_ref?: string | null
+          exchange_rate?: number
+          files?: string[] | null
+          fixo_variavel?:
+            | Database["public"]["Enums"]["expense_classification"]
+            | null
+          fornecedor_id?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          org_id?: string | null
+          payment_method?: string | null
+          projeto_cliente_id?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          tipo_fornecedor?: string | null
+          tipo_lancamento: Database["public"]["Enums"]["expense_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          amount_base?: number | null
+          amount_original?: number
+          capex_opex?: Database["public"]["Enums"]["expense_nature"] | null
+          centro_custo_id?: string | null
+          conta_contabil_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string
+          data_competencia?: string
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          description?: string
+          document_ref?: string | null
+          exchange_rate?: number
+          files?: string[] | null
+          fixo_variavel?:
+            | Database["public"]["Enums"]["expense_classification"]
+            | null
+          fornecedor_id?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          org_id?: string | null
+          payment_method?: string | null
+          projeto_cliente_id?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          tipo_fornecedor?: string | null
+          tipo_lancamento?: Database["public"]["Enums"]["expense_type"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_conta_contabil_id_fkey"
+            columns: ["conta_contabil_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_projeto_cliente_id_fkey"
+            columns: ["projeto_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -693,6 +994,51 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          budget: number | null
+          client_id: string | null
+          client_name: string | null
+          code: string | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          org_id: string | null
+          start_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          budget?: number | null
+          client_id?: string | null
+          client_name?: string | null
+          code?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          org_id?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          budget?: number | null
+          client_id?: string | null
+          client_name?: string | null
+          code?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          org_id?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           created_at: string | null
@@ -789,6 +1135,54 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          bank_info: Json | null
+          cnpj: string | null
+          cpf: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          org_id: string | null
+          phone: string | null
+          pix_key: string | null
+          tipo_fornecedor: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bank_info?: Json | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          org_id?: string | null
+          phone?: string | null
+          pix_key?: string | null
+          tipo_fornecedor?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bank_info?: Json | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          org_id?: string | null
+          phone?: string | null
+          pix_key?: string | null
+          tipo_fornecedor?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -923,6 +1317,22 @@ export type Database = {
       }
     }
     Views: {
+      company_costs_v: {
+        Row: {
+          amount: number | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          date: string | null
+          description: string | null
+          files: string[] | null
+          id: string | null
+          observations: string | null
+          sub_category: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       security_monitoring_dashboard: {
         Row: {
           access_count: number | null
@@ -993,6 +1403,52 @@ export type Database = {
           status?: string | null
           type?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      service_provider_costs_masked_v: {
+        Row: {
+          amount: number | null
+          cnpj_masked: string | null
+          competence: string | null
+          cpf_masked: string | null
+          created_at: string | null
+          created_by: string | null
+          days_worked: number | null
+          email: string | null
+          files: string[] | null
+          id: string | null
+          invoice_number: string | null
+          name: string | null
+          phone: string | null
+          pix_key_masked: string | null
+          status: Database["public"]["Enums"]["expense_status"] | null
+          type: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+      service_provider_costs_v: {
+        Row: {
+          amount: number | null
+          cnpj: string | null
+          competence: string | null
+          cpf: string | null
+          created_at: string | null
+          created_by: string | null
+          days_worked: number | null
+          email: string | null
+          files: string[] | null
+          id: string | null
+          invoice_number: string | null
+          last_sensitive_access: string | null
+          name: string | null
+          phone: string | null
+          pix_key: string | null
+          sensitive_access_count: number | null
+          status: Database["public"]["Enums"]["expense_status"] | null
+          type: string | null
+          updated_at: string | null
         }
         Relationships: []
       }
@@ -1072,12 +1528,30 @@ export type Database = {
         | "non_current_liability"
         | "equity"
       cash_flow_method: "direct" | "indirect"
+      dfc_activity_type: "OPERATING" | "INVESTING" | "FINANCING"
       document_status:
         | "pending"
         | "in_progress"
         | "review"
         | "completed"
         | "delivered"
+      dre_section_type:
+        | "REVENUE"
+        | "DEDUCTIONS"
+        | "COGS"
+        | "VAR_EXP"
+        | "FIXED_EXP"
+        | "DEPREC_AMORT"
+        | "FIN_RESULT"
+        | "INCOME_TAX"
+      expense_classification: "fixo" | "variavel"
+      expense_nature: "capex" | "opex"
+      expense_status: "previsto" | "lancado" | "pago" | "conciliado"
+      expense_type:
+        | "empresa"
+        | "prestador_servico"
+        | "custo_venda"
+        | "investimento"
       financial_entry_type: "revenue" | "expense" | "tax" | "deduction"
       scenario_type: "pessimistic" | "realistic" | "optimistic"
       user_role: "master" | "admin" | "operation" | "owner"
@@ -1216,12 +1690,32 @@ export const Constants = {
         "equity",
       ],
       cash_flow_method: ["direct", "indirect"],
+      dfc_activity_type: ["OPERATING", "INVESTING", "FINANCING"],
       document_status: [
         "pending",
         "in_progress",
         "review",
         "completed",
         "delivered",
+      ],
+      dre_section_type: [
+        "REVENUE",
+        "DEDUCTIONS",
+        "COGS",
+        "VAR_EXP",
+        "FIXED_EXP",
+        "DEPREC_AMORT",
+        "FIN_RESULT",
+        "INCOME_TAX",
+      ],
+      expense_classification: ["fixo", "variavel"],
+      expense_nature: ["capex", "opex"],
+      expense_status: ["previsto", "lancado", "pago", "conciliado"],
+      expense_type: [
+        "empresa",
+        "prestador_servico",
+        "custo_venda",
+        "investimento",
       ],
       financial_entry_type: ["revenue", "expense", "tax", "deduction"],
       scenario_type: ["pessimistic", "realistic", "optimistic"],
