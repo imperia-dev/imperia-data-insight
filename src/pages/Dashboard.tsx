@@ -810,13 +810,10 @@ export default function Dashboard() {
       { label: 'Entregues', value: documentsDelivered.toLocaleString('pt-BR') },
       { label: 'Urgências', value: urgencies.toLocaleString('pt-BR'), percentage: urgencyPercentage },
       { label: 'Pendências', value: pendencies.toLocaleString('pt-BR') },
-      { label: 'Pendências - Não é erro', value: pendencyLines[0] || '0.0% - Não é erro' },
-      { label: 'Pendências - Erros', value: pendencyLines[1] || '0.0% - Erros' },
+      { label: 'Taxa Real de Erros', value: pendencyLines[1] || '0.0% - Erros' },
       { label: 'Pendências - Total', value: pendencyLines[2] || '0.0% - Total' },
       { label: 'Atrasos', value: delays.toLocaleString('pt-BR'), percentage: delayPercentage },
-      { label: 'Menor Nota IA', value: lowestScore.toFixed(2) },
       { label: 'Média IA', value: averageScore.toFixed(2) },
-      { label: 'Maior Nota IA', value: highestScore.toFixed(2) },
     ];
 
 
