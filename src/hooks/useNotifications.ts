@@ -23,6 +23,7 @@ export function useNotifications() {
   const { user } = useAuth();
   const [userRole, setUserRole] = useState<string>('');
   const [previousUnreadCount, setPreviousUnreadCount] = useState(0);
+  const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
 
   // Function to play notification sound
   const playNotificationSound = () => {
@@ -36,6 +37,24 @@ export function useNotifications() {
       // Silently handle any audio errors
     }
   };
+
+  // Load read notifications from database
+  useEffect(() => {
+    async function loadReadNotifications() {
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('notification_reads')
+        .select('notification_id')
+        .eq('user_id', user.id);
+      
+      if (!error && data) {
+        setReadNotifications(new Set(data.map(item => item.notification_id)));
+      }
+    }
+    
+    loadReadNotifications();
+  }, [user]);
 
   // Get user role
   useEffect(() => {
@@ -147,13 +166,14 @@ export function useNotifications() {
 
       if (urgentOrders) {
         urgentOrders.forEach(order => {
+          const notificationId = `urgent-${order.id}`;
           notificationsList.push({
-            id: `urgent-${order.id}`,
+            id: notificationId,
             type: 'urgency',
             title: `Pedido Urgente #${order.order_number}`,
             description: `${order.urgent_document_count || order.document_count} documento(s) urgente(s)`,
             timestamp: order.created_at,
-            read: false,
+            read: readNotifications.has(notificationId),
             link: '/orders'
           });
         });
@@ -170,13 +190,14 @@ export function useNotifications() {
 
       if (pendencies) {
         pendencies.forEach(pendency => {
+          const notificationId = `pendency-${pendency.id}`;
           notificationsList.push({
-            id: `pendency-${pendency.id}`,
+            id: notificationId,
             type: 'pendency',
             title: `Nova Pendência ${pendency.c4u_id}`,
             description: pendency.description.substring(0, 100) + (pendency.description.length > 100 ? '...' : ''),
             timestamp: pendency.created_at,
-            read: false,
+            read: readNotifications.has(notificationId),
             link: '/pendencies'
           });
         });
@@ -193,13 +214,14 @@ export function useNotifications() {
 
       if (delayedOrders) {
         delayedOrders.forEach(order => {
+          const notificationId = `delay-${order.id}`;
           notificationsList.push({
-            id: `delay-${order.id}`,
+            id: notificationId,
             type: 'delay',
             title: `Pedido com Atraso #${order.order_number}`,
             description: `${order.document_count} documento(s) em atraso`,
             timestamp: order.created_at,
-            read: false,
+            read: readNotifications.has(notificationId),
             link: '/orders'
           });
         });
@@ -216,13 +238,14 @@ export function useNotifications() {
 
         if (financialEntries) {
           financialEntries.forEach(entry => {
+            const notificationId = `financial-${entry.id}`;
             notificationsList.push({
-              id: `financial-${entry.id}`,
+              id: notificationId,
               type: 'financial',
               title: entry.type === 'revenue' ? 'Nova Receita' : 'Nova Despesa',
               description: `${entry.description} - R$ ${entry.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
               timestamp: entry.created_at,
-              read: false,
+              read: readNotifications.has(notificationId),
               link: '/dashboard-financeiro'
             });
           });
@@ -248,14 +271,45 @@ export function useNotifications() {
     }
   }
 
-  function markAsRead(notificationId: string) {
+  async function markAsRead(notificationId: string) {
+    if (!user?.id) return;
+    
+    // Save to database
+    await supabase
+      .from('notification_reads')
+      .upsert({
+        user_id: user.id,
+        notification_id: notificationId
+      });
+    
+    // Update local state
+    setReadNotifications(prev => new Set([...prev, notificationId]));
     setNotifications(prev => 
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     );
     setUnreadCount(prev => Math.max(0, prev - 1));
   }
 
-  function markAllAsRead() {
+  async function markAllAsRead() {
+    if (!user?.id) return;
+    
+    // Get all unread notification IDs
+    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    
+    // Save all to database
+    const inserts = unreadIds.map(notificationId => ({
+      user_id: user.id,
+      notification_id: notificationId
+    }));
+    
+    if (inserts.length > 0) {
+      await supabase
+        .from('notification_reads')
+        .upsert(inserts);
+    }
+    
+    // Update local state
+    setReadNotifications(prev => new Set([...prev, ...unreadIds]));
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
   }
