@@ -1407,10 +1407,10 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium text-muted-foreground">
-                      Tempo Médio
+                      Tempo Médio Por Documento
                     </span>
                   </div>
-                  <p className="text-2xl font-black text-primary mt-2">2.5h</p>
+                  <p className="text-2xl font-black text-primary mt-2">{averageTimePerDocument}h</p>
                   <p className="text-xs text-muted-foreground">por documento</p>
                 </div>
                 
@@ -1421,7 +1421,7 @@ export default function Dashboard() {
                       Taxa de Entrega
                     </span>
                   </div>
-                  <p className="text-2xl font-black text-primary mt-2">94%</p>
+                  <p className="text-2xl font-black text-primary mt-2">{deliveryRate}%</p>
                   <p className="text-xs text-muted-foreground">no prazo</p>
                 </div>
                 
@@ -1432,7 +1432,7 @@ export default function Dashboard() {
                       Em Andamento
                     </span>
                   </div>
-                  <p className="text-2xl font-black text-primary mt-2">38</p>
+                  <p className="text-2xl font-black text-primary mt-2">{documentsInProgress}</p>
                   <p className="text-xs text-muted-foreground">documentos</p>
                 </div>
                 
