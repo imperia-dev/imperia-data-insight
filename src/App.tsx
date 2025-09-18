@@ -31,6 +31,7 @@ import Timesheet from "./pages/Timesheet";
 import AIAnalytics from "./pages/AIAnalytics";
 import Settings from "./pages/Settings";
 import { DemandControl } from "./pages/DemandControl";
+import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -153,6 +154,11 @@ const App = () => (
             <Route path="/demand-control" element={
               <ProtectedRoute>
                 <DemandControl />
+              </ProtectedRoute>
+            } />
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <Notifications />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
