@@ -290,13 +290,17 @@ export function FinancialSummary() {
                 <DollarSign className="h-4 w-4" />
                 Receita Total
               </span>
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              {summaryData.revenue > 0 ? (
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              ) : (
+                <span className="text-xs text-muted-foreground">Sem receita</span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(summaryData.revenue)}</div>
             <p className="text-xs text-muted-foreground">
-              +12.5% vs período anterior
+              {period === 'month' ? 'Mês atual' : period === 'quarter' ? 'Trimestre atual' : 'Ano atual'}
             </p>
           </CardContent>
         </Card>
