@@ -127,6 +127,13 @@ export default function Auth() {
           });
         }
       } else if (data.user) {
+        // Play reward sound
+        const audio = new Audio('/login-success.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(() => {
+          // Ignore audio play errors (browser may block autoplay)
+        });
+        
         toast({
           title: "Login realizado com sucesso!",
           description: "Redirecionando...",
