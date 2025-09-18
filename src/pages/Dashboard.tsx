@@ -860,8 +860,18 @@ export default function Dashboard() {
       formattedValue: item.documentos.toString()
     }));
 
+    // Get period text for the title
+    const { startDate, endDate } = getDateRange();
+    const periodText = selectedPeriod === 'custom' && customDateRange.from && customDateRange.to
+      ? `${format(customDateRange.from, "dd/MM/yyyy", { locale: ptBR })} - ${format(customDateRange.to, "dd/MM/yyyy", { locale: ptBR })}`
+      : selectedPeriod === 'day' ? format(new Date(), "dd/MM/yyyy", { locale: ptBR })
+      : selectedPeriod === 'week' ? `Últimos 7 dias`
+      : selectedPeriod === 'month' ? `Últimos 30 dias`
+      : selectedPeriod === 'quarter' ? `Últimos 3 meses`
+      : `Últimos 12 meses`;
+
     const exportData = {
-      title: 'Dashboard Operacional',
+      title: `Dashboard Operacional - ${periodText}`,
       headers: ['C4U ID', 'Tipo de Erro', 'Descrição', 'Tratativa', 'Status', 'Data'],
       rows: pendenciesTableRows,
       totals: indicators,
