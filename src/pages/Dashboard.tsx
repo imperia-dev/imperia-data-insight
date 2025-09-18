@@ -186,6 +186,8 @@ export default function Dashboard() {
   const [pendenciesList, setPendenciesList] = useState<any[]>([]);
   const [translatorPerformanceData, setTranslatorPerformanceData] = useState<any[]>([]);
   const [translatorLoading, setTranslatorLoading] = useState(false);
+  const [averageTimePerDocument, setAverageTimePerDocument] = useState<string>("0");
+  const [deliveryRate, setDeliveryRate] = useState<string>("0");
   
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -444,16 +446,50 @@ export default function Dashboard() {
       // Fetch delivered orders (documents translated) for the period
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('id, order_number, document_count, status_order, is_urgent, urgent_document_count, created_at, delivered_at, deadline')
+        .select('id, order_number, document_count, status_order, is_urgent, urgent_document_count, created_at, delivered_at, deadline, attribution_date')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
       
       const typedOrdersData: OrderData[] = (ordersData || []) as OrderData[];
 
+      // Calculate average time per document
+      let totalTime = 0;
+      let totalDocsWithTime = 0;
+      let onTimeDeliveries = 0;
+      let totalDelivered = 0;
+      
+      typedOrdersData.forEach(order => {
+        if (order.status_order === 'delivered' && order.delivered_at && order.attribution_date) {
+          const startTime = new Date(order.attribution_date).getTime();
+          const endTime = new Date(order.delivered_at).getTime();
+          const timeDiff = endTime - startTime;
+          
+          if (timeDiff > 0 && order.document_count > 0) {
+            // Time in hours per document
+            const hoursPerDoc = (timeDiff / (1000 * 60 * 60)) / order.document_count;
+            totalTime += hoursPerDoc * order.document_count;
+            totalDocsWithTime += order.document_count;
+          }
+          
+          // Check if delivered on time
+          totalDelivered++;
+          if (order.deadline && new Date(order.delivered_at) <= new Date(order.deadline)) {
+            onTimeDeliveries++;
+          }
+        }
+      });
+      
+      // Calculate averages
+      const avgTime = totalDocsWithTime > 0 ? (totalTime / totalDocsWithTime).toFixed(1) : "0";
+      setAverageTimePerDocument(avgTime);
+      
+      const deliveryRateCalc = totalDelivered > 0 ? ((onTimeDeliveries / totalDelivered) * 100).toFixed(0) : "0";
+      setDeliveryRate(deliveryRateCalc);
+
       // Fetch attributed documents in the period
       const { data: attributedOrdersData, error: attributedError } = await supabase
         .from('orders')
-        .select('id, order_number, document_count, attribution_date') // Adicionado order_number e attribution_date
+        .select('id, order_number, document_count, attribution_date')
         .gte('attribution_date', startDate.toISOString())
         .lte('attribution_date', endDate.toISOString());
       
@@ -1412,20 +1448,6 @@ export default function Dashboard() {
                 </div>
               </div>
             </ChartCard>
-          </div>
-
-          {/* Documents Table */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground">
-                Documentos Recentes
-              </h2>
-              <Button variant="outline">
-                Ver Todos
-              </Button>
-            </div>
-            
-            <DocumentTable documents={mockDocuments} />
           </div>
         </main>
       </div>
