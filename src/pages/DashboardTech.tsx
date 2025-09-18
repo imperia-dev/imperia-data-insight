@@ -142,8 +142,12 @@ export default function DashboardTech() {
   };
 
   const handleExportPDF = () => {
+    const currentDate = new Date();
+    const formattedPeriod = `Período: ${format(currentDate, 'dd/MM/yyyy')}`;
+    
     const exportData = {
       title: "Dashboard de Operação",
+      subtitle: formattedPeriod,
       headers: ["Tipo de Erro", "Quantidade", "Percentual"],
       rows: stats.errorTypes.map(item => [
         item.label,
@@ -178,8 +182,12 @@ export default function DashboardTech() {
   };
 
   const handleExportExcel = () => {
+    const currentDate = new Date();
+    const formattedPeriod = `Período: ${format(currentDate, 'dd/MM/yyyy')}`;
+    
     const exportData = {
       title: "Dashboard de Operação",
+      subtitle: formattedPeriod,
       headers: ["Tipo de Erro", "Quantidade", "Percentual"],
       rows: stats.errorTypes.map(item => [
         item.label,

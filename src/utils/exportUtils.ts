@@ -10,6 +10,7 @@ interface ExportData {
   headers: string[];
   rows: any[][];
   title: string;
+  subtitle?: string;
   totals?: { label: string; value: string }[];
   charts?: Array<{
     title: string;
@@ -37,6 +38,11 @@ export const exportToExcel = (data: ExportData) => {
   
   // Add title with styling
   wsData.push([data.title]);
+  
+  // Add subtitle if provided
+  if (data.subtitle) {
+    wsData.push([data.subtitle]);
+  }
   wsData.push([]); // Empty row for spacing
   
   // Add date of export
@@ -151,17 +157,26 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   doc.setTextColor(44, 62, 80); // Dark blue-gray
   doc.text(data.title, doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
   
+  // Add subtitle if provided
+  let subtitleY = 33;
+  if (data.subtitle) {
+    doc.setFontSize(12);
+    doc.setTextColor(100, 116, 139); // Slate gray
+    doc.text(data.subtitle, doc.internal.pageSize.getWidth() / 2, subtitleY, { align: 'center' });
+    subtitleY += 8;
+  }
+  
   // Add date
   doc.setFontSize(10);
   doc.setTextColor(127, 140, 141); // Gray
   doc.text(
     `Exportado em ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
     doc.internal.pageSize.getWidth() / 2,
-    33,
+    subtitleY,
     { align: 'center' }
   );
   
-  let startY = 35;
+  let startY = subtitleY + 5;
   
   // Add summary cards if totals are provided (similar to the app layout)
   if (data.totals && data.totals.length > 0) {
