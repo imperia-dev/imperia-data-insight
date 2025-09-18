@@ -41,44 +41,89 @@ export function FinancialSummary() {
   const fetchSummaryData = async () => {
     try {
       const startDate = getStartDate(period);
+      const endDate = new Date();
       
-      // Fetch revenue from financial_entries
+      // Fetch revenue from financial_entries (considering accounting method)
       const { data: entries } = await supabase
         .from('financial_entries')
         .select('*')
         .gte('date', startDate.toISOString())
+        .lte('date', endDate.toISOString())
         .eq('accounting_method', accountingMethod);
 
       // Fetch expenses from expenses table (real data)
       const { data: expenseData } = await supabase
         .from('expenses')
         .select('*')
-        .gte('data_competencia', startDate.toISOString());
+        .gte('data_competencia', startDate.toISOString())
+        .lte('data_competencia', endDate.toISOString());
 
+      // Calculate revenues
       const revenue = entries?.filter(e => e.type === 'revenue').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
       const taxes = entries?.filter(e => e.type === 'tax').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      const deductions = entries?.filter(e => e.type === 'deduction').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
       
       // Calculate expenses from real data
       const companyExpenses = expenseData?.filter(e => e.tipo_lancamento === 'empresa').reduce((sum, e) => sum + Number(e.amount_base || e.amount_original), 0) || 0;
       const serviceProviderExpenses = expenseData?.filter(e => e.tipo_lancamento === 'prestador_servico').reduce((sum, e) => sum + Number(e.amount_base || e.amount_original), 0) || 0;
       const totalExpenses = companyExpenses + serviceProviderExpenses;
       
-      // More realistic calculations
+      // Real calculations based on accounting principles
+      const netRevenue = revenue - deductions - taxes;
       const cogs = serviceProviderExpenses; // Service provider costs are direct costs
       const operationalExpenses = companyExpenses; // Company costs are operational
-      const grossProfit = revenue - cogs;
+      const grossProfit = netRevenue - cogs;
       const ebitda = grossProfit - operationalExpenses;
-      const netProfit = ebitda - taxes;
+      const netProfit = ebitda; // Already deducted taxes above
+      
+      // Calculate cash flow (only paid/received items)
+      const { data: paidExpenses } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('status', 'pago')
+        .lte('data_pagamento', endDate.toISOString());
+      
+      const { data: receivedRevenue } = await supabase
+        .from('financial_entries')
+        .select('*')
+        .eq('status', 'confirmed')
+        .eq('accounting_method', 'cash')
+        .lte('date', endDate.toISOString());
+      
+      const totalPaidExpenses = paidExpenses?.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original), 0) || 0;
+      const totalReceivedRevenue = receivedRevenue?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      
+      // Real cash balance calculation
+      const cashBalance = totalReceivedRevenue - totalPaidExpenses;
+      
+      // Calculate accounts receivable and payable
+      const { data: unpaidRevenue } = await supabase
+        .from('financial_entries')
+        .select('*')
+        .eq('type', 'revenue')
+        .eq('status', 'pending')
+        .gte('date', startDate.toISOString())
+        .lte('date', endDate.toISOString());
+      
+      const { data: unpaidExpenses } = await supabase
+        .from('expenses')
+        .select('*')
+        .in('status', ['lancado', 'previsto'])
+        .gte('data_competencia', startDate.toISOString())
+        .lte('data_competencia', endDate.toISOString());
+      
+      const accountsReceivable = unpaidRevenue?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      const accountsPayable = unpaidExpenses?.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original), 0) || 0;
 
       setSummaryData({
-        revenue,
+        revenue: netRevenue,
         expenses: totalExpenses,
         grossProfit,
         ebitda,
         netProfit,
-        cashBalance: 50000 + netProfit * 0.8,
-        accountsReceivable: revenue * 0.25,
-        accountsPayable: totalExpenses * 0.2,
+        cashBalance,
+        accountsReceivable,
+        accountsPayable,
       });
     } catch (error) {
       console.error('Error fetching summary data:', error);
