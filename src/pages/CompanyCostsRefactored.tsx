@@ -23,6 +23,13 @@ import { CategoryChart } from "@/components/companyCosts/CategoryChart";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 import { formatCurrency } from "@/lib/currency";
 
+interface ExportData {
+  headers: string[];
+  rows: any[][];
+  title: string;
+  totals?: { label: string; value: string }[];
+}
+
 interface Expense {
   id: string;
   data_competencia: string;
@@ -38,6 +45,10 @@ interface Expense {
     code: string;
   };
   cost_centers?: {
+    id: string;
+    name: string;
+  };
+  suppliers?: {
     id: string;
     name: string;
   };
@@ -485,6 +496,7 @@ export default function CompanyCostsRefactored() {
             <CompanyCostFilters 
               onFiltersChange={setFilters}
               categories={chartOfAccounts.map(acc => `${acc.code} - ${acc.name}`)}
+              subCategories={{}} // No subcategories for chart of accounts
             />
 
             {/* Category Chart */}
@@ -512,14 +524,46 @@ export default function CompanyCostsRefactored() {
                     </Select>
                     <Button
                       variant="outline"
-                      onClick={() => exportToExcel(filteredExpenses, 'despesas-empresa')}
+                      onClick={() => {
+                        const exportData: ExportData = {
+                          title: 'Despesas da Empresa',
+                          headers: ['Data', 'Conta Contábil', 'Descrição', 'Fornecedor', 'Valor'],
+                          rows: filteredExpenses.map(expense => [
+                            format(new Date(expense.data_competencia), 'dd/MM/yyyy'),
+                            expense.chart_of_accounts ? `${expense.chart_of_accounts.code} - ${expense.chart_of_accounts.name}` : 'N/A',
+                            expense.description,
+                            expense.suppliers?.name || 'N/A',
+                            formatCurrency(expense.amount_base)
+                          ]),
+                          totals: [
+                            { label: 'Total', value: formatCurrency(totalAmount) }
+                          ]
+                        };
+                        exportToExcel(exportData);
+                      }}
                     >
                       <FileSpreadsheet className="mr-2 h-4 w-4" />
                       Excel
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => exportToPDF(filteredExpenses, 'despesas-empresa')}
+                      onClick={() => {
+                        const exportData: ExportData = {
+                          title: 'Despesas da Empresa',
+                          headers: ['Data', 'Conta Contábil', 'Descrição', 'Fornecedor', 'Valor'],
+                          rows: filteredExpenses.map(expense => [
+                            format(new Date(expense.data_competencia), 'dd/MM/yyyy'),
+                            expense.chart_of_accounts ? `${expense.chart_of_accounts.code} - ${expense.chart_of_accounts.name}` : 'N/A',
+                            expense.description,
+                            expense.suppliers?.name || 'N/A',
+                            formatCurrency(expense.amount_base)
+                          ]),
+                          totals: [
+                            { label: 'Total', value: formatCurrency(totalAmount) }
+                          ]
+                        };
+                        exportToPDF(exportData);
+                      }}
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       PDF
