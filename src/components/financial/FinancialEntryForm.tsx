@@ -45,14 +45,37 @@ export function FinancialEntryForm({ onSuccess }: FinancialEntryFormProps) {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from('financial_entries').insert({
-        ...formData,
-        amount: parseFloat(formData.amount),
-        tax_amount: parseFloat(formData.tax_amount),
-        created_by: user?.id,
-      });
-
-      if (error) throw error;
+      // For expenses, we save to the expenses table for better integration
+      if (formData.type === 'expense') {
+        const { error } = await supabase.from('expenses').insert({
+          data_competencia: formData.date,
+          data_emissao: formData.date,
+          tipo_lancamento: 'empresa',
+          description: formData.description,
+          amount_original: parseFloat(formData.amount),
+          amount_base: parseFloat(formData.amount),
+          currency: 'BRL',
+          exchange_rate: 1,
+          payment_method: formData.payment_method,
+          document_ref: formData.document_ref,
+          status: 'lancado',
+          fixo_variavel: formData.is_fixed ? 'fixo' : 'variavel',
+          created_by: user?.id,
+          conta_contabil_id: null, // Would need to link to chart_of_accounts
+        });
+        
+        if (error) throw error;
+      } else {
+        // For revenue, tax, and deductions, use financial_entries
+        const { error } = await supabase.from('financial_entries').insert({
+          ...formData,
+          amount: parseFloat(formData.amount),
+          tax_amount: parseFloat(formData.tax_amount),
+          created_by: user?.id,
+        });
+        
+        if (error) throw error;
+      }
 
       toast({
         title: 'Sucesso',

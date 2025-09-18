@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TrendingUp, TrendingDown, DollarSign, Receipt, Calculator, Target } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { FinancialEntryForm } from './FinancialEntryForm';
+import { RevenueEntryForm } from './RevenueEntryForm';
 
 interface SummaryData {
   revenue: number;
@@ -41,31 +42,43 @@ export function FinancialSummary() {
     try {
       const startDate = getStartDate(period);
       
+      // Fetch revenue from financial_entries
       const { data: entries } = await supabase
         .from('financial_entries')
         .select('*')
         .gte('date', startDate.toISOString())
         .eq('accounting_method', accountingMethod);
 
-      if (!entries) return;
+      // Fetch expenses from expenses table (real data)
+      const { data: expenseData } = await supabase
+        .from('expenses')
+        .select('*')
+        .gte('data_competencia', startDate.toISOString());
 
-      const revenue = entries.filter(e => e.type === 'revenue').reduce((sum, e) => sum + Number(e.amount), 0);
-      const expenses = entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + Number(e.amount), 0);
-      const taxes = entries.filter(e => e.type === 'tax').reduce((sum, e) => sum + Number(e.amount), 0);
+      const revenue = entries?.filter(e => e.type === 'revenue').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      const taxes = entries?.filter(e => e.type === 'tax').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
       
-      const grossProfit = revenue - (expenses * 0.4); // Assuming 40% is COGS
-      const ebitda = grossProfit - (expenses * 0.6); // Remaining 60% is operational
+      // Calculate expenses from real data
+      const companyExpenses = expenseData?.filter(e => e.tipo_lancamento === 'empresa').reduce((sum, e) => sum + Number(e.amount_base || e.amount_original), 0) || 0;
+      const serviceProviderExpenses = expenseData?.filter(e => e.tipo_lancamento === 'prestador_servico').reduce((sum, e) => sum + Number(e.amount_base || e.amount_original), 0) || 0;
+      const totalExpenses = companyExpenses + serviceProviderExpenses;
+      
+      // More realistic calculations
+      const cogs = serviceProviderExpenses; // Service provider costs are direct costs
+      const operationalExpenses = companyExpenses; // Company costs are operational
+      const grossProfit = revenue - cogs;
+      const ebitda = grossProfit - operationalExpenses;
       const netProfit = ebitda - taxes;
 
       setSummaryData({
         revenue,
-        expenses,
+        expenses: totalExpenses,
         grossProfit,
         ebitda,
         netProfit,
         cashBalance: 50000 + netProfit * 0.8,
         accountsReceivable: revenue * 0.25,
-        accountsPayable: expenses * 0.2,
+        accountsPayable: totalExpenses * 0.2,
       });
     } catch (error) {
       console.error('Error fetching summary data:', error);
@@ -73,19 +86,50 @@ export function FinancialSummary() {
   };
 
   const fetchChartData = async () => {
-    // Generate sample trend data for the last 6 periods
-    const data = [];
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      data.push({
-        month: date.toLocaleDateString('pt-BR', { month: 'short' }),
-        revenue: Math.random() * 50000 + 80000,
-        expenses: Math.random() * 30000 + 60000,
-        profit: Math.random() * 20000 + 10000,
-      });
+    try {
+      // Get data for the last 6 months
+      const monthsData = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const monthStart = new Date();
+        monthStart.setMonth(monthStart.getMonth() - i);
+        monthStart.setDate(1);
+        
+        const monthEnd = new Date(monthStart);
+        monthEnd.setMonth(monthEnd.getMonth() + 1);
+        monthEnd.setDate(0);
+        
+        // Fetch revenue from financial_entries
+        const { data: entries } = await supabase
+          .from('financial_entries')
+          .select('*')
+          .gte('date', monthStart.toISOString())
+          .lte('date', monthEnd.toISOString())
+          .eq('accounting_method', accountingMethod);
+        
+        // Fetch expenses from expenses table
+        const { data: expenseData } = await supabase
+          .from('expenses')
+          .select('*')
+          .gte('data_competencia', monthStart.toISOString())
+          .lte('data_competencia', monthEnd.toISOString());
+        
+        const monthRevenue = entries?.filter(e => e.type === 'revenue').reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+        const monthExpenses = expenseData?.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original), 0) || 0;
+        const monthProfit = monthRevenue - monthExpenses;
+        
+        monthsData.push({
+          month: monthStart.toLocaleDateString('pt-BR', { month: 'short' }),
+          revenue: monthRevenue,
+          expenses: monthExpenses,
+          profit: monthProfit,
+        });
+      }
+      
+      setChartData(monthsData);
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
     }
-    setChartData(data);
   };
 
   const getStartDate = (period: string) => {
@@ -116,11 +160,44 @@ export function FinancialSummary() {
     return ((current - previous) / previous) * 100;
   };
 
-  const pieData = [
-    { name: 'Custos Diretos', value: summaryData.expenses * 0.4, color: 'hsl(var(--destructive))' },
-    { name: 'Despesas Operacionais', value: summaryData.expenses * 0.35, color: 'hsl(var(--warning))' },
-    { name: 'Marketing/Vendas', value: summaryData.expenses * 0.15, color: 'hsl(var(--info))' },
-    { name: 'Outros', value: summaryData.expenses * 0.1, color: 'hsl(var(--muted))' },
+  // Calculate expense breakdown from real data
+  const [expenseBreakdown, setExpenseBreakdown] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const fetchExpenseBreakdown = async () => {
+      try {
+        const startDate = getStartDate(period);
+        
+        // Fetch grouped expense data
+        const { data: companyData } = await supabase
+          .from('expenses')
+          .select('amount_base, amount_original, tipo_lancamento')
+          .gte('data_competencia', startDate.toISOString())
+          .eq('tipo_lancamento', 'empresa');
+        
+        const { data: serviceData } = await supabase
+          .from('expenses')
+          .select('amount_base, amount_original, tipo_lancamento')
+          .gte('data_competencia', startDate.toISOString())
+          .eq('tipo_lancamento', 'prestador_servico');
+        
+        const companyTotal = companyData?.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original), 0) || 0;
+        const serviceTotal = serviceData?.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original), 0) || 0;
+        
+        setExpenseBreakdown([
+          { name: 'Custos com Prestadores', value: serviceTotal, color: 'hsl(var(--primary))' },
+          { name: 'Despesas da Empresa', value: companyTotal, color: 'hsl(var(--warning))' },
+        ]);
+      } catch (error) {
+        console.error('Error fetching expense breakdown:', error);
+      }
+    };
+    
+    fetchExpenseBreakdown();
+  }, [period]);
+  
+  const pieData = expenseBreakdown.length > 0 ? expenseBreakdown : [
+    { name: 'Sem dados', value: 1, color: 'hsl(var(--muted))' },
   ];
 
   return (
@@ -129,7 +206,14 @@ export function FinancialSummary() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Resumo Financeiro</h2>
         <div className="flex gap-2">
-          <FinancialEntryForm onSuccess={fetchSummaryData} />
+          <RevenueEntryForm onSuccess={() => {
+            fetchSummaryData();
+            fetchChartData();
+          }} />
+          <FinancialEntryForm onSuccess={() => {
+            fetchSummaryData();
+            fetchChartData();
+          }} />
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[150px]">
               <SelectValue />
