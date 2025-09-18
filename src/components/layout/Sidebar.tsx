@@ -175,7 +175,7 @@ export function Sidebar({ userRole }: SidebarProps) {
   return (
     <TooltipProvider>
       <aside className={cn(
-        "hidden md:flex h-screen flex-col fixed left-0 top-0 z-40 border-r bg-white transition-all duration-300",
+        "hidden md:flex h-screen flex-col fixed left-0 top-0 z-40 border-r bg-background transition-all duration-300",
         isCollapsed ? "w-16" : "w-64"
       )}>
         {/* Logo Section with Toggle Button */}
