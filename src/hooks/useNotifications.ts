@@ -155,6 +155,18 @@ export function useNotifications() {
     const notificationsList: Notification[] = [];
     
     try {
+      // First, reload read notifications from database to ensure we have the latest state
+      const { data: readData, error: readError } = await supabase
+        .from('notification_reads')
+        .select('notification_id')
+        .eq('user_id', user.id);
+      
+      if (!readError && readData) {
+        setReadNotifications(new Set(readData.map(item => item.notification_id)));
+      }
+      
+      const currentReadNotifications = readData ? new Set(readData.map(item => item.notification_id)) : new Set();
+      
       // Fetch urgent orders
       const { data: urgentOrders } = await supabase
         .from('orders')
@@ -173,7 +185,7 @@ export function useNotifications() {
             title: `Pedido Urgente #${order.order_number}`,
             description: `${order.urgent_document_count || order.document_count} documento(s) urgente(s)`,
             timestamp: order.created_at,
-            read: readNotifications.has(notificationId),
+            read: currentReadNotifications.has(notificationId),
             link: '/orders'
           });
         });
@@ -197,7 +209,7 @@ export function useNotifications() {
             title: `Nova Pendência ${pendency.c4u_id}`,
             description: pendency.description.substring(0, 100) + (pendency.description.length > 100 ? '...' : ''),
             timestamp: pendency.created_at,
-            read: readNotifications.has(notificationId),
+            read: currentReadNotifications.has(notificationId),
             link: '/pendencies'
           });
         });
@@ -221,7 +233,7 @@ export function useNotifications() {
             title: `Pedido com Atraso #${order.order_number}`,
             description: `${order.document_count} documento(s) em atraso`,
             timestamp: order.created_at,
-            read: readNotifications.has(notificationId),
+            read: currentReadNotifications.has(notificationId),
             link: '/orders'
           });
         });
@@ -245,7 +257,7 @@ export function useNotifications() {
               title: entry.type === 'revenue' ? 'Nova Receita' : 'Nova Despesa',
               description: `${entry.description} - R$ ${entry.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
               timestamp: entry.created_at,
-              read: readNotifications.has(notificationId),
+              read: currentReadNotifications.has(notificationId),
               link: '/dashboard-financeiro'
             });
           });
@@ -309,9 +321,13 @@ export function useNotifications() {
     }
     
     // Update local state
-    setReadNotifications(prev => new Set([...prev, ...unreadIds]));
+    const newReadNotifications = new Set([...readNotifications, ...unreadIds]);
+    setReadNotifications(newReadNotifications);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
+    
+    // Refresh notifications to ensure sync with database
+    await fetchNotifications();
   }
 
   function getTimeAgo(timestamp: string) {
