@@ -625,18 +625,25 @@ export default function Dashboard() {
         setPendencyTypesData(typeCounts);
       }
       
-      // Fetch documents with delay (has_delay = true) 
+      // Fetch orders with REAL delay (delivered after deadline)
       const { data: delayedOrdersData, error: delayedError } = await supabase
         .from('orders')
-        .select('id, order_number, document_count, has_delay')
-        .eq('has_delay', true)
+        .select('id, order_number, document_count, deadline, delivered_at')
+        .eq('status_order', 'delivered')
         .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
+        .lte('created_at', endDate.toISOString())
+        .not('delivered_at', 'is', null);
       
       if (delayedError) {
         console.error('Error fetching delayed orders:', delayedError);
       } else {
-        const delayedOrders = delayedOrdersData || [];
+        const allDeliveredOrders = delayedOrdersData || [];
+        
+        // Filter orders that were actually delivered after deadline
+        const delayedOrders = allDeliveredOrders.filter(order => {
+          if (!order.delivered_at || !order.deadline) return false;
+          return new Date(order.delivered_at) > new Date(order.deadline);
+        });
         
         // Group by order_number for details view
         const groupedDelayedData = new Map<string, number>();
@@ -651,12 +658,13 @@ export default function Dashboard() {
         }));
         
         const totalDelayedDocs = delayedSummary.reduce((sum, item) => sum + item.document_count, 0);
+        const totalDeliveredDocs = allDeliveredOrders.reduce((sum, order) => sum + (order.document_count || 0), 0);
         
         setDelays(totalDelayedDocs);
         setDelayedOrderIds(delayedSummary);
         
-        // Calculate delay percentage
-        const delayPercentage = totalDocuments > 0 ? ((totalDelayedDocs / totalDocuments) * 100).toFixed(1) : '0.0';
+        // Calculate delay percentage based on delivered documents
+        const delayPercentage = totalDeliveredDocs > 0 ? ((totalDelayedDocs / totalDeliveredDocs) * 100).toFixed(1) : '0.0';
         setDelayPercentage(delayPercentage);
       }
     } catch (error) {
