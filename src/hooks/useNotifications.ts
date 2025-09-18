@@ -22,6 +22,20 @@ export function useNotifications() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const [userRole, setUserRole] = useState<string>('');
+  const [previousUnreadCount, setPreviousUnreadCount] = useState(0);
+
+  // Function to play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio('/notification-sound.mp3');
+      audio.volume = 0.5; // Moderate volume
+      audio.play().catch(() => {
+        // Silently handle autoplay blocking
+      });
+    } catch (error) {
+      // Silently handle any audio errors
+    }
+  };
 
   // Get user role
   useEffect(() => {
@@ -39,8 +53,16 @@ export function useNotifications() {
       }
     }
     
-    fetchUserRole();
+  fetchUserRole();
   }, [user]);
+
+  // Detect unread count changes and play sound
+  useEffect(() => {
+    if (unreadCount > previousUnreadCount && previousUnreadCount !== 0) {
+      playNotificationSound();
+    }
+    setPreviousUnreadCount(unreadCount);
+  }, [unreadCount]);
 
   // Fetch notifications
   useEffect(() => {
