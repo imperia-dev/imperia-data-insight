@@ -93,7 +93,7 @@ export function useNotifications() {
           table: 'financial_entries'
         },
         (payload) => {
-          if (payload.eventType === 'INSERT' && userRole !== 'operation') {
+          if (payload.eventType === 'INSERT' && userRole === 'owner') {
             fetchNotifications();
           }
         }
@@ -183,8 +183,8 @@ export function useNotifications() {
         });
       }
 
-      // Fetch financial updates (not for operation role)
-      if (userRole !== 'operation') {
+      // Fetch financial updates (only for owner role)
+      if (userRole === 'owner') {
         const { data: financialEntries } = await supabase
           .from('financial_entries')
           .select('id, type, category, description, amount, created_at')

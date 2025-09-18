@@ -25,7 +25,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/dashboard-comercial',
     '/dashboard-marketing',
     '/dashboard-tech',
-    '/demand-control'
+    '/demand-control',
+    '/notifications'
   ],
   master: [
     '/',
@@ -42,7 +43,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/ai-analytics',
     '/settings',
     '/pendencies',
-    '/demand-control'
+    '/demand-control',
+    '/notifications'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
   ],
@@ -57,7 +59,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/calendar',
     '/timesheet',
     '/ai-analytics',
-    '/settings'
+    '/settings',
+    '/notifications'
   ],
   operation: [
     '/dashboard-operacao',
@@ -65,7 +68,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/orders',
     '/delivered-orders',
     '/wallet',
-    '/productivity'
+    '/productivity',
+    '/notifications'
   ]
 };
 
