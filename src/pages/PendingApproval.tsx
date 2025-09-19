@@ -14,6 +14,7 @@ export default function PendingApproval() {
   const [checking, setChecking] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [previousStatus, setPreviousStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
 
   useEffect(() => {
     checkApprovalStatus();
@@ -38,10 +39,10 @@ export default function PendingApproval() {
       if (error) throw error;
 
       if (data) {
-        setApprovalStatus(data.approval_status);
-        setRejectionReason(data.rejection_reason);
+        const currentStatus = data.approval_status;
         
-        if (data.approval_status === 'approved') {
+        // Only show toast if status changed from pending to approved
+        if (currentStatus === 'approved' && previousStatus === 'pending') {
           toast({
             title: "Cadastro Aprovado!",
             description: "Seu cadastro foi aprovado. Redirecionando...",
@@ -51,7 +52,14 @@ export default function PendingApproval() {
           setTimeout(() => {
             navigate('/');
           }, 2000);
+        } else if (currentStatus === 'approved' && previousStatus !== 'pending') {
+          // If already approved, just redirect without showing toast
+          navigate('/');
         }
+        
+        setPreviousStatus(currentStatus);
+        setApprovalStatus(currentStatus);
+        setRejectionReason(data.rejection_reason);
       }
     } catch (error) {
       console.error('Error checking approval status:', error);
