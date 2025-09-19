@@ -146,21 +146,21 @@ export default function Financial() {
         utcEnd: endDateUTC.toISOString()
       });
       
-      // Fetch orders delivered by service providers with date filter
+      // Fetch orders from service providers with date filter
+      // Include both delivered and in_progress orders
       let query = supabase
         .from('orders')
         .select(`
           id,
           assigned_to,
           document_count,
-          delivered_at
+          delivered_at,
+          created_at,
+          status_order
         `)
-        .eq('status_order', 'delivered')
-        .not('delivered_at', 'is', null)
-        .gte('delivered_at', startDateUTC.toISOString())
-        .lte('delivered_at', endDateUTC.toISOString())
-        .order('delivered_at', { ascending: false });
-      
+        .in('status_order', ['delivered', 'in_progress'])
+        .not('assigned_to', 'is', null);
+
       const { data: ordersData, error: ordersError } = await query;
 
       if (ordersError) {
@@ -168,10 +168,19 @@ export default function Financial() {
         throw ordersError;
       }
       
-      console.log('Productivity - Orders fetched:', ordersData?.length || 0, 'orders');
+      // Filter orders based on date
+      const filteredOrders = ordersData?.filter(order => {
+        const dateToCheck = order.status_order === 'delivered' && order.delivered_at 
+          ? new Date(order.delivered_at)
+          : new Date(order.created_at);
+        
+        return dateToCheck >= startDateUTC && dateToCheck <= endDateUTC;
+      }) || [];
+      
+      console.log('Productivity - Orders fetched:', filteredOrders.length, 'orders after date filtering');
 
       // Fetch all user profiles for the assigned users
-      const userIds = [...new Set(ordersData?.map(order => order.assigned_to).filter(Boolean) || [])];
+      const userIds = [...new Set(filteredOrders.map(order => order.assigned_to).filter(Boolean) || [])];
       console.log('Productivity - User IDs to fetch profiles for:', userIds);
       
       const { data: profilesData, error: profilesError } = await supabase
@@ -201,10 +210,15 @@ export default function Financial() {
 
       console.log('Productivity - Processing orders for payments...');
       
-      ordersData?.forEach(order => {
-        if (!order.assigned_to || !order.delivered_at) return;
+      filteredOrders.forEach(order => {
+        if (!order.assigned_to) return;
         
-        const date = new Date(order.delivered_at).toISOString().split('T')[0];
+        // Use delivered_at for delivered orders, created_at for in_progress
+        const dateToUse = order.status_order === 'delivered' && order.delivered_at 
+          ? order.delivered_at 
+          : order.created_at;
+        
+        const date = new Date(dateToUse).toISOString().split('T')[0];
         const userId = order.assigned_to;
         const userName = userNamesMap.get(userId) || 'Unknown';
         const amount = (order.document_count || 0) * PAYMENT_PER_DOCUMENT;
