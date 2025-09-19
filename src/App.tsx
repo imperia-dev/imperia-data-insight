@@ -34,6 +34,8 @@ import Settings from "./pages/Settings";
 import { DemandControl } from "./pages/DemandControl";
 import Notifications from "./pages/Notifications";
 import Fechamento from "./pages/Fechamento";
+import PaymentRequest from "./pages/PaymentRequest";
+import PaymentReceipts from "./pages/PaymentReceipts";
 import RegistrationApprovals from "./pages/RegistrationApprovals";
 import PendingApproval from "./pages/PendingApproval";
 
@@ -174,6 +176,16 @@ const App = () => (
             <Route path="/fechamento" element={
               <ProtectedRouteWithApproval>
                 <Fechamento />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/payment-request" element={
+              <ProtectedRouteWithApproval>
+                <PaymentRequest />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/payment-receipts" element={
+              <ProtectedRouteWithApproval>
+                <PaymentReceipts />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

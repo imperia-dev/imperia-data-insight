@@ -24,6 +24,8 @@ import {
   Home,
   ClipboardList,
   UserCheck,
+  Send,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -63,6 +65,18 @@ const navigation = [
     title: "Fechamento",
     icon: FileText,
     href: "/fechamento",
+    roles: ["owner"],
+  },
+  {
+    title: "Solicitação de Pagamento",
+    icon: Send,
+    href: "/payment-request",
+    roles: ["owner"],
+  },
+  {
+    title: "Comprovantes de Pagamento",
+    icon: Receipt,
+    href: "/payment-receipts",
     roles: ["owner"],
   },
   {
