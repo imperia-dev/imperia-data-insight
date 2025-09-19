@@ -7,13 +7,14 @@ import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileUp, TrendingUp, Package, FileText, Calculator, CheckCircle, Copy, RefreshCw } from "lucide-react";
+import { FileUp, TrendingUp, Package, FileText, Calculator, CheckCircle, Copy, RefreshCw, History, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Papa from "papaparse";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/currency";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database['public']['Enums']['user_role'];
@@ -43,6 +44,8 @@ export default function Fechamento() {
   const [competenceMonth, setCompetenceMonth] = useState(format(new Date(), "yyyy-MM"));
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState<UserRole>("operation");
+  const [showHistory, setShowHistory] = useState(false);
+  const [closingHistory, setClosingHistory] = useState<any[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { mainContainerClass } = useSidebarOffset();
@@ -64,7 +67,24 @@ export default function Fechamento() {
       }
     };
     fetchUserData();
+    fetchClosingHistory();
   }, []);
+
+  const fetchClosingHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("closing_protocols")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      
+      setClosingHistory(data || []);
+    } catch (error) {
+      console.error("Error fetching closing history:", error);
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -445,6 +465,61 @@ export default function Fechamento() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Histórico de Fechamentos */}
+            <Collapsible open={showHistory} onOpenChange={setShowHistory}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full gap-2">
+                  <History className="h-4 w-4" />
+                  Histórico de Fechamentos
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showHistory ? "rotate-180" : ""}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Últimos Fechamentos</CardTitle>
+                    <CardDescription>
+                      Histórico dos últimos 10 protocolos de fechamento gerados
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {closingHistory.length > 0 ? (
+                      <div className="max-h-96 overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Protocolo</TableHead>
+                              <TableHead>Competência</TableHead>
+                              <TableHead>Total IDs</TableHead>
+                              <TableHead>Páginas</TableHead>
+                              <TableHead>Valor Total</TableHead>
+                              <TableHead>Data</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {closingHistory.map((protocol) => (
+                              <TableRow key={protocol.id}>
+                                <TableCell className="font-mono font-medium">{protocol.protocol_number}</TableCell>
+                                <TableCell>{format(new Date(protocol.competence_month), "MM/yyyy")}</TableCell>
+                                <TableCell>{protocol.total_ids}</TableCell>
+                                <TableCell>{protocol.total_pages}</TableCell>
+                                <TableCell>{formatCurrency(protocol.total_value)}</TableCell>
+                                <TableCell>{format(new Date(protocol.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8">
+                        Nenhum protocolo de fechamento encontrado
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         </main>
       </div>
