@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ProtectedRouteWithApproval } from "./components/ProtectedRouteWithApproval";
 import Dashboard from "./pages/Dashboard";
 import Documents from "./pages/Documents";
 
@@ -33,6 +34,8 @@ import Settings from "./pages/Settings";
 import { DemandControl } from "./pages/DemandControl";
 import Notifications from "./pages/Notifications";
 import Fechamento from "./pages/Fechamento";
+import RegistrationApprovals from "./pages/RegistrationApprovals";
+import PendingApproval from "./pages/PendingApproval";
 
 const queryClient = new QueryClient();
 
@@ -47,125 +50,131 @@ const App = () => (
             <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/pending-approval" element={<PendingApproval />} />
+            <Route path="/registration-approvals" element={
+              <ProtectedRouteWithApproval>
+                <RegistrationApprovals />
+              </ProtectedRouteWithApproval>
+            } />
             <Route path="/" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Dashboard />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/dashboard-operacao" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Dashboard />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/orders" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Orders />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/my-orders" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <MyOrders />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/delivered-orders" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <DeliveredOrders />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/documents" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Documents />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/team" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Team />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/productivity" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Productivity />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/wallet" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Wallet />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/reports" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Reports />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/calendar" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Calendar />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/timesheet" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Timesheet />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/ai-analytics" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <AIAnalytics />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/settings" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Settings />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/company-costs" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <CompanyCosts />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/service-provider-costs" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <ServiceProviderCosts />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/pendencies" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Pendencies />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/dashboard-financeiro" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <DashboardFinanceiro />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/dashboard-comercial" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <DashboardComercial />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/dashboard-marketing" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <DashboardMarketing />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/dashboard-tech" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <DashboardTech />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/demand-control" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <DemandControl />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/notifications" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Notifications />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             <Route path="/fechamento" element={
-              <ProtectedRoute>
+              <ProtectedRouteWithApproval>
                 <Fechamento />
-              </ProtectedRoute>
+              </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

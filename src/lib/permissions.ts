@@ -27,7 +27,9 @@ export const rolePermissions: Record<Role, string[]> = {
     '/dashboard-marketing',
     '/dashboard-tech',
     '/demand-control',
-    '/notifications'
+    '/notifications',
+    '/registration-approvals',
+    '/pending-approval'
   ],
   master: [
     '/',
