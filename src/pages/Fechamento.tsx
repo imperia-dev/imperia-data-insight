@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +45,7 @@ export default function Fechamento() {
   const [userRole, setUserRole] = useState<UserRole>("operation");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { mainContainerClass } = useSidebarOffset();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -237,236 +238,243 @@ export default function Fechamento() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <Sidebar userRole={userRole} />
-        <div className="flex-1 flex flex-col">
-          <Header userName={userName} userRole={userRole} />
-          <main className="flex-1 overflow-y-auto bg-background">
-            <div className="container mx-auto p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-primary">Fechamento</h1>
-                  <p className="text-muted-foreground">Análise de dados pré-fechamento</p>
+    <>
+      <Sidebar userRole={userRole} />
+      <div className={mainContainerClass}>
+        <Header userName={userName} userRole={userRole} />
+        <main className="flex-1 overflow-y-auto bg-background">
+          <div className="container mx-auto p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-primary">Fechamento</h1>
+                <p className="text-muted-foreground">Análise de dados pré-fechamento</p>
+              </div>
+            </div>
+
+            {currentStep === "upload" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload de Arquivo CSV</CardTitle>
+                  <CardDescription>
+                    Faça upload do arquivo CSV com os dados dos documentos (Coluna A: ID, Coluna C: Páginas)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-12 hover:border-primary/50 transition-colors">
+                    <FileUp className="h-12 w-12 text-muted-foreground mb-4" />
+                    <label htmlFor="csv-upload" className="cursor-pointer">
+                      <span className="text-primary font-medium hover:underline">Clique para selecionar</span>
+                      <span className="text-muted-foreground"> ou arraste o arquivo CSV aqui</span>
+                    </label>
+                    <input
+                      id="csv-upload"
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </div>
+
+                  <Alert>
+                    <AlertDescription>
+                      O arquivo CSV deve conter:
+                      <ul className="list-disc list-inside mt-2">
+                        <li>Coluna A: ID do documento</li>
+                        <li>Coluna C: Quantidade de páginas traduzidas</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            )}
+
+            {currentStep === "preview" && analysisData && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Análise dos Dados</CardTitle>
+                    <CardDescription>
+                      Revise os dados calculados antes de confirmar o fechamento
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-muted-foreground">Total de IDs</span>
+                          </div>
+                          <p className="text-2xl font-bold">{analysisData.totalIds}</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-muted-foreground">Total de Páginas</span>
+                          </div>
+                          <p className="text-2xl font-bold">{analysisData.totalPages}</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-muted-foreground">Valor Total</span>
+                          </div>
+                          <p className="text-2xl font-bold">{formatCurrency(analysisData.totalValue)}</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Calculator className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-muted-foreground">Média por Documento</span>
+                          </div>
+                          <p className="text-2xl font-bold">{formatCurrency(analysisData.avgValuePerDocument)}</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Package className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-muted-foreground">Produto 1 (≤4 páginas)</span>
+                          </div>
+                          <p className="text-2xl font-bold">{analysisData.product1Count}</p>
+                          <p className="text-sm text-muted-foreground">R$ 50,00/doc</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Package className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-muted-foreground">Produto 2 (&gt;4 páginas)</span>
+                          </div>
+                          <p className="text-2xl font-bold">{analysisData.product2Count}</p>
+                          <p className="text-sm text-muted-foreground">R$ 30,00/doc</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Detalhamento dos Documentos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="max-h-96 overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>ID do Documento</TableHead>
+                            <TableHead>Páginas</TableHead>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead>Valor</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {analysisData.documents.map((doc, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{doc.id}</TableCell>
+                              <TableCell>{doc.pages}</TableCell>
+                              <TableCell>{doc.pages <= 4 ? "Produto 1" : "Produto 2"}</TableCell>
+                              <TableCell>{formatCurrency(doc.pages <= 4 ? 50 : 30)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="flex gap-4">
+                  <Button onClick={handleSubmitAgain} variant="outline" className="gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Enviar Novamente
+                  </Button>
+                  <Button onClick={handleConfirm} className="gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Confirmar Fechamento
+                  </Button>
                 </div>
               </div>
+            )}
 
-              {currentStep === "upload" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Upload de Arquivo CSV</CardTitle>
-                    <CardDescription>
-                      Faça upload do arquivo CSV com os dados dos documentos (Coluna A: ID, Coluna C: Páginas)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-12 hover:border-primary/50 transition-colors">
-                      <FileUp className="h-12 w-12 text-muted-foreground mb-4" />
-                      <label htmlFor="csv-upload" className="cursor-pointer">
-                        <span className="text-primary font-medium hover:underline">Clique para selecionar</span>
-                        <span className="text-muted-foreground"> ou arraste o arquivo CSV aqui</span>
-                      </label>
-                      <input
-                        id="csv-upload"
-                        type="file"
-                        accept=".csv"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                    </div>
+            {currentStep === "protocol" && protocol && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Protocolo de Fechamento Gerado</CardTitle>
+                  <CardDescription>
+                    Use este protocolo para adicionar a receita no Dashboard Financeiro
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="bg-muted/50 rounded-lg p-6 text-center">
+                    <p className="text-sm text-muted-foreground mb-2">Protocolo de Fechamento</p>
+                    <p className="text-3xl font-mono font-bold text-primary">{protocol}</p>
+                  </div>
 
-                    <Alert>
-                      <AlertDescription>
-                        O arquivo CSV deve conter:
-                        <ul className="list-disc list-inside mt-2">
-                          <li>Coluna A: ID do documento</li>
-                          <li>Coluna C: Quantidade de páginas traduzidas</li>
-                        </ul>
-                      </AlertDescription>
-                    </Alert>
-                  </CardContent>
-                </Card>
-              )}
-
-              {currentStep === "preview" && analysisData && (
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Análise dos Dados</CardTitle>
-                      <CardDescription>
-                        Revise os dados calculados antes de confirmar o fechamento
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <FileText className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-medium text-muted-foreground">Total de IDs</span>
-                            </div>
-                            <p className="text-2xl font-bold">{analysisData.totalIds}</p>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <FileText className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-medium text-muted-foreground">Total de Páginas</span>
-                            </div>
-                            <p className="text-2xl font-bold">{analysisData.totalPages}</p>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <TrendingUp className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-medium text-muted-foreground">Valor Total</span>
-                            </div>
-                            <p className="text-2xl font-bold">{formatCurrency(analysisData.totalValue)}</p>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Calculator className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-medium text-muted-foreground">Média por Documento</span>
-                            </div>
-                            <p className="text-2xl font-bold">{formatCurrency(analysisData.avgValuePerDocument)}</p>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Package className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-medium text-muted-foreground">Produto 1 (≤4 páginas)</span>
-                            </div>
-                            <p className="text-2xl font-bold">{analysisData.product1Count}</p>
-                            <p className="text-sm text-muted-foreground">R$ 50,00/doc</p>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Package className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-medium text-muted-foreground">Produto 2 (&gt;4 páginas)</span>
-                            </div>
-                            <p className="text-2xl font-bold">{analysisData.product2Count}</p>
-                            <p className="text-sm text-muted-foreground">R$ 30,00/doc</p>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Detalhamento dos Documentos</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="max-h-96 overflow-y-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>ID do Documento</TableHead>
-                              <TableHead>Páginas</TableHead>
-                              <TableHead>Tipo</TableHead>
-                              <TableHead>Valor</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {analysisData.documents.map((doc, index) => (
-                              <TableRow key={index}>
-                                <TableCell>{doc.id}</TableCell>
-                                <TableCell>{doc.pages}</TableCell>
-                                <TableCell>{doc.pages <= 4 ? "Produto 1" : "Produto 2"}</TableCell>
-                                <TableCell>{formatCurrency(doc.pages <= 4 ? 50 : 30)}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <div className="flex gap-4">
-                    <Button onClick={handleSubmitAgain} variant="outline" className="gap-2">
-                      <RefreshCw className="h-4 w-4" />
-                      Enviar Novamente
+                  <div className="flex gap-4 justify-center">
+                    <Button onClick={copyProtocol} variant="outline" className="gap-2">
+                      <Copy className="h-4 w-4" />
+                      Copiar Protocolo
                     </Button>
-                    <Button onClick={handleConfirm} className="gap-2">
-                      <CheckCircle className="h-4 w-4" />
-                      Confirmar Fechamento
+                    <Button onClick={goToFinancialDashboard} className="gap-2">
+                      Ir para Dashboard Financeiro
                     </Button>
                   </div>
-                </div>
-              )}
 
-              {currentStep === "protocol" && protocol && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Protocolo de Fechamento Gerado</CardTitle>
-                    <CardDescription>
-                      Use este protocolo para adicionar a receita no Dashboard Financeiro
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="bg-muted/50 rounded-lg p-6 text-center">
-                      <p className="text-sm text-muted-foreground mb-2">Protocolo de Fechamento</p>
-                      <p className="text-3xl font-mono font-bold text-primary">{protocol}</p>
-                    </div>
-
-                    <div className="flex gap-4 justify-center">
-                      <Button onClick={copyProtocol} variant="outline" className="gap-2">
-                        <Copy className="h-4 w-4" />
-                        Copiar Protocolo
-                      </Button>
-                      <Button onClick={goToFinancialDashboard} className="gap-2">
-                        Ir para Dashboard Financeiro
-                      </Button>
-                    </div>
-
-                    <Alert>
-                      <AlertDescription>
-                        <strong>Próximos passos:</strong>
-                        <ol className="list-decimal list-inside mt-2 space-y-1">
-                          <li>Copie o protocolo acima</li>
-                          <li>Acesse o Dashboard Financeiro</li>
-                          <li>Clique em "Adicionar Receita"</li>
-                          <li>Insira o protocolo no campo correspondente</li>
-                          <li>O valor será preenchido automaticamente</li>
-                          <li>Complete os demais campos e salve</li>
-                        </ol>
-                      </AlertDescription>
-                    </Alert>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </main>
-        </div>
+                  <Alert>
+                    <AlertDescription>
+                      <strong>Próximos passos:</strong>
+                      <ol className="list-decimal list-inside mt-2 space-y-1">
+                        <li>Copie o protocolo acima</li>
+                        <li>Acesse o Dashboard Financeiro</li>
+                        <li>Clique em "Adicionar Receita"</li>
+                        <li>Use o protocolo para referência na descrição</li>
+                      </ol>
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </main>
       </div>
 
+      {/* Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Fechamento</DialogTitle>
             <DialogDescription>
-              Tem certeza de que deseja confirmar este fechamento? Um protocolo será gerado e os dados serão salvos.
+              Revise os dados antes de gerar o protocolo de fechamento. Este processo não pode ser revertido.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-muted/50 rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">Resumo do Fechamento</p>
-              <div className="mt-2 space-y-1">
-                <p className="text-sm">Total de Documentos: <strong>{analysisData?.totalIds}</strong></p>
-                <p className="text-sm">Valor Total: <strong>{formatCurrency(analysisData?.totalValue || 0)}</strong></p>
-                <p className="text-sm">Competência: <strong>{format(new Date(competenceMonth + "-01"), "MM/yyyy")}</strong></p>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Total de Documentos</p>
+                <p className="font-medium">{analysisData?.totalIds}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Total de Páginas</p>
+                <p className="font-medium">{analysisData?.totalPages}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Valor Total</p>
+                <p className="font-medium">{formatCurrency(analysisData?.totalValue || 0)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Competência</p>
+                <p className="font-medium">{format(new Date(competenceMonth + "-01"), "MM/yyyy")}</p>
               </div>
             </div>
           </div>
@@ -480,6 +488,6 @@ export default function Fechamento() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </SidebarProvider>
+    </>
   );
 }
