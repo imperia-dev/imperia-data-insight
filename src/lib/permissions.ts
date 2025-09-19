@@ -23,6 +23,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/pendencies',
     '/dashboard-financeiro',
     '/fechamento',
+    '/payment-request',
+    '/payment-receipts',
     '/dashboard-comercial',
     '/dashboard-marketing',
     '/dashboard-tech',
