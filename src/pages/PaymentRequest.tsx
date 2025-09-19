@@ -319,13 +319,20 @@ ${userFullName || 'Equipe Império Traduções'}`);
       // Send email via edge function
       const { error: emailError } = await supabase.functions.invoke('send-payment-email', {
         body: {
-          to: recipientEmail,
-          cc: ccEmails ? ccEmails.split(',').map(e => e.trim()) : [],
+          recipient_email: recipientEmail,
+          cc_emails: ccEmails ? ccEmails.split(',').map(e => e.trim()) : [],
           subject,
           message,
-          pdfBase64,
-          paymentRequestId: paymentRequest.id,
-          protocols: protocols.filter(p => selectedProtocols.includes(p.id))
+          protocol_ids: selectedProtocols,
+          protocols_data: protocols.filter(p => selectedProtocols.includes(p.id)).map(p => ({
+            protocol_number: p.protocol_number,
+            competence_month: p.competence_month,
+            total_value: p.total_value,
+            product_1_count: p.product_1_count,
+            product_2_count: p.product_2_count
+          })),
+          total_amount: calculateTotals().totalValue,
+          company_info: companyInfo
         }
       });
 
