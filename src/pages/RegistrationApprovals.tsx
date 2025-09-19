@@ -28,6 +28,7 @@ interface RegistrationRequest {
   };
 }
 
+// Main component
 export default function RegistrationApprovals() {
   const location = useLocation();
   const { userRole } = useRoleAccess(location.pathname);
