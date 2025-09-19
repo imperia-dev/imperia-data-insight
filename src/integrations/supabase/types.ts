@@ -1043,6 +1043,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: Database["public"]["Enums"]["approval_status"] | null
+          approved_at: string | null
+          approved_by: string | null
           created_at: string | null
           daily_rate: number | null
           email: string
@@ -1051,10 +1054,16 @@ export type Database = {
           hourly_rate: number | null
           id: string
           last_failed_access: string | null
+          rejection_reason: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
         }
         Insert: {
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           daily_rate?: number | null
           email: string
@@ -1063,10 +1072,16 @@ export type Database = {
           hourly_rate?: number | null
           id: string
           last_failed_access?: string | null
+          rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
         Update: {
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           daily_rate?: number | null
           email?: string
@@ -1075,10 +1090,19 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           last_failed_access?: string | null
+          rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -1124,6 +1148,54 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      registration_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["approval_status"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_events: {
         Row: {
@@ -1540,6 +1612,10 @@ export type Database = {
       }
     }
     Functions: {
+      approve_user: {
+        Args: { p_notes?: string; p_user_id: string }
+        Returns: undefined
+      }
       check_sensitive_data_rate_limit: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1568,6 +1644,10 @@ export type Database = {
           pix_key: string
         }[]
       }
+      get_user_approval_status: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["approval_status"]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1589,6 +1669,10 @@ export type Database = {
         Args: { input_text: string; mask_type?: string }
         Returns: string
       }
+      reject_user: {
+        Args: { p_notes?: string; p_reason: string; p_user_id: string }
+        Returns: undefined
+      }
       reset_failed_attempts: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -1607,6 +1691,7 @@ export type Database = {
       }
     }
     Enums: {
+      approval_status: "pending" | "approved" | "rejected"
       balance_sheet_type:
         | "current_asset"
         | "non_current_asset"
@@ -1768,6 +1853,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      approval_status: ["pending", "approved", "rejected"],
       balance_sheet_type: [
         "current_asset",
         "non_current_asset",
