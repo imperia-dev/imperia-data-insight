@@ -14,9 +14,6 @@ import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Send, FileText, AlertCircle, Loader2, DollarSign, Calendar, Hash } from "lucide-react";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
-import { SidebarProvider } from "@/contexts/SidebarContext";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -34,7 +31,7 @@ interface Protocol {
   payment_status: string;
 }
 
-function PaymentRequestContent() {
+export default function PaymentRequest() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -44,59 +41,77 @@ function PaymentRequestContent() {
   const [ccEmails, setCcEmails] = useState("");
   const [subject, setSubject] = useState("Solicitação de Pagamento - Serviços Prestados");
   const [message, setMessage] = useState("");
-  const [userRole, setUserRole] = useState<string>("");
   const [userFullName, setUserFullName] = useState<string>("");
   const [companyInfo, setCompanyInfo] = useState({
     name: "Império Traduções",
-    cnpj: "XX.XXX.XXX/0001-XX",
-    bank_name: "Banco do Brasil",
-    account_number: "XXXXX-X",
-    pix_key: "cnpj@imperio.com",
+    cnpj: "XX.XXX.XXX/XXXX-XX",
+    address: "Endereço da empresa",
+    phone: "(XX) XXXX-XXXX",
+    email: "contato@imperiotraducoes.com.br"
   });
 
   useEffect(() => {
-    fetchPendingProtocols();
-    loadDefaultMessage();
+    fetchProtocols();
     fetchUserInfo();
   }, []);
 
   const fetchUserInfo = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, role")
-          .eq("id", user.id)
-          .single();
-        
-        if (profile) {
-          setUserFullName(profile.full_name || "");
-          setUserRole(profile.role || "");
-        }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        setUserFullName(profile.full_name);
       }
-    } catch (error) {
-      console.error("Error fetching user info:", error);
     }
   };
 
-  const fetchPendingProtocols = async () => {
+  const fetchProtocols = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const { data, error } = await supabase
-        .from("closing_protocols")
-        .select("*")
-        .in("payment_status", ["pending", "sent"])
-        .order("created_at", { ascending: false });
+        .from('closing_protocols')
+        .select('*')
+        .eq('payment_status', 'pending')
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching protocols:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar protocolos",
+          variant: "destructive",
+        });
+      } else {
+        setProtocols(data || []);
+        
+        // Automatically generate message based on protocols
+        if (data && data.length > 0) {
+          const protocolNumbers = data.map(p => p.protocol_number).join(', ');
+          const totalAmount = data.reduce((sum, p) => sum + p.total_value, 0);
+          
+          setMessage(`Prezados,
 
-      setProtocols(data || []);
+Segue em anexo a solicitação de pagamento referente aos serviços de tradução prestados.
+
+Protocolos: ${protocolNumbers}
+Valor Total: ${formatCurrency(totalAmount)}
+
+Por favor, confirmar o recebimento e informar a previsão de pagamento.
+
+Atenciosamente,
+${userFullName || 'Equipe Império Traduções'}`);
+        }
+      }
     } catch (error) {
-      console.error("Error fetching protocols:", error);
+      console.error('Error:', error);
       toast({
         title: "Erro",
-        description: "Erro ao buscar protocolos pendentes",
+        description: "Erro ao carregar protocolos",
         variant: "destructive",
       });
     } finally {
@@ -104,22 +119,7 @@ function PaymentRequestContent() {
     }
   };
 
-  const loadDefaultMessage = () => {
-    const defaultMsg = `Prezados,
-
-Segue solicitação de pagamento referente aos serviços de tradução prestados conforme protocolos detalhados abaixo.
-
-Após o processamento do pagamento, favor enviar o comprovante para validação e fechamento do protocolo.
-
-Qualquer dúvida, estamos à disposição.
-
-Atenciosamente,
-Equipe Financeira`;
-    
-    setMessage(defaultMsg);
-  };
-
-  const handleSelectProtocol = (protocolId: string) => {
+  const handleProtocolToggle = (protocolId: string) => {
     setSelectedProtocols(prev => {
       if (prev.includes(protocolId)) {
         return prev.filter(id => id !== protocolId);
@@ -128,66 +128,101 @@ Equipe Financeira`;
     });
   };
 
-  const calculateTotal = () => {
-    return protocols
-      .filter(p => selectedProtocols.includes(p.id))
-      .reduce((sum, p) => sum + p.total_value, 0);
+  const handleSelectAll = () => {
+    if (selectedProtocols.length === protocols.length) {
+      setSelectedProtocols([]);
+    } else {
+      setSelectedProtocols(protocols.map(p => p.id));
+    }
+  };
+
+  const calculateTotals = () => {
+    const selected = protocols.filter(p => selectedProtocols.includes(p.id));
+    return {
+      totalValue: selected.reduce((sum, p) => sum + p.total_value, 0),
+      totalPages: selected.reduce((sum, p) => sum + p.total_pages, 0),
+      totalIds: selected.reduce((sum, p) => sum + p.total_ids, 0),
+      protocolCount: selected.length
+    };
   };
 
   const generatePDF = async () => {
+    const selected = protocols.filter(p => selectedProtocols.includes(p.id));
+    if (selected.length === 0) return null;
+
     const doc = new jsPDF();
-    const selectedData = protocols.filter(p => selectedProtocols.includes(p.id));
+    const totals = calculateTotals();
     
-    // Header
-    doc.setFontSize(20);
-    doc.text("SOLICITAÇÃO DE PAGAMENTO", 105, 20, { align: "center" });
+    // Header with company info
+    doc.setFontSize(18);
+    doc.text(companyInfo.name, 105, 20, { align: 'center' });
     
-    // Company Info
-    doc.setFontSize(12);
-    doc.text(companyInfo.name, 20, 40);
-    doc.text(`CNPJ: ${companyInfo.cnpj}`, 20, 48);
+    doc.setFontSize(10);
+    doc.text(`CNPJ: ${companyInfo.cnpj}`, 105, 28, { align: 'center' });
+    doc.text(companyInfo.address, 105, 34, { align: 'center' });
+    doc.text(`${companyInfo.phone} | ${companyInfo.email}`, 105, 40, { align: 'center' });
+    
+    // Title
+    doc.setFontSize(16);
+    doc.text('SOLICITAÇÃO DE PAGAMENTO', 105, 55, { align: 'center' });
     
     // Date
-    doc.text(`Data: ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`, 20, 60);
+    doc.setFontSize(10);
+    doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 70);
     
-    // Protocols Table
-    const tableData = selectedData.map(p => [
+    // Recipient info
+    doc.text('Para:', 20, 80);
+    doc.text(recipientEmail, 30, 86);
+    
+    if (ccEmails) {
+      doc.text('Cc:', 20, 94);
+      doc.text(ccEmails, 30, 100);
+    }
+    
+    // Subject
+    doc.setFontSize(12);
+    doc.text('Assunto:', 20, 110);
+    doc.text(subject, 20, 116);
+    
+    // Protocols table
+    const tableData = selected.map(p => [
       p.protocol_number,
-      format(new Date(p.competence_month), "MMM/yyyy", { locale: ptBR }),
+      format(new Date(p.competence_month), 'MM/yyyy'),
+      formatCurrency(p.total_value),
       p.product_1_count.toString(),
       p.product_2_count.toString(),
-      formatCurrency(p.total_value),
+      p.total_pages.toString()
     ]);
-
+    
     autoTable(doc, {
-      head: [["Protocolo", "Competência", "Produto 1", "Produto 2", "Valor"]],
+      startY: 130,
+      head: [['Protocolo', 'Competência', 'Valor', 'Produto 1', 'Produto 2', 'Páginas']],
       body: tableData,
-      startY: 70,
-      foot: [["", "", "", "Total:", formatCurrency(calculateTotal())]],
-      theme: "grid",
-      headStyles: { fillColor: [30, 30, 30] },
-      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold" },
+      foot: [['TOTAL', '', formatCurrency(totals.totalValue), '', '', totals.totalPages.toString()]],
+      theme: 'grid',
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [66, 66, 66] },
+      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
     });
-
-    // Payment Info
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
-    doc.setFontSize(14);
-    doc.text("DADOS PARA PAGAMENTO", 20, finalY);
     
-    doc.setFontSize(11);
-    doc.text(`Banco: ${companyInfo.bank_name}`, 20, finalY + 10);
-    doc.text(`Conta: ${companyInfo.account_number}`, 20, finalY + 18);
-    doc.text(`Chave PIX: ${companyInfo.pix_key}`, 20, finalY + 26);
+    // Message
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(message, 170);
+    doc.text(lines, 20, finalY);
     
-    // Total
-    doc.setFontSize(16);
-    doc.setFont(undefined, "bold");
-    doc.text(`Valor Total: ${formatCurrency(calculateTotal())}`, 20, finalY + 45);
+    // Footer
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(8);
+    doc.text('Este documento foi gerado eletronicamente.', 105, pageHeight - 20, { align: 'center' });
+    doc.text(`Página 1 de 1`, 105, pageHeight - 15, { align: 'center' });
     
-    return doc.output("blob");
+    // Convert to blob
+    const pdfBlob = doc.output('blob');
+    return pdfBlob;
   };
 
-  const sendPaymentRequest = async () => {
+  const handleSendEmail = async () => {
     if (selectedProtocols.length === 0) {
       toast({
         title: "Atenção",
@@ -197,49 +232,97 @@ Equipe Financeira`;
       return;
     }
 
+    if (!recipientEmail) {
+      toast({
+        title: "Atenção",
+        description: "Informe o e-mail do destinatário",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingEmail(true);
+    
     try {
-      setSendingEmail(true);
-      
-      const selectedData = protocols.filter(p => selectedProtocols.includes(p.id));
-      
       // Generate PDF
       const pdfBlob = await generatePDF();
-      
-      // Send email via Edge Function
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await supabase.functions.invoke("send-payment-email", {
-        body: {
-          recipient_email: recipientEmail,
-          cc_emails: ccEmails ? ccEmails.split(",").map(e => e.trim()) : [],
-          subject,
-          protocol_ids: selectedProtocols,
-          protocols_data: selectedData.map(p => ({
-            protocol_number: p.protocol_number,
-            competence_month: format(new Date(p.competence_month), "MMM/yyyy", { locale: ptBR }),
-            total_value: p.total_value,
-            product_1_count: p.product_1_count,
-            product_2_count: p.product_2_count,
-          })),
-          total_amount: calculateTotal(),
-          message,
-          company_info: companyInfo,
-        },
+      if (!pdfBlob) {
+        throw new Error('Erro ao gerar PDF');
+      }
+
+      // Convert PDF to base64
+      const reader = new FileReader();
+      const pdfBase64 = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          resolve(base64.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(pdfBlob);
       });
 
-      if (response.error) throw response.error;
+      // Save payment request
+      const { data: paymentRequest, error: requestError } = await supabase
+        .from('payment_requests')
+        .insert({
+          protocol_ids: selectedProtocols,
+          recipient_email: recipientEmail,
+          cc_emails: ccEmails ? ccEmails.split(',').map(e => e.trim()) : [],
+          subject,
+          message,
+          total_amount: calculateTotals().totalValue,
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          created_by: (await supabase.auth.getUser()).data.user?.id
+        })
+        .select()
+        .single();
+
+      if (requestError) {
+        throw requestError;
+      }
+
+      // Update protocols status
+      const { error: updateError } = await supabase
+        .from('closing_protocols')
+        .update({ 
+          payment_status: 'requested',
+          payment_requested_at: new Date().toISOString()
+        })
+        .in('id', selectedProtocols);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Send email via edge function
+      const { error: emailError } = await supabase.functions.invoke('send-payment-email', {
+        body: {
+          to: recipientEmail,
+          cc: ccEmails ? ccEmails.split(',').map(e => e.trim()) : [],
+          subject,
+          message,
+          pdfBase64,
+          paymentRequestId: paymentRequest.id,
+          protocols: protocols.filter(p => selectedProtocols.includes(p.id))
+        }
+      });
+
+      if (emailError) {
+        throw emailError;
+      }
 
       toast({
         title: "Sucesso!",
         description: "Solicitação de pagamento enviada com sucesso",
       });
 
-      // Refresh protocols
-      await fetchPendingProtocols();
+      // Clear selection and refresh
       setSelectedProtocols([]);
+      fetchProtocols();
       
     } catch (error) {
-      console.error("Error sending payment request:", error);
+      console.error('Error sending payment request:', error);
       toast({
         title: "Erro",
         description: "Erro ao enviar solicitação de pagamento",
@@ -250,216 +333,191 @@ Equipe Financeira`;
     }
   };
 
+  const totals = calculateTotals();
+
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar userRole={userRole as any} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header userName={userFullName} userRole={userRole as any} />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Protocolos Pendentes
-                  </CardTitle>
-                  <Hash className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {protocols.filter(p => p.payment_status === "pending").length}
-                  </div>
-                </CardContent>
-              </Card>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Solicitação de Pagamento</h1>
+        <p className="text-muted-foreground">
+          Envie solicitações de pagamento para protocolos pendentes
+        </p>
+      </div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Selecionados
-                  </CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {selectedProtocols.length}
-                  </div>
-                </CardContent>
-              </Card>
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Selecionados</CardTitle>
+            <Hash className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totals.protocolCount}</div>
+            <p className="text-xs text-muted-foreground">
+              de {protocols.length} protocolos disponíveis
+            </p>
+          </CardContent>
+        </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Valor Total
-                  </CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(calculateTotal())}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totals.totalValue)}</div>
+            <p className="text-xs text-muted-foreground">
+              {totals.totalPages} páginas | {totals.totalIds} IDs
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Protocols Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Protocolos Pendentes</CardTitle>
+          <CardDescription>
+            Selecione os protocolos que serão incluídos na solicitação de pagamento
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : protocols.length === 0 ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Não há protocolos pendentes de pagamento no momento.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAll}
+                >
+                  {selectedProtocols.length === protocols.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                </Button>
+              </div>
+              
+              <div className="space-y-2">
+                {protocols.map((protocol) => (
+                  <div
+                    key={protocol.id}
+                    className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <Checkbox
+                      id={protocol.id}
+                      checked={selectedProtocols.includes(protocol.id)}
+                      onCheckedChange={() => handleProtocolToggle(protocol.id)}
+                    />
+                    <label
+                      htmlFor={protocol.id}
+                      className="flex-1 cursor-pointer space-y-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{protocol.protocol_number}</span>
+                        <Badge variant="outline">
+                          {format(new Date(protocol.competence_month), 'MMM/yyyy', { locale: ptBR })}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatCurrency(protocol.total_value)} • 
+                        {protocol.product_1_count} Produto 1 • 
+                        {protocol.product_2_count} Produto 2 • 
+                        {protocol.total_pages} páginas
+                      </div>
+                    </label>
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Email Configuration */}
+      {selectedProtocols.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Configurar E-mail</CardTitle>
+            <CardDescription>
+              Configure os detalhes do e-mail de solicitação
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="recipient">Para *</Label>
+                <Input
+                  id="recipient"
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="financeiro@empresa.com"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="cc">Cc (separar por vírgula)</Label>
+                <Input
+                  id="cc"
+                  type="text"
+                  value={ccEmails}
+                  onChange={(e) => setCcEmails(e.target.value)}
+                  placeholder="email1@empresa.com, email2@empresa.com"
+                />
+              </div>
             </div>
 
-            {/* Protocols Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Selecionar Protocolos</CardTitle>
-                <CardDescription>
-                  Escolha os protocolos que serão incluídos na solicitação de pagamento
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  </div>
-                ) : protocols.length === 0 ? (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Nenhum protocolo pendente de pagamento encontrado.
-                    </AlertDescription>
-                  </Alert>
+            <div className="space-y-2">
+              <Label htmlFor="subject">Assunto *</Label>
+              <Input
+                id="subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="message">Mensagem *</Label>
+              <Textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={8}
+                required
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={handleSendEmail}
+                disabled={sendingEmail}
+              >
+                {sendingEmail ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
                 ) : (
-                  <div className="space-y-4">
-                    {protocols.map((protocol) => (
-                      <div
-                        key={protocol.id}
-                        className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                      >
-                        <Checkbox
-                          checked={selectedProtocols.includes(protocol.id)}
-                          onCheckedChange={() => handleSelectProtocol(protocol.id)}
-                        />
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Protocolo</p>
-                            <p className="font-medium">{protocol.protocol_number}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Competência</p>
-                            <p className="font-medium">
-                              {format(new Date(protocol.competence_month), "MMM/yyyy", { locale: ptBR })}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Produto 1 / 2</p>
-                            <p className="font-medium">
-                              {protocol.product_1_count} / {protocol.product_2_count}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Valor</p>
-                            <p className="font-medium">{formatCurrency(protocol.total_value)}</p>
-                          </div>
-                          <div>
-                            <Badge
-                              variant={protocol.payment_status === "sent" ? "secondary" : "outline"}
-                            >
-                              {protocol.payment_status === "sent" ? "Enviado" : "Pendente"}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Enviar Solicitação
+                  </>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Email Configuration */}
-            {selectedProtocols.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configurar Email</CardTitle>
-                  <CardDescription>
-                    Personalize o email de solicitação de pagamento
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="recipient">Email do Destinatário</Label>
-                      <Input
-                        id="recipient"
-                        type="email"
-                        value={recipientEmail}
-                        onChange={(e) => setRecipientEmail(e.target.value)}
-                        placeholder="financeiro@empresa.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cc">CC (separe por vírgula)</Label>
-                      <Input
-                        id="cc"
-                        type="text"
-                        value={ccEmails}
-                        onChange={(e) => setCcEmails(e.target.value)}
-                        placeholder="email1@empresa.com, email2@empresa.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Assunto</Label>
-                    <Input
-                      id="subject"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Mensagem</Label>
-                    <Textarea
-                      id="message"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      rows={8}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-
-                  <div className="flex justify-end space-x-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setSelectedProtocols([])}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      onClick={sendPaymentRequest}
-                      disabled={sendingEmail}
-                    >
-                      {sendingEmail ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enviando...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Enviar Solicitação
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </main>
-      </div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
-  );
-}
-
-export default function PaymentRequest() {
-  return (
-    <SidebarProvider>
-      <PaymentRequestContent />
-    </SidebarProvider>
   );
 }
