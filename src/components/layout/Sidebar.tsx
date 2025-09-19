@@ -1,6 +1,9 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Logo } from "@/components/layout/Logo";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
   FileText,
@@ -20,6 +23,7 @@ import {
   ChevronRight,
   Home,
   ClipboardList,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,6 +40,13 @@ interface SidebarProps {
 }
 
 const navigation = [
+  {
+    title: "Aprovação de Cadastros",
+    icon: UserCheck,
+    href: "/registration-approvals",
+    roles: ["owner"],
+    badge: true,
+  },
   {
     title: "Dashboard Operação",
     icon: LayoutDashboard,
@@ -173,6 +184,20 @@ const navigation = [
 export function Sidebar({ userRole }: SidebarProps) {
   const location = useLocation();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (userRole === 'owner') {
+      const fetchPendingCount = async () => {
+        const { count } = await supabase
+          .from('registration_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        setPendingCount(count || 0);
+      };
+      fetchPendingCount();
+    }
+  }, [userRole]);
 
   const filteredNavigation = navigation.filter((item) =>
     userRole ? item.roles.includes(userRole.toLowerCase()) : false
@@ -216,7 +241,7 @@ export function Sidebar({ userRole }: SidebarProps) {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative",
                     isActive
                       ? "bg-primary text-white shadow-md"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -225,6 +250,11 @@ export function Sidebar({ userRole }: SidebarProps) {
                 >
                   <Icon className={cn("h-4 w-4", isCollapsed ? "h-5 w-5" : "")} />
                   {!isCollapsed && <span>{item.title}</span>}
+                  {item.badge && item.href === '/registration-approvals' && pendingCount > 0 && (
+                    <Badge className="ml-auto text-xs" variant="destructive">
+                      {pendingCount}
+                    </Badge>
+                  )}
                 </NavLink>
               );
 
