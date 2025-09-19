@@ -155,11 +155,11 @@ export default function RegistrationApprovals() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex min-h-screen bg-background">
         <Sidebar userRole={userRole || 'owner'} />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 md:ml-64 transition-all duration-300">
           <Header userName={userRole || 'owner'} userRole={userRole || 'owner'} />
-          <div className="flex items-center justify-center flex-1">
+          <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </div>
@@ -168,11 +168,11 @@ export default function RegistrationApprovals() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <Sidebar userRole={userRole || 'owner'} />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 md:ml-64 transition-all duration-300">
         <Header userName={userRole || 'owner'} userRole={userRole || 'owner'} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="p-6">
           <div className="max-w-7xl mx-auto">
         <Card>
           <CardHeader>
