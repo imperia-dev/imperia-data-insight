@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Upload, CheckCircle, XCircle, FileText, Calendar, DollarSign, Loader2, AlertCircle, Search, Eye, Download, Check } from "lucide-react";
@@ -46,6 +50,10 @@ interface Receipt {
 
 export default function PaymentReceipts() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string>('viewer');
+  const [userFullName, setUserFullName] = useState<string>('');
+  const { mainContainerClass } = usePageLayout();
   const [loading, setLoading] = useState(false);
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -68,7 +76,23 @@ export default function PaymentReceipts() {
   useEffect(() => {
     fetchProtocols();
     fetchReceipts();
-  }, []);
+    fetchUserInfo();
+  }, [user]);
+
+  const fetchUserInfo = async () => {
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, full_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        setUserRole(profile.role || 'viewer');
+        setUserFullName(profile.full_name || '');
+      }
+    }
+  };
 
   const fetchProtocols = async () => {
     setLoading(true);
@@ -285,8 +309,12 @@ export default function PaymentReceipts() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole} />
+      <Header userName={userFullName} userRole={userRole} />
+      <div className={mainContainerClass}>
+        <div className="space-y-6 p-6">
+          <div>
         <h1 className="text-3xl font-bold tracking-tight">Comprovantes de Pagamento</h1>
         <p className="text-muted-foreground">
           Gerencie e valide comprovantes de pagamento
@@ -656,6 +684,8 @@ export default function PaymentReceipts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </div>
+      </div>
     </div>
   );
 }

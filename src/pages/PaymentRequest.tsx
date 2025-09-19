@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePageLayout } from "@/hooks/usePageLayout";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Send, FileText, AlertCircle, Loader2, DollarSign, Calendar, Hash } from "lucide-react";
@@ -33,6 +37,9 @@ interface Protocol {
 
 export default function PaymentRequest() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string>('viewer');
+  const { mainContainerClass } = usePageLayout();
   const [loading, setLoading] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [protocols, setProtocols] = useState<Protocol[]>([]);
@@ -53,7 +60,22 @@ export default function PaymentRequest() {
   useEffect(() => {
     fetchProtocols();
     fetchUserInfo();
-  }, []);
+    fetchUserRole();
+  }, [user]);
+
+  const fetchUserRole = async () => {
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        setUserRole(profile.role || 'viewer');
+      }
+    }
+  };
 
   const fetchUserInfo = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -336,8 +358,12 @@ ${userFullName || 'Equipe Império Traduções'}`);
   const totals = calculateTotals();
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole} />
+      <Header userName={userFullName || ""} userRole={userRole} />
+      <div className={mainContainerClass}>
+        <div className="space-y-6 p-6">
+          <div>
         <h1 className="text-3xl font-bold tracking-tight">Solicitação de Pagamento</h1>
         <p className="text-muted-foreground">
           Envie solicitações de pagamento para protocolos pendentes
@@ -518,6 +544,8 @@ ${userFullName || 'Equipe Império Traduções'}`);
           </CardContent>
         </Card>
       )}
+        </div>
+      </div>
     </div>
   );
 }
