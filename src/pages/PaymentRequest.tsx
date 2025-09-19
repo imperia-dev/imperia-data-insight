@@ -304,11 +304,10 @@ ${userFullName || 'Equipe Império Traduções'}`);
         throw requestError;
       }
 
-      // Update protocols status
+      // Update protocols status - only update the requested timestamp
       const { error: updateError } = await supabase
         .from('closing_protocols')
         .update({ 
-          payment_status: 'requested',
           payment_requested_at: new Date().toISOString()
         })
         .in('id', selectedProtocols);
