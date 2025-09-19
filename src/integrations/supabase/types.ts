@@ -219,6 +219,57 @@ export type Database = {
           },
         ]
       }
+      closing_protocols: {
+        Row: {
+          avg_value_per_document: number
+          competence_month: string
+          created_at: string | null
+          created_by: string | null
+          document_data: Json
+          id: string
+          product_1_count: number
+          product_2_count: number
+          protocol_number: string
+          status: string
+          total_ids: number
+          total_pages: number
+          total_value: number
+          updated_at: string | null
+        }
+        Insert: {
+          avg_value_per_document: number
+          competence_month: string
+          created_at?: string | null
+          created_by?: string | null
+          document_data: Json
+          id?: string
+          product_1_count: number
+          product_2_count: number
+          protocol_number: string
+          status?: string
+          total_ids: number
+          total_pages: number
+          total_value: number
+          updated_at?: string | null
+        }
+        Update: {
+          avg_value_per_document?: number
+          competence_month?: string
+          created_at?: string | null
+          created_by?: string | null
+          document_data?: Json
+          id?: string
+          product_1_count?: number
+          product_2_count?: number
+          protocol_number?: string
+          status?: string
+          total_ids?: number
+          total_pages?: number
+          total_value?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       company_costs: {
         Row: {
           amount: number
@@ -598,6 +649,7 @@ export type Database = {
           is_fixed: boolean | null
           is_variable: boolean | null
           payment_method: string | null
+          protocol_id: string | null
           status: string | null
           subcategory: string | null
           tax_amount: number | null
@@ -617,6 +669,7 @@ export type Database = {
           is_fixed?: boolean | null
           is_variable?: boolean | null
           payment_method?: string | null
+          protocol_id?: string | null
           status?: string | null
           subcategory?: string | null
           tax_amount?: number | null
@@ -636,13 +689,22 @@ export type Database = {
           is_fixed?: boolean | null
           is_variable?: boolean | null
           payment_method?: string | null
+          protocol_id?: string | null
           status?: string | null
           subcategory?: string | null
           tax_amount?: number | null
           type?: Database["public"]["Enums"]["financial_entry_type"]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "financial_entries_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "closing_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       financial_indicators: {
         Row: {

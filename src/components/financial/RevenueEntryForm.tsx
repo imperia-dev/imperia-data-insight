@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, DollarSign } from 'lucide-react';
+import { Plus, DollarSign, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface RevenueEntryFormProps {
   onSuccess?: () => void;
@@ -16,6 +17,8 @@ interface RevenueEntryFormProps {
 export function RevenueEntryForm({ onSuccess }: RevenueEntryFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [protocol, setProtocol] = useState('');
+  const [protocolData, setProtocolData] = useState<any>(null);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     amount: '',
@@ -36,6 +39,50 @@ export function RevenueEntryForm({ onSuccess }: RevenueEntryFormProps) {
     other: 'Outras Receitas',
   };
 
+  useEffect(() => {
+    const fetchProtocolData = async () => {
+      if (!protocol) {
+        setProtocolData(null);
+        setFormData(prev => ({ ...prev, amount: '' }));
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('closing_protocols')
+          .select('*')
+          .eq('protocol_number', protocol)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setProtocolData(data);
+          setFormData(prev => ({ 
+            ...prev, 
+            amount: data.total_value.toString(),
+            description: `Fechamento ${protocol} - ${data.total_ids} documentos processados`
+          }));
+          
+          toast({
+            title: 'Protocolo encontrado',
+            description: `Valor total: R$ ${data.total_value.toFixed(2)}`,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching protocol:', error);
+        toast({
+          title: 'Protocolo não encontrado',
+          description: 'Verifique o número do protocolo e tente novamente.',
+          variant: 'destructive',
+        });
+        setProtocolData(null);
+      }
+    };
+
+    fetchProtocolData();
+  }, [protocol]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -52,6 +99,7 @@ export function RevenueEntryForm({ onSuccess }: RevenueEntryFormProps) {
         payment_method: formData.payment_method,
         accounting_method: formData.accounting_method,
         status: 'confirmed',
+        protocol_id: protocolData?.id || null,
         created_by: (await supabase.auth.getUser()).data.user?.id,
       });
 
@@ -72,6 +120,8 @@ export function RevenueEntryForm({ onSuccess }: RevenueEntryFormProps) {
         payment_method: 'transfer',
         accounting_method: 'accrual',
       });
+      setProtocol('');
+      setProtocolData(null);
       setOpen(false);
       onSuccess?.();
     } catch (error) {
@@ -99,6 +149,24 @@ export function RevenueEntryForm({ onSuccess }: RevenueEntryFormProps) {
           <DialogTitle>Nova Receita</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="protocol">Protocolo de Fechamento (Opcional)</Label>
+            <Input
+              id="protocol"
+              placeholder="Ex: 2025-01-comp-01"
+              value={protocol}
+              onChange={(e) => setProtocol(e.target.value)}
+            />
+            {protocolData && (
+              <Alert className="mt-2">
+                <AlertDescription>
+                  Protocolo vinculado: {protocolData.total_ids} documentos, 
+                  valor total de R$ {protocolData.total_value.toFixed(2)}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="date">Data</Label>
@@ -111,15 +179,19 @@ export function RevenueEntryForm({ onSuccess }: RevenueEntryFormProps) {
               />
             </div>
             <div>
-              <Label htmlFor="amount">Valor (R$)</Label>
+              <Label htmlFor="amount">
+                Valor (R$) 
+                {protocolData && <Lock className="inline ml-1 h-3 w-3" />}
+              </Label>
               <Input
                 id="amount"
                 type="number"
                 step="0.01"
                 placeholder="0,00"
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                onChange={(e) => !protocolData && setFormData({ ...formData, amount: e.target.value })}
                 required
+                disabled={!!protocolData}
               />
             </div>
           </div>
