@@ -49,6 +49,12 @@ const navigation = [
     roles: ["owner"],
   },
   {
+    title: "Fechamento",
+    icon: FileText,
+    href: "/fechamento",
+    roles: ["owner"],
+  },
+  {
     title: "Dashboard Comercial",
     icon: TrendingUp,
     href: "/dashboard-comercial",

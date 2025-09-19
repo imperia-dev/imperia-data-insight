@@ -32,6 +32,7 @@ import AIAnalytics from "./pages/AIAnalytics";
 import Settings from "./pages/Settings";
 import { DemandControl } from "./pages/DemandControl";
 import Notifications from "./pages/Notifications";
+import Fechamento from "./pages/Fechamento";
 
 const queryClient = new QueryClient();
 
@@ -159,6 +160,11 @@ const App = () => (
             <Route path="/notifications" element={
               <ProtectedRoute>
                 <Notifications />
+              </ProtectedRoute>
+            } />
+            <Route path="/fechamento" element={
+              <ProtectedRoute>
+                <Fechamento />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
