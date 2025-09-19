@@ -7,10 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { Loader2, CheckCircle, XCircle, Clock, User } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useLocation } from "react-router-dom";
 
 interface RegistrationRequest {
   id: string;
@@ -26,7 +29,8 @@ interface RegistrationRequest {
 }
 
 export default function RegistrationApprovals() {
-  const { mainContainerClass } = useSidebarOffset();
+  const location = useLocation();
+  const { userRole } = useRoleAccess(location.pathname);
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -150,17 +154,25 @@ export default function RegistrationApprovals() {
 
   if (loading) {
     return (
-      <div className={mainContainerClass}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex h-screen bg-background">
+        <Sidebar userRole={userRole || 'owner'} />
+        <div className="flex-1 flex flex-col">
+          <Header userName={userRole || 'owner'} userRole={userRole || 'owner'} />
+          <div className="flex items-center justify-center flex-1">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={mainContainerClass}>
-      <div className="p-6 max-w-7xl mx-auto">
+    <div className="flex h-screen bg-background">
+      <Sidebar userRole={userRole || 'owner'} />
+      <div className="flex-1 flex flex-col">
+        <Header userName={userRole || 'owner'} userRole={userRole || 'owner'} />
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-7xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -335,6 +347,8 @@ export default function RegistrationApprovals() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+          </div>
+        </main>
       </div>
     </div>
   );
