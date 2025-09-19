@@ -227,9 +227,15 @@ export type Database = {
           created_by: string | null
           document_data: Json
           id: string
+          payment_amount: number | null
+          payment_notes: string | null
+          payment_received_at: string | null
+          payment_requested_at: string | null
+          payment_status: string | null
           product_1_count: number
           product_2_count: number
           protocol_number: string
+          receipt_url: string | null
           status: string
           total_ids: number
           total_pages: number
@@ -243,9 +249,15 @@ export type Database = {
           created_by?: string | null
           document_data: Json
           id?: string
+          payment_amount?: number | null
+          payment_notes?: string | null
+          payment_received_at?: string | null
+          payment_requested_at?: string | null
+          payment_status?: string | null
           product_1_count: number
           product_2_count: number
           protocol_number: string
+          receipt_url?: string | null
           status?: string
           total_ids: number
           total_pages: number
@@ -259,9 +271,15 @@ export type Database = {
           created_by?: string | null
           document_data?: Json
           id?: string
+          payment_amount?: number | null
+          payment_notes?: string | null
+          payment_received_at?: string | null
+          payment_requested_at?: string | null
+          payment_status?: string | null
           product_1_count?: number
           product_2_count?: number
           protocol_number?: string
+          receipt_url?: string | null
           status?: string
           total_ids?: number
           total_pages?: number
@@ -931,6 +949,160 @@ export type Database = {
           },
           {
             foreignKeyName: "orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_receipts: {
+        Row: {
+          amount: number
+          bank_reference: string | null
+          created_at: string | null
+          created_by: string | null
+          file_url: string
+          id: string
+          notes: string | null
+          payment_method: string | null
+          payment_request_id: string | null
+          protocol_id: string | null
+          receipt_date: string
+          receipt_number: string | null
+          updated_at: string | null
+          validated: boolean | null
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          amount: number
+          bank_reference?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          file_url: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_request_id?: string | null
+          protocol_id?: string | null
+          receipt_date: string
+          receipt_number?: string | null
+          updated_at?: string | null
+          validated?: boolean | null
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_reference?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          file_url?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_request_id?: string | null
+          protocol_id?: string | null
+          receipt_date?: string
+          receipt_number?: string | null
+          updated_at?: string | null
+          validated?: boolean | null
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_payment_request_id_fkey"
+            columns: ["payment_request_id"]
+            isOneToOne: false
+            referencedRelation: "payment_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "closing_protocols"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_requests: {
+        Row: {
+          cc_emails: string[] | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          last_reminder_at: string | null
+          message: string
+          paid_at: string | null
+          pdf_url: string | null
+          protocol_ids: string[]
+          recipient_email: string
+          reminder_count: number | null
+          sent_at: string | null
+          status: string
+          subject: string
+          total_amount: number
+          updated_at: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          cc_emails?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          last_reminder_at?: string | null
+          message: string
+          paid_at?: string | null
+          pdf_url?: string | null
+          protocol_ids: string[]
+          recipient_email: string
+          reminder_count?: number | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          total_amount: number
+          updated_at?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          cc_emails?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          last_reminder_at?: string | null
+          message?: string
+          paid_at?: string | null
+          pdf_url?: string | null
+          protocol_ids?: string[]
+          recipient_email?: string
+          reminder_count?: number | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          total_amount?: number
+          updated_at?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
