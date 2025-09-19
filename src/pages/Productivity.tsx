@@ -133,8 +133,8 @@ export default function Financial() {
         }
       }
       
-      // Adjust for Brazilian timezone (UTC-3)
-      const timezoneOffset = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+      // Convert local time to UTC (Brazil is UTC-3, so we subtract 3 hours)
+      const timezoneOffset = -3 * 60 * 60 * 1000; // -3 hours in milliseconds
       const startDateUTC = new Date(startDate.getTime() + timezoneOffset);
       const endDateUTC = new Date(endDate.getTime() + timezoneOffset);
       
@@ -147,7 +147,7 @@ export default function Financial() {
       });
       
       // Fetch orders from service providers with date filter
-      // Include both delivered and in_progress orders
+      // Include delivered, in_progress and available orders (that might be picked up today)
       let query = supabase
         .from('orders')
         .select(`
@@ -156,6 +156,7 @@ export default function Financial() {
           document_count,
           delivered_at,
           created_at,
+          assigned_at,
           status_order
         `)
         .in('status_order', ['delivered', 'in_progress'])
@@ -168,16 +169,37 @@ export default function Financial() {
         throw ordersError;
       }
       
+      console.log('Productivity - Raw orders fetched:', ordersData?.length, 'orders');
+      
       // Filter orders based on date
       const filteredOrders = ordersData?.filter(order => {
-        const dateToCheck = order.status_order === 'delivered' && order.delivered_at 
-          ? new Date(order.delivered_at)
-          : new Date(order.created_at);
+        // For delivered orders, use delivered_at
+        // For in_progress orders, use assigned_at or created_at
+        let dateToCheck;
+        if (order.status_order === 'delivered' && order.delivered_at) {
+          dateToCheck = new Date(order.delivered_at);
+        } else if (order.assigned_at) {
+          dateToCheck = new Date(order.assigned_at);
+        } else {
+          dateToCheck = new Date(order.created_at);
+        }
         
-        return dateToCheck >= startDateUTC && dateToCheck <= endDateUTC;
+        const isInRange = dateToCheck >= startDateUTC && dateToCheck <= endDateUTC;
+        
+        if (isInRange && selectedPeriod === 'day') {
+          console.log('Order in today\'s range:', {
+            id: order.id,
+            status: order.status_order,
+            assigned_to: order.assigned_to,
+            dateUsed: dateToCheck.toISOString(),
+            documents: order.document_count
+          });
+        }
+        
+        return isInRange;
       }) || [];
       
-      console.log('Productivity - Orders fetched:', filteredOrders.length, 'orders after date filtering');
+      console.log('Productivity - Filtered orders:', filteredOrders.length, 'orders after date filtering');
 
       // Fetch all user profiles for the assigned users
       const userIds = [...new Set(filteredOrders.map(order => order.assigned_to).filter(Boolean) || [])];
@@ -213,10 +235,15 @@ export default function Financial() {
       filteredOrders.forEach(order => {
         if (!order.assigned_to) return;
         
-        // Use delivered_at for delivered orders, created_at for in_progress
-        const dateToUse = order.status_order === 'delivered' && order.delivered_at 
-          ? order.delivered_at 
-          : order.created_at;
+        // Use the appropriate date based on order status
+        let dateToUse;
+        if (order.status_order === 'delivered' && order.delivered_at) {
+          dateToUse = order.delivered_at;
+        } else if (order.assigned_at) {
+          dateToUse = order.assigned_at;
+        } else {
+          dateToUse = order.created_at;
+        }
         
         const date = new Date(dateToUse).toISOString().split('T')[0];
         const userId = order.assigned_to;
