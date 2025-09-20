@@ -649,12 +649,73 @@ export type Database = {
           },
         ]
       }
+      expense_closing_protocols: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          closing_data: Json | null
+          competence_month: string
+          created_at: string | null
+          created_by: string | null
+          expense_count: number
+          id: string
+          notes: string | null
+          protocol_number: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["expense_closing_status"]
+          total_amount: number
+          total_company_expenses: number
+          total_service_provider_expenses: number
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          closing_data?: Json | null
+          competence_month: string
+          created_at?: string | null
+          created_by?: string | null
+          expense_count?: number
+          id?: string
+          notes?: string | null
+          protocol_number: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["expense_closing_status"]
+          total_amount?: number
+          total_company_expenses?: number
+          total_service_provider_expenses?: number
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          closing_data?: Json | null
+          competence_month?: string
+          created_at?: string | null
+          created_by?: string | null
+          expense_count?: number
+          id?: string
+          notes?: string | null
+          protocol_number?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["expense_closing_status"]
+          total_amount?: number
+          total_company_expenses?: number
+          total_service_provider_expenses?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount_base: number | null
           amount_original: number
           capex_opex: Database["public"]["Enums"]["expense_nature"] | null
           centro_custo_id: string | null
+          closing_protocol_id: string | null
           conta_contabil_id: string
           created_at: string | null
           created_by: string | null
@@ -687,6 +748,7 @@ export type Database = {
           amount_original: number
           capex_opex?: Database["public"]["Enums"]["expense_nature"] | null
           centro_custo_id?: string | null
+          closing_protocol_id?: string | null
           conta_contabil_id: string
           created_at?: string | null
           created_by?: string | null
@@ -719,6 +781,7 @@ export type Database = {
           amount_original?: number
           capex_opex?: Database["public"]["Enums"]["expense_nature"] | null
           centro_custo_id?: string | null
+          closing_protocol_id?: string | null
           conta_contabil_id?: string
           created_at?: string | null
           created_by?: string | null
@@ -752,6 +815,13 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_closing_protocol_id_fkey"
+            columns: ["closing_protocol_id"]
+            isOneToOne: false
+            referencedRelation: "expense_closing_protocols"
             referencedColumns: ["id"]
           },
           {
@@ -2124,6 +2194,7 @@ export type Database = {
         | "FIN_RESULT"
         | "INCOME_TAX"
       expense_classification: "fixo" | "variavel"
+      expense_closing_status: "draft" | "under_review" | "approved" | "closed"
       expense_nature: "capex" | "opex"
       expense_status: "previsto" | "lancado" | "pago" | "conciliado"
       expense_type:
@@ -2292,6 +2363,7 @@ export const Constants = {
         "INCOME_TAX",
       ],
       expense_classification: ["fixo", "variavel"],
+      expense_closing_status: ["draft", "under_review", "approved", "closed"],
       expense_nature: ["capex", "opex"],
       expense_status: ["previsto", "lancado", "pago", "conciliado"],
       expense_type: [
