@@ -84,7 +84,7 @@ const navigation = [
     title: "Integração BTG",
     icon: Link,
     href: "/btg-integration",
-    roles: ["owner"],
+    roles: ["owner", "master", "admin"],
   },
   {
     title: "Dashboard Comercial",
