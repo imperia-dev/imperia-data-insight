@@ -205,7 +205,7 @@ function FechamentoDespesasContent() {
           total_amount: totalAmount,
           expense_count: expenses.length,
           status: 'draft',
-          closing_data: expenses as any, // Cast to any for JSON compatibility
+          closing_data: expenses as any,
           notes: notes,
           created_by: user?.id
         })
@@ -350,6 +350,7 @@ function FechamentoDespesasContent() {
         {config.label}
       </Badge>
     );
+  };
 
   const groupExpensesByCategory = () => {
     const grouped: Record<string, ExpenseData[]> = {};
