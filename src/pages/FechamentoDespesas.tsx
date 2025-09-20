@@ -371,11 +371,11 @@ function FechamentoDespesasContent() {
       <Sidebar userRole={userRole} />
       <Header userName={userName} userRole={userRole} />
       <main className={mainContainerClass}>
-        <div className="container mx-auto p-6 space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold">Fechamento de Despesas</h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mt-2">
                 Consolidação e fechamento mensal de despesas
               </p>
             </div>
@@ -419,36 +419,49 @@ function FechamentoDespesasContent() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <Label>Mês de Competência</Label>
-                      <input
-                        type="month"
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      />
+                    <div className="grid gap-6 max-w-md">
+                      <div className="space-y-2">
+                        <Label htmlFor="month-select">Mês de Competência</Label>
+                        <input
+                          id="month-select"
+                          type="month"
+                          value={selectedMonth}
+                          onChange={(e) => setSelectedMonth(e.target.value)}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Selecione o mês que deseja fechar e clique em "Buscar Despesas"
+                        </p>
+                      </div>
+                      <Button
+                        onClick={fetchExpenses}
+                        disabled={!selectedMonth || loading}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {loading ? (
+                          <>Buscando...</>
+                        ) : (
+                          <>
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Buscar Despesas do Período
+                          </>
+                        )}
+                      </Button>
                     </div>
-                    <Button
-                      onClick={fetchExpenses}
-                      disabled={!selectedMonth || loading}
-                    >
-                      Buscar Despesas
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="validation" className="space-y-4">
-              <Card>
+              <Card className="w-full">
                 <CardHeader>
                   <CardTitle>Validação de Despesas</CardTitle>
                   <CardDescription>
                     Verifique pendências antes de prosseguir com o fechamento
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   {validationErrors.length > 0 ? (
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
