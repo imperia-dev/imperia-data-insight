@@ -139,6 +139,112 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_batches: {
+        Row: {
+          agreement_id: string | null
+          batch_id: string | null
+          btg_response: Json | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          payments_count: number | null
+          processed_at: string | null
+          status: Database["public"]["Enums"]["batch_status"] | null
+          total_amount: number
+        }
+        Insert: {
+          agreement_id?: string | null
+          batch_id?: string | null
+          btg_response?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          payments_count?: number | null
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["batch_status"] | null
+          total_amount: number
+        }
+        Update: {
+          agreement_id?: string | null
+          batch_id?: string | null
+          btg_response?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          payments_count?: number | null
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["batch_status"] | null
+          total_amount?: number
+        }
+        Relationships: []
+      }
+      bank_payments: {
+        Row: {
+          amount: number
+          batch_id: string | null
+          btg_payment_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          payment_data: Json
+          protocol_id: string | null
+          status: Database["public"]["Enums"]["payment_status_enum"] | null
+          supplier_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          batch_id?: string | null
+          btg_payment_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          payment_data: Json
+          protocol_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status_enum"] | null
+          supplier_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          batch_id?: string | null
+          btg_payment_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          payment_data?: Json
+          protocol_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status_enum"] | null
+          supplier_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_payments_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "bank_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_payments_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "closing_protocols"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_payments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_flow_categories: {
         Row: {
           created_at: string | null
@@ -221,7 +327,11 @@ export type Database = {
       }
       closing_protocols: {
         Row: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
           avg_value_per_document: number
+          bank_batch_id: string | null
           competence_month: string
           created_at: string | null
           created_by: string | null
@@ -235,15 +345,21 @@ export type Database = {
           product_1_count: number
           product_2_count: number
           protocol_number: string
+          protocol_type: Database["public"]["Enums"]["protocol_type"] | null
           receipt_url: string | null
           status: string
           total_ids: number
           total_pages: number
           total_value: number
           updated_at: string | null
+          workflow_steps: Json | null
         }
         Insert: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           avg_value_per_document: number
+          bank_batch_id?: string | null
           competence_month: string
           created_at?: string | null
           created_by?: string | null
@@ -257,15 +373,21 @@ export type Database = {
           product_1_count: number
           product_2_count: number
           protocol_number: string
+          protocol_type?: Database["public"]["Enums"]["protocol_type"] | null
           receipt_url?: string | null
           status?: string
           total_ids: number
           total_pages: number
           total_value: number
           updated_at?: string | null
+          workflow_steps?: Json | null
         }
         Update: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           avg_value_per_document?: number
+          bank_batch_id?: string | null
           competence_month?: string
           created_at?: string | null
           created_by?: string | null
@@ -279,12 +401,14 @@ export type Database = {
           product_1_count?: number
           product_2_count?: number
           protocol_number?: string
+          protocol_type?: Database["public"]["Enums"]["protocol_type"] | null
           receipt_url?: string | null
           status?: string
           total_ids?: number
           total_pages?: number
           total_value?: number
           updated_at?: string | null
+          workflow_steps?: Json | null
         }
         Relationships: []
       }
@@ -670,6 +794,7 @@ export type Database = {
           protocol_id: string | null
           status: string | null
           subcategory: string | null
+          supplier_id: string | null
           tax_amount: number | null
           type: Database["public"]["Enums"]["financial_entry_type"]
           updated_at: string | null
@@ -690,6 +815,7 @@ export type Database = {
           protocol_id?: string | null
           status?: string | null
           subcategory?: string | null
+          supplier_id?: string | null
           tax_amount?: number | null
           type: Database["public"]["Enums"]["financial_entry_type"]
           updated_at?: string | null
@@ -710,6 +836,7 @@ export type Database = {
           protocol_id?: string | null
           status?: string | null
           subcategory?: string | null
+          supplier_id?: string | null
           tax_amount?: number | null
           type?: Database["public"]["Enums"]["financial_entry_type"]
           updated_at?: string | null
@@ -720,6 +847,13 @@ export type Database = {
             columns: ["protocol_id"]
             isOneToOne: false
             referencedRelation: "closing_protocols"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_entries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -1044,6 +1178,7 @@ export type Database = {
       }
       payment_requests: {
         Row: {
+          bank_batch_id: string | null
           cc_emails: string[] | null
           created_at: string | null
           created_by: string | null
@@ -1055,6 +1190,7 @@ export type Database = {
           protocol_ids: string[]
           recipient_email: string
           reminder_count: number | null
+          request_type: string | null
           sent_at: string | null
           status: string
           subject: string
@@ -1063,6 +1199,7 @@ export type Database = {
           viewed_at: string | null
         }
         Insert: {
+          bank_batch_id?: string | null
           cc_emails?: string[] | null
           created_at?: string | null
           created_by?: string | null
@@ -1074,6 +1211,7 @@ export type Database = {
           protocol_ids: string[]
           recipient_email: string
           reminder_count?: number | null
+          request_type?: string | null
           sent_at?: string | null
           status?: string
           subject: string
@@ -1082,6 +1220,7 @@ export type Database = {
           viewed_at?: string | null
         }
         Update: {
+          bank_batch_id?: string | null
           cc_emails?: string[] | null
           created_at?: string | null
           created_by?: string | null
@@ -1093,6 +1232,7 @@ export type Database = {
           protocol_ids?: string[]
           recipient_email?: string
           reminder_count?: number | null
+          request_type?: string | null
           sent_at?: string | null
           status?: string
           subject?: string
@@ -1101,6 +1241,13 @@ export type Database = {
           viewed_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payment_requests_bank_batch_id_fkey"
+            columns: ["bank_batch_id"]
+            isOneToOne: false
+            referencedRelation: "bank_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payment_requests_created_by_fkey"
             columns: ["created_by"]
@@ -1320,6 +1467,94 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      protocol_history: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          new_status: string | null
+          old_status: string | null
+          protocol_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          protocol_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          protocol_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_history_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "closing_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocol_steps: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          protocol_id: string | null
+          started_at: string | null
+          status: string | null
+          step_name: string
+          step_order: number
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          protocol_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          step_name: string
+          step_order: number
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          protocol_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          step_name?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_steps_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "closing_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       registration_requests: {
         Row: {
@@ -1870,6 +2105,7 @@ export type Database = {
         | "current_liability"
         | "non_current_liability"
         | "equity"
+      batch_status: "draft" | "sent" | "processing" | "completed" | "failed"
       cash_flow_method: "direct" | "indirect"
       dfc_activity_type: "OPERATING" | "INVESTING" | "FINANCING"
       document_status:
@@ -1896,6 +2132,8 @@ export type Database = {
         | "custo_venda"
         | "investimento"
       financial_entry_type: "revenue" | "expense" | "tax" | "deduction"
+      payment_status_enum: "pending" | "sent" | "paid" | "failed"
+      protocol_type: "receita" | "despesa_fixa" | "despesa_variavel" | "folha"
       scenario_type: "pessimistic" | "realistic" | "optimistic"
       user_role: "master" | "admin" | "operation" | "owner"
     }
@@ -2033,6 +2271,7 @@ export const Constants = {
         "non_current_liability",
         "equity",
       ],
+      batch_status: ["draft", "sent", "processing", "completed", "failed"],
       cash_flow_method: ["direct", "indirect"],
       dfc_activity_type: ["OPERATING", "INVESTING", "FINANCING"],
       document_status: [
@@ -2062,6 +2301,8 @@ export const Constants = {
         "investimento",
       ],
       financial_entry_type: ["revenue", "expense", "tax", "deduction"],
+      payment_status_enum: ["pending", "sent", "paid", "failed"],
+      protocol_type: ["receita", "despesa_fixa", "despesa_variavel", "folha"],
       scenario_type: ["pessimistic", "realistic", "optimistic"],
       user_role: ["master", "admin", "operation", "owner"],
     },
