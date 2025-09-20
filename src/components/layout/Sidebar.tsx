@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
   FileText,
+  FileSpreadsheet,
   Users,
   TrendingUp,
   DollarSign,
@@ -63,9 +64,15 @@ const navigation = [
     roles: ["owner"],
   },
   {
-    title: "Fechamento",
+    title: "Fechamento Receitas",
     icon: FileText,
     href: "/fechamento",
+    roles: ["owner"],
+  },
+  {
+    title: "Fechamento Despesas",
+    icon: FileSpreadsheet,
+    href: "/fechamento-despesas",
     roles: ["owner"],
   },
   {
