@@ -2,3 +2,9 @@ project_id = "agttqqaampznczkyfvkf"
 
 [functions.send-payment-email]
 verify_jwt = false
+
+[functions.btg-auth]
+verify_jwt = true
+
+[functions.btg-sync-suppliers]
+verify_jwt = true

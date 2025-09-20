@@ -38,6 +38,7 @@ import PaymentRequest from "./pages/PaymentRequest";
 import PaymentReceipts from "./pages/PaymentReceipts";
 import RegistrationApprovals from "./pages/RegistrationApprovals";
 import PendingApproval from "./pages/PendingApproval";
+import BTGIntegration from "./pages/BTGIntegration";
 
 const queryClient = new QueryClient();
 
@@ -186,6 +187,11 @@ const App = () => (
             <Route path="/payment-receipts" element={
               <ProtectedRouteWithApproval>
                 <PaymentReceipts />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/btg-integration" element={
+              <ProtectedRouteWithApproval>
+                <BTGIntegration />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
