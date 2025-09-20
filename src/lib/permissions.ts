@@ -25,6 +25,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/fechamento',
     '/payment-request',
     '/payment-receipts',
+    '/btg-integration',
     '/dashboard-comercial',
     '/dashboard-marketing',
     '/dashboard-tech',
@@ -48,6 +49,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/ai-analytics',
     '/settings',
     '/pendencies',
+    '/btg-integration',
     '/demand-control',
     '/notifications'
     // Removed: '/company-costs',
@@ -65,6 +67,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/timesheet',
     '/ai-analytics',
     '/settings',
+    '/btg-integration',
     '/notifications'
   ],
   operation: [
