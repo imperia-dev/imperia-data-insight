@@ -17,14 +17,26 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Package, CheckCircle, Clock, AlertTriangle, AlertCircle } from "lucide-react";
+import { Package, CheckCircle, Clock, AlertTriangle, AlertCircle, ArrowUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useState } from "react";
 
 export function MyOrders() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
   const queryClient = useQueryClient();
+  
+  // Estados para ordenação
+  const [availableOrderSort, setAvailableOrderSort] = useState<string>("created_at_desc");
+  const [myOrderSort, setMyOrderSort] = useState<string>("assigned_at_desc");
 
   // Fetch user profile
   const { data: profile } = useQuery({
@@ -59,6 +71,38 @@ export function MyOrders() {
     },
     enabled: !!user?.id,
   });
+
+  // Função para ordenar pedidos
+  const sortOrders = (orders: any[], sortType: string) => {
+    if (!orders) return [];
+    
+    const sortedOrders = [...orders];
+    
+    switch(sortType) {
+      case "created_at_desc":
+        return sortedOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case "created_at_asc":
+        return sortedOrders.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      case "deadline_asc":
+        return sortedOrders.sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+      case "deadline_desc":
+        return sortedOrders.sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime());
+      case "document_count_desc":
+        return sortedOrders.sort((a, b) => b.document_count - a.document_count);
+      case "document_count_asc":
+        return sortedOrders.sort((a, b) => a.document_count - b.document_count);
+      case "assigned_at_desc":
+        return sortedOrders.sort((a, b) => new Date(b.assigned_at).getTime() - new Date(a.assigned_at).getTime());
+      case "assigned_at_asc":
+        return sortedOrders.sort((a, b) => new Date(a.assigned_at).getTime() - new Date(b.assigned_at).getTime());
+      case "order_number_asc":
+        return sortedOrders.sort((a, b) => a.order_number.localeCompare(b.order_number));
+      case "order_number_desc":
+        return sortedOrders.sort((a, b) => b.order_number.localeCompare(a.order_number));
+      default:
+        return sortedOrders;
+    }
+  };
 
   // Fetch available orders
   const { data: availableOrders, isLoading: isLoadingAvailable } = useQuery({
@@ -176,6 +220,10 @@ export function MyOrders() {
   const currentOrderCount = myOrders?.length || 0;
   const maxConcurrentOrders = userLimit?.concurrent_order_limit || 2;
   const canTakeMoreOrders = currentOrderCount < maxConcurrentOrders;
+  
+  // Aplicar ordenação aos pedidos
+  const sortedAvailableOrders = sortOrders(availableOrders, availableOrderSort);
+  const sortedMyOrders = sortOrders(myOrders, myOrderSort);
 
   return (
     <div className="min-h-screen bg-background">
@@ -210,11 +258,26 @@ export function MyOrders() {
 
           {/* Available Orders */}
           <Card className="mb-6">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
                 Pedidos Disponíveis
               </CardTitle>
+              <Select value={availableOrderSort} onValueChange={setAvailableOrderSort}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created_at_desc">Mais recentes</SelectItem>
+                  <SelectItem value="created_at_asc">Mais antigos</SelectItem>
+                  <SelectItem value="deadline_asc">Prazo (mais próximo)</SelectItem>
+                  <SelectItem value="deadline_desc">Prazo (mais distante)</SelectItem>
+                  <SelectItem value="document_count_desc">Mais documentos</SelectItem>
+                  <SelectItem value="document_count_asc">Menos documentos</SelectItem>
+                  <SelectItem value="order_number_asc">ID (A-Z)</SelectItem>
+                  <SelectItem value="order_number_desc">ID (Z-A)</SelectItem>
+                </SelectContent>
+              </Select>
             </CardHeader>
             <CardContent>
               {isLoadingAvailable ? (
@@ -237,7 +300,7 @@ export function MyOrders() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {availableOrders?.map((order) => (
+                    {sortedAvailableOrders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
@@ -282,11 +345,26 @@ export function MyOrders() {
 
           {/* Pending Orders */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
                 Pedidos em Andamento
               </CardTitle>
+              <Select value={myOrderSort} onValueChange={setMyOrderSort}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="assigned_at_desc">Atribuição (recente)</SelectItem>
+                  <SelectItem value="assigned_at_asc">Atribuição (antiga)</SelectItem>
+                  <SelectItem value="deadline_asc">Prazo (mais próximo)</SelectItem>
+                  <SelectItem value="deadline_desc">Prazo (mais distante)</SelectItem>
+                  <SelectItem value="document_count_desc">Mais documentos</SelectItem>
+                  <SelectItem value="document_count_asc">Menos documentos</SelectItem>
+                  <SelectItem value="order_number_asc">ID (A-Z)</SelectItem>
+                  <SelectItem value="order_number_desc">ID (Z-A)</SelectItem>
+                </SelectContent>
+              </Select>
             </CardHeader>
             <CardContent>
               {isLoadingMyOrders ? (
@@ -309,7 +387,7 @@ export function MyOrders() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {myOrders?.map((order) => (
+                    {sortedMyOrders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
