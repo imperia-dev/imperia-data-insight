@@ -12,7 +12,7 @@ import { Logo } from "@/components/layout/Logo";
 import { Separator } from "@/components/ui/separator";
 import { MFAChallenge } from "@/components/mfa/MFAChallenge";
 import { BackupCodeChallenge } from "@/components/mfa/BackupCodeChallenge";
-import { useMFA } from "@/hooks/useMFA";
+import { useMFA } from "@/hooks";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -24,6 +24,7 @@ export default function Auth() {
   const [showMFAChallenge, setShowMFAChallenge] = useState(false);
   const [showBackupCodeChallenge, setShowBackupCodeChallenge] = useState(false);
   const [mfaFactors, setMfaFactors] = useState<any[]>([]);
+  const [mfaChallengeId, setMfaChallengeId] = useState<string>("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { verifyChallenge, verifyBackupCode } = useMFA();
@@ -64,7 +65,6 @@ export default function Auth() {
           emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName,
-            role: 'operation' // Default role for new users
           }
         }
       });
@@ -72,8 +72,8 @@ export default function Auth() {
       if (error) {
         if (error.message.includes("User already registered")) {
           toast({
-            title: "Usuário já registrado",
-            description: "Este email já está cadastrado. Por favor, faça login.",
+            title: "Usuário já cadastrado",
+            description: "Este email já está cadastrado. Tente fazer login.",
             variant: "destructive",
           });
         } else {
@@ -88,15 +88,16 @@ export default function Auth() {
           title: "Cadastro realizado com sucesso!",
           description: "Verifique seu email para confirmar o cadastro.",
         });
-        // Clear form
-        setEmail("");
-        setPassword("");
-        setFullName("");
+        // Switch to login tab
+        const loginTab = document.querySelector('[value="login"]');
+        if (loginTab) {
+          (loginTab as HTMLElement).click();
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Erro inesperado",
-        description: "Ocorreu um erro durante o cadastro. Tente novamente.",
+        title: "Erro no cadastro",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -115,6 +116,19 @@ export default function Auth() {
       });
 
       if (error) {
+        // Check if MFA is required
+        if (error.message.includes('mfa') || error.message.includes('factor')) {
+          // Get user's MFA factors
+          const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+          
+          if (!factorsError && factorsData?.all && factorsData.all.length > 0) {
+            setMfaFactors(factorsData.all);
+            setShowMFAChallenge(true);
+            setLoading(false);
+            return;
+          }
+        }
+        
         if (error.message.includes("Invalid login credentials")) {
           toast({
             title: "Credenciais inválidas",
@@ -135,6 +149,21 @@ export default function Auth() {
           });
         }
       } else if (data.user) {
+        // Check if user has MFA enabled
+        const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+        
+        if (!factorsError && factorsData?.all && factorsData.all.length > 0) {
+          // Check AAL level
+          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          
+          if (aalData && aalData.currentLevel !== 'aal2') {
+            setMfaFactors(factorsData.all);
+            setShowMFAChallenge(true);
+            setLoading(false);
+            return;
+          }
+        }
+        
         // Play reward sound
         const audio = new Audio('/login-success.mp3');
         audio.volume = 0.5;
@@ -148,12 +177,95 @@ export default function Auth() {
         });
         navigate("/delivered-orders");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Erro inesperado",
-        description: "Ocorreu um erro durante o login. Tente novamente.",
+        title: "Erro no login",
+        description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMFAVerify = async (code: string): Promise<boolean> => {
+    if (!mfaFactors || mfaFactors.length === 0) return false;
+    
+    try {
+      setLoading(true);
+      
+      // Challenge the first TOTP factor
+      const factor = mfaFactors.find(f => f.factor_type === 'totp');
+      if (!factor) return false;
+      
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: factor.id,
+      });
+      
+      if (challengeError) throw challengeError;
+      
+      // Store challenge ID
+      const challengeId = challengeData.id;
+      setMfaChallengeId(challengeId);
+      
+      // Verify the code
+      const success = await verifyChallenge(factor.id, code, challengeId);
+      
+      if (success) {
+        // Play login success sound
+        const audio = new Audio('/login-success.mp3');
+        audio.play().catch(e => console.log('Could not play audio:', e));
+        
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Verificação em duas etapas concluída.",
+        });
+        
+        navigate("/");
+        return true;
+      }
+      
+      return false;
+    } catch (error: any) {
+      console.error('MFA verification error:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackupCodeVerify = async (code: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      const success = await verifyBackupCode(code);
+      
+      if (success) {
+        // Retry authentication after backup code verification
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (!error) {
+          // Play login success sound
+          const audio = new Audio('/login-success.mp3');
+          audio.play().catch(e => console.log('Could not play audio:', e));
+          
+          toast({
+            title: "Login realizado com sucesso!",
+            description: "Código de backup verificado.",
+          });
+          
+          navigate("/");
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error: any) {
+      console.error('Backup code verification error:', error);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -189,6 +301,60 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  // If MFA challenge is needed, show MFA screen
+  if (showMFAChallenge && !showBackupCodeChallenge) {
+    return (
+      <div className="min-h-screen relative flex items-center justify-center p-4">
+        {/* Background Image with brightness filter */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: isDarkMode 
+              ? 'url("/lovable-uploads/e9dd7cb6-a338-4546-aaa5-61c39e9bb699.png")' 
+              : 'url("/lovable-uploads/cbd3d7f0-a336-4830-87a0-3f375a982751.png")',
+            filter: 'brightness(0.4)'
+          }}
+        />
+        
+        {/* MFA Challenge */}
+        <div className="relative z-10">
+          <MFAChallenge
+            onVerify={handleMFAVerify}
+            onUseBackupCode={() => setShowBackupCodeChallenge(true)}
+            loading={loading}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // If backup code challenge is needed
+  if (showBackupCodeChallenge) {
+    return (
+      <div className="min-h-screen relative flex items-center justify-center p-4">
+        {/* Background Image with brightness filter */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: isDarkMode 
+              ? 'url("/lovable-uploads/e9dd7cb6-a338-4546-aaa5-61c39e9bb699.png")' 
+              : 'url("/lovable-uploads/cbd3d7f0-a336-4830-87a0-3f375a982751.png")',
+            filter: 'brightness(0.4)'
+          }}
+        />
+        
+        {/* Backup Code Challenge */}
+        <div className="relative z-10">
+          <BackupCodeChallenge
+            onVerify={handleBackupCodeVerify}
+            onBack={() => setShowBackupCodeChallenge(false)}
+            loading={loading}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
@@ -228,7 +394,7 @@ export default function Auth() {
               Portal de Gestão
             </CardTitle>
             <CardDescription className="text-center">
-              Faça login ou crie sua conta para continuar
+              Entre ou crie sua conta para continuar
             </CardDescription>
           </div>
         </CardHeader>
@@ -242,9 +408,9 @@ export default function Auth() {
             <TabsContent value="login">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email-login">Email</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="email-login"
+                    id="email"
                     type="email"
                     placeholder="seu@email.com"
                     value={email}
@@ -254,12 +420,12 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password-login">Senha</Label>
+                  <Label htmlFor="password">Senha</Label>
                   <div className="relative">
                     <Input
-                      id="password-login"
+                      id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
+                      placeholder="Sua senha"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -269,22 +435,18 @@ export default function Auth() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4 text-muted-foreground" />
                       )}
                     </Button>
                   </div>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-primary hover:opacity-90"
-                  disabled={loading}
-                >
+                <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -336,11 +498,11 @@ export default function Auth() {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name-signup">Nome Completo</Label>
+                  <Label htmlFor="fullName">Nome Completo</Label>
                   <Input
-                    id="name-signup"
+                    id="fullName"
                     type="text"
-                    placeholder="João Silva"
+                    placeholder="Seu nome completo"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
@@ -348,9 +510,9 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email-signup">Email</Label>
+                  <Label htmlFor="signupEmail">Email</Label>
                   <Input
-                    id="email-signup"
+                    id="signupEmail"
                     type="email"
                     placeholder="seu@email.com"
                     value={email}
@@ -360,41 +522,34 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password-signup">Senha</Label>
+                  <Label htmlFor="signupPassword">Senha</Label>
                   <div className="relative">
                     <Input
-                      id="password-signup"
+                      id="signupPassword"
                       type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
+                      placeholder="Mínimo 6 caracteres"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      disabled={loading}
                       minLength={6}
+                      disabled={loading}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4 text-muted-foreground" />
                       )}
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Mínimo de 6 caracteres
-                  </p>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-primary hover:opacity-90"
-                  disabled={loading}
-                >
+                <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -444,9 +599,16 @@ export default function Auth() {
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2 text-center text-sm text-muted-foreground">
-          <p>
-            Ao continuar, você concorda com nossos Termos de Serviço e Política de Privacidade.
+        <CardFooter className="text-center text-sm text-muted-foreground">
+          <p className="w-full">
+            Ao continuar, você concorda com nossos{" "}
+            <a href="#" className="underline hover:text-primary">
+              Termos de Serviço
+            </a>{" "}
+            e{" "}
+            <a href="#" className="underline hover:text-primary">
+              Política de Privacidade
+            </a>
           </p>
         </CardFooter>
       </Card>
