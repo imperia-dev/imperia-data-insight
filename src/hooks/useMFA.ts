@@ -22,7 +22,7 @@ export function useMFA() {
     try {
       setLoading(true);
       
-      // Check profile for MFA status
+      // Check profile for MFA status first
       const { data: profile } = await supabase
         .from('profiles')
         .select('mfa_enabled, mfa_verified')
@@ -33,11 +33,27 @@ export function useMFA() {
         setMfaEnabled(profile.mfa_enabled || false);
       }
       
-      // Get MFA factors from Supabase Auth
-      const { data, error } = await supabase.auth.mfa.listFactors();
-      
-      if (!error && data?.all) {
-        setFactors(data.all);
+      // Only try to get MFA factors if MFA is enabled in profile
+      // This prevents 422 errors when MFA is not set up
+      if (profile?.mfa_enabled) {
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          
+          // Only call listFactors if we have a valid session
+          if (session?.session) {
+            const { data, error } = await supabase.auth.mfa.listFactors();
+            
+            if (data?.all) {
+              setFactors(data.all);
+            } else if (error) {
+              // Silently handle MFA factor errors for users without MFA setup
+              console.log('MFA not configured for this user');
+            }
+          }
+        } catch (factorError) {
+          // Silently handle MFA factor errors
+          console.log('MFA factors not available');
+        }
       }
     } catch (error) {
       console.error('Error checking MFA status:', error);
@@ -102,10 +118,14 @@ export function useMFA() {
         .eq('id', user?.id);
       
       // Log the event
-      await supabase.rpc('log_mfa_event', {
-        p_event_type: 'enrollment',
-        p_metadata: { factor_type: 'totp' }
-      });
+      try {
+        await supabase.rpc('log_mfa_event', {
+          p_event_type: 'enrollment',
+          p_metadata: { factor_type: 'totp' }
+        });
+      } catch (logError) {
+        console.log('Could not log MFA event');
+      }
       
       setMfaEnabled(true);
       
@@ -163,18 +183,26 @@ export function useMFA() {
       if (error) throw error;
       
       // Log successful challenge
-      await supabase.rpc('log_mfa_event', {
-        p_event_type: 'challenge_success',
-        p_metadata: { factor_type: 'totp' }
-      });
+      try {
+        await supabase.rpc('log_mfa_event', {
+          p_event_type: 'challenge_success',
+          p_metadata: { factor_type: 'totp' }
+        });
+      } catch (logError) {
+        console.log('Could not log MFA event');
+      }
       
       return true;
     } catch (error: any) {
       // Log failed challenge
-      await supabase.rpc('log_mfa_event', {
-        p_event_type: 'challenge_failed',
-        p_metadata: { factor_type: 'totp', error: error.message }
-      });
+      try {
+        await supabase.rpc('log_mfa_event', {
+          p_event_type: 'challenge_failed',
+          p_metadata: { factor_type: 'totp', error: error.message }
+        });
+      } catch (logError) {
+        console.log('Could not log MFA event');
+      }
       
       toast({
         title: "Código inválido",
@@ -208,10 +236,14 @@ export function useMFA() {
         .eq('id', user?.id);
       
       // Log the event
-      await supabase.rpc('log_mfa_event', {
-        p_event_type: 'disabled',
-        p_metadata: { factors_removed: factors.length }
-      });
+      try {
+        await supabase.rpc('log_mfa_event', {
+          p_event_type: 'disabled',
+          p_metadata: { factors_removed: factors.length }
+        });
+      } catch (logError) {
+        console.log('Could not log MFA event');
+      }
       
       setMfaEnabled(false);
       setFactors([]);

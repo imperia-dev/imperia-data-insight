@@ -289,6 +289,10 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
       {/* MFA Enrollment Dialog */}
       <Dialog open={showMFAEnrollment} onOpenChange={setShowMFAEnrollment}>
         <DialogContent className="max-w-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Configurar Autenticação de Dois Fatores</DialogTitle>
+            <DialogDescription>Configure a autenticação de dois fatores para sua conta</DialogDescription>
+          </DialogHeader>
           <MFAEnrollment
             onComplete={handleMFAEnrollmentComplete}
             onCancel={() => setShowMFAEnrollment(false)}

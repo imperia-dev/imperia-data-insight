@@ -62,10 +62,11 @@ export function MFAEnrollment({ onComplete, onCancel }: MFAEnrollmentProps) {
     if (success) {
       // Generate backup codes
       const codes = await generateBackupCodes();
-      if (codes) {
+      if (codes && codes.length > 0) {
         setBackupCodes(codes);
         setStep("backup");
       } else {
+        // If no backup codes, complete enrollment
         onComplete();
       }
     }
