@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy, Download, Shield, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMFA } from "@/hooks/useMFA";
@@ -118,7 +119,7 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
 
   if (step === "setup") {
     return (
-      <Card>
+      <Card className="max-h-[85vh] flex flex-col">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -128,7 +129,8 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
             Use um aplicativo autenticador TOTP para adicionar segurança extra à sua conta
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <ScrollArea className="flex-1">
+          <CardContent className="space-y-4 p-6">
           <Alert className="border-amber-200 bg-amber-50">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-900">
@@ -222,20 +224,22 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
             </Button>
           </div>
         </CardContent>
+        </ScrollArea>
       </Card>
     );
   }
 
   if (step === "verify") {
     return (
-      <Card>
+      <Card className="max-h-[85vh] flex flex-col">
         <CardHeader>
           <CardTitle>Verificar Configuração</CardTitle>
           <CardDescription>
             Insira o código de 6 dígitos do seu aplicativo autenticador
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <ScrollArea className="flex-1">
+          <CardContent className="space-y-4 p-6">
           <div className="space-y-2">
             <Label htmlFor="code">Código de verificação</Label>
             <Input
@@ -265,12 +269,13 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
             </Button>
           </div>
         </CardContent>
+        </ScrollArea>
       </Card>
     );
   }
 
   return (
-    <Card>
+    <Card className="max-h-[85vh] flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-green-600" />
@@ -280,7 +285,8 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
           Salve seus códigos de backup em um local seguro
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <ScrollArea className="flex-1">
+        <CardContent className="space-y-4 p-6">
         <Alert className="border-amber-200 bg-amber-50">
           <AlertCircle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-900">
@@ -325,6 +331,7 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
           Concluir Configuração
         </Button>
       </CardContent>
+      </ScrollArea>
     </Card>
   );
 }
