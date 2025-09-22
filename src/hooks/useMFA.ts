@@ -33,27 +33,56 @@ export function useMFA() {
         setMfaEnabled(profile.mfa_enabled || false);
       }
       
-      // Only try to get MFA factors if MFA is enabled in profile
-      // This prevents 422 errors when MFA is not set up
-      if (profile?.mfa_enabled) {
-        try {
-          const { data: session } = await supabase.auth.getSession();
+      // Try to get MFA factors regardless of profile status
+      // This helps detect unverified factors
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        
+        // Only call listFactors if we have a valid session
+        if (session?.session) {
+          const { data, error } = await supabase.auth.mfa.listFactors();
           
-          // Only call listFactors if we have a valid session
-          if (session?.session) {
-            const { data, error } = await supabase.auth.mfa.listFactors();
+          if (data?.all && data.all.length > 0) {
+            setFactors(data.all);
             
-            if (data?.all) {
-              setFactors(data.all);
-            } else if (error) {
-              // Silently handle MFA factor errors for users without MFA setup
-              console.log('MFA not configured for this user');
+            // Check if there are only unverified factors
+            const verifiedFactors = data.all.filter(f => f.status === 'verified');
+            
+            // Update MFA enabled status based on verified factors
+            if (verifiedFactors.length > 0) {
+              setMfaEnabled(true);
+              // Update profile if needed
+              if (!profile?.mfa_enabled) {
+                await supabase
+                  .from('profiles')
+                  .update({ 
+                    mfa_enabled: true,
+                    mfa_verified: true 
+                  })
+                  .eq('id', user.id);
+              }
+            } else {
+              // Has unverified factors only
+              setMfaEnabled(false);
+              // Update profile if needed
+              if (profile?.mfa_enabled) {
+                await supabase
+                  .from('profiles')
+                  .update({ 
+                    mfa_enabled: false,
+                    mfa_verified: false 
+                  })
+                  .eq('id', user.id);
+              }
             }
+          } else {
+            setFactors([]);
+            setMfaEnabled(false);
           }
-        } catch (factorError) {
-          // Silently handle MFA factor errors
-          console.log('MFA factors not available');
         }
+      } catch (factorError) {
+        // Silently handle MFA factor errors
+        console.log('MFA factors not available');
       }
     } catch (error) {
       console.error('Error checking MFA status:', error);
@@ -66,8 +95,24 @@ export function useMFA() {
     try {
       setLoading(true);
       
+      // First check if there's an existing unverified factor
+      const { data: existingFactors } = await supabase.auth.mfa.listFactors();
+      
+      if (existingFactors?.all && existingFactors.all.length > 0) {
+        // Remove any unverified factors first
+        for (const factor of existingFactors.all) {
+          if (factor.status === 'unverified') {
+            await supabase.auth.mfa.unenroll({
+              factorId: factor.id,
+            });
+          }
+        }
+      }
+      
+      // Now enroll new factor
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
+        friendlyName: `TOTP ${new Date().toISOString()}`, // Add unique friendly name
       });
       
       if (error) throw error;
@@ -310,6 +355,47 @@ export function useMFA() {
     }
   };
 
+  const cleanupUnverifiedFactors = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: existingFactors } = await supabase.auth.mfa.listFactors();
+      
+      if (existingFactors?.all && existingFactors.all.length > 0) {
+        // Remove any unverified factors
+        for (const factor of existingFactors.all) {
+          if (factor.status === 'unverified') {
+            await supabase.auth.mfa.unenroll({
+              factorId: factor.id,
+            });
+          }
+        }
+        
+        // Update profile to reflect MFA is disabled if no verified factors remain
+        const verifiedFactors = existingFactors.all.filter(f => f.status === 'verified');
+        if (verifiedFactors.length === 0) {
+          await supabase
+            .from('profiles')
+            .update({ 
+              mfa_enabled: false,
+              mfa_verified: false 
+            })
+            .eq('id', user?.id);
+            
+          setMfaEnabled(false);
+          setFactors([]);
+        }
+      }
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error cleaning up unverified factors:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     mfaEnabled,
     loading,
@@ -322,5 +408,6 @@ export function useMFA() {
     generateBackupCodes,
     verifyBackupCode,
     checkMFAStatus,
+    cleanupUnverifiedFactors,
   };
 }

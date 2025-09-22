@@ -121,11 +121,15 @@ export default function Auth() {
           // Get user's MFA factors
           const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
           
+          // Only show MFA challenge if there are verified factors
           if (!factorsError && factorsData?.all && factorsData.all.length > 0) {
-            setMfaFactors(factorsData.all);
-            setShowMFAChallenge(true);
-            setLoading(false);
-            return;
+            const verifiedFactors = factorsData.all.filter(f => f.status === 'verified');
+            if (verifiedFactors.length > 0) {
+              setMfaFactors(verifiedFactors);
+              setShowMFAChallenge(true);
+              setLoading(false);
+              return;
+            }
           }
         }
         
@@ -149,18 +153,23 @@ export default function Auth() {
           });
         }
       } else if (data.user) {
-        // Check if user has MFA enabled
+        // Check if user has verified MFA factors
         const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
         
         if (!factorsError && factorsData?.all && factorsData.all.length > 0) {
-          // Check AAL level
-          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          // Only check for verified factors
+          const verifiedFactors = factorsData.all.filter(f => f.status === 'verified');
           
-          if (aalData && aalData.currentLevel !== 'aal2') {
-            setMfaFactors(factorsData.all);
-            setShowMFAChallenge(true);
-            setLoading(false);
-            return;
+          if (verifiedFactors.length > 0) {
+            // Check AAL level
+            const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            
+            if (aalData && aalData.currentLevel !== 'aal2') {
+              setMfaFactors(verifiedFactors);
+              setShowMFAChallenge(true);
+              setLoading(false);
+              return;
+            }
           }
         }
         

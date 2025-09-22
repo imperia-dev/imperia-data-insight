@@ -30,7 +30,8 @@ export default function Settings() {
     loading: mfaLoading, 
     disableMFA, 
     generateBackupCodes,
-    checkMFAStatus 
+    checkMFAStatus,
+    cleanupUnverifiedFactors 
   } = useMFA();
 
   useEffect(() => {
@@ -66,6 +67,8 @@ export default function Settings() {
         }
       }
     } else {
+      // Clean up any unverified factors before showing enrollment
+      await cleanupUnverifiedFactors();
       setShowMFAEnrollment(true);
     }
   };
@@ -223,15 +226,39 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
                                   <Key className="h-4 w-4 text-muted-foreground" />
                                   <span className="text-sm">
                                     Aplicativo Autenticador (TOTP)
+                                    {factor.status === 'unverified' && (
+                                      <span className="ml-2 text-xs text-amber-600">(Não verificado)</span>
+                                    )}
                                   </span>
                                 </div>
                                 <span className="text-xs text-muted-foreground">
-                                  Ativo desde {new Date(factor.created_at).toLocaleDateString('pt-BR')}
+                                  {factor.status === 'verified' 
+                                    ? `Ativo desde ${new Date(factor.created_at).toLocaleDateString('pt-BR')}`
+                                    : 'Aguardando verificação'}
                                 </span>
                               </div>
                             ))}
                           </div>
                         </div>
+                        
+                        {factors.some((f: any) => f.status === 'unverified') && (
+                          <Button 
+                            variant="outline" 
+                            onClick={async () => {
+                              await cleanupUnverifiedFactors();
+                              await checkMFAStatus();
+                              toast({
+                                title: "Fatores não verificados removidos",
+                                description: "Você pode tentar configurar o 2FA novamente.",
+                              });
+                            }}
+                            className="w-full"
+                            disabled={mfaLoading}
+                          >
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                            Remover Fatores Não Verificados
+                          </Button>
+                        )}
                         
                         <Button 
                           variant="outline" 
