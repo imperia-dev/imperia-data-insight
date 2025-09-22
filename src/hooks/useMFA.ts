@@ -1,0 +1,294 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+export function useMFA() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [factors, setFactors] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      checkMFAStatus();
+    }
+  }, [user]);
+
+  const checkMFAStatus = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      
+      // Check profile for MFA status
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('mfa_enabled, mfa_verified')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        setMfaEnabled(profile.mfa_enabled || false);
+      }
+      
+      // Get MFA factors from Supabase Auth
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      
+      if (!error && data?.all) {
+        setFactors(data.all);
+      }
+    } catch (error) {
+      console.error('Error checking MFA status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const enrollTOTP = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+      });
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao configurar 2FA",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyTOTP = async (factorId: string, code: string, challengeId?: string) => {
+    try {
+      setLoading(true);
+      
+      // First create a challenge if not provided
+      let actualChallengeId = challengeId;
+      if (!actualChallengeId) {
+        const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+          factorId,
+        });
+        if (challengeError) throw challengeError;
+        actualChallengeId = challengeData!.id;
+      }
+      
+      const { data, error } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: actualChallengeId,
+        code,
+      });
+      
+      if (error) throw error;
+      
+      // Update profile to reflect MFA is enabled
+      await supabase
+        .from('profiles')
+        .update({ 
+          mfa_enabled: true,
+          mfa_verified: true,
+          mfa_enrollment_date: new Date().toISOString()
+        })
+        .eq('id', user?.id);
+      
+      // Log the event
+      await supabase.rpc('log_mfa_event', {
+        p_event_type: 'enrollment',
+        p_metadata: { factor_type: 'totp' }
+      });
+      
+      setMfaEnabled(true);
+      
+      toast({
+        title: "2FA ativado com sucesso",
+        description: "Sua conta agora está protegida com autenticação de dois fatores.",
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Código inválido",
+        description: "Verifique o código e tente novamente.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const challengeTOTP = async (factorId: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.auth.mfa.challenge({
+        factorId,
+      });
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao iniciar desafio 2FA",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyChallenge = async (factorId: string, code: string, challengeId: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId,
+        code,
+      });
+      
+      if (error) throw error;
+      
+      // Log successful challenge
+      await supabase.rpc('log_mfa_event', {
+        p_event_type: 'challenge_success',
+        p_metadata: { factor_type: 'totp' }
+      });
+      
+      return true;
+    } catch (error: any) {
+      // Log failed challenge
+      await supabase.rpc('log_mfa_event', {
+        p_event_type: 'challenge_failed',
+        p_metadata: { factor_type: 'totp', error: error.message }
+      });
+      
+      toast({
+        title: "Código inválido",
+        description: "Verifique o código e tente novamente.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const disableMFA = async () => {
+    try {
+      setLoading(true);
+      
+      // Unenroll all factors
+      for (const factor of factors) {
+        await supabase.auth.mfa.unenroll({
+          factorId: factor.id,
+        });
+      }
+      
+      // Update profile
+      await supabase
+        .from('profiles')
+        .update({ 
+          mfa_enabled: false,
+          mfa_verified: false 
+        })
+        .eq('id', user?.id);
+      
+      // Log the event
+      await supabase.rpc('log_mfa_event', {
+        p_event_type: 'disabled',
+        p_metadata: { factors_removed: factors.length }
+      });
+      
+      setMfaEnabled(false);
+      setFactors([]);
+      
+      toast({
+        title: "2FA desativado",
+        description: "A autenticação de dois fatores foi removida da sua conta.",
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao desativar 2FA",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateBackupCodes = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.rpc('generate_mfa_backup_codes');
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao gerar códigos de backup",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyBackupCode = async (code: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.rpc('verify_mfa_backup_code', {
+        p_code: code
+      });
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao verificar código de backup",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    mfaEnabled,
+    loading,
+    factors,
+    enrollTOTP,
+    verifyTOTP,
+    challengeTOTP,
+    verifyChallenge,
+    disableMFA,
+    generateBackupCodes,
+    verifyBackupCode,
+    checkMFAStatus,
+  };
+}

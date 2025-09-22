@@ -10,6 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
 import { Separator } from "@/components/ui/separator";
+import { MFAChallenge } from "@/components/mfa/MFAChallenge";
+import { BackupCodeChallenge } from "@/components/mfa/BackupCodeChallenge";
+import { useMFA } from "@/hooks/useMFA";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -18,8 +21,12 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showMFAChallenge, setShowMFAChallenge] = useState(false);
+  const [showBackupCodeChallenge, setShowBackupCodeChallenge] = useState(false);
+  const [mfaFactors, setMfaFactors] = useState<any[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { verifyChallenge, verifyBackupCode } = useMFA();
 
   useEffect(() => {
     // Check system preference for dark mode

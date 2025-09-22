@@ -1064,6 +1064,71 @@ export type Database = {
           },
         ]
       }
+      mfa_audit_logs: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mfa_backup_codes: {
+        Row: {
+          code_hash: string
+          created_at: string | null
+          id: string
+          used: boolean | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string | null
+          id?: string
+          used?: boolean | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string | null
+          id?: string
+          used?: boolean | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_backup_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_reads: {
         Row: {
           created_at: string
@@ -1443,8 +1508,13 @@ export type Database = {
           hourly_rate: number | null
           id: string
           last_failed_access: string | null
+          mfa_backup_codes_generated_at: string | null
+          mfa_enabled: boolean | null
+          mfa_enrollment_date: string | null
+          mfa_verified: boolean | null
           rejection_reason: string | null
           role: Database["public"]["Enums"]["user_role"]
+          trusted_devices: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -1461,8 +1531,13 @@ export type Database = {
           hourly_rate?: number | null
           id: string
           last_failed_access?: string | null
+          mfa_backup_codes_generated_at?: string | null
+          mfa_enabled?: boolean | null
+          mfa_enrollment_date?: string | null
+          mfa_verified?: boolean | null
           rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          trusted_devices?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -1479,8 +1554,13 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           last_failed_access?: string | null
+          mfa_backup_codes_generated_at?: string | null
+          mfa_enabled?: boolean | null
+          mfa_enrollment_date?: string | null
+          mfa_verified?: boolean | null
           rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          trusted_devices?: Json | null
           updated_at?: string | null
         }
         Relationships: [
@@ -2101,6 +2181,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      generate_mfa_backup_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       get_backup_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2128,6 +2212,10 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      log_mfa_event: {
+        Args: { p_event_type: string; p_metadata?: Json }
+        Returns: undefined
       }
       log_security_event: {
         Args: { p_details?: Json; p_event_type: string; p_severity: string }
@@ -2164,6 +2252,10 @@ export type Database = {
       }
       validate_sensitive_access: {
         Args: { p_table_name: string; p_user_id: string }
+        Returns: boolean
+      }
+      verify_mfa_backup_code: {
+        Args: { p_code: string }
         Returns: boolean
       }
     }
