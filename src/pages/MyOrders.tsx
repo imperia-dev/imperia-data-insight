@@ -131,7 +131,7 @@ export function MyOrders() {
 
   // Take order mutation
   const takeOrderMutation = useMutation({
-    mutationFn: async (orderId: string) => {
+    mutationFn: async (order: any) => {
       // Check if user has reached the concurrent order limit
       const currentOrderCount = myOrders?.length || 0;
       const maxConcurrentOrders = userLimit?.concurrent_order_limit || 2;
@@ -140,28 +140,99 @@ export function MyOrders() {
         throw new Error(`Você já possui ${currentOrderCount} pedido(s) em andamento. Finalize um pedido antes de pegar outro.`);
       }
 
+      // Step 1: Update order in Supabase
       const { error } = await supabase
         .from("orders")
         .update({
           assigned_to: user?.id,
           assigned_at: new Date().toISOString(),
-          status_order: "in_progress", // Set status to in_progress
+          status_order: "in_progress",
         })
-        .eq("id", orderId);
+        .eq("id", order.id);
       
       if (error) throw error;
+
+      // Step 2: Call n8n webhook
+      try {
+        const webhookResponse = await fetch(
+          "https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              translationOrderId: order.id,
+              AccountId: user?.id,
+            }),
+          }
+        );
+
+        if (webhookResponse.ok) {
+          const responseData = await webhookResponse.json();
+          
+          // Step 3: Save the ServiceOrderLink to account_ID field
+          if (responseData.ServiceOrderLink) {
+            const { error: updateError } = await supabase
+              .from("orders")
+              .update({
+                account_ID: responseData.ServiceOrderLink,
+              } as any)
+              .eq("id", order.id);
+
+            if (updateError) {
+              console.error("Erro ao salvar link de integração:", updateError);
+              // Don't throw, just log - the order was already assigned successfully
+            }
+
+            return { 
+              success: true, 
+              serviceOrderLink: responseData.ServiceOrderLink 
+            };
+          }
+        } else {
+          console.error("Webhook retornou erro:", webhookResponse.status);
+        }
+      } catch (webhookError) {
+        console.error("Erro ao chamar webhook:", webhookError);
+        // Don't throw - continue with partial success
+        return { 
+          success: true, 
+          partialSuccess: true 
+        };
+      }
+
+      return { success: true };
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       // Force immediate refetch of both queries with correct key
       await queryClient.invalidateQueries({ queryKey: ["available-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
       // Force refetch to ensure data is updated
       await queryClient.refetchQueries({ queryKey: ["available-orders"] });
       await queryClient.refetchQueries({ queryKey: ["my-orders", user?.id] });
-      toast({
-        title: "Pedido atribuído",
-        description: "O pedido foi atribuído a você com sucesso.",
-      });
+      
+      if (result?.serviceOrderLink) {
+        toast({
+          title: "Sucesso",
+          description: (
+            <div className="space-y-2">
+              <p>Pedido atribuído e integrado com sucesso!</p>
+              <p className="text-xs text-muted-foreground">Link: {result.serviceOrderLink}</p>
+            </div>
+          ),
+        });
+      } else if (result?.partialSuccess) {
+        toast({
+          title: "Pedido Atribuído",
+          description: "Pedido atribuído com sucesso! (Integração com sistema externo falhou)",
+        });
+      } else {
+        toast({
+          title: "Pedido atribuído",
+          description: "O pedido foi atribuído a você com sucesso.",
+        });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -265,7 +336,7 @@ export function MyOrders() {
                         <TableCell>
                           <Button
                             size="sm"
-                            onClick={() => takeOrderMutation.mutate(order.id)}
+                            onClick={() => takeOrderMutation.mutate(order)}
                             disabled={takeOrderMutation.isPending || !canTakeMoreOrders}
                             title={!canTakeMoreOrders ? `Você já possui ${currentOrderCount} pedido(s) em andamento` : undefined}
                           >
