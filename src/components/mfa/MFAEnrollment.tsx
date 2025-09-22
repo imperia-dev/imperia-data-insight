@@ -125,43 +125,83 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
             Configurar Autenticação de Dois Fatores
           </CardTitle>
           <CardDescription>
-            Use um aplicativo autenticador como Google Authenticator ou Authy
+            Use um aplicativo autenticador TOTP para adicionar segurança extra à sua conta
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert className="border-amber-200 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-900">
+              <strong>⚠️ ATENÇÃO: Use apenas aplicativos autenticadores TOTP!</strong>
+              <div className="mt-2 space-y-2">
+                <p className="font-semibold text-green-700">✅ Aplicativos CORRETOS:</p>
+                <ul className="ml-4 list-disc text-sm">
+                  <li>Google Authenticator</li>
+                  <li>Microsoft Authenticator</li>
+                  <li>Authy</li>
+                  <li>FreeOTP</li>
+                  <li>Aegis (Android)</li>
+                </ul>
+                <p className="font-semibold text-red-700 mt-2">❌ NÃO use:</p>
+                <ul className="ml-4 list-disc text-sm">
+                  <li>Gerenciadores de senha (1Password, LastPass, etc)</li>
+                  <li>Aplicativos de notas</li>
+                  <li>Câmera do celular diretamente</li>
+                </ul>
+              </div>
+            </AlertDescription>
+          </Alert>
+
           <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-3">📱 Como configurar:</h4>
+              <ol className="space-y-2 text-sm text-blue-800">
+                <li>1. Abra o <strong>Google Authenticator</strong> ou outro app TOTP</li>
+                <li>2. Toque no botão <strong>"+"</strong> ou <strong>"Adicionar conta"</strong></li>
+                <li>3. Escolha <strong>"Escanear código QR"</strong></li>
+                <li>4. Aponte a câmera para o código abaixo:</li>
+              </ol>
+            </div>
+            
             <div className="text-center">
               {qrCode && (
-                <img 
-                  src={qrCode} 
-                  alt="QR Code para 2FA" 
-                  className="mx-auto border rounded-lg p-4 bg-white"
-                />
+                <div className="inline-block p-4 bg-white border-2 border-gray-300 rounded-lg">
+                  <img 
+                    src={qrCode} 
+                    alt="QR Code para 2FA" 
+                    className="mx-auto"
+                    style={{ imageRendering: 'crisp-edges' }}
+                  />
+                </div>
               )}
             </div>
             
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Escaneie o QR code acima com seu aplicativo autenticador ou insira a chave manualmente.
-              </AlertDescription>
-            </Alert>
-            
             <div className="space-y-2">
-              <Label>Chave secreta (para entrada manual)</Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={secret} 
-                  readOnly 
-                  className="font-mono text-sm"
-                />
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={copySecret}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <Label>Não consegue escanear? Use a entrada manual:</Label>
+              <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                <div className="text-sm">
+                  <strong>Nome da conta:</strong> Imperia Traduções
+                </div>
+                <div className="text-sm">
+                  <strong>Chave secreta:</strong>
+                </div>
+                <div className="flex gap-2">
+                  <Input 
+                    value={secret} 
+                    readOnly 
+                    className="font-mono text-xs"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={copySecret}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Digite esta chave no campo "Chave" ou "Secret" do seu app autenticador
+                </div>
               </div>
             </div>
           </div>
