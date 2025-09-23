@@ -1155,6 +1155,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          account_ID: string | null
           assigned_at: string | null
           assigned_to: string | null
           attribution_date: string | null
@@ -1173,6 +1174,7 @@ export type Database = {
           urgent_document_count: number | null
         }
         Insert: {
+          account_ID?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
           attribution_date?: string | null
@@ -1191,6 +1193,7 @@ export type Database = {
           urgent_document_count?: number | null
         }
         Update: {
+          account_ID?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
           attribution_date?: string | null
@@ -1512,6 +1515,7 @@ export type Database = {
           mfa_enabled: boolean | null
           mfa_enrollment_date: string | null
           mfa_verified: boolean | null
+          operation_account_id: string | null
           rejection_reason: string | null
           role: Database["public"]["Enums"]["user_role"]
           trusted_devices: Json | null
@@ -1535,6 +1539,7 @@ export type Database = {
           mfa_enabled?: boolean | null
           mfa_enrollment_date?: string | null
           mfa_verified?: boolean | null
+          operation_account_id?: string | null
           rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           trusted_devices?: Json | null
@@ -1558,6 +1563,7 @@ export type Database = {
           mfa_enabled?: boolean | null
           mfa_enrollment_date?: string | null
           mfa_verified?: boolean | null
+          operation_account_id?: string | null
           rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           trusted_devices?: Json | null

@@ -26,7 +26,7 @@ export function MyOrders() {
   const { mainContainerClass } = usePageLayout();
   const queryClient = useQueryClient();
 
-  // Fetch user profile
+  // Fetch user profile with operation_account_id
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
@@ -37,7 +37,8 @@ export function MyOrders() {
         .single();
       
       if (error) throw error;
-      return data;
+      // Type assertion to include operation_account_id until types are updated
+      return data as typeof data & { operation_account_id?: string };
     },
     enabled: !!user?.id,
   });
