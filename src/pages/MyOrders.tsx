@@ -132,6 +132,11 @@ export function MyOrders() {
   // Take order mutation
   const takeOrderMutation = useMutation({
     mutationFn: async (order: any) => {
+      // Check if user has operation_account_id configured
+      if (!profile?.operation_account_id) {
+        throw new Error("Peça ao admin o cadastro da plataforma ops");
+      }
+
       // Check if user has reached the concurrent order limit
       const currentOrderCount = myOrders?.length || 0;
       const maxConcurrentOrders = userLimit?.concurrent_order_limit || 2;
@@ -152,7 +157,7 @@ export function MyOrders() {
       
       if (error) throw error;
 
-      // Step 2: Call n8n webhook
+      // Step 2: Call n8n webhook with operation_account_id
       try {
         const webhookResponse = await fetch(
           "https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138",
@@ -163,7 +168,7 @@ export function MyOrders() {
             },
             body: JSON.stringify({
               translationOrderId: order.id,
-              AccountId: user?.id,
+              AccountId: profile.operation_account_id, // Using operation_account_id instead of user.id
             }),
           }
         );
