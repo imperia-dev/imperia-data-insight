@@ -224,7 +224,13 @@ export function MyOrders() {
           description: (
             <div className="space-y-2">
               <p>Pedido atribuído e integrado com sucesso!</p>
-              <p className="text-xs text-muted-foreground">Link: {result.serviceOrderLink}</p>
+              <Button
+                size="sm"
+                className="mt-2"
+                onClick={() => window.open(result.serviceOrderLink, '_blank')}
+              >
+                Abrir na Operação
+              </Button>
             </div>
           ),
         });
