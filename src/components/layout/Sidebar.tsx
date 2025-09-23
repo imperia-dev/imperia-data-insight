@@ -22,12 +22,21 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Home,
   ClipboardList,
   UserCheck,
   Send,
   Receipt,
   Link,
+  Activity,
+  Briefcase,
+  Calculator,
+  ShoppingCart,
+  Megaphone,
+  Code,
+  FileBarChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,168 +47,234 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface SidebarProps {
   userRole: string;
 }
 
-const navigation = [
+interface NavigationItem {
+  title: string;
+  icon: any;
+  href: string;
+  roles: string[];
+  badge?: boolean;
+}
+
+interface NavigationGroup {
+  title: string;
+  icon: any;
+  items: NavigationItem[];
+  roles: string[];
+}
+
+const navigationGroups: NavigationGroup[] = [
+  {
+    title: "Financeiro",
+    icon: DollarSign,
+    roles: ["owner", "master", "admin"],
+    items: [
+      {
+        title: "Dashboard Financeiro",
+        icon: TrendingUp,
+        href: "/dashboard-financeiro",
+        roles: ["owner"],
+      },
+      {
+        title: "Fechamento Receitas",
+        icon: FileText,
+        href: "/fechamento",
+        roles: ["owner"],
+      },
+      {
+        title: "Fechamento Despesas",
+        icon: FileSpreadsheet,
+        href: "/fechamento-despesas",
+        roles: ["owner"],
+      },
+      {
+        title: "Solicitação de Pagamento",
+        icon: Send,
+        href: "/payment-request",
+        roles: ["owner"],
+      },
+      {
+        title: "Comprovantes de Pagamento",
+        icon: Receipt,
+        href: "/payment-receipts",
+        roles: ["owner"],
+      },
+      {
+        title: "Integração BTG",
+        icon: Link,
+        href: "/btg-integration",
+        roles: ["owner", "master", "admin"],
+      },
+    ],
+  },
+  {
+    title: "Operação",
+    icon: Activity,
+    roles: ["owner", "master", "admin", "operation"],
+    items: [
+      {
+        title: "Dashboard Operação",
+        icon: LayoutDashboard,
+        href: "/dashboard-operacao",
+        roles: ["owner", "master", "admin"],
+      },
+      {
+        title: "Meus Pedidos",
+        icon: Package,
+        href: "/my-orders",
+        roles: ["owner", "operation"],
+      },
+      {
+        title: "Pedidos",
+        icon: FileText,
+        href: "/orders",
+        roles: ["owner", "master", "admin", "operation"],
+      },
+      {
+        title: "Pedidos Entregues",
+        icon: CheckCircle,
+        href: "/delivered-orders",
+        roles: ["owner", "operation", "admin", "master"],
+      },
+      {
+        title: "Pendências",
+        icon: AlertCircle,
+        href: "/pendencies",
+        roles: ["owner", "master", "admin"],
+      },
+      {
+        title: "Produtividade",
+        icon: TrendingUp,
+        href: "/productivity",
+        roles: ["owner", "master", "admin", "operation"],
+      },
+      {
+        title: "Controle de Demanda",
+        icon: ClipboardList,
+        href: "/demand-control",
+        roles: ["owner", "master"],
+      },
+    ],
+  },
+  {
+    title: "Custos",
+    icon: Calculator,
+    roles: ["owner"],
+    items: [
+      {
+        title: "Custos - Empresa",
+        icon: DollarSign,
+        href: "/company-costs",
+        roles: ["owner"],
+      },
+      {
+        title: "Custos - P. Serviço",
+        icon: Users,
+        href: "/service-provider-costs",
+        roles: ["owner"],
+      },
+    ],
+  },
+  {
+    title: "Dashboards",
+    icon: BarChart3,
+    roles: ["owner"],
+    items: [
+      {
+        title: "Dashboard Comercial",
+        icon: ShoppingCart,
+        href: "/dashboard-comercial",
+        roles: ["owner"],
+      },
+      {
+        title: "Dashboard Marketing",
+        icon: Megaphone,
+        href: "/dashboard-marketing",
+        roles: ["owner"],
+      },
+      {
+        title: "Dashboard Tech",
+        icon: Code,
+        href: "/dashboard-tech",
+        roles: ["owner"],
+      },
+    ],
+  },
+  {
+    title: "Administração",
+    icon: Briefcase,
+    roles: ["owner", "master", "admin", "operation"],
+    items: [
+      {
+        title: "Documentos",
+        icon: FileText,
+        href: "/documents",
+        roles: ["owner", "master", "admin"],
+      },
+      {
+        title: "Equipe",
+        icon: Users,
+        href: "/team",
+        roles: ["owner", "master", "admin"],
+      },
+      {
+        title: "Carteira",
+        icon: Wallet,
+        href: "/wallet",
+        roles: ["owner", "master", "operation"],
+      },
+      {
+        title: "Calendário",
+        icon: Calendar,
+        href: "/calendar",
+        roles: ["owner", "master", "admin"],
+      },
+      {
+        title: "Timesheet",
+        icon: Clock,
+        href: "/timesheet",
+        roles: ["owner", "master", "admin"],
+      },
+    ],
+  },
+  {
+    title: "Relatórios & Analytics",
+    icon: FileBarChart,
+    roles: ["owner", "master", "admin"],
+    items: [
+      {
+        title: "Relatórios",
+        icon: BarChart3,
+        href: "/reports",
+        roles: ["owner", "master", "admin"],
+      },
+      {
+        title: "AI Analytics",
+        icon: Sparkles,
+        href: "/ai-analytics",
+        roles: ["owner", "master"],
+      },
+    ],
+  },
+];
+
+// Itens que ficam fora dos grupos (sempre visíveis)
+const standaloneItems: NavigationItem[] = [
   {
     title: "Aprovação de Cadastros",
     icon: UserCheck,
     href: "/registration-approvals",
     roles: ["owner"],
     badge: true,
-  },
-  {
-    title: "Dashboard Operação",
-    icon: LayoutDashboard,
-    href: "/dashboard-operacao",
-    roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "Dashboard Financeiro",
-    icon: TrendingUp,
-    href: "/dashboard-financeiro",
-    roles: ["owner"],
-  },
-  {
-    title: "Fechamento Receitas",
-    icon: FileText,
-    href: "/fechamento",
-    roles: ["owner"],
-  },
-  {
-    title: "Fechamento Despesas",
-    icon: FileSpreadsheet,
-    href: "/fechamento-despesas",
-    roles: ["owner"],
-  },
-  {
-    title: "Solicitação de Pagamento",
-    icon: Send,
-    href: "/payment-request",
-    roles: ["owner"],
-  },
-  {
-    title: "Comprovantes de Pagamento",
-    icon: Receipt,
-    href: "/payment-receipts",
-    roles: ["owner"],
-  },
-  {
-    title: "Integração BTG",
-    icon: Link,
-    href: "/btg-integration",
-    roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "Dashboard Comercial",
-    icon: TrendingUp,
-    href: "/dashboard-comercial",
-    roles: ["owner"],
-  },
-  {
-    title: "Dashboard Marketing",
-    icon: TrendingUp,
-    href: "/dashboard-marketing",
-    roles: ["owner"],
-  },
-  {
-    title: "Dashboard Tech",
-    icon: TrendingUp,
-    href: "/dashboard-tech",
-    roles: ["owner"],
-  },
-  {
-    title: "Pedidos",
-    icon: FileText,
-    href: "/orders",
-    roles: ["owner", "master"],
-  },
-  {
-    title: "Pedidos Entregues",
-    icon: CheckCircle,
-    href: "/delivered-orders",
-    roles: ["owner", "operation", "admin", "master"],
-  },
-  {
-    title: "Pendências",
-    icon: AlertCircle,
-    href: "/pendencies",
-    roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "Produtividade",
-    icon: TrendingUp,
-    href: "/productivity",
-    roles: ["owner", "master", "admin", "operation"],
-  },
-  {
-    title: "Custos - Empresa",
-    icon: DollarSign,
-    href: "/company-costs",
-    roles: ["owner"],
-  },
-  {
-    title: "Custos - P. Serviço",
-    icon: Users,
-    href: "/service-provider-costs",
-    roles: ["owner"],
-  },
-  {
-    title: "Carteira",
-    icon: Wallet,
-    href: "/wallet",
-    roles: ["owner", "master", "operation"],
-  },
-  {
-    title: "Documentos",
-    icon: FileText,
-    href: "/documents",
-    roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "Equipe",
-    icon: Users,
-    href: "/team",
-    roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "Controle de Demanda",
-    icon: ClipboardList,
-    href: "/demand-control",
-    roles: ["owner", "master"],
-  },
-  {
-    title: "Meus Pedidos",
-    icon: Package,
-    href: "/my-orders",
-    roles: ["owner", "operation"],
-  },
-  {
-    title: "Relatórios",
-    icon: BarChart3,
-    href: "/reports",
-    roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "Calendário",
-    icon: Calendar,
-    href: "/calendar",
-    roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "Timesheet",
-    icon: Clock,
-    href: "/timesheet",
-    roles: ["owner", "master", "admin"],
-  },
-  {
-    title: "AI Analytics",
-    icon: Sparkles,
-    href: "/ai-analytics",
-    roles: ["owner", "master"],
   },
   {
     title: "Configurações",
@@ -213,6 +288,7 @@ export function Sidebar({ userRole }: SidebarProps) {
   const location = useLocation();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const [pendingCount, setPendingCount] = useState(0);
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
 
   useEffect(() => {
     if (userRole === 'owner') {
@@ -227,9 +303,89 @@ export function Sidebar({ userRole }: SidebarProps) {
     }
   }, [userRole]);
 
-  const filteredNavigation = navigation.filter((item) =>
+  // Auto-expand group if current route is inside it
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const activeGroups = navigationGroups
+      .filter(group => 
+        group.items.some(item => item.href === currentPath)
+      )
+      .map(group => group.title);
+    
+    if (activeGroups.length > 0) {
+      setOpenGroups(activeGroups);
+    }
+  }, [location.pathname]);
+
+  const toggleGroup = (groupTitle: string) => {
+    setOpenGroups(prev =>
+      prev.includes(groupTitle)
+        ? prev.filter(g => g !== groupTitle)
+        : [...prev, groupTitle]
+    );
+  };
+
+  const filteredGroups = navigationGroups
+    .filter(group => 
+      userRole ? group.roles.includes(userRole.toLowerCase()) : false
+    )
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item =>
+        userRole ? item.roles.includes(userRole.toLowerCase()) : false
+      )
+    }))
+    .filter(group => group.items.length > 0);
+
+  const filteredStandaloneItems = standaloneItems.filter((item) =>
     userRole ? item.roles.includes(userRole.toLowerCase()) : false
   );
+
+  const renderNavItem = (item: NavigationItem, isNested: boolean = false) => {
+    const isActive = location.pathname === item.href;
+    const Icon = item.icon;
+
+    const navLink = (
+      <NavLink
+        key={item.href}
+        to={item.href}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all relative",
+          isActive
+            ? "bg-primary text-white shadow-md"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          isCollapsed && "justify-center px-2",
+          isNested && !isCollapsed && "ml-6"
+        )}
+      >
+        <Icon className={cn("h-4 w-4 flex-shrink-0", isCollapsed ? "h-5 w-5" : "")} />
+        {!isCollapsed && <span className="truncate">{item.title}</span>}
+        {item.badge && item.href === '/registration-approvals' && pendingCount > 0 && !isCollapsed && (
+          <Badge className="ml-auto text-xs" variant="destructive">
+            {pendingCount}
+          </Badge>
+        )}
+      </NavLink>
+    );
+
+    if (isCollapsed) {
+      return (
+        <Tooltip key={item.href} delayDuration={0}>
+          <TooltipTrigger asChild>
+            {navLink}
+          </TooltipTrigger>
+          <TooltipContent side="right" className="font-medium">
+            {item.title}
+            {item.badge && item.href === '/registration-approvals' && pendingCount > 0 && (
+              <span className="ml-2 text-destructive">({pendingCount})</span>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return navLink;
+  };
 
   return (
     <TooltipProvider>
@@ -259,48 +415,71 @@ export function Sidebar({ userRole }: SidebarProps) {
 
         {/* Navigation with Scroll */}
         <ScrollArea className="flex-1">
-          <nav className="space-y-1 px-2 py-4">
-            {filteredNavigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              const Icon = item.icon;
+          <nav className="px-2 py-4">
+            {/* Standalone items first (Aprovação de Cadastros) */}
+            {filteredStandaloneItems
+              .filter(item => item.href === '/registration-approvals')
+              .map(item => (
+                <div key={item.href} className="mb-4">
+                  {renderNavItem(item)}
+                </div>
+              ))}
 
-              const navLink = (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative",
-                    isActive
-                      ? "bg-primary text-white shadow-md"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    isCollapsed && "justify-center px-2"
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4", isCollapsed ? "h-5 w-5" : "")} />
-                  {!isCollapsed && <span>{item.title}</span>}
-                  {item.badge && item.href === '/registration-approvals' && pendingCount > 0 && (
-                    <Badge className="ml-auto text-xs" variant="destructive">
-                      {pendingCount}
-                    </Badge>
-                  )}
-                </NavLink>
-              );
+            {/* Navigation Groups */}
+            <div className="space-y-4">
+              {filteredGroups.map((group) => {
+                const isOpen = openGroups.includes(group.title);
+                const GroupIcon = group.icon;
+                const hasActiveItem = group.items.some(item => location.pathname === item.href);
 
-              if (isCollapsed) {
+                if (isCollapsed) {
+                  // In collapsed mode, show items directly without grouping
+                  return (
+                    <div key={group.title} className="space-y-1">
+                      {group.items.map(item => renderNavItem(item))}
+                    </div>
+                  );
+                }
+
                 return (
-                  <Tooltip key={item.href} delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      {navLink}
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="font-medium">
-                      {item.title}
-                    </TooltipContent>
-                  </Tooltip>
+                  <Collapsible
+                    key={group.title}
+                    open={isOpen}
+                    onOpenChange={() => toggleGroup(group.title)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-between px-3 py-2 text-sm font-medium",
+                          hasActiveItem && "text-primary"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <GroupIcon className="h-4 w-4" />
+                          <span>{group.title}</span>
+                        </div>
+                        {isOpen ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-1 mt-1">
+                      {group.items.map(item => renderNavItem(item, true))}
+                    </CollapsibleContent>
+                  </Collapsible>
                 );
-              }
+              })}
+            </div>
 
-              return navLink;
-            })}
+            {/* Other standalone items (Configurações) */}
+            <div className="mt-4 pt-4 border-t">
+              {filteredStandaloneItems
+                .filter(item => item.href !== '/registration-approvals')
+                .map(item => renderNavItem(item))}
+            </div>
           </nav>
         </ScrollArea>
 
