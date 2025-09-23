@@ -50,6 +50,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { PendencyFilters } from "@/components/pendencies/PendencyFilters";
 
 
 export default function Pendencies() {
@@ -75,11 +76,13 @@ export default function Pendencies() {
   // Data states
   const [orders, setOrders] = useState<any[]>([]);
   const [pendencies, setPendencies] = useState<any[]>([]);
+  const [filteredPendencies, setFilteredPendencies] = useState<any[]>([]);
   const [openOrderSearch, setOpenOrderSearch] = useState(false);
   const [orderSearchValue, setOrderSearchValue] = useState("");
   const [editingTreatment, setEditingTreatment] = useState<{ [key: string]: string }>({});
   const [editingPendency, setEditingPendency] = useState<any | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [filters, setFilters] = useState<any>(null);
 
   const errorTypes = [
     { value: "nao_e_erro", label: "Não é erro" },
@@ -159,6 +162,7 @@ export default function Pendencies() {
 
       if (error) throw error;
       setPendencies(data || []);
+      setFilteredPendencies(data || []);
     } catch (error) {
       console.error('Error fetching pendencies:', error);
       toast({
@@ -167,6 +171,59 @@ export default function Pendencies() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleApplyFilters = (appliedFilters: any) => {
+    setFilters(appliedFilters);
+    
+    let filtered = [...pendencies];
+
+    // Filter by status
+    if (appliedFilters.status) {
+      filtered = filtered.filter(p => p.status === appliedFilters.status);
+    }
+
+    // Filter by error type
+    if (appliedFilters.errorType) {
+      filtered = filtered.filter(p => p.error_type === appliedFilters.errorType);
+    }
+
+    // Filter by order number
+    if (appliedFilters.orderNumber) {
+      filtered = filtered.filter(p => 
+        p.orders?.order_number?.toLowerCase().includes(appliedFilters.orderNumber.toLowerCase())
+      );
+    }
+
+    // Filter by C4U ID
+    if (appliedFilters.c4uId) {
+      filtered = filtered.filter(p => 
+        p.c4u_id?.toLowerCase().includes(appliedFilters.c4uId.toLowerCase())
+      );
+    }
+
+    // Filter by date range
+    if (appliedFilters.startDate) {
+      filtered = filtered.filter(p => 
+        new Date(p.created_at) >= appliedFilters.startDate
+      );
+    }
+    if (appliedFilters.endDate) {
+      const endOfDay = new Date(appliedFilters.endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(p => 
+        new Date(p.created_at) <= endOfDay
+      );
+    }
+
+    setFilteredPendencies(filtered);
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setFilters(null);
+    setFilteredPendencies(pendencies);
+    setCurrentPage(1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -391,10 +448,10 @@ export default function Pendencies() {
   };
 
   // Calculate pagination
-  const totalPages = Math.ceil((pendencies?.length || 0) / itemsPerPage);
+  const totalPages = Math.ceil((filteredPendencies?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedPendencies = pendencies?.slice(startIndex, endIndex);
+  const paginatedPendencies = filteredPendencies?.slice(startIndex, endIndex);
 
   const handlePreviousPage = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
@@ -424,6 +481,12 @@ export default function Pendencies() {
               Gerencie as pendências e erros dos pedidos
             </p>
           </div>
+
+          {/* Filters */}
+          <PendencyFilters 
+            onApplyFilters={handleApplyFilters}
+            onClearFilters={handleClearFilters}
+          />
 
           {/* Form Card */}
           <Card className="p-6 mb-8">
@@ -599,7 +662,7 @@ export default function Pendencies() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                   {pendencies.length === 0 ? (
+                   {filteredPendencies.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center text-muted-foreground">
                         Nenhuma pendência registrada
