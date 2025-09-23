@@ -205,7 +205,7 @@ const navigation = [
     title: "Configurações",
     icon: Settings,
     href: "/settings",
-    roles: ["owner", "master", "admin"],
+    roles: ["owner", "master", "admin", "operation"],
   },
 ];
 
