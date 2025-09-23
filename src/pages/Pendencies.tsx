@@ -179,12 +179,12 @@ export default function Pendencies() {
     let filtered = [...pendencies];
 
     // Filter by status
-    if (appliedFilters.status) {
+    if (appliedFilters.status && appliedFilters.status !== 'all') {
       filtered = filtered.filter(p => p.status === appliedFilters.status);
     }
 
     // Filter by error type
-    if (appliedFilters.errorType) {
+    if (appliedFilters.errorType && appliedFilters.errorType !== 'all') {
       filtered = filtered.filter(p => p.error_type === appliedFilters.errorType);
     }
 

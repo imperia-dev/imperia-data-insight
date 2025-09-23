@@ -28,8 +28,8 @@ interface PendencyFiltersProps {
 }
 
 export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFiltersProps) {
-  const [status, setStatus] = useState("");
-  const [errorType, setErrorType] = useState("");
+  const [status, setStatus] = useState("all");
+  const [errorType, setErrorType] = useState("all");
   const [orderNumber, setOrderNumber] = useState("");
   const [c4uId, setC4uId] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>();
@@ -71,8 +71,8 @@ export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFilt
   };
 
   const handleClearFilters = () => {
-    setStatus("");
-    setErrorType("");
+    setStatus("all");
+    setErrorType("all");
     setOrderNumber("");
     setC4uId("");
     setStartDate(undefined);
@@ -103,7 +103,7 @@ export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFilt
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="resolved">Resolvido</SelectItem>
             </SelectContent>
@@ -117,7 +117,7 @@ export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFilt
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               {errorTypes.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
                   {type.label}
