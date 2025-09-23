@@ -1169,6 +1169,7 @@ export type Database = {
           id: string
           is_urgent: boolean | null
           order_number: string
+          service_order_link: string | null
           status_order: string
           updated_at: string
           urgent_document_count: number | null
@@ -1188,6 +1189,7 @@ export type Database = {
           id?: string
           is_urgent?: boolean | null
           order_number: string
+          service_order_link?: string | null
           status_order?: string
           updated_at?: string
           urgent_document_count?: number | null
@@ -1207,6 +1209,7 @@ export type Database = {
           id?: string
           is_urgent?: boolean | null
           order_number?: string
+          service_order_link?: string | null
           status_order?: string
           updated_at?: string
           urgent_document_count?: number | null

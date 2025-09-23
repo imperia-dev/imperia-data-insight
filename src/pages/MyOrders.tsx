@@ -146,13 +146,14 @@ export function MyOrders() {
         throw new Error(`Você já possui ${currentOrderCount} pedido(s) em andamento. Finalize um pedido antes de pegar outro.`);
       }
 
-      // Step 1: Update order in Supabase
+      // Step 1: Update order in Supabase with operation account ID
       const { error } = await supabase
         .from("orders")
         .update({
           assigned_to: user?.id,
           assigned_at: new Date().toISOString(),
           status_order: "in_progress",
+          account_ID: profile.operation_account_id, // Save the operation account ID
         })
         .eq("id", order.id);
       
@@ -177,12 +178,12 @@ export function MyOrders() {
         if (webhookResponse.ok) {
           const responseData = await webhookResponse.json();
           
-          // Step 3: Save the ServiceOrderLink to account_ID field
+          // Step 3: Save the ServiceOrderLink to service_order_link field
           if (responseData.ServiceOrderLink) {
             const { error: updateError } = await supabase
               .from("orders")
               .update({
-                account_ID: responseData.ServiceOrderLink,
+                service_order_link: responseData.ServiceOrderLink, // Save to new column
               } as any)
               .eq("id", order.id);
 
