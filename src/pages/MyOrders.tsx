@@ -161,6 +161,21 @@ export function MyOrders() {
 
       // Step 2: Call n8n webhook with operation_account_id
       try {
+        // Prepare payload with correct field names and values
+        const payload = {
+          translationOrderId: order.order_number, // Use order_number (fragment) instead of full UUID
+          AccountId: profile.operation_account_id,
+        };
+
+        // Detailed logging for debugging
+        console.log('n8n payload:', payload);
+        
+        // Temporary toast for debugging
+        toast({
+          title: "Debug: Enviando para n8n",
+          description: `translationOrderId=${order.order_number}, AccountId=${profile.operation_account_id}`,
+        });
+
         const webhookResponse = await fetch(
           "https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138",
           {
@@ -168,37 +183,79 @@ export function MyOrders() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              translationOrderId: order.id,
-              AccountId: profile.operation_account_id, // Using operation_account_id instead of user.id
-            }),
+            body: JSON.stringify(payload),
           }
         );
 
-        if (webhookResponse.ok) {
-          const responseData = await webhookResponse.json();
-          
-          // Step 3: Save the ServiceOrderLink to service_order_link field
-          if (responseData.ServiceOrderLink) {
-            const { error: updateError } = await supabase
-              .from("orders")
-              .update({
-                service_order_link: responseData.ServiceOrderLink, // Save to new column
-              } as any)
-              .eq("id", order.id);
+        // Get response text first to handle empty responses
+        const responseText = await webhookResponse.text();
+        console.log('n8n response status:', webhookResponse.status);
+        console.log('n8n response text:', responseText);
 
-            if (updateError) {
-              console.error("Erro ao salvar link de integração:", updateError);
-              // Don't throw, just log - the order was already assigned successfully
+        let responseData = null;
+        if (responseText && responseText.trim()) {
+          try {
+            responseData = JSON.parse(responseText);
+            
+            // Check for known n8n errors
+            if (responseData.error) {
+              console.error('n8n retornou erro:', responseData.error);
+              if (responseData.error === 'INVALID_INPUT') {
+                console.error('Dados inválidos enviados ao sistema de operação');
+                toast({
+                  title: "Erro de Validação",
+                  description: "Dados inválidos enviados ao sistema de operação. Verifique o account_ID.",
+                  variant: "destructive",
+                });
+              } else if (responseData.error === 'NOT_FOUND') {
+                console.error('Pedido não encontrado no sistema de operação');
+                toast({
+                  title: "Pedido Não Encontrado",
+                  description: `Pedido ${order.order_number} não encontrado no sistema de operação.`,
+                  variant: "destructive",
+                });
+              }
+              // Continue with partial success - order was assigned
+              return { 
+                success: true, 
+                partialSuccess: true,
+                error: responseData.error
+              };
             }
+            
+            // Step 3: Save the ServiceOrderLink to service_order_link field
+            if (responseData.ServiceOrderLink || responseData.Id) {
+              const linkToSave = responseData.ServiceOrderLink || responseData.Id;
+              
+              const { error: updateError } = await supabase
+                .from("orders")
+                .update({
+                  service_order_link: linkToSave,
+                } as any)
+                .eq("id", order.id);
 
-            return { 
-              success: true, 
-              serviceOrderLink: responseData.ServiceOrderLink 
-            };
+              if (updateError) {
+                console.error("Erro ao salvar link de integração:", updateError);
+                // Don't throw, just log - the order was already assigned successfully
+              } else {
+                console.log('ServiceOrderLink salvo com sucesso:', linkToSave);
+              }
+
+              return { 
+                success: true, 
+                serviceOrderLink: linkToSave 
+              };
+            }
+          } catch (parseError) {
+            console.error('Erro ao fazer parse do JSON:', parseError);
+            console.log('Resposta recebida:', responseText);
           }
         } else {
-          console.error("Webhook retornou erro:", webhookResponse.status);
+          console.warn('Webhook retornou resposta vazia - pedido atribuído mas sem link');
+        }
+
+        if (!webhookResponse.ok) {
+          console.error("Webhook retornou erro HTTP:", webhookResponse.status);
         }
       } catch (webhookError) {
         console.error("Erro ao chamar webhook:", webhookError);
