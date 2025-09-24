@@ -38,7 +38,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit2, X } from "lucide-react";
@@ -51,6 +51,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PendencyFilters } from "@/components/pendencies/PendencyFilters";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 
 export default function Pendencies() {
@@ -72,6 +75,7 @@ export default function Pendencies() {
   const [errorType, setErrorType] = useState("");
   const [errorDocumentCount, setErrorDocumentCount] = useState("");
   const [isOldOrder, setIsOldOrder] = useState(false);
+  const [createdAt, setCreatedAt] = useState<Date | undefined>(undefined);
   
   // Data states
   const [orders, setOrders] = useState<any[]>([]);
@@ -247,7 +251,7 @@ export default function Pendencies() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('pendencies').insert({
+      const insertData: any = {
         order_id: isOldOrder ? null : selectedOrderId, // Set order_id to NULL if it's an old order
         old_order_text_id: isOldOrder ? oldOrderId : null, // Save oldOrderId in the new column
         c4u_id: c4uId,
@@ -255,7 +259,14 @@ export default function Pendencies() {
         error_type: errorType,
         error_document_count: parseInt(errorDocumentCount),
         created_by: user?.id,
-      });
+      };
+
+      // If a custom creation date is selected, add it to the insert data
+      if (createdAt) {
+        insertData.created_at = createdAt.toISOString();
+      }
+
+      const { error } = await supabase.from('pendencies').insert(insertData);
 
       if (error) throw error;
 
@@ -272,6 +283,7 @@ export default function Pendencies() {
       setErrorDocumentCount("");
       setIsOldOrder(false); // Reset isOldOrder
       setOldOrderId(""); // Reset oldOrderId
+      setCreatedAt(undefined); // Reset creation date
       
       // Refresh data
       fetchPendencies();
@@ -385,6 +397,7 @@ export default function Pendencies() {
       ...pendency,
       order_id: pendency.order_id || '',
       old_order_text_id: pendency.old_order_text_id || '',
+      created_at: pendency.created_at,
     });
     setEditModalOpen(true);
   };
@@ -393,15 +406,22 @@ export default function Pendencies() {
     if (!editingPendency) return;
 
     try {
+      const updateData: any = {
+        c4u_id: editingPendency.c4u_id,
+        description: editingPendency.description,
+        error_type: editingPendency.error_type,
+        error_document_count: editingPendency.error_document_count,
+        treatment: editingPendency.treatment,
+      };
+
+      // If created_at was edited, update it
+      if (editingPendency.created_at) {
+        updateData.created_at = editingPendency.created_at;
+      }
+
       const { error } = await supabase
         .from('pendencies')
-        .update({
-          c4u_id: editingPendency.c4u_id,
-          description: editingPendency.description,
-          error_type: editingPendency.error_type,
-          error_document_count: editingPendency.error_document_count,
-          treatment: editingPendency.treatment,
-        })
+        .update(updateData)
         .eq('id', editingPendency.id);
 
       if (error) throw error;
@@ -620,6 +640,38 @@ export default function Pendencies() {
                     placeholder="Digite a quantidade"
                     min="1"
                   />
+                </div>
+
+                {/* Creation Date */}
+                <div className="space-y-2">
+                  <Label htmlFor="created_at">Data de Criação (Opcional)</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !createdAt && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {createdAt ? format(createdAt, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecionar data</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={createdAt}
+                        onSelect={setCreatedAt}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground">
+                    Se não selecionada, a data atual será usada
+                  </p>
                 </div>
               </div>
 
@@ -875,6 +927,40 @@ export default function Pendencies() {
                       error_document_count: parseInt(e.target.value)
                     })}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Data de Criação</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !editingPendency.created_at && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {editingPendency.created_at 
+                          ? format(new Date(editingPendency.created_at), "dd/MM/yyyy", { locale: ptBR }) 
+                          : <span>Selecionar data</span>
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={editingPendency.created_at ? new Date(editingPendency.created_at) : undefined}
+                        onSelect={(date) => setEditingPendency({
+                          ...editingPendency,
+                          created_at: date ? date.toISOString() : new Date().toISOString()
+                        })}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
               
