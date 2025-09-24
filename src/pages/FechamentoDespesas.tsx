@@ -446,55 +446,56 @@ function FechamentoDespesasContent() {
       <Sidebar userRole={userRole} />
       <Header userName={userName} userRole={userRole} />
       <main className={mainContainerClass}>
-        <div className="container mx-auto px-4 py-6 max-w-7xl">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold">Fechamento de Despesas</h1>
-              <p className="text-muted-foreground mt-2">
-                Consolidação e fechamento mensal de despesas
-              </p>
+        <div className="w-full px-6 py-6">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold">Fechamento de Despesas</h1>
+                <p className="text-muted-foreground mt-2">
+                  Consolidação e fechamento mensal de despesas
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setHistoryOpen(!historyOpen)}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Histórico
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setHistoryOpen(!historyOpen)}
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Histórico
-              </Button>
-            </div>
-          </div>
 
-          <Tabs value={currentStep} onValueChange={(v) => setCurrentStep(v as any)}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="selection">
-                <Calendar className="w-4 h-4 mr-2" />
-                Seleção
-              </TabsTrigger>
-              <TabsTrigger value="validation" disabled={!selectedMonth}>
-                <CheckSquare className="w-4 h-4 mr-2" />
-                Validação
-              </TabsTrigger>
-              <TabsTrigger value="review" disabled={validationErrors.length > 0}>
-                <FileText className="w-4 h-4 mr-2" />
-                Revisão
-              </TabsTrigger>
-              <TabsTrigger value="completed" disabled={!currentProtocol}>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Concluído
-              </TabsTrigger>
-            </TabsList>
+            <Tabs value={currentStep} onValueChange={(v) => setCurrentStep(v as any)} className="w-full">
+              <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsTrigger value="selection">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Seleção
+                </TabsTrigger>
+                <TabsTrigger value="validation" disabled={!selectedMonth}>
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  Validação
+                </TabsTrigger>
+                <TabsTrigger value="review" disabled={validationErrors.length > 0}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Revisão
+                </TabsTrigger>
+                <TabsTrigger value="completed" disabled={!currentProtocol}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Concluído
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="selection" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Selecionar Período de Competência</CardTitle>
-                  <CardDescription>
-                    Escolha o mês para realizar o fechamento das despesas
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid gap-6 max-w-md">
+              <TabsContent value="selection" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Selecionar Período de Competência</CardTitle>
+                    <CardDescription>
+                      Escolha o mês para realizar o fechamento das despesas
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-6 max-w-2xl mx-auto">
                       <div className="space-y-2">
                         <Label htmlFor="month-select">Mês de Competência</Label>
                         <input
@@ -524,9 +525,9 @@ function FechamentoDespesasContent() {
                         )}
                       </Button>
                     </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
             <TabsContent value="validation" className="space-y-4">
               <Card className="w-full">
@@ -865,7 +866,7 @@ function FechamentoDespesasContent() {
             </TabsContent>
           </Tabs>
 
-          <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+          <Collapsible open={historyOpen} onOpenChange={setHistoryOpen} className="mt-6">
             <CollapsibleTrigger asChild>
               <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
                 <CardHeader>
@@ -879,67 +880,70 @@ function FechamentoDespesasContent() {
             <CollapsibleContent>
               <Card className="mt-2">
                 <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Protocolo</TableHead>
-                        <TableHead>Competência</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Data Criação</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {protocols.map((protocol) => (
-                        <TableRow key={protocol.id}>
-                          <TableCell className="font-medium">
-                            {protocol.protocol_number}
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(protocol.competence_month), 'MMM/yyyy', { locale: ptBR })}
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(protocol.status)}
-                          </TableCell>
-                          <TableCell>
-                            {formatCurrency(protocol.total_amount)}
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(protocol.created_at), 'dd/MM/yyyy')}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              {protocol.status === 'draft' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleApproveProtocol(protocol.id)}
-                                >
-                                  Aprovar
-                                </Button>
-                              )}
-                              {protocol.status === 'approved' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleCloseProtocol(protocol.id)}
-                                >
-                                  Fechar
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Competência</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Total</TableHead>
+                          <TableHead>Data Criação</TableHead>
+                          <TableHead>Ações</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {protocols.map((protocol) => (
+                          <TableRow key={protocol.id}>
+                            <TableCell className="font-medium">
+                              {protocol.protocol_number}
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(protocol.competence_month), 'MMM/yyyy', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(protocol.status)}
+                            </TableCell>
+                            <TableCell>
+                              {formatCurrency(protocol.total_amount)}
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(protocol.created_at), 'dd/MM/yyyy')}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                {protocol.status === 'draft' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleApproveProtocol(protocol.id)}
+                                  >
+                                    Aprovar
+                                  </Button>
+                                )}
+                                {protocol.status === 'approved' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleCloseProtocol(protocol.id)}
+                                  >
+                                    Fechar
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </CollapsibleContent>
           </Collapsible>
         </div>
-      </main>
+      </div>
+    </main>
 
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
