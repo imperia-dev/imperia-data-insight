@@ -634,13 +634,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "expense_allocations_expense_id_fkey"
-            columns: ["expense_id"]
-            isOneToOne: false
-            referencedRelation: "service_provider_costs_v"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "expense_allocations_projeto_cliente_id_fkey"
             columns: ["projeto_cliente_id"]
             isOneToOne: false
@@ -2152,30 +2145,6 @@ export type Database = {
         }
         Relationships: []
       }
-      service_provider_costs_v: {
-        Row: {
-          amount: number | null
-          cnpj: string | null
-          competence: string | null
-          cpf: string | null
-          created_at: string | null
-          created_by: string | null
-          days_worked: number | null
-          email: string | null
-          files: string[] | null
-          id: string | null
-          invoice_number: string | null
-          last_sensitive_access: string | null
-          name: string | null
-          phone: string | null
-          pix_key: string | null
-          sensitive_access_count: number | null
-          status: Database["public"]["Enums"]["expense_status"] | null
-          type: string | null
-          updated_at: string | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       approve_user: {
@@ -2266,6 +2235,15 @@ export type Database = {
       verify_mfa_backup_code: {
         Args: { p_code: string }
         Returns: boolean
+      }
+      verify_view_security: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          base_tables_have_rls: boolean
+          has_security_invoker: boolean
+          is_secure: boolean
+          view_name: string
+        }[]
       }
     }
     Enums: {
