@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -33,7 +34,10 @@ import {
   DollarSign,
   FileSpreadsheet,
   CheckSquare,
-  XCircle
+  XCircle,
+  Upload,
+  Paperclip,
+  File
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import * as XLSX from "xlsx";
@@ -83,6 +87,10 @@ function FechamentoDespesasContent() {
   const [currentProtocol, setCurrentProtocol] = useState<ClosingProtocol | null>(null);
   const [notes, setNotes] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [attachFileDialogOpen, setAttachFileDialogOpen] = useState(false);
+  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
   useEffect(() => {
     fetchUserProfile();
@@ -152,13 +160,14 @@ function FechamentoDespesasContent() {
 
   const validateExpenses = (expenseList: ExpenseData[]) => {
     const errors: string[] = [];
+    const expensesWithoutFiles: Array<{id: string, description: string}> = [];
 
     expenseList.forEach(expense => {
       if (!expense.conta_contabil_id) {
         errors.push(`Despesa "${expense.description}" sem conta contábil`);
       }
       if (!expense.files || expense.files.length === 0) {
-        errors.push(`Despesa "${expense.description}" sem documentos anexados`);
+        expensesWithoutFiles.push({id: expense.id, description: expense.description});
       }
     });
 
@@ -167,6 +176,72 @@ function FechamentoDespesasContent() {
     }
 
     setValidationErrors(errors);
+    return expensesWithoutFiles;
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFiles || !selectedExpenseId) return;
+
+    setUploading(true);
+    const uploadedFiles: string[] = [];
+
+    try {
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const fileName = `${Date.now()}-${file.name}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('company-cost-files')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+        
+        uploadedFiles.push(fileName);
+      }
+
+      // Update expense with the uploaded files
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({ files: uploadedFiles })
+        .eq('id', selectedExpenseId);
+
+      if (updateError) throw updateError;
+
+      // Update local expenses state
+      setExpenses(prevExpenses => 
+        prevExpenses.map(exp => 
+          exp.id === selectedExpenseId 
+            ? { ...exp, files: uploadedFiles }
+            : exp
+        )
+      );
+
+      // Re-validate expenses
+      const updatedExpenses = expenses.map(exp => 
+        exp.id === selectedExpenseId 
+          ? { ...exp, files: uploadedFiles }
+          : exp
+      );
+      validateExpenses(updatedExpenses);
+
+      toast({
+        title: "Arquivos anexados com sucesso",
+        description: `${uploadedFiles.length} arquivo(s) foram anexados à despesa.`
+      });
+
+      setAttachFileDialogOpen(false);
+      setSelectedFiles(null);
+      setSelectedExpenseId(null);
+    } catch (error: any) {
+      console.error('Error uploading files:', error);
+      toast({
+        title: "Erro ao anexar arquivos",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const generateProtocolNumber = async (): Promise<string> => {
@@ -467,9 +542,28 @@ function FechamentoDespesasContent() {
                       <AlertCircle className="h-4 w-4" />
                       <AlertTitle>Pendências Encontradas</AlertTitle>
                       <AlertDescription>
-                        <ul className="mt-2 space-y-1 list-disc pl-5">
+                        <ul className="mt-2 space-y-2">
                           {validationErrors.map((error, index) => (
-                            <li key={index}>{error}</li>
+                            <li key={index} className="flex items-center justify-between">
+                              <span>{error}</span>
+                              {error.includes("sem documentos anexados") && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const expenseDesc = error.match(/Despesa "(.+)" sem/)?.[1];
+                                    const expense = expenses.find(e => e.description === expenseDesc);
+                                    if (expense) {
+                                      setSelectedExpenseId(expense.id);
+                                      setAttachFileDialogOpen(true);
+                                    }
+                                  }}
+                                >
+                                  <Paperclip className="w-3 h-3 mr-1" />
+                                  Anexar
+                                </Button>
+                              )}
+                            </li>
                           ))}
                         </ul>
                       </AlertDescription>
@@ -485,18 +579,57 @@ function FechamentoDespesasContent() {
                   )}
 
                   {expenses.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Total de Despesas</span>
-                        <Badge>{expenses.length}</Badge>
+                    <>
+                      <div className="mt-4 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Total de Despesas</span>
+                          <Badge>{expenses.length}</Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Valor Total</span>
+                          <span className="font-semibold">
+                            {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0))}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Valor Total</span>
-                        <span className="font-semibold">
-                          {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0))}
-                        </span>
+
+                      {/* Lista de despesas com status de anexo */}
+                      <div className="border rounded-lg p-4 space-y-2">
+                        <h4 className="font-semibold text-sm mb-2">Status dos Documentos</h4>
+                        <div className="max-h-60 overflow-y-auto space-y-1">
+                          {expenses.map((expense) => (
+                            <div key={expense.id} className="flex items-center justify-between text-sm py-1">
+                              <span className="truncate flex-1 mr-2">{expense.description}</span>
+                              <div className="flex items-center gap-2">
+                                {expense.files && expense.files.length > 0 ? (
+                                  <Badge variant="outline" className="text-green-600">
+                                    <File className="w-3 h-3 mr-1" />
+                                    {expense.files.length} arquivo(s)
+                                  </Badge>
+                                ) : (
+                                  <>
+                                    <Badge variant="destructive">
+                                      <XCircle className="w-3 h-3 mr-1" />
+                                      Sem anexos
+                                    </Badge>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setSelectedExpenseId(expense.id);
+                                        setAttachFileDialogOpen(true);
+                                      }}
+                                    >
+                                      <Upload className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
 
                   {validationErrors.length === 0 && expenses.length > 0 && (
@@ -837,6 +970,75 @@ function FechamentoDespesasContent() {
             </Button>
             <Button onClick={handleCreateProtocol} disabled={loading}>
               {loading ? "Gerando..." : "Confirmar e Gerar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para anexar arquivos */}
+      <Dialog open={attachFileDialogOpen} onOpenChange={setAttachFileDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Anexar Documentos</DialogTitle>
+            <DialogDescription>
+              Selecione os arquivos para anexar à despesa selecionada
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="file-upload">Arquivos</Label>
+              <Input
+                id="file-upload"
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                onChange={(e) => setSelectedFiles(e.target.files)}
+                disabled={uploading}
+              />
+              <p className="text-sm text-muted-foreground">
+                Formatos aceitos: PDF, JPG, PNG, DOC, DOCX, XLS, XLSX
+              </p>
+            </div>
+
+            {selectedFiles && selectedFiles.length > 0 && (
+              <div className="border rounded-lg p-3 space-y-1">
+                <p className="text-sm font-medium">Arquivos selecionados:</p>
+                {Array.from(selectedFiles).map((file, index) => (
+                  <div key={index} className="text-sm text-muted-foreground flex items-center gap-1">
+                    <File className="w-3 h-3" />
+                    {file.name} ({(file.size / 1024).toFixed(2)} KB)
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setAttachFileDialogOpen(false);
+                setSelectedFiles(null);
+                setSelectedExpenseId(null);
+              }}
+              disabled={uploading}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleFileUpload} 
+              disabled={!selectedFiles || selectedFiles.length === 0 || uploading}
+            >
+              {uploading ? (
+                <>
+                  <Upload className="w-4 h-4 mr-2 animate-pulse" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Anexar Arquivos
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
