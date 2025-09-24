@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useInactivityDetector } from "@/hooks/useInactivityDetector";
 
 interface AuthContextType {
   user: User | null;
@@ -17,6 +18,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  
+  // Enable inactivity detector for session timeout (30 minutes)
+  useInactivityDetector({
+    enabled: !!session,
+    timeoutMs: 30 * 60 * 1000, // 30 minutes
+    warningMs: 5 * 60 * 1000 // 5 minutes warning
+  });
 
   // Function to check if session is expired (12 hours)
   const checkSessionExpiry = (session: Session | null) => {
