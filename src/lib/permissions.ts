@@ -72,7 +72,6 @@ export const rolePermissions: Record<Role, string[]> = {
     '/notifications'
   ],
   operation: [
-    '/',
     '/my-orders',
     '/orders',
     '/delivered-orders',
