@@ -203,11 +203,11 @@ serve(async (req) => {
       }
     );
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Backup failed:', error);
     
     // Try to update the log with failure
-    if (error.backupLogId) {
+    if (error?.backupLogId) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -216,7 +216,7 @@ serve(async (req) => {
         .from('backup_logs')
         .update({
           status: 'failed',
-          error_message: error.message,
+          error_message: error instanceof Error ? error.message : 'Unknown error',
           metadata: {
             error_details: String(error),
             failed_at: new Date().toISOString()
@@ -228,7 +228,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Backup failed'
+        error: error instanceof Error ? error.message : 'Backup failed'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

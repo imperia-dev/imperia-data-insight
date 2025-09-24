@@ -144,7 +144,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Sync failed',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error' 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
