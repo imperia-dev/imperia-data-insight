@@ -442,7 +442,7 @@ function FechamentoDespesasContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
       <Sidebar userRole={userRole} />
       <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
@@ -1047,7 +1047,7 @@ function FechamentoDespesasContent() {
         </DialogContent>
       </Dialog>
       </div>
-    </div>
+    </>
   );
 }
 
