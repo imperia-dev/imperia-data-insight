@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { usePageLayout } from "@/hooks/usePageLayout";
+import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +72,7 @@ interface ClosingProtocol {
 
 function FechamentoDespesasContent() {
   const { user } = useAuth();
-  const { mainContainerClass } = usePageLayout();
+  const { mainContainerClass } = useSidebarOffset();
   const { toast } = useToast();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
@@ -1051,10 +1050,4 @@ function FechamentoDespesasContent() {
   );
 }
 
-export default function FechamentoDespesas() {
-  return (
-    <SidebarProvider>
-      <FechamentoDespesasContent />
-    </SidebarProvider>
-  );
-}
+export default FechamentoDespesasContent;
