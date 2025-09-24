@@ -444,10 +444,10 @@ function FechamentoDespesasContent() {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
-      <Header userName={userName} userRole={userRole} />
-      <main className={mainContainerClass}>
-        <div className="w-full px-6 py-6">
-          <div className="max-w-7xl mx-auto space-y-6">
+      <div className={mainContainerClass}>
+        <Header userName={userName} userRole={userRole} />
+        <main className="p-4 md:p-6 lg:p-8">
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold">Fechamento de Despesas</h1>
@@ -942,8 +942,7 @@ function FechamentoDespesasContent() {
             </CollapsibleContent>
           </Collapsible>
         </div>
-      </div>
-    </main>
+      </main>
 
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
@@ -1047,6 +1046,7 @@ function FechamentoDespesasContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
