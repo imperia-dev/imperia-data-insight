@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
+import { ErrorBoundary } from "./components/security/ErrorBoundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ProtectedRouteWithApproval } from "./components/ProtectedRouteWithApproval";
 import Dashboard from "./pages/Dashboard";
@@ -40,17 +41,19 @@ import PaymentReceipts from "./pages/PaymentReceipts";
 import RegistrationApprovals from "./pages/RegistrationApprovals";
 import PendingApproval from "./pages/PendingApproval";
 import BTGIntegration from "./pages/BTGIntegration";
+import SecurityDashboard from "./pages/SecurityDashboard";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <SidebarProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <SidebarProvider>
             <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
@@ -200,6 +203,11 @@ const App = () => (
                 <BTGIntegration />
               </ProtectedRouteWithApproval>
             } />
+            <Route path="/security-dashboard" element={
+              <ProtectedRouteWithApproval>
+                <SecurityDashboard />
+              </ProtectedRouteWithApproval>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
             </Routes>
@@ -208,6 +216,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

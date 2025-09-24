@@ -18,7 +18,6 @@ DOMPurify.setConfig({
   WHOLE_DOCUMENT: false,
   RETURN_DOM: false,
   RETURN_DOM_FRAGMENT: false,
-  RETURN_DOM_IMPORT: false,
   FORCE_BODY: true,
   SANITIZE_DOM: true,
   KEEP_CONTENT: true,
@@ -42,12 +41,16 @@ export function SafeHTML({
       config.ALLOWED_ATTR = allowedAttributes;
     }
 
-    // Add target="_blank" and rel="noopener noreferrer" to all links
-    const clean = DOMPurify.sanitize(html, config);
-    return clean.replace(
-      /<a\s+href=/g,
-      '<a target="_blank" rel="noopener noreferrer" href='
-    );
+    // Sanitize HTML and convert to string
+    const cleanResult = DOMPurify.sanitize(html, config);
+    let cleanHtml = typeof cleanResult === 'string' ? cleanResult : cleanResult.toString();
+    
+    // Add security attributes to links
+    if (cleanHtml.indexOf('<a') !== -1) {
+      cleanHtml = cleanHtml.replace(/<a\s+href=/g, '<a target="_blank" rel="noopener noreferrer" href=');
+    }
+    
+    return cleanHtml;
   }, [html, allowedTags, allowedAttributes]);
 
   return (
