@@ -19,11 +19,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
+  // Create signOut function before using it in useInactivityDetector
+  const signOut = useCallback(async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error signing out:", error);
+    }
+    setUser(null);
+    setSession(null);
+    navigate("/auth");
+    setLoading(false);
+  }, [navigate]);
+  
   // Enable inactivity detector for session timeout (30 minutes)
   useInactivityDetector({
     enabled: !!session,
     timeoutMs: 30 * 60 * 1000, // 30 minutes
-    warningMs: 5 * 60 * 1000 // 5 minutes warning
+    warningMs: 5 * 60 * 1000, // 5 minutes warning
+    session: session,
+    onLogout: signOut
   });
 
   // Function to check if session is expired (12 hours)
@@ -93,10 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearInterval(intervalId);
     };
   }, [navigate]);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signOut }}>

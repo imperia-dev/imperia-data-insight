@@ -1,20 +1,23 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle } from 'lucide-react';
+import { Session } from '@supabase/supabase-js';
 
 interface UseInactivityDetectorProps {
   timeoutMs?: number; // Default: 30 minutes
   warningMs?: number; // Default: 5 minutes before timeout
   enabled?: boolean;
+  session?: Session | null;
+  onLogout?: () => Promise<void>;
 }
 
 export function useInactivityDetector({
   timeoutMs = 30 * 60 * 1000, // 30 minutes
   warningMs = 5 * 60 * 1000, // 5 minutes warning
-  enabled = true
+  enabled = true,
+  session = null,
+  onLogout
 }: UseInactivityDetectorProps = {}) {
-  const { signOut, session } = useAuth();
   const { toast } = useToast();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const warningRef = useRef<NodeJS.Timeout | null>(null);
@@ -35,13 +38,15 @@ export function useInactivityDetector({
 
   const handleLogout = useCallback(async () => {
     clearTimers();
-    await signOut();
+    if (onLogout) {
+      await onLogout();
+    }
     toast({
       title: "Sessão expirada",
       description: "Você foi desconectado devido à inatividade.",
       variant: "destructive"
     });
-  }, [signOut, toast, clearTimers]);
+  }, [onLogout, toast, clearTimers]);
 
   const showWarning = useCallback(() => {
     if (!hasWarnedRef.current) {
