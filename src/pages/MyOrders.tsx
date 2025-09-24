@@ -446,6 +446,7 @@ export function MyOrders() {
                       <TableHead>Quantidade de Documentos</TableHead>
                       <TableHead>Prazo</TableHead>
                       <TableHead>Data de Atribuição</TableHead>
+                      <TableHead>Link da Operação</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -474,6 +475,19 @@ export function MyOrders() {
                             format(new Date(order.assigned_at), "dd/MM/yyyy HH:mm", {
                               locale: ptBR,
                             })}
+                        </TableCell>
+                        <TableCell>
+                          {order.service_order_link ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(order.service_order_link, '_blank')}
+                            >
+                              Abrir Link
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button
