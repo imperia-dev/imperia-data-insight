@@ -1515,7 +1515,7 @@ export default function Dashboard() {
         stats={{
           documentsTranslated,
           documentsInProgress,
-          documentsDelivered: deliveredDocuments,
+          documentsDelivered,
           urgencies,
           pendencies,
           delays,

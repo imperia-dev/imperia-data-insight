@@ -3,6 +3,7 @@ import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { 
   DollarSign, 
   FileText, 
@@ -10,7 +11,8 @@ import {
   Calculator, 
   Banknote,
   Target,
-  BarChart3
+  BarChart3,
+  Phone
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +26,7 @@ import { CashFlow } from '@/components/financial/CashFlow';
 import { FinancialIndicators } from '@/components/financial/FinancialIndicators';
 import { UnitEconomics } from '@/components/financial/UnitEconomics';
 import { FinancialProjections } from '@/components/financial/FinancialProjections';
+import { WhatsAppFinancialReportModal } from '@/components/dashboard/WhatsAppFinancialReportModal';
 
 function DashboardFinanceiroContent() {
   const { user } = useAuth();
@@ -31,6 +34,21 @@ function DashboardFinanceiroContent() {
   const [activeTab, setActiveTab] = useState('summary');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [financialData, setFinancialData] = useState({
+    revenue: 0,
+    expenses: 0,
+    profit: 0,
+    margin: 0,
+    ebitda: 0,
+    cashFlow: 0,
+    assets: 0,
+    liabilities: 0,
+    equity: 0,
+    cac: 0,
+    ltv: 0,
+    churnRate: 0,
+  });
 
   useEffect(() => {
     if (user) {
@@ -69,10 +87,20 @@ function DashboardFinanceiroContent() {
         
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            {/* Page Header */}
-            <div>
-              <h1 className="text-3xl font-bold">Módulo Financeiro</h1>
-              <p className="text-muted-foreground">Gestão financeira completa com análise de demonstrativos e indicadores</p>
+            {/* Page Header with WhatsApp Button */}
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-3xl font-bold">Módulo Financeiro</h1>
+                <p className="text-muted-foreground">Gestão financeira completa com análise de demonstrativos e indicadores</p>
+              </div>
+              <Button
+                onClick={() => setIsWhatsAppModalOpen(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Phone className="h-4 w-4" />
+                Enviar via WhatsApp
+              </Button>
             </div>
 
             {/* Main Content Tabs */}
@@ -139,6 +167,13 @@ function DashboardFinanceiroContent() {
           </div>
         </main>
       </div>
+      
+      {/* WhatsApp Financial Report Modal */}
+      <WhatsAppFinancialReportModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        financialData={financialData}
+      />
     </div>
   );
 }
