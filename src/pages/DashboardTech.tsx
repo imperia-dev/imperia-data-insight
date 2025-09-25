@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, AlertCircle, CheckCircle, Clock, Download } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle, Clock, Download, Send } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { usePageLayout } from "@/hooks/usePageLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { ErrorTypesChart } from "@/components/dashboard/ErrorTypesChart";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { WhatsAppReportModal } from "@/components/dashboard/WhatsAppReportModal";
 import { exportToPDF, exportToExcel } from "@/utils/exportUtils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +35,7 @@ export default function DashboardTech() {
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [stats, setStats] = useState<PendencyStats>({
     total: 0,
     pending: 0,
@@ -241,6 +243,14 @@ export default function DashboardTech() {
                 <Download className="h-4 w-4 mr-2" />
                 Exportar Excel
               </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsWhatsAppModalOpen(true)}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Enviar via WhatsApp
+              </Button>
             </div>
           </div>
           
@@ -281,6 +291,13 @@ export default function DashboardTech() {
           </div>
         </main>
       </div>
+
+      {/* WhatsApp Report Modal */}
+      <WhatsAppReportModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        stats={stats}
+      />
     </div>
   );
 }

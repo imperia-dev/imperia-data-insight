@@ -21,6 +21,9 @@ verify_jwt = false
 [functions.send-sms]
 verify_jwt = true
 
+[functions.send-whatsapp-report]
+verify_jwt = true
+
 [functions.initiate-password-reset]
 verify_jwt = false
 
