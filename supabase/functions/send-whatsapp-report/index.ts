@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// WhatsApp Template Configuration
+const TEMPLATE_ID = 'HX992e37427115e30c21d520eef5f959ba'; // teste_report_imperia template
+
 interface OperationalStats {
   total: number;
   inProgress: number;
@@ -142,9 +145,9 @@ serve(async (req) => {
     const dateStr = now.toLocaleDateString('pt-BR');
     const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-    let message = '';
+    // Prepare template variables based on report type
+    let templateVariables: Record<string, string> = {};
 
-    // Format WhatsApp message based on report type
     if (reportType === 'financial' && financialStats) {
       const formatValue = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -153,95 +156,90 @@ serve(async (req) => {
         }).format(value);
       };
 
-      message = `💰 *RELATÓRIO FINANCEIRO - IMPERIA*
-${dateStr} ${timeStr}
-Período: ${period}
-
-📊 *DRE - DEMONSTRAÇÃO DE RESULTADOS*
-• Receita: ${formatValue(financialStats.revenue)}
-• Despesas: ${formatValue(financialStats.expenses)}
-• Lucro: ${formatValue(financialStats.profit)}
-• Margem: ${financialStats.margin.toFixed(1)}%
-• EBITDA: ${formatValue(financialStats.ebitda)}
-
-💼 *BALANÇO PATRIMONIAL*
-• Ativos: ${formatValue(financialStats.assets)}
-• Passivos: ${formatValue(financialStats.liabilities)}
-• Patrimônio Líquido: ${formatValue(financialStats.equity)}
-
-📈 *FLUXO DE CAIXA*
-• Saldo: ${formatValue(financialStats.cashFlow)}
-
-🎯 *UNIT ECONOMICS*
-• CAC: ${formatValue(financialStats.cac)}
-• LTV: ${formatValue(financialStats.ltv)}
-• Churn Rate: ${financialStats.churnRate.toFixed(1)}%
-• LTV/CAC: ${financialStats.cac > 0 ? (financialStats.ltv / financialStats.cac).toFixed(1) : '0'}x
-
----
-_Relatório gerado automaticamente_
-_Sistema Imperia © 2025_`;
+      templateVariables = {
+        '1': 'RELATÓRIO FINANCEIRO',
+        '2': dateStr,
+        '3': timeStr,
+        '4': period,
+        '5': formatValue(financialStats.revenue),
+        '6': formatValue(financialStats.expenses),
+        '7': formatValue(financialStats.profit),
+        '8': `${financialStats.margin.toFixed(1)}%`,
+        '9': formatValue(financialStats.ebitda),
+        '10': formatValue(financialStats.assets),
+        '11': formatValue(financialStats.liabilities),
+        '12': formatValue(financialStats.equity),
+        '13': formatValue(financialStats.cashFlow),
+        '14': formatValue(financialStats.cac),
+        '15': formatValue(financialStats.ltv),
+        '16': `${financialStats.churnRate.toFixed(1)}%`,
+        '17': financialStats.cac > 0 ? `${(financialStats.ltv / financialStats.cac).toFixed(1)}x` : '0x',
+      };
     } else if (reportType === 'operational' && stats) {
       const opStats = stats as OperationalStats;
       
-      message = `📊 *RELATÓRIO OPERACIONAL - IMPERIA*
-${dateStr} ${timeStr}
-Período: ${period}
+      // Top translators and pendency types as string lists
+      const topTranslators = opStats.translatorPerformance && opStats.translatorPerformance.length > 0 
+        ? opStats.translatorPerformance.slice(0, 3).map((t, i) => 
+            `${i + 1}. ${t.name}: ${t.documentos} docs`
+          ).join(' | ')
+        : 'Nenhum dado disponível';
+      
+      const topPendencies = opStats.pendencyTypes && opStats.pendencyTypes.length > 0
+        ? opStats.pendencyTypes.slice(0, 3).map((p, i) => 
+            `${i + 1}. ${p.label}: ${p.count}`
+          ).join(' | ')
+        : 'Nenhuma pendência';
 
-📈 *MÉTRICAS OPERACIONAIS*
-• Total de Documentos: ${opStats.total}
-• Em Andamento: ${opStats.inProgress}
-• Entregues: ${opStats.delivered}
-• Urgências: ${opStats.urgencies}
-• Pendências: ${opStats.pendencies}
-• Atrasos: ${opStats.delays}
-
-⏱ *INDICADORES DE PERFORMANCE*
-• Taxa de Entrega: ${opStats.deliveryRate}%
-• Tempo Médio: ${opStats.averageTime}h por documento
-
-${opStats.translatorPerformance && opStats.translatorPerformance.length > 0 ? `
-👥 *TOP TRADUTORES*
-${opStats.translatorPerformance.slice(0, 5).map((t, i) => 
-  `${i + 1}. ${t.name}: ${t.documentos} documentos`
-).join('\n')}` : ''}
-
-${opStats.pendencyTypes && opStats.pendencyTypes.length > 0 ? `
-🔴 *PRINCIPAIS TIPOS DE PENDÊNCIA*
-${opStats.pendencyTypes.slice(0, 5).map((p, i) => 
-  `${i + 1}. ${p.label}: ${p.count} casos`
-).join('\n')}` : ''}
-
----
-_Relatório gerado automaticamente_
-_Sistema Imperia © 2025_`;
+      templateVariables = {
+        '1': 'RELATÓRIO OPERACIONAL',
+        '2': dateStr,
+        '3': timeStr,
+        '4': period,
+        '5': String(opStats.total),
+        '6': String(opStats.inProgress),
+        '7': String(opStats.delivered),
+        '8': String(opStats.urgencies),
+        '9': String(opStats.pendencies),
+        '10': String(opStats.delays),
+        '11': `${opStats.deliveryRate}%`,
+        '12': `${opStats.averageTime}h`,
+        '13': topTranslators,
+        '14': topPendencies,
+        '15': '', // Reserved for future use
+        '16': '', // Reserved for future use
+        '17': '', // Reserved for future use
+      };
     } else if (reportType === 'tech' && stats) {
       const techStats = stats as TechStats;
       const resolvedPercentage = Math.round((techStats.resolved / techStats.total) * 100);
       const pendingPercentage = Math.round((techStats.pending / techStats.total) * 100);
       const inProgressPercentage = Math.round((techStats.inProgress / techStats.total) * 100);
 
-      message = `🔧 *RELATÓRIO TÉCNICO - IMPERIA*
-${dateStr} ${timeStr}
-Período: ${period}
+      // Top error types as string list
+      const topErrors = techStats.errorTypes.slice(0, 5).map((error, index) => 
+        `${index + 1}. ${error.label}: ${error.count}`
+      ).join(' | ');
 
-📈 *MÉTRICAS DO PERÍODO*
-• Total de Pendências: ${techStats.total}
-• ✅ Resolvidas: ${techStats.resolved} (${resolvedPercentage}%)
-• ⏰ Pendentes: ${techStats.pending} (${pendingPercentage}%)
-• 🔄 Em Andamento: ${techStats.inProgress} (${inProgressPercentage}%)
-
-🔴 *TOP 5 TIPOS DE ERRO*
-${techStats.errorTypes.slice(0, 5).map((error, index) => 
-  `${index + 1}. ${error.label}: ${error.count} casos`
-).join('\n')}
-
-📊 *TAXA DE RESOLUÇÃO*
-• Período: ${resolvedPercentage}%
-
----
-_Relatório gerado automaticamente_
-_Sistema Imperia © 2025_`;
+      templateVariables = {
+        '1': 'RELATÓRIO TÉCNICO',
+        '2': dateStr,
+        '3': timeStr,
+        '4': period,
+        '5': String(techStats.total),
+        '6': String(techStats.resolved),
+        '7': `${resolvedPercentage}%`,
+        '8': String(techStats.pending),
+        '9': `${pendingPercentage}%`,
+        '10': String(techStats.inProgress),
+        '11': `${inProgressPercentage}%`,
+        '12': topErrors,
+        '13': `${resolvedPercentage}%`, // Taxa de resolução
+        '14': '', // Reserved for future use
+        '15': '', // Reserved for future use
+        '16': '', // Reserved for future use
+        '17': '', // Reserved for future use
+      };
     } else {
       console.error('Invalid report type or missing data');
       return new Response(
@@ -253,13 +251,17 @@ _Sistema Imperia © 2025_`;
       );
     }
 
-    // Send via Twilio WhatsApp
+    console.log('Sending WhatsApp message using template:', TEMPLATE_ID);
+    console.log('Template variables:', templateVariables);
+
+    // Send via Twilio WhatsApp using the template
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
     
     const formData = new URLSearchParams();
     formData.append('To', `whatsapp:${phoneNumber}`);
     formData.append('From', `whatsapp:${twilioPhoneNumber}`);
-    formData.append('Body', message);
+    formData.append('ContentSid', TEMPLATE_ID); // Use template instead of Body
+    formData.append('ContentVariables', JSON.stringify(templateVariables)); // Add template variables
 
     const twilioResponse = await fetch(twilioUrl, {
       method: 'POST',
@@ -274,8 +276,20 @@ _Sistema Imperia © 2025_`;
 
     if (!twilioResponse.ok) {
       console.error('Twilio WhatsApp error:', twilioData);
+      console.error('Template ID used:', TEMPLATE_ID);
+      console.error('Template variables:', JSON.stringify(templateVariables));
       
-      // Log failed attempt
+      // Check for specific error codes
+      let errorMessage = 'Failed to send WhatsApp message';
+      if (twilioData.code === 63007) {
+        errorMessage = 'WhatsApp number not found. Ensure the recipient has joined the sandbox or the number is registered.';
+      } else if (twilioData.code === 63018) {
+        errorMessage = 'Template not found or not approved. Please verify the template configuration.';
+      } else if (twilioData.code === 63016) {
+        errorMessage = 'Template variables mismatch. Please check the template variable format.';
+      }
+      
+      // Log failed attempt with more details
       await supabase
         .from('audit_logs')
         .insert({
@@ -284,11 +298,15 @@ _Sistema Imperia © 2025_`;
           user_id: userId,
           ip_address: req.headers.get('x-forwarded-for') || 'unknown',
           record_id: null,
-          accessed_fields: [phoneNumber]
+          accessed_fields: [phoneNumber, `error: ${twilioData.code || 'unknown'}`]
         });
 
       return new Response(
-        JSON.stringify({ error: 'Failed to send WhatsApp message', details: twilioData }),
+        JSON.stringify({ 
+          error: errorMessage, 
+          details: twilioData,
+          templateId: TEMPLATE_ID 
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -296,7 +314,7 @@ _Sistema Imperia © 2025_`;
       );
     }
 
-    // Log successful report send
+    // Log successful report send with template info
     await supabase
       .from('audit_logs')
       .insert({
@@ -305,10 +323,12 @@ _Sistema Imperia © 2025_`;
         user_id: userId,
         ip_address: req.headers.get('x-forwarded-for') || 'unknown',
         record_id: null,
-        accessed_fields: [phoneNumber, period]
+        accessed_fields: [phoneNumber, period, `template: ${TEMPLATE_ID}`]
       });
 
     console.log('WhatsApp report sent successfully to:', phoneNumber);
+    console.log('Template ID:', TEMPLATE_ID);
+    console.log('Message SID:', twilioData.sid);
 
     return new Response(
       JSON.stringify({ 
