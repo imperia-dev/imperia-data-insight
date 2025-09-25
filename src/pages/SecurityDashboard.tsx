@@ -9,6 +9,11 @@ import { Shield, AlertTriangle, CheckCircle, XCircle, Activity, Lock, Users, Dat
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Header } from '@/components/layout/Header';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSidebarOffset } from '@/hooks/useSidebarOffset';
+import { cn } from '@/lib/utils';
 
 interface SecurityMetrics {
   totalEvents: number;
@@ -32,6 +37,9 @@ interface SecurityEvent {
 }
 
 export default function SecurityDashboard() {
+  const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
   const [metrics, setMetrics] = useState<SecurityMetrics>({
     totalEvents: 0,
     criticalEvents: 0,
@@ -46,6 +54,26 @@ export default function SecurityDashboard() {
   const [loading, setLoading] = useState(true);
   const [securityScore, setSecurityScore] = useState(0);
   const { toast } = useToast();
+  const sidebarOffset = useSidebarOffset();
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setUserName(data.full_name);
+          setUserRole(data.role);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   useEffect(() => {
     fetchSecurityData();
@@ -145,17 +173,28 @@ export default function SecurityDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Shield className="h-12 w-12 animate-pulse mx-auto mb-4" />
-          <p>Carregando dados de segurança...</p>
+      <div className="min-h-screen bg-background">
+        <Sidebar userRole={userRole} />
+        <div className={cn("transition-all duration-300", sidebarOffset)}>
+          <Header userName={userName} userRole={userRole} />
+          <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
+            <div className="text-center">
+              <Shield className="h-12 w-12 animate-pulse mx-auto mb-4" />
+              <p>Carregando dados de segurança...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole} />
+      <div className={cn("transition-all duration-300", sidebarOffset)}>
+        <Header userName={userName} userRole={userRole} />
+        
+        <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -346,5 +385,7 @@ export default function SecurityDashboard() {
         </Card>
       </div>
     </div>
+  </div>
+  </div>
   );
 }
