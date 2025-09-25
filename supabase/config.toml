@@ -17,3 +17,15 @@ verify_jwt = true
 
 [functions.check-pwned-password]
 verify_jwt = false
+
+[functions.send-sms]
+verify_jwt = true
+
+[functions.initiate-password-reset]
+verify_jwt = false
+
+[functions.verify-reset-token]
+verify_jwt = false
+
+[functions.reset-password]
+verify_jwt = false
