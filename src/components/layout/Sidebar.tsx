@@ -36,6 +36,7 @@ import {
   ShoppingCart,
   Megaphone,
   Code,
+  Shield,
   FileBarChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -269,6 +270,12 @@ const navigationGroups: NavigationGroup[] = [
 
 // Itens que ficam fora dos grupos (sempre visíveis)
 const standaloneItems: NavigationItem[] = [
+  {
+    title: "Segurança",
+    icon: Shield,
+    href: "/security-dashboard",
+    roles: ["owner"],
+  },
   {
     title: "Aprovação de Cadastros",
     icon: UserCheck,
