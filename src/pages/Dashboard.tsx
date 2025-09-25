@@ -5,6 +5,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { ErrorTypesChart } from "@/components/dashboard/ErrorTypesChart";
 import { DocumentTable } from "@/components/documents/DocumentTable";
+import { WhatsAppOperationalReportModal } from "@/components/dashboard/WhatsAppOperationalReportModal";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ import {
   AlertCircle,
   ChevronRight,
   RefreshCw,
+  Phone,
 } from "lucide-react";
 import {
   LineChart,
@@ -188,6 +190,7 @@ export default function Dashboard() {
   const [translatorLoading, setTranslatorLoading] = useState(false);
   const [averageTimePerDocument, setAverageTimePerDocument] = useState<string>("0");
   const [deliveryRate, setDeliveryRate] = useState<string>("0");
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -965,6 +968,16 @@ export default function Dashboard() {
               </div>
               
               <div className="flex items-center gap-3">
+                {/* WhatsApp Button */}
+                <Button 
+                  onClick={() => setIsWhatsAppModalOpen(true)}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Phone className="h-4 w-4" />
+                  WhatsApp
+                </Button>
+                
                 {/* Export PDF Button */}
                 <Button 
                   onClick={handleExportPDF}
@@ -1494,6 +1507,24 @@ export default function Dashboard() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+      
+      {/* WhatsApp Report Modal */}
+      <WhatsAppOperationalReportModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        stats={{
+          documentsTranslated,
+          documentsInProgress,
+          documentsDelivered: deliveredDocuments,
+          urgencies,
+          pendencies,
+          delays,
+          averageTime: averageTimePerDocument,
+          deliveryRate,
+          pendencyTypes: pendencyTypesData,
+          translatorPerformance: translatorPerformanceData,
+        }}
+      />
     </div>
   );
 }
