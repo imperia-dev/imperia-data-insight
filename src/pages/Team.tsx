@@ -188,70 +188,78 @@ export default function Team() {
     try {
       setLoadingProductivity(true);
       
-      // Fetch productivity data
-      const { data: productivityData, error: prodError } = await supabase
-        .from('productivity')
-        .select('*')
-        .eq('user_id', memberId)
-        .order('date', { ascending: true });
-
-      if (prodError) throw prodError;
-
-      // Fetch orders data
+      // Fetch orders data (matching Productivity page logic)
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
         .eq('assigned_to', memberId)
-        .eq('status_order', 'delivered');
+        .in('status_order', ['delivered', 'in_progress'])
+        .order('delivered_at', { ascending: false, nullsFirst: false });
 
       if (ordersError) throw ordersError;
 
-      // Fetch documents data
-      const { data: documentsData, error: docsError } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('assigned_to', memberId)
-        .eq('status', 'completed');
+      // Calculate totals based on delivered orders (R$ 1.30 per document)
+      const deliveredOrders = ordersData?.filter(o => o.status_order === 'delivered') || [];
+      const inProgressOrders = ordersData?.filter(o => o.status_order === 'in_progress') || [];
+      
+      const totalDocs = deliveredOrders.reduce((sum, order) => sum + (order.document_count || 0), 0);
+      const totalUrgentDocs = deliveredOrders.reduce((sum, order) => sum + (order.urgent_document_count || 0), 0);
+      const totalEarnings = totalDocs * 1.30; // R$ 1.30 per document
+      const totalWords = totalDocs * 250; // Estimated average words per document
+      const totalPages = totalDocs * 2; // Estimated average pages per document
 
-      if (docsError) throw docsError;
-
-      if (productivityData && productivityData.length > 0) {
-        // Calculate basic stats
-        const totalDocs = productivityData.reduce((sum, day) => sum + (day.documents_completed || 0), 0);
-        const totalWords = productivityData.reduce((sum, day) => sum + (day.words_translated || 0), 0);
-        const totalPages = productivityData.reduce((sum, day) => sum + (day.pages_translated || 0), 0);
-        const totalEarnings = productivityData.reduce((sum, day) => sum + (Number(day.daily_earnings) || 0), 0);
-        const totalHours = productivityData.reduce((sum, day) => sum + (Number(day.hours_worked) || 0), 0);
+      if (deliveredOrders.length > 0) {
+        // Calculate work period
+        const allDates = deliveredOrders
+          .map(o => o.delivered_at ? new Date(o.delivered_at) : null)
+          .filter(Boolean) as Date[];
         
-        // Calculate date range
-        const firstDate = productivityData[0]?.date;
-        const lastDate = productivityData[productivityData.length - 1]?.date;
-        const daysActive = firstDate && lastDate ? differenceInDays(new Date(lastDate), new Date(firstDate)) + 1 : 0;
+        const firstDate = allDates.length > 0 
+          ? new Date(Math.min(...allDates.map(d => d.getTime())))
+          : new Date();
+        const lastDate = allDates.length > 0 
+          ? new Date(Math.max(...allDates.map(d => d.getTime())))
+          : new Date();
+        
+        const daysActive = differenceInDays(lastDate, firstDate) + 1;
         const weeksActive = Math.max(Math.ceil(daysActive / 7), 1);
-        const monthsActive = Math.max(differenceInMonths(new Date(lastDate || new Date()), new Date(firstDate || new Date())) + 1, 1);
+        const monthsActive = Math.max(differenceInMonths(lastDate, firstDate) + 1, 1);
         
         // Calculate averages
-        const avgDocsPerDay = totalDocs / Math.max(productivityData.length, 1);
+        const avgDocsPerDay = totalDocs / Math.max(daysActive, 1);
         const avgDocsPerWeek = totalDocs / weeksActive;
         const avgDocsPerMonth = totalDocs / monthsActive;
-        const avgMinutesPerDoc = totalDocs > 0 ? (totalHours * 60) / totalDocs : 0;
-        const avgHoursPerOrder = ordersData && ordersData.length > 0 ? totalHours / ordersData.length : 0;
+        const avgEarningsPerDay = totalEarnings / Math.max(daysActive, 1);
         
-        // Calculate urgent documents completed
-        const urgentDocs = ordersData ? ordersData.reduce((sum, order) => sum + (order.urgent_document_count || 0), 0) : 0;
+        // Calculate average completion time
+        const completionTimes = deliveredOrders
+          .filter(o => o.assigned_at && o.delivered_at)
+          .map(o => {
+            const start = new Date(o.assigned_at!).getTime();
+            const end = new Date(o.delivered_at!).getTime();
+            return (end - start) / (1000 * 60 * 60); // in hours
+          });
+        
+        const avgCompletionTime = completionTimes.length > 0
+          ? completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length
+          : 0;
+        
+        const totalHours = completionTimes.reduce((sum, time) => sum + time, 0);
+        const avgMinutesPerDoc = totalDocs > 0 ? (totalHours * 60) / totalDocs : 0;
+        const avgHoursPerOrder = deliveredOrders.length > 0 ? totalHours / deliveredOrders.length : 0;
         
         // Calculate completion rate
-        const totalOrdersAssigned = ordersData ? ordersData.length : 0;
-        const completionRate = totalOrdersAssigned > 0 ? (ordersData?.length || 0) / totalOrdersAssigned * 100 : 0;
+        const totalOrdersAssigned = ordersData?.length || 0;
+        const completionRate = totalOrdersAssigned > 0 ? (deliveredOrders.length / totalOrdersAssigned) * 100 : 0;
         
-        // Analyze work patterns
-        const workHoursByHour: Record<number, number> = {};
+        // Analyze work patterns - day of week
         const workDaysByWeekday: Record<string, number> = {};
+        const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
         
-        productivityData.forEach(day => {
-          if (day.date) {
-            const date = new Date(day.date);
-            const weekday = date.toLocaleDateString('pt-BR', { weekday: 'long' });
+        deliveredOrders.forEach(order => {
+          if (order.delivered_at) {
+            const date = new Date(order.delivered_at);
+            const weekday = weekdays[date.getDay()];
             workDaysByWeekday[weekday] = (workDaysByWeekday[weekday] || 0) + 1;
           }
         });
@@ -265,15 +273,22 @@ export default function Team() {
         // Calculate monthly stats for charts
         const monthlyStatsMap: Record<string, { documents: number; earnings: number; hours: number }> = {};
         
-        productivityData.forEach(day => {
-          if (day.date) {
-            const monthKey = format(new Date(day.date), 'MMM yyyy', { locale: ptBR });
+        deliveredOrders.forEach(order => {
+          if (order.delivered_at) {
+            const monthKey = format(new Date(order.delivered_at), 'MMM yyyy', { locale: ptBR });
             if (!monthlyStatsMap[monthKey]) {
               monthlyStatsMap[monthKey] = { documents: 0, earnings: 0, hours: 0 };
             }
-            monthlyStatsMap[monthKey].documents += day.documents_completed || 0;
-            monthlyStatsMap[monthKey].earnings += Number(day.daily_earnings) || 0;
-            monthlyStatsMap[monthKey].hours += Number(day.hours_worked) || 0;
+            monthlyStatsMap[monthKey].documents += order.document_count || 0;
+            monthlyStatsMap[monthKey].earnings += (order.document_count || 0) * 1.30;
+            
+            // Add estimated hours if we have completion time
+            if (order.assigned_at) {
+              const start = new Date(order.assigned_at).getTime();
+              const end = new Date(order.delivered_at).getTime();
+              const hours = (end - start) / (1000 * 60 * 60);
+              monthlyStatsMap[monthKey].hours += hours;
+            }
           }
         });
         
@@ -283,45 +298,86 @@ export default function Team() {
         }));
         
         // Prepare daily activity for charts (last 30 days)
-        const last30Days = productivityData.slice(-30).map(day => ({
-          date: format(new Date(day.date), 'dd/MM', { locale: ptBR }),
-          documents: day.documents_completed || 0,
-          words: day.words_translated || 0,
-          earnings: Number(day.daily_earnings) || 0
-        }));
+        const today = new Date();
+        const last30Days = [];
+        for (let i = 29; i >= 0; i--) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          const dateStr = format(date, 'yyyy-MM-dd');
+          
+          const dayOrders = deliveredOrders.filter(o => 
+            o.delivered_at && format(new Date(o.delivered_at), 'yyyy-MM-dd') === dateStr
+          );
+          
+          const dayDocs = dayOrders.reduce((sum, o) => sum + (o.document_count || 0), 0);
+          
+          last30Days.push({
+            date: format(date, 'dd/MM', { locale: ptBR }),
+            documents: dayDocs,
+            words: dayDocs * 250,
+            earnings: dayDocs * 1.30
+          });
+        }
         
         // Determine performance trend
-        const recentDays = productivityData.slice(-7);
-        const previousDays = productivityData.slice(-14, -7);
-        const recentAvg = recentDays.reduce((sum, day) => sum + (day.documents_completed || 0), 0) / Math.max(recentDays.length, 1);
-        const previousAvg = previousDays.reduce((sum, day) => sum + (day.documents_completed || 0), 0) / Math.max(previousDays.length, 1);
+        const recentDays = last30Days.slice(-7);
+        const previousDays = last30Days.slice(-14, -7);
+        const recentAvg = recentDays.reduce((sum, day) => sum + (day.documents || 0), 0) / Math.max(recentDays.length, 1);
+        const previousAvg = previousDays.reduce((sum, day) => sum + (day.documents || 0), 0) / Math.max(previousDays.length, 1);
         
         let performanceTrend: 'improving' | 'stable' | 'declining' = 'stable';
         if (recentAvg > previousAvg * 1.1) performanceTrend = 'improving';
         else if (recentAvg < previousAvg * 0.9) performanceTrend = 'declining';
         
+        // Analyze work hours patterns
+        const deliveryHours = deliveredOrders
+          .filter(o => o.delivered_at)
+          .map(o => new Date(o.delivered_at!).getHours());
+        
+        const hourCounts: Record<number, number> = {};
+        deliveryHours.forEach(hour => {
+          hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        });
+        
+        const mostProductiveHours = Object.entries(hourCounts)
+          .sort(([,a], [,b]) => b - a)
+          .slice(0, 5)
+          .map(([hour]) => Number(hour));
+        
+        const startHours = deliveredOrders
+          .filter(o => o.assigned_at)
+          .map(o => new Date(o.assigned_at!).getHours());
+        
+        const typicalStartHour = startHours.length > 0 
+          ? Math.round(startHours.reduce((a, b) => a + b, 0) / startHours.length)
+          : 9;
+          
+        const typicalEndHour = deliveryHours.length > 0
+          ? Math.round(deliveryHours.reduce((a, b) => a + b, 0) / deliveryHours.length)
+          : 18;
+        
         const stats: ProductivityStats = {
-          total_days_worked: productivityData.length,
+          total_days_worked: daysActive,
           total_documents: totalDocs,
           total_words: totalWords,
           total_pages: totalPages,
           total_earnings: totalEarnings,
-          avg_daily_earnings: totalEarnings / Math.max(productivityData.length, 1),
-          last_activity: lastDate,
-          first_work_date: firstDate,
-          total_orders_completed: ordersData?.length || 0,
+          avg_daily_earnings: avgEarningsPerDay,
+          last_activity: format(lastDate, 'yyyy-MM-dd'),
+          first_work_date: format(firstDate, 'yyyy-MM-dd'),
+          total_orders_completed: deliveredOrders.length,
           avg_docs_per_day: avgDocsPerDay,
           avg_docs_per_week: avgDocsPerWeek,
           avg_docs_per_month: avgDocsPerMonth,
           avg_minutes_per_document: avgMinutesPerDoc,
           avg_hours_per_order: avgHoursPerOrder,
           total_hours_worked: totalHours,
-          urgent_documents_completed: urgentDocs,
+          urgent_documents_completed: totalUrgentDocs,
           completion_rate: completionRate,
           work_pattern: {
-            most_productive_hours: [9, 10, 11, 14, 15], // Mock data for now
-            typical_start_time: "09:00",
-            typical_end_time: "18:00",
+            most_productive_hours: mostProductiveHours.length > 0 ? mostProductiveHours : [9, 10, 11, 14, 15],
+            typical_start_time: `${String(typicalStartHour).padStart(2, '0')}:00`,
+            typical_end_time: `${String(typicalEndHour).padStart(2, '0')}:00`,
             days_of_week: mostActiveDays,
             weekly_hours: totalHours / weeksActive
           },
@@ -332,7 +388,36 @@ export default function Team() {
         
         setMemberProductivity(stats);
       } else {
-        setMemberProductivity(null);
+        // No orders data - set empty statistics
+        setMemberProductivity({
+          total_days_worked: 0,
+          total_documents: 0,
+          total_words: 0,
+          total_pages: 0,
+          total_earnings: 0,
+          avg_daily_earnings: 0,
+          last_activity: '',
+          first_work_date: '',
+          total_orders_completed: 0,
+          avg_docs_per_day: 0,
+          avg_docs_per_week: 0,
+          avg_docs_per_month: 0,
+          avg_minutes_per_document: 0,
+          avg_hours_per_order: 0,
+          total_hours_worked: 0,
+          urgent_documents_completed: 0,
+          completion_rate: 0,
+          work_pattern: {
+            most_productive_hours: [],
+            typical_start_time: "N/A",
+            typical_end_time: "N/A",
+            days_of_week: [],
+            weekly_hours: 0
+          },
+          performance_trend: 'stable',
+          monthly_stats: [],
+          daily_activity: []
+        });
       }
     } catch (error) {
       console.error('Error fetching productivity:', error);
