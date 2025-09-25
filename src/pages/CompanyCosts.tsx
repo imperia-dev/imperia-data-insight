@@ -20,6 +20,7 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { CompanyCostFilters } from "@/components/companyCosts/CompanyCostFilters";
 import { CategoryChart } from "@/components/companyCosts/CategoryChart";
+import { ImportCompanyCostsDialog } from "@/components/companyCosts/ImportCompanyCostsDialog";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 
 interface CompanyCost {
@@ -69,6 +70,7 @@ export default function CompanyCosts() {
   const [selectedFiles, setSelectedFiles] = useState<Record<string, File[]>>({});
   const [selectedCostDetails, setSelectedCostDetails] = useState<CompanyCost | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     category: "",
@@ -511,6 +513,14 @@ export default function CompanyCosts() {
           <div className="flex flex-row items-center justify-between">
             <CardTitle className="text-2xl font-bold">Custos - Empresa</CardTitle>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setImportDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Importar CSV
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleExportExcel}
@@ -968,6 +978,13 @@ export default function CompanyCosts() {
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* Import Dialog */}
+      <ImportCompanyCostsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImportComplete={fetchCosts}
+      />
     </div>
   );
 }
