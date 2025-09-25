@@ -54,7 +54,7 @@ export default function SecurityDashboard() {
   const [loading, setLoading] = useState(true);
   const [securityScore, setSecurityScore] = useState(0);
   const { toast } = useToast();
-  const sidebarOffset = useSidebarOffset();
+  const { sidebarOffsetClass, mainContainerClass } = useSidebarOffset();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -175,7 +175,7 @@ export default function SecurityDashboard() {
     return (
       <div className="min-h-screen bg-background">
         <Sidebar userRole={userRole} />
-        <div className={cn("transition-all duration-300", sidebarOffset)}>
+        <div className={mainContainerClass}>
           <Header userName={userName} userRole={userRole} />
           <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
             <div className="text-center">
@@ -191,10 +191,10 @@ export default function SecurityDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
-      <div className={cn("transition-all duration-300", sidebarOffset)}>
+      <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
-        <div className="container mx-auto p-6 space-y-6">
+        <main className="p-4 md:p-6 lg:p-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -384,7 +384,7 @@ export default function SecurityDashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </main>
   </div>
   </div>
   );
