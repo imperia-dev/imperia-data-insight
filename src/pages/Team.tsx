@@ -79,6 +79,7 @@ interface ProductivityStats {
   total_pages: number;
   total_earnings: number;
   avg_daily_earnings: number;
+  avg_monthly_earnings: number;
   last_activity?: string;
   
   // Advanced stats
@@ -230,6 +231,7 @@ export default function Team() {
         const avgDocsPerWeek = totalDocs / weeksActive;
         const avgDocsPerMonth = totalDocs / monthsActive;
         const avgEarningsPerDay = totalEarnings / Math.max(daysActive, 1);
+        const avgMonthlyEarnings = totalEarnings / monthsActive;
         
         // Calculate average completion time
         const completionTimes = deliveredOrders
@@ -363,6 +365,7 @@ export default function Team() {
           total_pages: totalPages,
           total_earnings: totalEarnings,
           avg_daily_earnings: avgEarningsPerDay,
+          avg_monthly_earnings: avgMonthlyEarnings,
           last_activity: format(lastDate, 'yyyy-MM-dd'),
           first_work_date: format(firstDate, 'yyyy-MM-dd'),
           total_orders_completed: deliveredOrders.length,
@@ -396,6 +399,7 @@ export default function Team() {
           total_pages: 0,
           total_earnings: 0,
           avg_daily_earnings: 0,
+          avg_monthly_earnings: 0,
           last_activity: '',
           first_work_date: '',
           total_orders_completed: 0,
@@ -973,9 +977,9 @@ export default function Team() {
                             
                             <Card>
                               <CardContent className="p-4">
-                                <p className="text-sm text-muted-foreground mb-2">Média Mensal</p>
+                                <p className="text-sm text-muted-foreground mb-2">Ganhos Médios Mensais</p>
                                 <p className="text-2xl font-bold">
-                                  {formatCurrency(memberProductivity.avg_docs_per_month * memberProductivity.avg_daily_earnings)}
+                                  {formatCurrency(memberProductivity.avg_monthly_earnings)}
                                 </p>
                               </CardContent>
                             </Card>
