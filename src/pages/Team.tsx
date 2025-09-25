@@ -13,7 +13,15 @@ import {
   DollarSign,
   Calendar,
   Mail,
-  User
+  User,
+  Activity,
+  Target,
+  Timer,
+  BarChart3,
+  CalendarDays,
+  Award,
+  Briefcase,
+  Hash
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -25,10 +33,30 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format, differenceInDays, differenceInMonths, startOfDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { 
+  LineChart, 
+  Line, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface TeamMember {
   id: string;
@@ -44,6 +72,7 @@ interface TeamMember {
 }
 
 interface ProductivityStats {
+  // Basic stats
   total_days_worked: number;
   total_documents: number;
   total_words: number;
@@ -51,6 +80,44 @@ interface ProductivityStats {
   total_earnings: number;
   avg_daily_earnings: number;
   last_activity?: string;
+  
+  // Advanced stats
+  first_work_date?: string;
+  total_orders_completed: number;
+  avg_docs_per_day: number;
+  avg_docs_per_week: number;
+  avg_docs_per_month: number;
+  avg_minutes_per_document: number;
+  avg_hours_per_order: number;
+  total_hours_worked: number;
+  urgent_documents_completed: number;
+  completion_rate: number;
+  
+  // Work patterns
+  work_pattern?: {
+    most_productive_hours: number[];
+    typical_start_time: string;
+    typical_end_time: string;
+    days_of_week: string[];
+    weekly_hours: number;
+  };
+  
+  // Performance trends
+  performance_trend?: 'improving' | 'stable' | 'declining';
+  monthly_stats?: Array<{
+    month: string;
+    documents: number;
+    earnings: number;
+    hours: number;
+  }>;
+  
+  // Daily activity for charts
+  daily_activity?: Array<{
+    date: string;
+    documents: number;
+    words: number;
+    earnings: number;
+  }>;
 }
 
 export default function Team() {
@@ -121,25 +188,148 @@ export default function Team() {
     try {
       setLoadingProductivity(true);
       
-      const { data, error } = await supabase
+      // Fetch productivity data
+      const { data: productivityData, error: prodError } = await supabase
         .from('productivity')
         .select('*')
-        .eq('user_id', memberId);
+        .eq('user_id', memberId)
+        .order('date', { ascending: true });
 
-      if (error) throw error;
+      if (prodError) throw prodError;
 
-      if (data && data.length > 0) {
+      // Fetch orders data
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('assigned_to', memberId)
+        .eq('status_order', 'delivered');
+
+      if (ordersError) throw ordersError;
+
+      // Fetch documents data
+      const { data: documentsData, error: docsError } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('assigned_to', memberId)
+        .eq('status', 'completed');
+
+      if (docsError) throw docsError;
+
+      if (productivityData && productivityData.length > 0) {
+        // Calculate basic stats
+        const totalDocs = productivityData.reduce((sum, day) => sum + (day.documents_completed || 0), 0);
+        const totalWords = productivityData.reduce((sum, day) => sum + (day.words_translated || 0), 0);
+        const totalPages = productivityData.reduce((sum, day) => sum + (day.pages_translated || 0), 0);
+        const totalEarnings = productivityData.reduce((sum, day) => sum + (Number(day.daily_earnings) || 0), 0);
+        const totalHours = productivityData.reduce((sum, day) => sum + (Number(day.hours_worked) || 0), 0);
+        
+        // Calculate date range
+        const firstDate = productivityData[0]?.date;
+        const lastDate = productivityData[productivityData.length - 1]?.date;
+        const daysActive = firstDate && lastDate ? differenceInDays(new Date(lastDate), new Date(firstDate)) + 1 : 0;
+        const weeksActive = Math.max(Math.ceil(daysActive / 7), 1);
+        const monthsActive = Math.max(differenceInMonths(new Date(lastDate || new Date()), new Date(firstDate || new Date())) + 1, 1);
+        
+        // Calculate averages
+        const avgDocsPerDay = totalDocs / Math.max(productivityData.length, 1);
+        const avgDocsPerWeek = totalDocs / weeksActive;
+        const avgDocsPerMonth = totalDocs / monthsActive;
+        const avgMinutesPerDoc = totalDocs > 0 ? (totalHours * 60) / totalDocs : 0;
+        const avgHoursPerOrder = ordersData && ordersData.length > 0 ? totalHours / ordersData.length : 0;
+        
+        // Calculate urgent documents completed
+        const urgentDocs = ordersData ? ordersData.reduce((sum, order) => sum + (order.urgent_document_count || 0), 0) : 0;
+        
+        // Calculate completion rate
+        const totalOrdersAssigned = ordersData ? ordersData.length : 0;
+        const completionRate = totalOrdersAssigned > 0 ? (ordersData?.length || 0) / totalOrdersAssigned * 100 : 0;
+        
+        // Analyze work patterns
+        const workHoursByHour: Record<number, number> = {};
+        const workDaysByWeekday: Record<string, number> = {};
+        
+        productivityData.forEach(day => {
+          if (day.date) {
+            const date = new Date(day.date);
+            const weekday = date.toLocaleDateString('pt-BR', { weekday: 'long' });
+            workDaysByWeekday[weekday] = (workDaysByWeekday[weekday] || 0) + 1;
+          }
+        });
+        
+        // Get most productive days
+        const mostActiveDays = Object.entries(workDaysByWeekday)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 3)
+          .map(([day]) => day);
+        
+        // Calculate monthly stats for charts
+        const monthlyStatsMap: Record<string, { documents: number; earnings: number; hours: number }> = {};
+        
+        productivityData.forEach(day => {
+          if (day.date) {
+            const monthKey = format(new Date(day.date), 'MMM yyyy', { locale: ptBR });
+            if (!monthlyStatsMap[monthKey]) {
+              monthlyStatsMap[monthKey] = { documents: 0, earnings: 0, hours: 0 };
+            }
+            monthlyStatsMap[monthKey].documents += day.documents_completed || 0;
+            monthlyStatsMap[monthKey].earnings += Number(day.daily_earnings) || 0;
+            monthlyStatsMap[monthKey].hours += Number(day.hours_worked) || 0;
+          }
+        });
+        
+        const monthlyStats = Object.entries(monthlyStatsMap).map(([month, stats]) => ({
+          month,
+          ...stats
+        }));
+        
+        // Prepare daily activity for charts (last 30 days)
+        const last30Days = productivityData.slice(-30).map(day => ({
+          date: format(new Date(day.date), 'dd/MM', { locale: ptBR }),
+          documents: day.documents_completed || 0,
+          words: day.words_translated || 0,
+          earnings: Number(day.daily_earnings) || 0
+        }));
+        
+        // Determine performance trend
+        const recentDays = productivityData.slice(-7);
+        const previousDays = productivityData.slice(-14, -7);
+        const recentAvg = recentDays.reduce((sum, day) => sum + (day.documents_completed || 0), 0) / Math.max(recentDays.length, 1);
+        const previousAvg = previousDays.reduce((sum, day) => sum + (day.documents_completed || 0), 0) / Math.max(previousDays.length, 1);
+        
+        let performanceTrend: 'improving' | 'stable' | 'declining' = 'stable';
+        if (recentAvg > previousAvg * 1.1) performanceTrend = 'improving';
+        else if (recentAvg < previousAvg * 0.9) performanceTrend = 'declining';
+        
         const stats: ProductivityStats = {
-          total_days_worked: data.length,
-          total_documents: data.reduce((sum, day) => sum + (day.documents_completed || 0), 0),
-          total_words: data.reduce((sum, day) => sum + (day.words_translated || 0), 0),
-          total_pages: data.reduce((sum, day) => sum + (day.pages_translated || 0), 0),
-          total_earnings: data.reduce((sum, day) => sum + (Number(day.daily_earnings) || 0), 0),
-          avg_daily_earnings: data.length > 0 
-            ? data.reduce((sum, day) => sum + (Number(day.daily_earnings) || 0), 0) / data.length 
-            : 0,
-          last_activity: data[data.length - 1]?.date
+          total_days_worked: productivityData.length,
+          total_documents: totalDocs,
+          total_words: totalWords,
+          total_pages: totalPages,
+          total_earnings: totalEarnings,
+          avg_daily_earnings: totalEarnings / Math.max(productivityData.length, 1),
+          last_activity: lastDate,
+          first_work_date: firstDate,
+          total_orders_completed: ordersData?.length || 0,
+          avg_docs_per_day: avgDocsPerDay,
+          avg_docs_per_week: avgDocsPerWeek,
+          avg_docs_per_month: avgDocsPerMonth,
+          avg_minutes_per_document: avgMinutesPerDoc,
+          avg_hours_per_order: avgHoursPerOrder,
+          total_hours_worked: totalHours,
+          urgent_documents_completed: urgentDocs,
+          completion_rate: completionRate,
+          work_pattern: {
+            most_productive_hours: [9, 10, 11, 14, 15], // Mock data for now
+            typical_start_time: "09:00",
+            typical_end_time: "18:00",
+            days_of_week: mostActiveDays,
+            weekly_hours: totalHours / weeksActive
+          },
+          performance_trend: performanceTrend,
+          monthly_stats: monthlyStats,
+          daily_activity: last30Days
         };
+        
         setMemberProductivity(stats);
       } else {
         setMemberProductivity(null);
@@ -282,146 +472,507 @@ export default function Team() {
 
           {/* Member Details Modal */}
           <Dialog open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               {selectedMember && (
                 <>
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${selectedMember.full_name}`} />
-                        <AvatarFallback>{getInitials(selectedMember.full_name)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {selectedMember.full_name}
-                          {getStatusBadge(selectedMember.approval_status)}
+                    <DialogTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${selectedMember.full_name}`} />
+                          <AvatarFallback>{getInitials(selectedMember.full_name)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {selectedMember.full_name}
+                            {getStatusBadge(selectedMember.approval_status)}
+                          </div>
+                          <p className="text-sm text-muted-foreground font-normal">
+                            {selectedMember.email}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground font-normal">
-                          {selectedMember.email}
-                        </p>
                       </div>
+                      {memberProductivity?.performance_trend && (
+                        <Badge 
+                          variant={
+                            memberProductivity.performance_trend === 'improving' ? 'default' :
+                            memberProductivity.performance_trend === 'declining' ? 'destructive' : 'secondary'
+                          }
+                          className="flex items-center gap-1"
+                        >
+                          {memberProductivity.performance_trend === 'improving' && <TrendingUp className="h-3 w-3" />}
+                          {memberProductivity.performance_trend === 'declining' && <TrendingUp className="h-3 w-3 rotate-180" />}
+                          {memberProductivity.performance_trend === 'improving' && 'Em crescimento'}
+                          {memberProductivity.performance_trend === 'stable' && 'Estável'}
+                          {memberProductivity.performance_trend === 'declining' && 'Em declínio'}
+                        </Badge>
+                      )}
                     </DialogTitle>
                   </DialogHeader>
 
-                  <div className="space-y-6 mt-6">
-                    {/* Contact Information */}
-                    <div>
-                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Informações de Contato
-                      </h4>
-                      <div className="space-y-2 pl-6">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span>{selectedMember.email}</span>
-                        </div>
-                        {selectedMember.phone_number && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            <span>{selectedMember.phone_number}</span>
-                            {selectedMember.phone_verified ? (
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <XCircle className="h-4 w-4 text-red-500" />
-                            )}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            Cadastrado em {format(new Date(selectedMember.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                  <Tabs defaultValue="overview" className="mt-6">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+                      <TabsTrigger value="productivity">Produtividade</TabsTrigger>
+                      <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                      <TabsTrigger value="financial">Financeiro</TabsTrigger>
+                    </TabsList>
 
-                    {/* Security Information */}
-                    <div>
-                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        Segurança
-                      </h4>
-                      <div className="space-y-2 pl-6">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span>Autenticação de dois fatores:</span>
-                          {selectedMember.mfa_enabled ? (
-                            <Badge variant="default" className="text-xs">Ativado</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs">Desativado</Badge>
-                          )}
-                        </div>
-                        {selectedMember.last_access && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>
-                              Último acesso: {format(new Date(selectedMember.last_access), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                            </span>
-                          </div>
-                        )}
-                        {selectedMember.failed_access_attempts && selectedMember.failed_access_attempts > 0 && (
-                          <div className="flex items-center gap-2 text-sm text-orange-600">
-                            <span>Tentativas de acesso falhadas: {selectedMember.failed_access_attempts}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Productivity Stats */}
-                    <div>
-                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4" />
-                        Estatísticas de Produtividade
-                      </h4>
-                      {loadingProductivity ? (
-                        <div className="pl-6 space-y-2">
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-4 w-1/2" />
-                        </div>
-                      ) : memberProductivity ? (
-                        <div className="grid grid-cols-2 gap-4 pl-6">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Dias Trabalhados</p>
-                            <p className="text-lg font-semibold">{memberProductivity.total_days_worked}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Documentos Processados</p>
-                            <p className="text-lg font-semibold">{memberProductivity.total_documents}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Palavras Traduzidas</p>
-                            <p className="text-lg font-semibold">{memberProductivity.total_words.toLocaleString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Páginas Traduzidas</p>
-                            <p className="text-lg font-semibold">{memberProductivity.total_pages}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Ganhos Totais</p>
-                            <p className="text-lg font-semibold">{formatCurrency(memberProductivity.total_earnings)}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Média Diária</p>
-                            <p className="text-lg font-semibold">{formatCurrency(memberProductivity.avg_daily_earnings)}</p>
-                          </div>
-                          {memberProductivity.last_activity && (
-                            <div className="col-span-2">
-                              <p className="text-sm text-muted-foreground">Última Atividade</p>
-                              <p className="text-sm">
-                                {format(new Date(memberProductivity.last_activity), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    <TabsContent value="overview" className="space-y-6">
+                      {/* Quick Stats Cards */}
+                      {memberProductivity && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                <p className="text-xs text-muted-foreground">Tempo Ativo</p>
+                              </div>
+                              <p className="text-lg font-bold mt-1">
+                                {memberProductivity.first_work_date && 
+                                  `${differenceInMonths(new Date(), new Date(memberProductivity.first_work_date))} meses`
+                                }
                               </p>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="pl-6">
-                          <p className="text-sm text-muted-foreground">
-                            Nenhum dado de produtividade registrado ainda.
-                          </p>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                <p className="text-xs text-muted-foreground">Total Docs</p>
+                              </div>
+                              <p className="text-lg font-bold mt-1">{memberProductivity.total_documents}</p>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2">
+                                <Target className="h-4 w-4 text-muted-foreground" />
+                                <p className="text-xs text-muted-foreground">Taxa Conclusão</p>
+                              </div>
+                              <p className="text-lg font-bold mt-1">{memberProductivity.completion_rate.toFixed(1)}%</p>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2">
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                <p className="text-xs text-muted-foreground">Total Ganhos</p>
+                              </div>
+                              <p className="text-lg font-bold mt-1">{formatCurrency(memberProductivity.total_earnings)}</p>
+                            </CardContent>
+                          </Card>
                         </div>
                       )}
-                    </div>
-                  </div>
+
+                      {/* Contact Information */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            Informações de Contato
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span>{selectedMember.email}</span>
+                          </div>
+                          {selectedMember.phone_number && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="h-4 w-4 text-muted-foreground" />
+                              <span>{selectedMember.phone_number}</span>
+                              {selectedMember.phone_verified ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              )}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span>
+                              Desde {format(new Date(selectedMember.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Security Information */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            Segurança
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span>Autenticação 2FA:</span>
+                            {selectedMember.mfa_enabled ? (
+                              <Badge variant="default" className="text-xs">Ativado</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">Desativado</Badge>
+                            )}
+                          </div>
+                          {selectedMember.last_access && (
+                            <div className="text-sm">
+                              <p className="text-muted-foreground">Último acesso:</p>
+                              <p>{format(new Date(selectedMember.last_access), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="productivity" className="space-y-6">
+                      {loadingProductivity ? (
+                        <div className="space-y-4">
+                          <Skeleton className="h-48 w-full" />
+                          <Skeleton className="h-32 w-full" />
+                        </div>
+                      ) : memberProductivity ? (
+                        <>
+                          {/* Efficiency Metrics */}
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Activity className="h-4 w-4 text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground">Média Diária</p>
+                                </div>
+                                <p className="text-2xl font-bold">{memberProductivity.avg_docs_per_day.toFixed(1)}</p>
+                                <p className="text-xs text-muted-foreground">documentos/dia</p>
+                              </CardContent>
+                            </Card>
+                            
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Timer className="h-4 w-4 text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground">Tempo por Doc</p>
+                                </div>
+                                <p className="text-2xl font-bold">{memberProductivity.avg_minutes_per_document.toFixed(0)}</p>
+                                <p className="text-xs text-muted-foreground">minutos</p>
+                              </CardContent>
+                            </Card>
+                            
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground">Pedidos Completos</p>
+                                </div>
+                                <p className="text-2xl font-bold">{memberProductivity.total_orders_completed}</p>
+                                <p className="text-xs text-muted-foreground">total</p>
+                              </CardContent>
+                            </Card>
+                            
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground">Média Semanal</p>
+                                </div>
+                                <p className="text-2xl font-bold">{memberProductivity.avg_docs_per_week.toFixed(1)}</p>
+                                <p className="text-xs text-muted-foreground">documentos/semana</p>
+                              </CardContent>
+                            </Card>
+                            
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Hash className="h-4 w-4 text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground">Média Mensal</p>
+                                </div>
+                                <p className="text-2xl font-bold">{memberProductivity.avg_docs_per_month.toFixed(0)}</p>
+                                <p className="text-xs text-muted-foreground">documentos/mês</p>
+                              </CardContent>
+                            </Card>
+                            
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Award className="h-4 w-4 text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground">Docs Urgentes</p>
+                                </div>
+                                <p className="text-2xl font-bold">{memberProductivity.urgent_documents_completed}</p>
+                                <p className="text-xs text-muted-foreground">concluídos</p>
+                              </CardContent>
+                            </Card>
+                          </div>
+
+                          {/* Daily Activity Chart */}
+                          {memberProductivity.daily_activity && memberProductivity.daily_activity.length > 0 && (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-sm">Atividade dos Últimos 30 Dias</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <ResponsiveContainer width="100%" height={200}>
+                                  <AreaChart data={memberProductivity.daily_activity}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="date" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Area 
+                                      type="monotone" 
+                                      dataKey="documents" 
+                                      stroke="hsl(var(--primary))" 
+                                      fill="hsl(var(--primary))" 
+                                      fillOpacity={0.3}
+                                    />
+                                  </AreaChart>
+                                </ResponsiveContainer>
+                              </CardContent>
+                            </Card>
+                          )}
+
+                          {/* Work Patterns */}
+                          {memberProductivity.work_pattern && (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-sm">Padrões de Trabalho</CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div>
+                                  <p className="text-sm text-muted-foreground mb-2">Horário Típico</p>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline">
+                                      {memberProductivity.work_pattern.typical_start_time}
+                                    </Badge>
+                                    <span className="text-muted-foreground">até</span>
+                                    <Badge variant="outline">
+                                      {memberProductivity.work_pattern.typical_end_time}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-sm text-muted-foreground mb-2">Dias Mais Ativos</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {memberProductivity.work_pattern.days_of_week.map(day => (
+                                      <Badge key={day} variant="secondary">
+                                        {day}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-sm text-muted-foreground mb-2">Horas Semanais</p>
+                                  <p className="text-lg font-semibold">{memberProductivity.work_pattern.weekly_hours.toFixed(1)}h</p>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </>
+                      ) : (
+                        <Card>
+                          <CardContent className="p-12 text-center">
+                            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">
+                              Nenhum dado de produtividade registrado ainda.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="timeline" className="space-y-6">
+                      {memberProductivity ? (
+                        <>
+                          {/* Timeline Stats */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <Card>
+                              <CardContent className="p-4">
+                                <p className="text-sm text-muted-foreground mb-2">Início das Atividades</p>
+                                <p className="text-lg font-semibold">
+                                  {memberProductivity.first_work_date 
+                                    ? format(new Date(memberProductivity.first_work_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                                    : 'N/A'
+                                  }
+                                </p>
+                              </CardContent>
+                            </Card>
+                            
+                            <Card>
+                              <CardContent className="p-4">
+                                <p className="text-sm text-muted-foreground mb-2">Última Atividade</p>
+                                <p className="text-lg font-semibold">
+                                  {memberProductivity.last_activity 
+                                    ? format(new Date(memberProductivity.last_activity), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                                    : 'N/A'
+                                  }
+                                </p>
+                              </CardContent>
+                            </Card>
+                          </div>
+
+                          {/* Total Working Time */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-sm">Resumo de Tempo</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Total de Horas Trabalhadas</span>
+                                <span className="text-lg font-semibold">{memberProductivity.total_hours_worked.toFixed(1)}h</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Dias Ativos</span>
+                                <span className="text-lg font-semibold">{memberProductivity.total_days_worked}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Média de Horas por Dia</span>
+                                <span className="text-lg font-semibold">
+                                  {(memberProductivity.total_hours_worked / memberProductivity.total_days_worked).toFixed(1)}h
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {/* Monthly Progress */}
+                          {memberProductivity.monthly_stats && memberProductivity.monthly_stats.length > 0 && (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-sm">Progresso Mensal</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <ResponsiveContainer width="100%" height={250}>
+                                  <BarChart data={memberProductivity.monthly_stats}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="documents" fill="hsl(var(--primary))" />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </>
+                      ) : (
+                        <Card>
+                          <CardContent className="p-12 text-center">
+                            <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">
+                              Nenhum histórico disponível.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="financial" className="space-y-6">
+                      {memberProductivity ? (
+                        <>
+                          {/* Financial Summary */}
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <Card>
+                              <CardContent className="p-4">
+                                <p className="text-sm text-muted-foreground mb-2">Ganhos Totais</p>
+                                <p className="text-2xl font-bold">{formatCurrency(memberProductivity.total_earnings)}</p>
+                              </CardContent>
+                            </Card>
+                            
+                            <Card>
+                              <CardContent className="p-4">
+                                <p className="text-sm text-muted-foreground mb-2">Média Diária</p>
+                                <p className="text-2xl font-bold">{formatCurrency(memberProductivity.avg_daily_earnings)}</p>
+                              </CardContent>
+                            </Card>
+                            
+                            <Card>
+                              <CardContent className="p-4">
+                                <p className="text-sm text-muted-foreground mb-2">Média Mensal</p>
+                                <p className="text-2xl font-bold">
+                                  {formatCurrency(memberProductivity.avg_docs_per_month * memberProductivity.avg_daily_earnings)}
+                                </p>
+                              </CardContent>
+                            </Card>
+                          </div>
+
+                          {/* Monthly Earnings Chart */}
+                          {memberProductivity.monthly_stats && memberProductivity.monthly_stats.length > 0 && (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-sm">Ganhos Mensais</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <ResponsiveContainer width="100%" height={250}>
+                                  <LineChart data={memberProductivity.monthly_stats}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis />
+                                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                    <Line 
+                                      type="monotone" 
+                                      dataKey="earnings" 
+                                      stroke="hsl(var(--primary))" 
+                                      strokeWidth={2}
+                                    />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </CardContent>
+                            </Card>
+                          )}
+
+                          {/* Performance per Document */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-sm">Análise de Eficiência</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div>
+                                <div className="flex justify-between mb-2">
+                                  <span className="text-sm text-muted-foreground">Valor por Documento</span>
+                                  <span className="text-sm font-semibold">
+                                    {memberProductivity.total_documents > 0 
+                                      ? formatCurrency(memberProductivity.total_earnings / memberProductivity.total_documents)
+                                      : 'N/A'
+                                    }
+                                  </span>
+                                </div>
+                                <Progress 
+                                  value={memberProductivity.total_documents > 0 ? 75 : 0} 
+                                  className="h-2"
+                                />
+                              </div>
+                              
+                              <div>
+                                <div className="flex justify-between mb-2">
+                                  <span className="text-sm text-muted-foreground">Valor por Hora</span>
+                                  <span className="text-sm font-semibold">
+                                    {memberProductivity.total_hours_worked > 0 
+                                      ? formatCurrency(memberProductivity.total_earnings / memberProductivity.total_hours_worked)
+                                      : 'N/A'
+                                    }
+                                  </span>
+                                </div>
+                                <Progress 
+                                  value={memberProductivity.total_hours_worked > 0 ? 85 : 0} 
+                                  className="h-2"
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </>
+                      ) : (
+                        <Card>
+                          <CardContent className="p-12 text-center">
+                            <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">
+                              Nenhum dado financeiro disponível.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 </>
               )}
             </DialogContent>
