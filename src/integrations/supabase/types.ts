@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -1210,6 +1210,53 @@ export type Database = {
           },
         ]
       }
+      password_reset_tokens: {
+        Row: {
+          created_at: string | null
+          email_token: string
+          email_verified: boolean | null
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          sms_token: string
+          sms_verified: boolean | null
+          used: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_token?: string
+          email_verified?: boolean | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          sms_token: string
+          sms_verified?: boolean | null
+          used?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_token?: string
+          email_verified?: boolean | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          sms_token?: string
+          sms_verified?: boolean | null
+          used?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "password_reset_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_receipts: {
         Row: {
           amount: number
@@ -1498,6 +1545,9 @@ export type Database = {
           mfa_enrollment_date: string | null
           mfa_verified: boolean | null
           operation_account_id: string | null
+          phone_number: string | null
+          phone_verified: boolean | null
+          phone_verified_at: string | null
           rejection_reason: string | null
           role: Database["public"]["Enums"]["user_role"]
           trusted_devices: Json | null
@@ -1522,6 +1572,9 @@ export type Database = {
           mfa_enrollment_date?: string | null
           mfa_verified?: boolean | null
           operation_account_id?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
+          phone_verified_at?: string | null
           rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           trusted_devices?: Json | null
@@ -1546,6 +1599,9 @@ export type Database = {
           mfa_enrollment_date?: string | null
           mfa_verified?: boolean | null
           operation_account_id?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
+          phone_verified_at?: string | null
           rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           trusted_devices?: Json | null
@@ -1840,6 +1896,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sms_verification_logs: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          id: string
+          phone_number: string
+          status: string
+          user_id: string | null
+          verification_type: string
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          id?: string
+          phone_number: string
+          status: string
+          user_id?: string | null
+          verification_type: string
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          id?: string
+          phone_number?: string
+          status?: string
+          user_id?: string | null
+          verification_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_verification_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suppliers: {
         Row: {
@@ -2211,6 +2305,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      cleanup_expired_reset_tokens: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_old_backups: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -2218,6 +2316,10 @@ export type Database = {
       generate_mfa_backup_codes: {
         Args: Record<PropertyKey, never>
         Returns: string[]
+      }
+      generate_sms_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_backup_stats: {
         Args: Record<PropertyKey, never>
