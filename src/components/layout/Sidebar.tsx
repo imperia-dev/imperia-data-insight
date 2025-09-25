@@ -113,7 +113,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Integração BTG",
         icon: Link,
         href: "/btg-integration",
-        roles: ["owner", "master", "admin"],
+        roles: ["owner"],
       },
     ],
   },
