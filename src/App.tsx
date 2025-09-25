@@ -42,6 +42,7 @@ import RegistrationApprovals from "./pages/RegistrationApprovals";
 import PendingApproval from "./pages/PendingApproval";
 import BTGIntegration from "./pages/BTGIntegration";
 import SecurityDashboard from "./pages/SecurityDashboard";
+import PasswordReset from "./pages/PasswordReset";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
             <SidebarProvider>
             <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<PasswordReset />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
             <Route path="/registration-approvals" element={

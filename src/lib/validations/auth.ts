@@ -58,3 +58,30 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type MFACodeInput = z.infer<typeof mfaCodeSchema>;
 export type BackupCodeInput = z.infer<typeof backupCodeSchema>;
+
+// Phone validation
+export const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^\(\d{2}\)\s?\d{4,5}-?\d{4}$/, 'Formato de telefone inválido')
+  .or(z.string().regex(/^\+[1-9]\d{1,14}$/, 'Formato internacional inválido'))
+  .optional();
+
+// Extended signup schema with phone
+export const signupWithPhoneSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema,
+  confirmPassword: z.string(),
+  fullName: z
+    .string()
+    .trim()
+    .min(2, 'Nome deve ter no mínimo 2 caracteres')
+    .max(100, 'Nome deve ter no máximo 100 caracteres')
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'Nome contém caracteres inválidos'),
+  phone: phoneSchema,
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'As senhas não coincidem',
+  path: ['confirmPassword'],
+});
+
+export type SignupWithPhoneInput = z.infer<typeof signupWithPhoneSchema>;

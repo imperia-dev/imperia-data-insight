@@ -228,7 +228,7 @@ export default function PasswordReset() {
                 </div>
               </div>
 
-              {password && <PasswordStrengthIndicator strength={strength} requirements={requirements} />}
+              {password && <PasswordStrengthIndicator password={password} />}
 
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>

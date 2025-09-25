@@ -12,17 +12,21 @@ import { Logo } from "@/components/layout/Logo";
 import { Separator } from "@/components/ui/separator";
 import { MFAChallenge } from "@/components/mfa/MFAChallenge";
 import { BackupCodeChallenge } from "@/components/mfa/BackupCodeChallenge";
+import { ForgotPasswordModal } from "@/components/auth/ForgotPasswordModal";
+import { PhoneInput } from "@/components/auth/PhoneInput";
 import { useMFA } from "@/hooks";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showMFAChallenge, setShowMFAChallenge] = useState(false);
   const [showBackupCodeChallenge, setShowBackupCodeChallenge] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [mfaFactors, setMfaFactors] = useState<any[]>([]);
   const [mfaChallengeId, setMfaChallengeId] = useState<string>("");
   const navigate = useNavigate();
@@ -58,6 +62,7 @@ export default function Auth() {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
+      // First create the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -84,6 +89,26 @@ export default function Auth() {
           });
         }
       } else if (data.user) {
+        // If signup successful and phone was provided, update the profile
+        if (phone) {
+          // Extract digits only for international format
+          const phoneDigits = phone.replace(/\D/g, '');
+          const formattedPhone = phoneDigits ? `+55${phoneDigits}` : '';
+          
+          // Update profile with phone number
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ 
+              phone_number: formattedPhone,
+              phone_verified: false 
+            })
+            .eq('id', data.user.id);
+          
+          if (profileError) {
+            console.error('Error updating phone:', profileError);
+          }
+        }
+        
         toast({
           title: "Cadastro realizado com sucesso!",
           description: "Verifique seu email para confirmar o cadastro.",
@@ -465,6 +490,16 @@ export default function Auth() {
                     "Entrar"
                   )}
                 </Button>
+                <div className="text-center">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-sm text-muted-foreground hover:text-primary"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
+                    Esqueceu sua senha?
+                  </Button>
+                </div>
               </form>
               
               <div className="relative my-6">
@@ -529,6 +564,19 @@ export default function Auth() {
                     required
                     disabled={loading}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone (opcional)</Label>
+                  <PhoneInput
+                    id="phone"
+                    value={phone}
+                    onChange={setPhone}
+                    disabled={loading}
+                    placeholder="(11) 98765-4321"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Usado para recuperação de senha via SMS
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signupPassword">Senha</Label>
@@ -621,6 +669,12 @@ export default function Auth() {
           </p>
         </CardFooter>
       </Card>
+      
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal 
+        open={showForgotPassword} 
+        onOpenChange={setShowForgotPassword} 
+      />
     </div>
   );
 }
