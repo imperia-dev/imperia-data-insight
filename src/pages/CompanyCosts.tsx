@@ -32,6 +32,8 @@ interface CompanyCost {
   observations: string | null;
   amount: number;
   files?: string[];
+  conta_contabil_id?: string | null;
+  centro_custo_id?: string | null;
   created_at: string;
   updated_at: string;
 }
