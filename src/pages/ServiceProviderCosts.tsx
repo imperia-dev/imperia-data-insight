@@ -184,19 +184,28 @@ export default function ServiceProviderCosts() {
 
   const handleSubmit = async () => {
     try {
-      // Get a default account for service providers
-      const { data: defaultAccount } = await supabase
+      // Buscar o plano de contas 4.01 para prestadores de serviço
+      const { data: chartOfAccount } = await supabase
         .from('chart_of_accounts')
         .select('id')
-        .eq('code', '3.0.00')
-        .single();
+        .eq('code', '4.01')
+        .maybeSingle();
+
+      // Buscar o centro de custo OPR
+      const { data: costCenter } = await supabase
+        .from('cost_centers')
+        .select('id')
+        .eq('code', 'OPR')
+        .maybeSingle();
 
       const expenseData = {
         tipo_lancamento: 'prestador_servico' as const,
         tipo_despesa: 'prestador',
-        conta_contabil_id: defaultAccount?.id || null,
+        conta_contabil_id: chartOfAccount?.id || null,
+        centro_custo_id: costCenter?.id || null,
         data_competencia: formData.competence ? formData.competence + '-01' : new Date().toISOString().split('T')[0],
         amount_original: parseFloat(formData.amount),
+        amount_base: parseFloat(formData.amount),
         currency: 'BRL',
         exchange_rate: 1,
         description: 'Pagamento para ' + formData.name,
@@ -226,7 +235,7 @@ export default function ServiceProviderCosts() {
           .insert([expenseData]);
 
         if (error) throw error;
-        toast.success("Prestador adicionado com sucesso");
+        toast.success("Prestador adicionado | Classificação: 4.01 - Custos de Tradução | Centro: OPR - Operacional");
       }
 
       setIsDialogOpen(false);
@@ -281,19 +290,28 @@ export default function ServiceProviderCosts() {
         status: quickCostData.status,
       };
 
-      // Get a default account for service providers  
-      const { data: defaultAccount } = await supabase
+      // Buscar o plano de contas 4.01 para prestadores de serviço  
+      const { data: chartOfAccount } = await supabase
         .from('chart_of_accounts')
         .select('id')
-        .eq('code', '3.0.00')
-        .single();
+        .eq('code', '4.01')
+        .maybeSingle();
+
+      // Buscar o centro de custo OPR
+      const { data: costCenter } = await supabase
+        .from('cost_centers')
+        .select('id')
+        .eq('code', 'OPR')
+        .maybeSingle();
 
       const expenseData = {
         tipo_lancamento: 'prestador_servico' as const,
         tipo_despesa: 'prestador',
-        conta_contabil_id: defaultAccount?.id || null,
+        conta_contabil_id: chartOfAccount?.id || null,
+        centro_custo_id: costCenter?.id || null,
         data_competencia: costData.competence ? costData.competence + '-01' : new Date().toISOString().split('T')[0],
         amount_original: costData.amount,
+        amount_base: costData.amount,
         currency: 'BRL',
         exchange_rate: 1,
         description: 'Pagamento para ' + costData.name,
@@ -315,7 +333,7 @@ export default function ServiceProviderCosts() {
 
       if (error) throw error;
       
-      toast.success("Custo adicionado com sucesso");
+      toast.success("Custo adicionado | Classificação: 4.01 - Custos de Tradução | Centro: OPR - Operacional");
       setIsAddCostDialogOpen(false);
       setSelectedProvider("");
       setQuickCostData({
@@ -786,7 +804,19 @@ export default function ServiceProviderCosts() {
       <Card>
         <CardHeader>
           <div className="flex flex-row items-center justify-between">
-            <CardTitle className="text-2xl font-bold">Custos - Prestadores de Serviço</CardTitle>
+            <div>
+              <CardTitle className="text-2xl font-bold">Custos - Prestadores de Serviço</CardTitle>
+              <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">📊 Plano de Contas:</span>
+                  <Badge variant="secondary">4.01 - Custos de Tradução</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">🏢 Centro de Custo:</span>
+                  <Badge variant="secondary">OPR - Operacional</Badge>
+                </div>
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
