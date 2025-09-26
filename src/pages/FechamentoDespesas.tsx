@@ -196,12 +196,21 @@ function FechamentoDespesasContent() {
 
       console.log('Processed expenses:', mappedExpenses.length);
       setExpenses(mappedExpenses);
-      validateExpenses(mappedExpenses);
       
+      // Only validate if there are expenses to validate
       if (mappedExpenses.length > 0) {
+        validateExpenses(mappedExpenses);
         toast({
           title: "Despesas carregadas",
           description: `${mappedExpenses.length} despesas encontradas para o período`,
+        });
+      } else {
+        // Clear validation errors when no expenses are found
+        setValidationErrors([]);
+        toast({
+          title: "Nenhuma despesa encontrada",
+          description: "Não há despesas para o período selecionado",
+          variant: "default",
         });
       }
       
@@ -234,10 +243,6 @@ function FechamentoDespesasContent() {
         expensesWithoutFiles.push({id: expense.id, description: expense.description});
       }
     });
-
-    if (expenseList.length === 0) {
-      errors.push("Nenhuma despesa encontrada para o período selecionado");
-    }
 
     setValidationErrors(errors);
     return expensesWithoutFiles;
