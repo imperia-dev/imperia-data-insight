@@ -170,9 +170,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("[send-payment-email] Sending email via Resend API");
     
-    // Use custom domain if verified, otherwise fallback to Resend default
-    const fromEmail = "Alex - Imperia Traduções <noreply@appimperiatraducoes.com>";
-    const fallbackEmail = "Alex - Imperia Traduções <onboarding@resend.dev>";
+    // Use Resend default domain to avoid verification issues
+    const fromEmail = "Imperia Traduções <onboarding@resend.dev>";
     
     console.log("[send-payment-email] From:", fromEmail);
     console.log("[send-payment-email] To:", requestData.recipient_email);
@@ -180,29 +179,13 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Send email using Resend
     try {
-      let emailResponse;
-      
-      // Try with custom domain first
-      try {
-        emailResponse = await resend.emails.send({
-          from: fromEmail,
-          to: [requestData.recipient_email],
-          cc: requestData.cc_emails || [],
-          subject: requestData.subject,
-          html: htmlContent,
-        });
-      } catch (domainError: any) {
-        // If custom domain fails, try with Resend default
-        console.log("[send-payment-email] Custom domain failed, trying fallback:", domainError.message);
-        
-        emailResponse = await resend.emails.send({
-          from: fallbackEmail,
-          to: [requestData.recipient_email],
-          cc: requestData.cc_emails || [],
-          subject: requestData.subject,
-          html: htmlContent,
-        });
-      }
+      const emailResponse = await resend.emails.send({
+        from: fromEmail,
+        to: [requestData.recipient_email],
+        cc: requestData.cc_emails || [],
+        subject: requestData.subject,
+        html: htmlContent,
+      });
 
       console.log("[send-payment-email] Email API response:", JSON.stringify(emailResponse));
       
