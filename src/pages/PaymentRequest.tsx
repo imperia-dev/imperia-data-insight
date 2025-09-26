@@ -377,7 +377,11 @@ ${userFullName || 'Equipe Império Traduções'}`);
             };
           }),
           total_amount: calculateTotals().totalValue,
-          company_info: companyInfo
+          company_info: companyInfo,
+          pdf_attachment: {
+            content: pdfBase64,
+            filename: `solicitacao-pagamento-${format(new Date(), 'yyyy-MM-dd')}.pdf`
+          }
         }
       });
 

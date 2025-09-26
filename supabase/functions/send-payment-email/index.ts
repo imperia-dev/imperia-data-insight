@@ -29,6 +29,10 @@ interface PaymentEmailRequest {
     account_number?: string;
     pix_key?: string;
   };
+  pdf_attachment?: {
+    content: string; // Base64 encoded PDF
+    filename: string;
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -188,16 +192,34 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("[send-payment-email] From:", fromEmail);
     console.log("[send-payment-email] To:", requestData.recipient_email);
     console.log("[send-payment-email] CC:", requestData.cc_emails?.join(", ") || "none");
+    console.log("[send-payment-email] Has PDF attachment:", !!requestData.pdf_attachment);
+    
+    // Prepare attachments array
+    const attachments = [];
+    if (requestData.pdf_attachment && requestData.pdf_attachment.content) {
+      attachments.push({
+        filename: requestData.pdf_attachment.filename || 'solicitacao-pagamento.pdf',
+        content: requestData.pdf_attachment.content
+      });
+      console.log("[send-payment-email] PDF attachment added:", requestData.pdf_attachment.filename);
+    }
     
     // Send email using Resend
     try {
-      const emailResponse = await resend.emails.send({
+      const emailPayload: any = {
         from: fromEmail,
         to: [requestData.recipient_email],
         cc: requestData.cc_emails || [],
         subject: requestData.subject,
-        html: htmlContent,
-      });
+        html: htmlContent
+      };
+      
+      // Add attachments if any
+      if (attachments.length > 0) {
+        emailPayload.attachments = attachments;
+      }
+      
+      const emailResponse = await resend.emails.send(emailPayload);
 
       console.log("[send-payment-email] Email API response:", JSON.stringify(emailResponse));
       
