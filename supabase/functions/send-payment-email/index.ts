@@ -141,18 +141,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Calculate the correct total from selected protocols only
     const selectedTotal = requestData.protocols_data.reduce((sum, p) => sum + p.total_value, 0);
 
-    const bankInfo = requestData.company_info ? `
-      <div style="margin-top: 30px; padding: 20px; background-color: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-        <h3 style="color: #2d3748; margin-bottom: 15px; font-size: 16px;">Dados para Pagamento</h3>
-        <div style="font-size: 14px; line-height: 1.8;">
-          <p style="margin: 5px 0;"><strong>Empresa:</strong> ${requestData.company_info.name}</p>
-          <p style="margin: 5px 0;"><strong>CNPJ:</strong> ${requestData.company_info.cnpj}</p>
-          ${requestData.company_info.bank_name ? `<p style="margin: 5px 0;"><strong>Banco:</strong> ${requestData.company_info.bank_name}</p>` : ''}
-          ${requestData.company_info.account_number ? `<p style="margin: 5px 0;"><strong>Conta:</strong> ${requestData.company_info.account_number}</p>` : ''}
-          ${requestData.company_info.pix_key ? `<p style="margin: 5px 0;"><strong>Chave PIX:</strong> ${requestData.company_info.pix_key}</p>` : ''}
-        </div>
-      </div>
-    ` : '';
+    // Bank info section removed as per user request
+    const bankInfo = '';
 
     const htmlContent = `
       <!DOCTYPE html>
