@@ -24,13 +24,15 @@ import autoTable from "jspdf-autotable";
 interface Protocol {
   id: string;
   protocol_number: string;
+  type: 'production' | 'expense';
   competence_month: string;
   total_value: number;
-  product_1_count: number;
-  product_2_count: number;
-  avg_value_per_document: number;
-  total_pages: number;
-  total_ids: number;
+  product_1_count?: number;
+  product_2_count?: number;
+  avg_value_per_document?: number;
+  total_pages?: number;
+  total_ids?: number;
+  expense_count?: number;
   created_at: string;
   payment_status: string;
 }
@@ -95,30 +97,52 @@ export default function PaymentRequest() {
   const fetchProtocols = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch production protocols
+      const { data: productionData, error: prodError } = await supabase
         .from('closing_protocols')
         .select('*')
         .eq('payment_status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching protocols:', error);
-        toast({
-          title: "Erro",
-          description: "Erro ao carregar protocolos",
-          variant: "destructive",
-        });
-      } else {
-        setProtocols(data || []);
-        
-        // Automatically generate message based on protocols
-        if (data && data.length > 0) {
-          const protocolNumbers = data.map(p => p.protocol_number).join(', ');
-          const totalAmount = data.reduce((sum, p) => sum + p.total_value, 0);
-          
-          setMessage(`Prezados,
+      // Fetch expense protocols
+      const { data: expenseData, error: expError } = await supabase
+        .from('expense_closing_protocols')
+        .select('*')
+        .in('status', ['draft', 'approved'])
+        .order('created_at', { ascending: false });
 
-Segue em anexo a solicitação de pagamento referente aos serviços de tradução prestados.
+      if (prodError) console.error('Error fetching production protocols:', prodError);
+      if (expError) console.error('Error fetching expense protocols:', expError);
+
+      // Combine and map protocols
+      const allProtocols: Protocol[] = [
+        ...(productionData || []).map(p => ({
+          ...p,
+          type: 'production' as const,
+          total_value: p.total_value
+        })),
+        ...(expenseData || []).map(p => ({
+          id: p.id,
+          protocol_number: p.protocol_number,
+          type: 'expense' as const,
+          competence_month: p.competence_month,
+          total_value: p.total_amount || 0,
+          expense_count: p.expense_count,
+          created_at: p.created_at,
+          payment_status: p.status === 'approved' ? 'pending' : p.status
+        }))
+      ];
+
+      setProtocols(allProtocols);
+      
+      // Automatically generate message based on protocols
+      if (allProtocols.length > 0) {
+        const protocolNumbers = allProtocols.map(p => p.protocol_number).join(', ');
+        const totalAmount = allProtocols.reduce((sum, p) => sum + p.total_value, 0);
+        
+        setMessage(`Prezados,
+
+Segue em anexo a solicitação de pagamento referente aos serviços prestados.
 
 Protocolos: ${protocolNumbers}
 Valor Total: ${formatCurrency(totalAmount)}
@@ -127,7 +151,6 @@ Por favor, confirmar o recebimento e informar a previsão de pagamento.
 
 Atenciosamente,
 ${userFullName || 'Equipe Império Traduções'}`);
-        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -162,8 +185,8 @@ ${userFullName || 'Equipe Império Traduções'}`);
     const selected = protocols.filter(p => selectedProtocols.includes(p.id));
     return {
       totalValue: selected.reduce((sum, p) => sum + p.total_value, 0),
-      totalPages: selected.reduce((sum, p) => sum + p.total_pages, 0),
-      totalIds: selected.reduce((sum, p) => sum + p.total_ids, 0),
+      totalPages: selected.reduce((sum, p) => sum + (p.total_pages || 0), 0),
+      totalIds: selected.reduce((sum, p) => sum + (p.total_ids || 0), 0),
       protocolCount: selected.length
     };
   };
@@ -209,18 +232,18 @@ ${userFullName || 'Equipe Império Traduções'}`);
     // Protocols table
     const tableData = selected.map(p => [
       p.protocol_number,
+      p.type === 'production' ? 'Produção' : 'Despesas',
       format(new Date(p.competence_month), 'MM/yyyy'),
       formatCurrency(p.total_value),
-      p.product_1_count.toString(),
-      p.product_2_count.toString(),
-      p.total_pages.toString()
+      p.type === 'production' ? `${p.product_1_count || 0} / ${p.product_2_count || 0}` : `${p.expense_count || 0} despesas`,
+      p.type === 'production' ? (p.total_pages || 0).toString() : '-'
     ]);
     
     autoTable(doc, {
       startY: 130,
-      head: [['Protocolo', 'Competência', 'Valor', 'Produto 1', 'Produto 2', 'Páginas']],
+      head: [['Protocolo', 'Tipo', 'Competência', 'Valor', 'Detalhes', 'Páginas']],
       body: tableData,
-      foot: [['TOTAL', '', formatCurrency(totals.totalValue), '', '', totals.totalPages.toString()]],
+      foot: [['TOTAL', '', '', formatCurrency(totals.totalValue), '', totals.totalPages > 0 ? totals.totalPages.toString() : '-']],
       theme: 'grid',
       styles: { fontSize: 9 },
       headStyles: { fillColor: [66, 66, 66] },
@@ -454,15 +477,26 @@ ${userFullName || 'Equipe Império Traduções'}`);
                     >
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{protocol.protocol_number}</span>
+                        <Badge variant={protocol.type === 'production' ? 'default' : 'secondary'}>
+                          {protocol.type === 'production' ? 'Produção' : 'Despesas'}
+                        </Badge>
                         <Badge variant="outline">
                           {format(new Date(protocol.competence_month), 'MMM/yyyy', { locale: ptBR })}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {formatCurrency(protocol.total_value)} • 
-                        {protocol.product_1_count} Produto 1 • 
-                        {protocol.product_2_count} Produto 2 • 
-                        {protocol.total_pages} páginas
+                        {protocol.type === 'production' ? (
+                          <>
+                            {protocol.product_1_count || 0} Produto 1 • 
+                            {protocol.product_2_count || 0} Produto 2 • 
+                            {protocol.total_pages || 0} páginas
+                          </>
+                        ) : (
+                          <>
+                            {protocol.expense_count || 0} despesas
+                          </>
+                        )}
                       </div>
                     </label>
                   </div>

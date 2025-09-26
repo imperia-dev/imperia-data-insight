@@ -23,6 +23,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   Calendar, 
+  DollarSign,
   CheckCircle, 
   AlertCircle, 
   FileText, 
@@ -32,7 +33,6 @@ import {
   Building2,
   Users,
   TrendingUp,
-  DollarSign,
   FileSpreadsheet,
   CheckSquare,
   XCircle,
@@ -381,13 +381,14 @@ function FechamentoDespesasContent() {
 
       if (protocolError) throw protocolError;
 
-      // Update expenses with protocol ID (keep status as 'lancado' for payment mode)
+      // Update expenses with protocol ID and status
       const expenseIds = expensesToProcess.map(e => e.id);
       
       const { error: updateError } = await supabase
         .from('expenses')
         .update({ 
-          closing_protocol_id: protocol.id 
+          closing_protocol_id: protocol.id,
+          status: 'conciliado' // Update status to 'conciliado' when added to protocol
         })
         .in('id', expenseIds);
 
@@ -773,6 +774,33 @@ function FechamentoDespesasContent() {
 
                   {expenses.length > 0 && (
                     <>
+                      {/* Selected Count Display */}
+                      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <Badge variant="outline" className="text-base px-3 py-1.5">
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            {selectedExpenseIds.size} de {expenses.length} despesas selecionadas
+                          </Badge>
+                          <Badge variant="secondary" className="text-base px-3 py-1.5">
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            Total: {formatCurrency(expenses.filter(e => selectedExpenseIds.has(e.id)).reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0))}
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (selectedExpenseIds.size === expenses.length) {
+                              setSelectedExpenseIds(new Set());
+                            } else {
+                              setSelectedExpenseIds(new Set(expenses.map(e => e.id)));
+                            }
+                          }}
+                        >
+                          {selectedExpenseIds.size === expenses.length ? "Desmarcar Todos" : "Selecionar Todos"}
+                        </Button>
+                      </div>
+
                       {/* Filters and Controls */}
                       {closingMode === "payment" && (
                         <div className="flex flex-wrap gap-4 p-4 bg-muted/30 rounded-lg">
@@ -841,6 +869,18 @@ function FechamentoDespesasContent() {
                                   />
                                 </TableHead>
                               )}
+                              <TableHead className="w-12">
+                                <Checkbox 
+                                  checked={selectedExpenseIds.size === expenses.length && expenses.length > 0}
+                                  onCheckedChange={() => {
+                                    if (selectedExpenseIds.size === expenses.length) {
+                                      setSelectedExpenseIds(new Set());
+                                    } else {
+                                      setSelectedExpenseIds(new Set(expenses.map(e => e.id)));
+                                    }
+                                  }}
+                                />
+                              </TableHead>
                               <TableHead>Descrição</TableHead>
                               {showDetailedView && (
                                 <>
@@ -871,6 +911,22 @@ function FechamentoDespesasContent() {
                                     />
                                   </TableCell>
                                 )}
+                                <TableCell>
+                                  <Checkbox
+                                    checked={selectedExpenseIds.has(expense.id)}
+                                    onCheckedChange={() => {
+                                      setSelectedExpenseIds(prev => {
+                                        const newSet = new Set(prev);
+                                        if (newSet.has(expense.id)) {
+                                          newSet.delete(expense.id);
+                                        } else {
+                                          newSet.add(expense.id);
+                                        }
+                                        return newSet;
+                                      });
+                                    }}
+                                  />
+                                </TableCell>
                                 <TableCell className="font-medium max-w-[200px] truncate">
                                   {expense.description}
                                 </TableCell>
