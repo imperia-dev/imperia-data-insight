@@ -60,6 +60,7 @@ interface ExpenseData {
   conta_contabil_id?: string;
   centro_custo_id?: string;
   tipo_fornecedor: string;
+  tipo_despesa?: string; // Add tipo_despesa field
   data_competencia: string;
   data_vencimento?: string;
   status: string;
@@ -351,8 +352,8 @@ function FechamentoDespesasContent() {
         ? expenses.filter(e => selectedExpenseIds.has(e.id))
         : expenses;
       
-      const companyExpenses = expensesToProcess.filter(e => e.tipo_fornecedor === 'empresa');
-      const serviceProviderExpenses = expensesToProcess.filter(e => e.tipo_fornecedor === 'prestador');
+      const companyExpenses = expensesToProcess.filter(e => e.tipo_fornecedor === 'empresa' || e.tipo_despesa === 'empresa');
+      const serviceProviderExpenses = expensesToProcess.filter(e => e.tipo_fornecedor === 'prestador' || e.tipo_despesa === 'prestador');
       
       const totalCompany = companyExpenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0);
       const totalServiceProvider = serviceProviderExpenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0);
@@ -362,7 +363,7 @@ function FechamentoDespesasContent() {
         .from('expense_closing_protocols')
         .insert({
           protocol_number: protocolNumber,
-          competence_month: selectedMonth,
+          competence_month: `${selectedMonth}-01`, // Fix: Add day to make it a valid date
           total_company_expenses: totalCompany,
           total_service_provider_expenses: totalServiceProvider,
           total_amount: totalAmount,
