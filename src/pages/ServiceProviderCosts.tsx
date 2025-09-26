@@ -106,14 +106,39 @@ export default function ServiceProviderCosts() {
 
   const fetchCosts = async () => {
     try {
-      // Use the masked view for displaying data
+      // Fetch from unified expenses table
       const { data, error } = await supabase
-        .from('service_provider_costs_masked')
+        .from('expenses')
         .select('*')
+        .eq('tipo_despesa', 'prestador')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCosts((data || []) as ServiceProviderCost[]);
+      
+      // Map expenses to ServiceProviderCost format
+      const mappedData = (data || []).map(expense => ({
+        id: expense.id,
+        name: expense.description?.replace('Pagamento para ', '') || 'Prestador',
+        email: expense.email || '',
+        cpf_masked: expense.cpf ? '***.***.***-' + expense.cpf.slice(-2) : null,
+        cnpj_masked: expense.cnpj ? '**.***.***/****-' + expense.cnpj.slice(-2) : null,
+        phone: expense.phone,
+        days_worked: expense.days_worked,
+        amount: expense.amount_base || expense.amount_original,
+        pix_key_masked: expense.pix_key ? expense.pix_key.slice(0, 3) + '***' + expense.pix_key.slice(-2) : null,
+        type: expense.tipo_fornecedor as 'CLT' | 'PJ' || 'PJ',
+        invoice_number: expense.invoice_number,
+        competence: expense.competence || expense.data_competencia,
+        status: expense.status === 'pago' ? 'Pago' : 'Não Pago',
+        files: expense.files || [],
+        created_at: expense.created_at,
+        updated_at: expense.updated_at,
+        cpf: expense.cpf,
+        cnpj: expense.cnpj,
+        pix_key: expense.pix_key,
+      }));
+      
+      setCosts(mappedData as ServiceProviderCost[]);
     } catch (error) {
       console.error('Error fetching service provider costs:', error);
       toast.error("Erro ao carregar custos de prestadores");
@@ -159,33 +184,46 @@ export default function ServiceProviderCosts() {
 
   const handleSubmit = async () => {
     try {
-      const costData = {
-        name: formData.name,
+      // Get a default account for service providers
+      const { data: defaultAccount } = await supabase
+        .from('chart_of_accounts')
+        .select('id')
+        .eq('code', '3.0.00')
+        .single();
+
+      const expenseData = {
+        tipo_lancamento: 'prestador_servico' as const,
+        tipo_despesa: 'prestador',
+        conta_contabil_id: defaultAccount?.id || null,
+        data_competencia: formData.competence ? formData.competence + '-01' : new Date().toISOString().split('T')[0],
+        amount_original: parseFloat(formData.amount),
+        currency: 'BRL',
+        exchange_rate: 1,
+        description: 'Pagamento para ' + formData.name,
         email: formData.email,
         cpf: formData.cpf || null,
         cnpj: formData.cnpj || null,
         phone: formData.phone || null,
-        days_worked: formData.days_worked ? parseInt(formData.days_worked) : null,
-        amount: parseFloat(formData.amount),
         pix_key: formData.pix_key || null,
-        type: formData.type,
+        days_worked: formData.days_worked ? parseInt(formData.days_worked) : null,
+        tipo_fornecedor: formData.type,
         invoice_number: formData.invoice_number || null,
         competence: formData.competence,
-        status: formData.status,
+        status: (formData.status === 'Pago' ? 'pago' : 'lancado') as 'pago' | 'lancado',
       };
 
       if (editingCost) {
         const { error } = await supabase
-          .from('service_provider_costs')
-          .update(costData)
+          .from('expenses')
+          .update(expenseData)
           .eq('id', editingCost.id);
 
         if (error) throw error;
         toast.success("Prestador atualizado com sucesso");
       } else {
         const { error } = await supabase
-          .from('service_provider_costs')
-          .insert([costData]);
+          .from('expenses')
+          .insert([expenseData]);
 
         if (error) throw error;
         toast.success("Prestador adicionado com sucesso");
@@ -243,9 +281,37 @@ export default function ServiceProviderCosts() {
         status: quickCostData.status,
       };
 
+      // Get a default account for service providers  
+      const { data: defaultAccount } = await supabase
+        .from('chart_of_accounts')
+        .select('id')
+        .eq('code', '3.0.00')
+        .single();
+
+      const expenseData = {
+        tipo_lancamento: 'prestador_servico' as const,
+        tipo_despesa: 'prestador',
+        conta_contabil_id: defaultAccount?.id || null,
+        data_competencia: costData.competence ? costData.competence + '-01' : new Date().toISOString().split('T')[0],
+        amount_original: costData.amount,
+        currency: 'BRL',
+        exchange_rate: 1,
+        description: 'Pagamento para ' + costData.name,
+        email: costData.email,
+        cpf: costData.cpf,
+        cnpj: costData.cnpj,
+        phone: costData.phone,
+        pix_key: costData.pix_key,
+        days_worked: costData.days_worked,
+        tipo_fornecedor: costData.type,
+        invoice_number: costData.invoice_number,
+        competence: costData.competence,
+        status: (costData.status === 'Pago' ? 'pago' : 'lancado') as 'pago' | 'lancado',
+      };
+
       const { error } = await supabase
-        .from('service_provider_costs')
-        .insert([costData]);
+        .from('expenses')
+        .insert([expenseData]);
 
       if (error) throw error;
       
@@ -360,7 +426,7 @@ export default function ServiceProviderCosts() {
       
       // Update the cost with new file paths
       const { error: updateError } = await supabase
-        .from('service_provider_costs')
+        .from('expenses')
         .update({ files: [...currentFiles, ...uploadedPaths] })
         .eq('id', costId);
       
@@ -415,7 +481,7 @@ export default function ServiceProviderCosts() {
       const updatedFiles = (cost?.files || []).filter(f => f !== filePath);
       
       const { error: updateError } = await supabase
-        .from('service_provider_costs')
+        .from('expenses')
         .update({ files: updatedFiles })
         .eq('id', costId);
       

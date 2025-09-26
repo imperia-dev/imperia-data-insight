@@ -71,6 +71,8 @@ export default function CompanyCosts() {
   const [selectedCostDetails, setSelectedCostDetails] = useState<CompanyCost | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]);
+  const [costCenters, setCostCenters] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     category: "",
@@ -78,11 +80,15 @@ export default function CompanyCosts() {
     description: "",
     observations: "",
     amount: "",
+    conta_contabil_id: "",
+    centro_custo_id: "",
   });
 
   useEffect(() => {
     fetchCosts();
     fetchUserProfile();
+    fetchChartOfAccounts();
+    fetchCostCenters();
   }, [user]);
 
   const fetchUserProfile = async () => {
@@ -99,15 +105,53 @@ export default function CompanyCosts() {
     }
   };
 
+  const fetchChartOfAccounts = async () => {
+    const { data, error } = await supabase
+      .from('chart_of_accounts')
+      .select('*')
+      .eq('is_active', true)
+      .order('code');
+    
+    if (data && !error) {
+      setChartOfAccounts(data);
+    }
+  };
+
+  const fetchCostCenters = async () => {
+    const { data, error } = await supabase
+      .from('cost_centers')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+    
+    if (data && !error) {
+      setCostCenters(data);
+    }
+  };
+
   const fetchCosts = async () => {
     try {
       const { data, error } = await supabase
-        .from('company_costs')
+        .from('expenses')
         .select('*')
-        .order('date', { ascending: false });
+        .eq('tipo_despesa', 'empresa')
+        .order('data_competencia', { ascending: false });
 
       if (error) throw error;
-      setCosts(data || []);
+      // Map expenses data to CompanyCost format for backward compatibility
+      const mappedData = (data || []).map(expense => ({
+        id: expense.id,
+        date: expense.data_competencia,
+        amount: expense.amount_base || expense.amount_original,
+        category: expense.sub_category || 'Geral',
+        sub_category: expense.sub_category,
+        description: expense.description,
+        observations: expense.observations || expense.notes,
+        files: expense.files || [],
+        created_at: expense.created_at,
+        updated_at: expense.updated_at,
+      }));
+      setCosts(mappedData);
     } catch (error) {
       console.error('Error fetching costs:', error);
       toast.error("Erro ao carregar custos");
@@ -118,27 +162,45 @@ export default function CompanyCosts() {
 
   const handleSubmit = async () => {
     try {
-      const costData = {
-        date: formData.date,
-        category: formData.category,
-        sub_category: formData.sub_category || null,
+      // Use selected account or get default
+      let accountId = formData.conta_contabil_id;
+      if (!accountId) {
+        const { data: defaultAccount } = await supabase
+          .from('chart_of_accounts')
+          .select('id')
+          .eq('code', '3.0.00')
+          .single();
+        accountId = defaultAccount?.id || null;
+      }
+
+      const expenseData = {
+        tipo_lancamento: 'empresa' as const,
+        tipo_despesa: 'empresa',
+        conta_contabil_id: accountId,
+        centro_custo_id: formData.centro_custo_id || null,
+        data_competencia: formData.date,
+        amount_original: parseFloat(formData.amount),
+        currency: 'BRL',
+        exchange_rate: 1,
         description: formData.description,
+        sub_category: formData.sub_category || formData.category,
         observations: formData.observations || null,
-        amount: parseFloat(formData.amount),
+        notes: formData.observations || null,
+        status: 'lancado' as const,
       };
 
       if (editingCost) {
         const { error } = await supabase
-          .from('company_costs')
-          .update(costData)
+          .from('expenses')
+          .update(expenseData)
           .eq('id', editingCost.id);
 
         if (error) throw error;
         toast.success("Custo atualizado com sucesso");
       } else {
         const { error } = await supabase
-          .from('company_costs')
-          .insert([costData]);
+          .from('expenses')
+          .insert([expenseData]);
 
         if (error) throw error;
         toast.success("Custo adicionado com sucesso");
@@ -153,6 +215,8 @@ export default function CompanyCosts() {
         description: "",
         observations: "",
         amount: "",
+        conta_contabil_id: "",
+        centro_custo_id: "",
       });
       fetchCosts();
     } catch (error) {
@@ -170,6 +234,8 @@ export default function CompanyCosts() {
       description: cost.description,
       observations: cost.observations || "",
       amount: cost.amount.toString(),
+      conta_contabil_id: cost.conta_contabil_id || "",
+      centro_custo_id: cost.centro_custo_id || "",
     });
     setIsDialogOpen(true);
   };
@@ -194,7 +260,7 @@ export default function CompanyCosts() {
       
       // Then delete the cost record
       const { error } = await supabase
-        .from('company_costs')
+        .from('expenses')
         .delete()
         .eq('id', id);
 
@@ -233,7 +299,7 @@ export default function CompanyCosts() {
       
       // Update the cost with new file paths
       const { error: updateError } = await supabase
-        .from('company_costs')
+        .from('expenses')
         .update({ files: [...currentFiles, ...uploadedPaths] })
         .eq('id', costId);
       
@@ -546,9 +612,11 @@ export default function CompanyCosts() {
                   category: "",
                   sub_category: "",
                   description: "",
-                  observations: "",
-                  amount: "",
-                });
+                   observations: "",
+                   amount: "",
+                   conta_contabil_id: "",
+                   centro_custo_id: "",
+                 });
               }}>
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Custo
@@ -614,6 +682,42 @@ export default function CompanyCosts() {
                     </Select>
                   </div>
                 )}
+                <div>
+                  <Label htmlFor="conta_contabil">Conta Contábil (Opcional)</Label>
+                  <Select
+                    value={formData.conta_contabil_id}
+                    onValueChange={(value) => setFormData({ ...formData, conta_contabil_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma conta contábil" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chartOfAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.code} - {account.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="centro_custo">Centro de Custo (Opcional)</Label>
+                  <Select
+                    value={formData.centro_custo_id}
+                    onValueChange={(value) => setFormData({ ...formData, centro_custo_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um centro de custo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {costCenters.map((center) => (
+                        <SelectItem key={center.id} value={center.id}>
+                          {center.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <Label htmlFor="description">Descrição</Label>
                   <Input

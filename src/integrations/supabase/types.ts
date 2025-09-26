@@ -695,7 +695,10 @@ export type Database = {
           capex_opex: Database["public"]["Enums"]["expense_nature"] | null
           centro_custo_id: string | null
           closing_protocol_id: string | null
+          cnpj: string | null
+          competence: string | null
           conta_contabil_id: string
+          cpf: string | null
           created_at: string | null
           created_by: string | null
           currency: string
@@ -703,8 +706,10 @@ export type Database = {
           data_emissao: string | null
           data_pagamento: string | null
           data_vencimento: string | null
+          days_worked: number | null
           description: string
           document_ref: string | null
+          email: string | null
           exchange_rate: number
           files: string[] | null
           fixo_variavel:
@@ -714,10 +719,15 @@ export type Database = {
           id: string
           invoice_number: string | null
           notes: string | null
+          observations: string | null
           org_id: string | null
           payment_method: string | null
+          phone: string | null
+          pix_key: string | null
           projeto_cliente_id: string | null
           status: Database["public"]["Enums"]["expense_status"]
+          sub_category: string | null
+          tipo_despesa: string | null
           tipo_fornecedor: string | null
           tipo_lancamento: Database["public"]["Enums"]["expense_type"]
           updated_at: string | null
@@ -728,7 +738,10 @@ export type Database = {
           capex_opex?: Database["public"]["Enums"]["expense_nature"] | null
           centro_custo_id?: string | null
           closing_protocol_id?: string | null
+          cnpj?: string | null
+          competence?: string | null
           conta_contabil_id: string
+          cpf?: string | null
           created_at?: string | null
           created_by?: string | null
           currency?: string
@@ -736,8 +749,10 @@ export type Database = {
           data_emissao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
+          days_worked?: number | null
           description: string
           document_ref?: string | null
+          email?: string | null
           exchange_rate?: number
           files?: string[] | null
           fixo_variavel?:
@@ -747,10 +762,15 @@ export type Database = {
           id?: string
           invoice_number?: string | null
           notes?: string | null
+          observations?: string | null
           org_id?: string | null
           payment_method?: string | null
+          phone?: string | null
+          pix_key?: string | null
           projeto_cliente_id?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
+          sub_category?: string | null
+          tipo_despesa?: string | null
           tipo_fornecedor?: string | null
           tipo_lancamento: Database["public"]["Enums"]["expense_type"]
           updated_at?: string | null
@@ -761,7 +781,10 @@ export type Database = {
           capex_opex?: Database["public"]["Enums"]["expense_nature"] | null
           centro_custo_id?: string | null
           closing_protocol_id?: string | null
+          cnpj?: string | null
+          competence?: string | null
           conta_contabil_id?: string
+          cpf?: string | null
           created_at?: string | null
           created_by?: string | null
           currency?: string
@@ -769,8 +792,10 @@ export type Database = {
           data_emissao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
+          days_worked?: number | null
           description?: string
           document_ref?: string | null
+          email?: string | null
           exchange_rate?: number
           files?: string[] | null
           fixo_variavel?:
@@ -780,10 +805,15 @@ export type Database = {
           id?: string
           invoice_number?: string | null
           notes?: string | null
+          observations?: string | null
           org_id?: string | null
           payment_method?: string | null
+          phone?: string | null
+          pix_key?: string | null
           projeto_cliente_id?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
+          sub_category?: string | null
+          tipo_despesa?: string | null
           tipo_fornecedor?: string | null
           tipo_lancamento?: Database["public"]["Enums"]["expense_type"]
           updated_at?: string | null
