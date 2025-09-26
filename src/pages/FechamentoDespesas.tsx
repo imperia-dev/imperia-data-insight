@@ -160,39 +160,50 @@ function FechamentoDespesasContent() {
       const start = startOfMonth(date);
       const end = endOfMonth(date);
 
-      // Fetch expenses with supplier information
+      // Simplified query without joins
+      console.log('Fetching expenses for period:', {
+        start: format(start, 'yyyy-MM-dd'),
+        end: format(end, 'yyyy-MM-dd')
+      });
+
       const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
-        .select(`
-          *,
-          suppliers:fornecedor_id (
-            id,
-            name,
-            cnpj,
-            cpf,
-            email,
-            pix_key
-          )
-        `)
+        .select('*')
         .gte('data_competencia', format(start, 'yyyy-MM-dd'))
         .lte('data_competencia', format(end, 'yyyy-MM-dd'))
         .is('closing_protocol_id', null)
         .eq('status', 'lancado');
 
-      if (expensesError) throw expensesError;
+      if (expensesError) {
+        console.error('Supabase error:', expensesError);
+        throw expensesError;
+      }
 
-      // Map the data to include supplier information
-      const mappedExpenses = (expensesData || []).map(expense => ({
-        ...expense,
-        fornecedor_name: expense.suppliers?.name || expense.description,
-        cnpj: expense.cnpj || expense.suppliers?.cnpj,
-        cpf: expense.cpf || expense.suppliers?.cpf,
-        email: expense.email || expense.suppliers?.email,
-        pix_key: expense.pix_key || expense.suppliers?.pix_key
-      }));
+      console.log('Raw expenses data:', expensesData);
+      console.log('Number of expenses found:', expensesData?.length || 0);
 
+      // Map the data directly from expenses table
+      const mappedExpenses = (expensesData || []).map(expense => {
+        const mapped = {
+          ...expense,
+          fornecedor_name: expense.tipo_fornecedor || expense.description,
+          amount_original: Number(expense.amount_original) || 0,
+          amount_base: Number(expense.amount_base || expense.amount_original) || 0
+        };
+        console.log(`Expense ${mapped.id}: amount_base=${mapped.amount_base}, amount_original=${mapped.amount_original}`);
+        return mapped;
+      });
+
+      console.log('Processed expenses:', mappedExpenses.length);
       setExpenses(mappedExpenses);
       validateExpenses(mappedExpenses);
+      
+      if (mappedExpenses.length > 0) {
+        toast({
+          title: "Despesas carregadas",
+          description: `${mappedExpenses.length} despesas encontradas para o período`,
+        });
+      }
       
       // In payment mode, automatically select all expenses
       if (closingMode === "payment") {
