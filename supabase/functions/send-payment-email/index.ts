@@ -29,10 +29,10 @@ interface PaymentEmailRequest {
     account_number?: string;
     pix_key?: string;
   };
-  pdf_attachment?: {
-    content: string; // Base64 encoded PDF
+  attachments?: Array<{
+    content: string; // Base64 encoded file
     filename: string;
-  };
+  }>;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -95,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     };
 
-    // Generate HTML email template
+    // Generate HTML email template - show individual protocol values
     const protocolsTable = requestData.protocols_data.map(p => {
       // Create a list of expense descriptions if available
       const expensesList = p.expense_descriptions && p.expense_descriptions.length > 0 
@@ -112,10 +112,13 @@ const handler = async (req: Request): Promise<Response> => {
         </td>
         <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px;">${formatCompetenceMonth(p.competence_month)}</td>
         <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: right;">R$ ${p.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: center;">${p.product_1_count}</td>
-        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: center;">${p.product_2_count}</td>
+        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: center;">${p.product_1_count || '-'}</td>
+        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: center;">${p.product_2_count || '-'}</td>
       </tr>
     `}).join('');
+    
+    // Calculate the correct total from selected protocols only
+    const selectedTotal = requestData.protocols_data.reduce((sum, p) => sum + p.total_value, 0);
 
     const bankInfo = requestData.company_info ? `
       <div style="margin-top: 30px; padding: 20px; background-color: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
@@ -166,7 +169,7 @@ const handler = async (req: Request): Promise<Response> => {
             <tfoot>
               <tr style="background-color: #edf2f7; font-weight: bold;">
                 <td colspan="2" style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px;">Total Geral</td>
-                <td colspan="3" style="padding: 12px; border: 1px solid #e2e8f0; font-size: 16px; text-align: right; color: #2d3748;">R$ ${requestData.total_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td colspan="3" style="padding: 12px; border: 1px solid #e2e8f0; font-size: 16px; text-align: right; color: #2d3748;">R$ ${selectedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
             </tfoot>
           </table>
@@ -192,17 +195,10 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("[send-payment-email] From:", fromEmail);
     console.log("[send-payment-email] To:", requestData.recipient_email);
     console.log("[send-payment-email] CC:", requestData.cc_emails?.join(", ") || "none");
-    console.log("[send-payment-email] Has PDF attachment:", !!requestData.pdf_attachment);
+    console.log("[send-payment-email] Has attachments:", !!requestData.attachments);
     
-    // Prepare attachments array
-    const attachments = [];
-    if (requestData.pdf_attachment && requestData.pdf_attachment.content) {
-      attachments.push({
-        filename: requestData.pdf_attachment.filename || 'solicitacao-pagamento.pdf',
-        content: requestData.pdf_attachment.content
-      });
-      console.log("[send-payment-email] PDF attachment added:", requestData.pdf_attachment.filename);
-    }
+    // Prepare attachments array - use the attachments from the request
+    const attachments = requestData.attachments || [];
     
     // Send email using Resend
     try {

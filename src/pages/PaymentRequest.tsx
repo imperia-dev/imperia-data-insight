@@ -291,22 +291,70 @@ ${userFullName || 'Equipe Império Traduções'}`);
     setSendingEmail(true);
     
     try {
-      // Generate PDF
-      const pdfBlob = await generatePDF();
-      if (!pdfBlob) {
-        throw new Error('Erro ao gerar PDF');
+      // Prepare attachments from expense protocols - get original files
+      const attachments: Array<{ content: string; filename: string }> = [];
+      const selectedProtocolsData = protocols.filter(p => selectedProtocols.includes(p.id));
+      
+      for (const protocol of selectedProtocolsData) {
+        if (protocol.type === 'expense' && protocol.closing_data) {
+          let closingData = protocol.closing_data;
+          if (typeof closingData === 'string') {
+            try {
+              closingData = JSON.parse(closingData);
+            } catch (e) {
+              console.error('Error parsing closing_data:', e);
+              continue;
+            }
+          }
+          
+          // Get file URLs from closing_data
+          if (Array.isArray(closingData)) {
+            for (const item of closingData) {
+              if (item.files && Array.isArray(item.files)) {
+                for (const fileUrl of item.files) {
+                  try {
+                    // Extract the file path from the URL
+                    const urlParts = fileUrl.split('/storage/v1/object/public/');
+                    if (urlParts.length > 1) {
+                      const pathParts = urlParts[1].split('/');
+                      const bucket = pathParts[0];
+                      const path = pathParts.slice(1).join('/');
+                      
+                      // Download the file from Supabase Storage
+                      const { data: fileData, error: downloadError } = await supabase.storage
+                        .from(bucket)
+                        .download(path);
+                      
+                      if (!downloadError && fileData) {
+                        // Convert blob to base64
+                        const reader = new FileReader();
+                        const base64Content = await new Promise<string>((resolve, reject) => {
+                          reader.onloadend = () => {
+                            const base64 = reader.result as string;
+                            resolve(base64.split(',')[1]); // Remove data:type;base64, prefix
+                          };
+                          reader.onerror = reject;
+                          reader.readAsDataURL(fileData);
+                        });
+                        
+                        // Extract filename from path
+                        const filename = path.split('/').pop() || 'documento.pdf';
+                        
+                        attachments.push({
+                          content: base64Content,
+                          filename: filename
+                        });
+                      }
+                    }
+                  } catch (e) {
+                    console.error('Error downloading file:', e);
+                  }
+                }
+              }
+            }
+          }
+        }
       }
-
-      // Convert PDF to base64
-      const reader = new FileReader();
-      const pdfBase64 = await new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => {
-          const base64 = reader.result as string;
-          resolve(base64.split(',')[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(pdfBlob);
-      });
 
       // Save payment request
       const { data: paymentRequest, error: requestError } = await supabase
@@ -349,7 +397,7 @@ ${userFullName || 'Equipe Império Traduções'}`);
           subject,
           message,
           protocol_ids: selectedProtocols,
-          protocols_data: protocols.filter(p => selectedProtocols.includes(p.id)).map(p => {
+          protocols_data: selectedProtocolsData.map(p => {
             // Extract expense descriptions from closing_data if available
             let expenseDescriptions: string[] = [];
             if (p.type === 'expense' && p.closing_data) {
@@ -378,10 +426,7 @@ ${userFullName || 'Equipe Império Traduções'}`);
           }),
           total_amount: calculateTotals().totalValue,
           company_info: companyInfo,
-          pdf_attachment: {
-            content: pdfBase64,
-            filename: `solicitacao-pagamento-${format(new Date(), 'yyyy-MM-dd')}.pdf`
-          }
+          attachments: attachments
         }
       });
 
