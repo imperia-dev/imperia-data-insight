@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
@@ -20,6 +21,7 @@ import { ptBR } from "date-fns/locale";
 import { Send, FileText, AlertCircle, Loader2, DollarSign, Calendar, Hash } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { ManageRecipientsDialog } from "@/components/payment/ManageRecipientsDialog";
 
 interface Protocol {
   id: string;
@@ -47,7 +49,13 @@ export default function PaymentRequest() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
-  const [recipientEmail, setRecipientEmail] = useState("financeiro@empresa.com");
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [recipientEmails, setRecipientEmails] = useState<Array<{
+    id: string;
+    email: string;
+    name: string | null;
+    company: string | null;
+  }>>([]);
   const [ccEmails, setCcEmails] = useState("");
   const [subject, setSubject] = useState("Solicitação de Pagamento");
   const [message, setMessage] = useState("");
@@ -64,6 +72,7 @@ export default function PaymentRequest() {
     fetchProtocols();
     fetchUserInfo();
     fetchUserRole();
+    fetchRecipientEmails();
   }, [user]);
 
   // Update subject and message when protocols are selected
@@ -108,6 +117,28 @@ Alex - Admin.`);
       if (profile) {
         setUserRole(profile.role || 'viewer');
       }
+    }
+  };
+
+  const fetchRecipientEmails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('payment_recipient_emails')
+        .select('id, email, name, company')
+        .eq('is_active', true)
+        .order('company', { ascending: true })
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      
+      setRecipientEmails(data || []);
+      
+      // Set first email as default if available
+      if (data && data.length > 0) {
+        setRecipientEmail(data[0].email);
+      }
+    } catch (error) {
+      console.error('Error fetching recipient emails:', error);
     }
   };
 
@@ -659,15 +690,36 @@ Alex - Admin.`);
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="recipient">Para *</Label>
-                <Input
-                  id="recipient"
-                  type="email"
-                  value={recipientEmail}
-                  onChange={(e) => setRecipientEmail(e.target.value)}
-                  placeholder="financeiro@empresa.com"
-                  required
-                />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="recipient">Para *</Label>
+                  <ManageRecipientsDialog />
+                </div>
+                <Select value={recipientEmail} onValueChange={setRecipientEmail}>
+                  <SelectTrigger id="recipient">
+                    <SelectValue placeholder="Selecione um destinatário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {recipientEmails.length === 0 ? (
+                      <SelectItem value="no-emails" disabled>
+                        Nenhum destinatário cadastrado
+                      </SelectItem>
+                    ) : (
+                      recipientEmails.map((recipient) => (
+                        <SelectItem key={recipient.id} value={recipient.email}>
+                          {recipient.company && recipient.name ? (
+                            <span>{recipient.company} - {recipient.name} ({recipient.email})</span>
+                          ) : recipient.company ? (
+                            <span>{recipient.company} ({recipient.email})</span>
+                          ) : recipient.name ? (
+                            <span>{recipient.name} ({recipient.email})</span>
+                          ) : (
+                            recipient.email
+                          )}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
