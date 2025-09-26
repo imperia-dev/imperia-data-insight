@@ -210,9 +210,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("[send-payment-email] Sending email via Resend API");
     
-    // Temporarily use Resend's default domain while waiting for DNS propagation
-    // Switch back to noreply@imperiatraducoes.com.br once domain is fully verified
-    const fromEmail = "Imperia Traduções <onboarding@resend.dev>";
+    // Use verified domain to send to any recipient
+    const fromEmail = "Imperia Traduções <noreply@imperiatraducoes.com.br>";
     
     console.log("[send-payment-email] From:", fromEmail);
     console.log("[send-payment-email] To:", requestData.recipient_email);
