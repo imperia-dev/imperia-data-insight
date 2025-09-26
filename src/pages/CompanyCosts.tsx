@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown, Upload, Paperclip, Download, X, Calendar, FolderOpen, List, MessageSquare, DollarSign, Settings, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown, Upload, Paperclip, Download, X, Calendar, FolderOpen, List, MessageSquare, DollarSign, Settings, Eye, CircleCheck, Clock, AlertCircle, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,9 @@ interface CompanyCost {
   files?: string[];
   conta_contabil_id?: string | null;
   centro_custo_id?: string | null;
+  status?: string;
+  closing_protocol_id?: string | null;
+  data_pagamento?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -85,6 +88,56 @@ export default function CompanyCosts() {
     conta_contabil_id: "",
     centro_custo_id: "",
   });
+
+  // Função para determinar o status visual da despesa
+  const getExpenseStatus = (cost: CompanyCost) => {
+    const badges: React.ReactNode[] = [];
+    
+    // Status de pagamento
+    if (cost.status === 'pago') {
+      badges.push(
+        <Badge key="pago" variant="default" className="bg-green-600 hover:bg-green-600 text-white">
+          <CircleCheck className="h-3 w-3 mr-1" />
+          Pago
+        </Badge>
+      );
+    } else if (cost.status === 'conciliado') {
+      badges.push(
+        <Badge key="conciliado" variant="default" className="bg-blue-600 hover:bg-blue-600 text-white">
+          <CircleCheck className="h-3 w-3 mr-1" />
+          Conciliado
+        </Badge>
+      );
+    } else {
+      badges.push(
+        <Badge key="aberto" variant="outline" className="border-orange-500 text-orange-600">
+          <Clock className="h-3 w-3 mr-1" />
+          Em Aberto
+        </Badge>
+      );
+    }
+    
+    // Protocolo de fechamento
+    if (cost.closing_protocol_id) {
+      badges.push(
+        <Badge key="protocolo" variant="secondary" className="bg-primary/10 text-primary">
+          <Receipt className="h-3 w-3 mr-1" />
+          Com Protocolo
+        </Badge>
+      );
+    }
+    
+    // Data de pagamento
+    if (cost.data_pagamento) {
+      badges.push(
+        <Badge key="data-pag" variant="outline" className="text-xs">
+          Pago em {format(new Date(cost.data_pagamento + 'T00:00:00'), 'dd/MM', { locale: ptBR })}
+        </Badge>
+      );
+    }
+    
+    return badges;
+  };
 
   useEffect(() => {
     fetchCosts();
@@ -150,6 +203,11 @@ export default function CompanyCosts() {
         description: expense.description,
         observations: expense.observations || expense.notes,
         files: expense.files || [],
+        conta_contabil_id: expense.conta_contabil_id,
+        centro_custo_id: expense.centro_custo_id,
+        status: expense.status,
+        closing_protocol_id: expense.closing_protocol_id,
+        data_pagamento: expense.data_pagamento,
         created_at: expense.created_at,
         updated_at: expense.updated_at,
       }));
@@ -164,22 +222,32 @@ export default function CompanyCosts() {
 
   const handleSubmit = async () => {
     try {
-      // Use selected account or get default
-      let accountId = formData.conta_contabil_id;
-      if (!accountId) {
-        const { data: defaultAccount } = await supabase
-          .from('chart_of_accounts')
-          .select('id')
-          .eq('code', '3.0.00')
-          .single();
-        accountId = defaultAccount?.id || null;
+      // Validação de campos obrigatórios
+      if (!formData.conta_contabil_id) {
+        toast.error("Conta contábil é obrigatória");
+        return;
+      }
+      
+      if (!formData.centro_custo_id) {
+        toast.error("Centro de custo é obrigatório");
+        return;
+      }
+
+      if (!formData.amount || parseFloat(formData.amount) <= 0) {
+        toast.error("Valor deve ser maior que zero");
+        return;
+      }
+
+      if (!formData.description.trim()) {
+        toast.error("Descrição é obrigatória");
+        return;
       }
 
       const expenseData = {
         tipo_lancamento: 'empresa' as const,
         tipo_despesa: 'empresa',
-        conta_contabil_id: accountId,
-        centro_custo_id: formData.centro_custo_id || null,
+        conta_contabil_id: formData.conta_contabil_id,
+        centro_custo_id: formData.centro_custo_id,
         data_competencia: formData.date,
         amount_original: parseFloat(formData.amount),
         currency: 'BRL',
@@ -465,6 +533,21 @@ export default function CompanyCosts() {
   }, [costs, filters, sortBy]);
 
   const totalAmount = filteredCosts.reduce((sum, cost) => sum + cost.amount, 0);
+  
+  // Calcular totais por status
+  const statusSummary = filteredCosts.reduce((acc, cost) => {
+    if (cost.status === 'pago') {
+      acc.paid += cost.amount;
+    } else if (cost.status === 'conciliado') {
+      acc.reconciled += cost.amount;
+    } else {
+      acc.open += cost.amount;
+    }
+    if (cost.closing_protocol_id) {
+      acc.withProtocol += cost.amount;
+    }
+    return acc;
+  }, { paid: 0, reconciled: 0, open: 0, withProtocol: 0 });
 
   const handleExportExcel = () => {
     const exportData = {
@@ -685,12 +768,14 @@ export default function CompanyCosts() {
                   </div>
                 )}
                 <div>
-                  <Label htmlFor="conta_contabil">Conta Contábil (Opcional)</Label>
+                  <Label htmlFor="conta_contabil">
+                    Conta Contábil <span className="text-destructive">*</span>
+                  </Label>
                   <Select
                     value={formData.conta_contabil_id}
                     onValueChange={(value) => setFormData({ ...formData, conta_contabil_id: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={!formData.conta_contabil_id ? "border-destructive" : ""}>
                       <SelectValue placeholder="Selecione uma conta contábil" />
                     </SelectTrigger>
                     <SelectContent>
@@ -703,12 +788,14 @@ export default function CompanyCosts() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="centro_custo">Centro de Custo (Opcional)</Label>
+                  <Label htmlFor="centro_custo">
+                    Centro de Custo <span className="text-destructive">*</span>
+                  </Label>
                   <Select
                     value={formData.centro_custo_id}
                     onValueChange={(value) => setFormData({ ...formData, centro_custo_id: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={!formData.centro_custo_id ? "border-destructive" : ""}>
                       <SelectValue placeholder="Selecione um centro de custo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -752,7 +839,7 @@ export default function CompanyCosts() {
                 <Button 
                   onClick={handleSubmit} 
                   className="w-full"
-                  disabled={!formData.date || !formData.category || !formData.description || !formData.amount}
+                  disabled={!formData.date || !formData.category || !formData.description || !formData.amount || !formData.conta_contabil_id || !formData.centro_custo_id}
                 >
                   {editingCost ? "Atualizar" : "Adicionar"}
                 </Button>
@@ -789,6 +876,49 @@ export default function CompanyCosts() {
                 </div>
               </div>
             </div>
+            
+            {/* Status Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-medium text-orange-900 dark:text-orange-100">Em Aberto</span>
+                </div>
+                <p className="text-xl font-bold text-orange-700 dark:text-orange-300">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statusSummary.open)}
+                </p>
+              </div>
+              
+              <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <CircleCheck className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-900 dark:text-green-100">Pago</span>
+                </div>
+                <p className="text-xl font-bold text-green-700 dark:text-green-300">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statusSummary.paid)}
+                </p>
+              </div>
+              
+              <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <CircleCheck className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Conciliado</span>
+                </div>
+                <p className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statusSummary.reconciled)}
+                </p>
+              </div>
+              
+              <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Receipt className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Com Protocolo</span>
+                </div>
+                <p className="text-xl font-bold text-primary">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statusSummary.withProtocol)}
+                </p>
+              </div>
+            </div>
           <div className="overflow-x-auto rounded-lg border border-border/50 shadow-sm">
             <Table>
               <TableHeader>
@@ -798,6 +928,9 @@ export default function CompanyCosts() {
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       Data
                     </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    Status
                   </TableHead>
                   <TableHead className="font-semibold text-foreground">
                     <div className="flex items-center gap-2">
@@ -846,7 +979,7 @@ export default function CompanyCosts() {
               <TableBody>
                 {filteredCosts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center">
+                    <TableCell colSpan={9} className="h-32 text-center">
                       <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                         <FileText className="h-10 w-10 opacity-40" />
                         <p className="text-sm">Nenhum custo encontrado</p>
@@ -860,6 +993,9 @@ export default function CompanyCosts() {
                       className={`
                         hover:bg-muted/20 transition-all duration-200
                         ${index % 2 === 0 ? 'bg-background' : 'bg-muted/5'}
+                        ${cost.status === 'pago' ? 'border-l-2 border-l-green-500' : ''}
+                        ${cost.status === 'conciliado' ? 'border-l-2 border-l-blue-500' : ''}
+                        ${!cost.status || cost.status === 'lancado' ? 'border-l-2 border-l-orange-500' : ''}
                       `}
                     >
                       <TableCell>
@@ -870,6 +1006,11 @@ export default function CompanyCosts() {
                           <span className="font-medium">
                             {format(new Date(cost.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
                           </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          {getExpenseStatus(cost)}
                         </div>
                       </TableCell>
                       <TableCell>
