@@ -156,7 +156,8 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Header with logo/branding -->
           <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e2e8f0;">
             <img src="https://agttqqaampznczkyfvkf.supabase.co/storage/v1/object/public/company-assets/imperia-logo.png" alt="Imperia Traduções" style="height: 60px; margin-bottom: 15px;" />
-            <h1 style="color: #1a202c; margin: 0; font-size: 24px;">Sistema de Gestão</h1>
+            <h1 style="color: #1a202c; margin: 0; font-size: 20px;">Imperia Traduções</h1>
+            <p style="color: #718096; margin: 5px 0 0 0; font-size: 14px;">Sistema de Gestão</p>
           </div>
           
           <h2 style="color: #2d3748; margin-bottom: 25px; font-size: 20px;">Solicitação de Pagamento</h2>
