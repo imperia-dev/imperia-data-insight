@@ -18,7 +18,8 @@ interface PaymentEmailRequest {
     total_value: number;
     product_1_count: number;
     product_2_count: number;
-    expense_descriptions?: string[]; // Add expense descriptions
+    expense_descriptions?: string[];
+    expense_notes?: string[]; // Add expense notes
   }>;
   total_amount: number;
   message: string;
@@ -104,16 +105,36 @@ const handler = async (req: Request): Promise<Response> => {
            </div>`
         : '';
       
+      // Create a section for expense notes if available
+      const notesSection = p.expense_notes && p.expense_notes.length > 0
+        ? `<div style="margin-top: 12px; padding: 15px; background-color: #f7fafc; border-left: 3px solid #4a5568; font-size: 13px; color: #2d3748;">
+            <strong>Detalhes do Pagamento:</strong><br>
+            ${p.expense_notes.map(note => note.replace(/\n/g, '<br>')).join('<br><br>')}
+           </div>`
+        : '';
+      
       return `
       <tr>
-        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px;">
-          ${p.protocol_number}
-          ${expensesList}
+        <td colspan="5" style="padding: 0; border: 1px solid #e2e8f0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; width: 25%;">
+                ${p.protocol_number}
+                ${expensesList}
+              </td>
+              <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; width: 15%;">${formatCompetenceMonth(p.competence_month)}</td>
+              <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; text-align: right; width: 20%;">R$ ${p.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; text-align: center; width: 20%;">${p.product_1_count || '-'}</td>
+              <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; text-align: center; width: 20%;">${p.product_2_count || '-'}</td>
+            </tr>
+            ${notesSection ? `
+            <tr>
+              <td colspan="5" style="padding: 0;">
+                ${notesSection}
+              </td>
+            </tr>` : ''}
+          </table>
         </td>
-        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px;">${formatCompetenceMonth(p.competence_month)}</td>
-        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: right;">R$ ${p.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: center;">${p.product_1_count || '-'}</td>
-        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: center;">${p.product_2_count || '-'}</td>
       </tr>
     `}).join('');
     

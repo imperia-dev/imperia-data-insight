@@ -426,8 +426,10 @@ ${userFullName || 'Equipe Império Traduções'}`);
           message,
           protocol_ids: selectedProtocols,
           protocols_data: selectedProtocolsData.map(p => {
-            // Extract expense descriptions from closing_data if available
+            // Extract expense descriptions and notes from closing_data if available
             let expenseDescriptions: string[] = [];
+            let expenseNotes: string[] = [];
+            
             if (p.type === 'expense' && p.closing_data) {
               // Check if closing_data is an array, otherwise try to parse it
               const closingDataArray = Array.isArray(p.closing_data) 
@@ -437,9 +439,14 @@ ${userFullName || 'Equipe Império Traduções'}`);
                     : []);
                     
               if (Array.isArray(closingDataArray)) {
-                expenseDescriptions = closingDataArray.map((expense: any) => 
-                  expense.description || 'Despesa sem descrição'
-                );
+                expenseDescriptions = closingDataArray
+                  .filter((expense: any) => expense.description)
+                  .map((expense: any) => expense.description);
+                  
+                // Extract notes from closing_data
+                expenseNotes = closingDataArray
+                  .filter((expense: any) => expense.notes)
+                  .map((expense: any) => expense.notes);
               }
             }
             
@@ -449,7 +456,8 @@ ${userFullName || 'Equipe Império Traduções'}`);
               total_value: p.total_value,
               product_1_count: p.product_1_count,
               product_2_count: p.product_2_count,
-              expense_descriptions: expenseDescriptions
+              expense_descriptions: expenseDescriptions,
+              expense_notes: expenseNotes
             };
           }),
           total_amount: calculateTotals().totalValue,
