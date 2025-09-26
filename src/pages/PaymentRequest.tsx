@@ -35,6 +35,7 @@ interface Protocol {
   expense_count?: number;
   created_at: string;
   payment_status: string;
+  closing_data?: any; // Use any type to handle JSON data from Supabase
 }
 
 export default function PaymentRequest() {
@@ -129,7 +130,8 @@ export default function PaymentRequest() {
           total_value: p.total_amount || 0,
           expense_count: p.expense_count,
           created_at: p.created_at,
-          payment_status: p.status === 'approved' ? 'pending' : p.status
+          payment_status: p.status === 'approved' ? 'pending' : p.status,
+          closing_data: p.closing_data // Include closing_data with expense descriptions
         }))
       ];
 
@@ -347,13 +349,33 @@ ${userFullName || 'Equipe Império Traduções'}`);
           subject,
           message,
           protocol_ids: selectedProtocols,
-          protocols_data: protocols.filter(p => selectedProtocols.includes(p.id)).map(p => ({
-            protocol_number: p.protocol_number,
-            competence_month: p.competence_month,
-            total_value: p.total_value,
-            product_1_count: p.product_1_count,
-            product_2_count: p.product_2_count
-          })),
+          protocols_data: protocols.filter(p => selectedProtocols.includes(p.id)).map(p => {
+            // Extract expense descriptions from closing_data if available
+            let expenseDescriptions: string[] = [];
+            if (p.type === 'expense' && p.closing_data) {
+              // Check if closing_data is an array, otherwise try to parse it
+              const closingDataArray = Array.isArray(p.closing_data) 
+                ? p.closing_data 
+                : (typeof p.closing_data === 'string' 
+                    ? JSON.parse(p.closing_data) 
+                    : []);
+                    
+              if (Array.isArray(closingDataArray)) {
+                expenseDescriptions = closingDataArray.map((expense: any) => 
+                  expense.description || 'Despesa sem descrição'
+                );
+              }
+            }
+            
+            return {
+              protocol_number: p.protocol_number,
+              competence_month: p.competence_month,
+              total_value: p.total_value,
+              product_1_count: p.product_1_count,
+              product_2_count: p.product_2_count,
+              expense_descriptions: expenseDescriptions
+            };
+          }),
           total_amount: calculateTotals().totalValue,
           company_info: companyInfo
         }

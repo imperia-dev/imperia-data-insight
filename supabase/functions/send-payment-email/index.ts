@@ -18,6 +18,7 @@ interface PaymentEmailRequest {
     total_value: number;
     product_1_count: number;
     product_2_count: number;
+    expense_descriptions?: string[]; // Add expense descriptions
   }>;
   total_amount: number;
   message: string;
@@ -91,15 +92,26 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     // Generate HTML email template
-    const protocolsTable = requestData.protocols_data.map(p => `
+    const protocolsTable = requestData.protocols_data.map(p => {
+      // Create a list of expense descriptions if available
+      const expensesList = p.expense_descriptions && p.expense_descriptions.length > 0 
+        ? `<div style="margin-top: 8px; padding-left: 20px; font-size: 12px; color: #718096;">
+            ${p.expense_descriptions.map(desc => `• ${desc}`).join('<br>')}
+           </div>`
+        : '';
+      
+      return `
       <tr>
-        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px;">${p.protocol_number}</td>
+        <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px;">
+          ${p.protocol_number}
+          ${expensesList}
+        </td>
         <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px;">${formatCompetenceMonth(p.competence_month)}</td>
         <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: right;">R$ ${p.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: center;">${p.product_1_count}</td>
         <td style="padding: 12px; border: 1px solid #e2e8f0; font-size: 14px; text-align: center;">${p.product_2_count}</td>
       </tr>
-    `).join('');
+    `}).join('');
 
     const bankInfo = requestData.company_info ? `
       <div style="margin-top: 30px; padding: 20px; background-color: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
