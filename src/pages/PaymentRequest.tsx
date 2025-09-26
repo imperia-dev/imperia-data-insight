@@ -49,7 +49,7 @@ export default function PaymentRequest() {
   const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
   const [recipientEmail, setRecipientEmail] = useState("financeiro@empresa.com");
   const [ccEmails, setCcEmails] = useState("");
-  const [subject, setSubject] = useState("Solicitação de Pagamento - Serviços Prestados");
+  const [subject, setSubject] = useState("Solicitação de Pagamento");
   const [message, setMessage] = useState("");
   const [userFullName, setUserFullName] = useState<string>("");
   const [companyInfo, setCompanyInfo] = useState({
@@ -65,6 +65,37 @@ export default function PaymentRequest() {
     fetchUserInfo();
     fetchUserRole();
   }, [user]);
+
+  // Update subject and message when protocols are selected
+  useEffect(() => {
+    if (selectedProtocols.length > 0) {
+      const selected = protocols.filter(p => selectedProtocols.includes(p.id));
+      const protocolNumbers = selected.map(p => p.protocol_number).join(', ');
+      const totalAmount = selected.reduce((sum, p) => sum + p.total_value, 0);
+      
+      // Update subject with protocol names
+      setSubject(`Solicitação de Pagamento - ${protocolNumbers}`);
+      
+      // Update message with the new template
+      setMessage(`Prezados,
+
+Segue em anexo informações para pagamento:
+
+Protocolos: ${protocolNumbers}
+Valor Total: ${formatCurrency(totalAmount)}
+
+Os itens já estão lançados no BTG para aprovação de pagamento.
+
+Por favor, confirmar o recebimento e informar a previsão de pagamento.
+
+Atenciosamente,
+Alex - Admin.`);
+    } else {
+      // Reset to default when no protocols are selected
+      setSubject("Solicitação de Pagamento");
+      setMessage("");
+    }
+  }, [selectedProtocols, protocols]);
 
   const fetchUserRole = async () => {
     if (user) {
@@ -144,15 +175,17 @@ export default function PaymentRequest() {
         
         setMessage(`Prezados,
 
-Segue em anexo a solicitação de pagamento referente aos serviços prestados.
+Segue em anexo informações para pagamento:
 
 Protocolos: ${protocolNumbers}
 Valor Total: ${formatCurrency(totalAmount)}
 
+Os itens já estão lançados no BTG para aprovação de pagamento.
+
 Por favor, confirmar o recebimento e informar a previsão de pagamento.
 
 Atenciosamente,
-${userFullName || 'Equipe Império Traduções'}`);
+Alex - Admin.`);
       }
     } catch (error) {
       console.error('Error:', error);
