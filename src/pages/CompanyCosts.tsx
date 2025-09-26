@@ -551,8 +551,74 @@ export default function CompanyCosts() {
 
   const totalAmount = filteredCosts.reduce((sum, cost) => sum + cost.amount, 0);
   
-  // Calcular totais por status
-  const statusSummary = filteredCosts.reduce((acc, cost) => {
+  // Calculate costs filtered by everything except status for the status summary
+  const costsForStatusSummary = useMemo(() => {
+    let filtered = [...costs];
+
+    // Apply all filters except status filter
+    // Date filters
+    if (filters.startDate) {
+      const startDate = new Date(filters.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(cost => {
+        const costDate = new Date(cost.date + 'T00:00:00');
+        return costDate >= startDate;
+      });
+    }
+    if (filters.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(cost => {
+        const costDate = new Date(cost.date + 'T00:00:00');
+        return costDate <= endDate;
+      });
+    }
+
+    // Category filter
+    if (filters.category && filters.category !== "all") {
+      filtered = filtered.filter(cost => 
+        cost.category === filters.category
+      );
+    }
+
+    // SubCategory filter
+    if (filters.subCategory && filters.subCategory !== "all") {
+      filtered = filtered.filter(cost => 
+        cost.sub_category === filters.subCategory
+      );
+    }
+
+    // Description filter
+    if (filters.description) {
+      filtered = filtered.filter(cost => 
+        cost.description.toLowerCase().includes(filters.description.toLowerCase())
+      );
+    }
+
+    // Observations filter
+    if (filters.observations) {
+      filtered = filtered.filter(cost => 
+        cost.observations?.toLowerCase().includes(filters.observations.toLowerCase())
+      );
+    }
+
+    // Amount filters
+    if (filters.minAmount) {
+      filtered = filtered.filter(cost => 
+        cost.amount >= parseFloat(filters.minAmount)
+      );
+    }
+    if (filters.maxAmount) {
+      filtered = filtered.filter(cost => 
+        cost.amount <= parseFloat(filters.maxAmount)
+      );
+    }
+
+    return filtered;
+  }, [costs, filters]);
+  
+  // Calcular totais por status usando costs sem o filtro de status
+  const statusSummary = costsForStatusSummary.reduce((acc, cost) => {
     if (cost.status === 'pago') {
       acc.paid += cost.amount;
     } else if (cost.status === 'conciliado') {
