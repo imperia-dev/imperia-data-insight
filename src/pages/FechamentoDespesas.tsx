@@ -1436,12 +1436,16 @@ function FechamentoDespesasContent() {
             <div className="border rounded-lg p-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Total de Despesas:</span>
-                <span>{expenses.length}</span>
+                <span>
+                  {closingMode === 'payment' && selectedExpenseIds.size > 0 
+                    ? `${selectedExpenseIds.size} de ${expenses.length}` 
+                    : getSelectedExpenses().length}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Valor Total:</span>
                 <span className="font-semibold">
-                  {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0))}
+                  {formatCurrency(getSelectedExpenses().reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0))}
                 </span>
               </div>
             </div>
