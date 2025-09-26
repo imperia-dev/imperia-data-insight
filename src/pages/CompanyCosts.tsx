@@ -78,6 +78,7 @@ export default function CompanyCosts() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]);
   const [costCenters, setCostCenters] = useState<any[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     category: "",
@@ -442,6 +443,22 @@ export default function CompanyCosts() {
   const filteredCosts = useMemo(() => {
     let filtered = [...costs];
 
+    // Status filter
+    if (statusFilter) {
+      filtered = filtered.filter(cost => {
+        if (statusFilter === 'open') {
+          return cost.status !== 'pago' && cost.status !== 'conciliado';
+        } else if (statusFilter === 'paid') {
+          return cost.status === 'pago';
+        } else if (statusFilter === 'reconciled') {
+          return cost.status === 'conciliado';
+        } else if (statusFilter === 'withProtocol') {
+          return cost.closing_protocol_id !== null;
+        }
+        return true;
+      });
+    }
+
     // Date filters
     if (filters.startDate) {
       const startDate = new Date(filters.startDate);
@@ -530,7 +547,7 @@ export default function CompanyCosts() {
     }
 
     return sorted;
-  }, [costs, filters, sortBy]);
+  }, [costs, filters, sortBy, statusFilter]);
 
   const totalAmount = filteredCosts.reduce((sum, cost) => sum + cost.amount, 0);
   
@@ -662,7 +679,20 @@ export default function CompanyCosts() {
       <Card>
         <CardHeader>
           <div className="flex flex-row items-center justify-between">
-            <CardTitle className="text-2xl font-bold">Custos - Empresa</CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-2xl font-bold">Custos - Empresa</CardTitle>
+              {statusFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStatusFilter(null)}
+                  className="h-7 px-2 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Limpar filtro de status
+                </Button>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -879,40 +909,80 @@ export default function CompanyCosts() {
             
             {/* Status Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+              <div 
+                className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                  statusFilter === 'open' 
+                    ? 'border-orange-400 bg-orange-100 dark:bg-orange-900/30 ring-2 ring-orange-400/50' 
+                    : 'border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/25'
+                }`}
+                onClick={() => setStatusFilter(statusFilter === 'open' ? null : 'open')}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-600" />
                   <span className="text-sm font-medium text-orange-900 dark:text-orange-100">Em Aberto</span>
+                  {statusFilter === 'open' && (
+                    <Badge variant="outline" className="ml-auto text-xs">Filtrado</Badge>
+                  )}
                 </div>
                 <p className="text-xl font-bold text-orange-700 dark:text-orange-300">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statusSummary.open)}
                 </p>
               </div>
               
-              <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800">
+              <div 
+                className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                  statusFilter === 'paid' 
+                    ? 'border-green-400 bg-green-100 dark:bg-green-900/30 ring-2 ring-green-400/50' 
+                    : 'border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/25'
+                }`}
+                onClick={() => setStatusFilter(statusFilter === 'paid' ? null : 'paid')}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <CircleCheck className="h-4 w-4 text-green-600" />
                   <span className="text-sm font-medium text-green-900 dark:text-green-100">Pago</span>
+                  {statusFilter === 'paid' && (
+                    <Badge variant="outline" className="ml-auto text-xs">Filtrado</Badge>
+                  )}
                 </div>
                 <p className="text-xl font-bold text-green-700 dark:text-green-300">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statusSummary.paid)}
                 </p>
               </div>
               
-              <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
+              <div 
+                className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                  statusFilter === 'reconciled' 
+                    ? 'border-blue-400 bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-400/50' 
+                    : 'border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/25'
+                }`}
+                onClick={() => setStatusFilter(statusFilter === 'reconciled' ? null : 'reconciled')}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <CircleCheck className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Conciliado</span>
+                  {statusFilter === 'reconciled' && (
+                    <Badge variant="outline" className="ml-auto text-xs">Filtrado</Badge>
+                  )}
                 </div>
                 <p className="text-xl font-bold text-blue-700 dark:text-blue-300">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statusSummary.reconciled)}
                 </p>
               </div>
               
-              <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10">
+              <div 
+                className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                  statusFilter === 'withProtocol' 
+                    ? 'border-primary/40 bg-primary/10 dark:bg-primary/20 ring-2 ring-primary/50' 
+                    : 'border-primary/20 bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/15'
+                }`}
+                onClick={() => setStatusFilter(statusFilter === 'withProtocol' ? null : 'withProtocol')}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <Receipt className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">Com Protocolo</span>
+                  {statusFilter === 'withProtocol' && (
+                    <Badge variant="outline" className="ml-auto text-xs">Filtrado</Badge>
+                  )}
                 </div>
                 <p className="text-xl font-bold text-primary">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statusSummary.withProtocol)}
