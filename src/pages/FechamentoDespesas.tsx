@@ -44,7 +44,8 @@ import {
   CreditCard,
   Receipt,
   User,
-  Eye
+  Eye,
+  Info
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import * as XLSX from "xlsx";
@@ -523,10 +524,19 @@ function FechamentoDespesasContent() {
     );
   };
 
-  const groupExpensesByCategory = () => {
+  // Helper function to get selected expenses based on mode
+  const getSelectedExpenses = (): ExpenseData[] => {
+    if (closingMode === 'payment' && selectedExpenseIds.size > 0) {
+      return expenses.filter(e => selectedExpenseIds.has(e.id));
+    }
+    return expenses;
+  };
+
+  const groupExpensesByCategory = (expensesToGroup?: ExpenseData[]) => {
     const grouped: Record<string, ExpenseData[]> = {};
+    const expensesData = expensesToGroup || getSelectedExpenses();
     
-    expenses.forEach(expense => {
+    expensesData.forEach(expense => {
       const key = expense.tipo_fornecedor || 'outros';
       if (!grouped[key]) {
         grouped[key] = [];
@@ -1066,9 +1076,19 @@ function FechamentoDespesasContent() {
                   {validationErrors.length === 0 && expenses.length > 0 && (
                     <Button
                       className="w-full mt-4"
-                      onClick={() => setCurrentStep("review")}
+                      onClick={() => {
+                        if (closingMode === 'payment' && selectedExpenseIds.size === 0) {
+                          toast({
+                            title: "Nenhuma despesa selecionada",
+                            description: "Selecione pelo menos uma despesa para continuar no modo de pagamento",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        setCurrentStep("review");
+                      }}
                     >
-                      Prosseguir para Revisão
+                      Prosseguir para Revisão {closingMode === 'payment' && selectedExpenseIds.size > 0 && `(${selectedExpenseIds.size} selecionadas)`}
                     </Button>
                   )}
                 </CardContent>
@@ -1076,6 +1096,17 @@ function FechamentoDespesasContent() {
             </TabsContent>
 
             <TabsContent value="review" className="space-y-4">
+              {/* Show selection indicator for payment mode */}
+              {closingMode === 'payment' && selectedExpenseIds.size > 0 && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Modo de Pagamento</AlertTitle>
+                  <AlertDescription>
+                    Você selecionou {selectedExpenseIds.size} de {expenses.length} despesas para este protocolo de pagamento.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                   <CardHeader className="pb-3">
@@ -1087,13 +1118,13 @@ function FechamentoDespesasContent() {
                       <div>
                         <p className="text-2xl font-bold">
                           {formatCurrency(
-                            expenses
+                            getSelectedExpenses()
                               .filter(e => e.tipo_fornecedor === 'empresa')
                               .reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0)
                           )}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {expenses.filter(e => e.tipo_fornecedor === 'empresa').length} lançamentos
+                          {getSelectedExpenses().filter(e => e.tipo_fornecedor === 'empresa').length} lançamentos
                         </p>
                       </div>
                     </div>
@@ -1110,13 +1141,13 @@ function FechamentoDespesasContent() {
                       <div>
                         <p className="text-2xl font-bold">
                           {formatCurrency(
-                            expenses
+                            getSelectedExpenses()
                               .filter(e => e.tipo_fornecedor === 'prestador')
                               .reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0)
                           )}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {expenses.filter(e => e.tipo_fornecedor === 'prestador').length} lançamentos
+                          {getSelectedExpenses().filter(e => e.tipo_fornecedor === 'prestador').length} lançamentos
                         </p>
                       </div>
                     </div>
@@ -1133,11 +1164,11 @@ function FechamentoDespesasContent() {
                       <div>
                         <p className="text-2xl font-bold">
                           {formatCurrency(
-                            expenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0)
+                            getSelectedExpenses().reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0)
                           )}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {expenses.length} lançamentos totais
+                          {getSelectedExpenses().length} lançamentos totais
                         </p>
                       </div>
                     </div>
