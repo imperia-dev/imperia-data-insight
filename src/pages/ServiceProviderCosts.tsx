@@ -42,6 +42,11 @@ interface ServiceProviderCost {
   cpf?: string | null;
   cnpj?: string | null;
   pix_key?: string | null;
+  // Cost center and chart of accounts
+  cost_center_name?: string;
+  cost_center_code?: string;
+  chart_account_name?: string;
+  chart_account_code?: string;
 }
 
 export default function ServiceProviderCosts() {
@@ -106,10 +111,20 @@ export default function ServiceProviderCosts() {
 
   const fetchCosts = async () => {
     try {
-      // Fetch from unified expenses table
+      // Fetch from unified expenses table with related cost center and chart of accounts
       const { data, error } = await supabase
         .from('expenses')
-        .select('*')
+        .select(`
+          *,
+          cost_center:cost_centers (
+            code,
+            name
+          ),
+          chart_account:chart_of_accounts (
+            code,
+            name
+          )
+        `)
         .eq('tipo_despesa', 'prestador')
         .order('created_at', { ascending: false });
 
@@ -136,6 +151,11 @@ export default function ServiceProviderCosts() {
         cpf: expense.cpf,
         cnpj: expense.cnpj,
         pix_key: expense.pix_key,
+        // Add cost center and chart of accounts info
+        cost_center_name: expense.cost_center?.name || 'OPR - Operacional',
+        cost_center_code: expense.cost_center?.code || 'OPR',
+        chart_account_name: expense.chart_account?.name || 'Custos de Tradução - Prestadores',
+        chart_account_code: expense.chart_account?.code || '4.01',
       }));
       
       setCosts(mappedData as ServiceProviderCost[]);
@@ -806,14 +826,24 @@ export default function ServiceProviderCosts() {
           <div className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-2xl font-bold">Custos - Prestadores de Serviço</CardTitle>
-              <div className="flex items-center gap-4 mt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground">📊 Plano de Contas:</span>
-                  <Badge variant="secondary">4.01 - Custos de Tradução</Badge>
+              <div className="flex flex-wrap items-center gap-3 mt-3">
+                <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold text-primary">Plano de Contas:</span>
+                  <Badge variant="default" className="bg-primary/20 text-primary hover:bg-primary/30">
+                    4.01 - Custos de Tradução
+                  </Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground">🏢 Centro de Custo:</span>
-                  <Badge variant="secondary">OPR - Operacional</Badge>
+                <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full">
+                  <Briefcase className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold text-primary">Centro de Custo:</span>
+                  <Badge variant="default" className="bg-primary/20 text-primary hover:bg-primary/30">
+                    OPR - Operacional
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span>Classificação automática aplicada</span>
                 </div>
               </div>
             </div>
@@ -958,6 +988,34 @@ export default function ServiceProviderCosts() {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">
+                {/* Informações de classificação contábil - Read-only */}
+                <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
+                  <h4 className="text-sm font-semibold mb-3">Classificação Contábil (Automática)</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Centro de Custo</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="font-medium">
+                          <Briefcase className="h-3 w-3 mr-1" />
+                          OPR - Operacional
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Plano de Contas</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="font-medium">
+                          <FileText className="h-3 w-3 mr-1" />
+                          4.01 - Custos de Tradução
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Todos os prestadores de serviço são automaticamente classificados neste centro de custo e plano de contas.
+                  </p>
+                </div>
+                
                 <div>
                   <Label htmlFor="name">Nome</Label>
                   <Input
@@ -1201,6 +1259,18 @@ export default function ServiceProviderCosts() {
                   </TableHead>
                   <TableHead className="font-semibold text-foreground">
                     <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-muted-foreground" />
+                      Centro de Custo
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      Plano de Contas
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground">
+                    <div className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-muted-foreground" />
                       Status
                     </div>
@@ -1228,7 +1298,7 @@ export default function ServiceProviderCosts() {
               <TableBody>
                 {filteredCosts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-32 text-center">
+                    <TableCell colSpan={11} className="h-32 text-center">
                       <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                         <FileText className="h-10 w-10 opacity-40" />
                         <p className="text-sm">Nenhum custo encontrado</p>
@@ -1278,6 +1348,16 @@ export default function ServiceProviderCosts() {
                           <CalendarDays className="h-3 w-3 text-muted-foreground" />
                           <span>{cost.competence}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-medium">
+                          {cost.cost_center_code || 'OPR'} - {cost.cost_center_name || 'Operacional'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-medium">
+                          {cost.chart_account_code || '4.01'} - {cost.chart_account_name?.substring(0, 20) || 'Custos de Tradução'}
+                        </Badge>
                       </TableCell>
                       <TableCell>{getStatusBadge(cost.status)}</TableCell>
                       <TableCell className="text-right">
@@ -1460,6 +1540,31 @@ export default function ServiceProviderCosts() {
                       Chave PIX (Protegida)
                     </Label>
                     <p className="font-medium text-muted-foreground">{selectedCostDetails.pix_key_masked || '-'}</p>
+                  </div>
+                </div>
+
+                {/* Cost Center and Chart of Accounts Information */}
+                <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
+                  <h4 className="text-sm font-semibold mb-3">Classificação Contábil</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Centro de Custo</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="font-medium">
+                          <Briefcase className="h-3 w-3 mr-1" />
+                          {selectedCostDetails.cost_center_code || 'OPR'} - {selectedCostDetails.cost_center_name || 'Operacional'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Plano de Contas</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="font-medium">
+                          <FileText className="h-3 w-3 mr-1" />
+                          {selectedCostDetails.chart_account_code || '4.01'} - {selectedCostDetails.chart_account_name || 'Custos de Tradução'}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
