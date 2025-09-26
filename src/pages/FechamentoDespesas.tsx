@@ -163,11 +163,15 @@ function FechamentoDespesasContent() {
     setSelectedExpenseIds(new Set());
 
     try {
-      const date = new Date(selectedMonth);
+      // FIX: Parse month correctly to avoid timezone issues
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const date = new Date(year, month - 1, 1); // month - 1 because JS uses 0-indexed months
       const start = startOfMonth(date);
       const end = endOfMonth(date);
 
       // Simplified query without joins
+      console.log('Selected month:', selectedMonth);
+      console.log('Created date:', date.toISOString());
       console.log('Fetching expenses for period:', {
         start: format(start, 'yyyy-MM-dd'),
         end: format(end, 'yyyy-MM-dd')
