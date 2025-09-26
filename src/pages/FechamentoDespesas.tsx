@@ -461,7 +461,8 @@ function FechamentoDespesasContent() {
   };
 
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(expenses.map(e => ({
+    const expensesToExport = getSelectedExpenses();
+    const ws = XLSX.utils.json_to_sheet(expensesToExport.map(e => ({
       'Descrição': e.description,
       'Valor': e.amount_base || e.amount_original || 0,
       'Tipo Fornecedor': e.tipo_fornecedor,
@@ -471,20 +472,29 @@ function FechamentoDespesasContent() {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Despesas");
-    XLSX.writeFile(wb, `fechamento-despesas-${selectedMonth}.xlsx`);
+    const suffix = closingMode === 'payment' ? '-pagamento' : '';
+    XLSX.writeFile(wb, `fechamento-despesas${suffix}-${selectedMonth}.xlsx`);
   };
 
   const exportToPDF = () => {
+    const expensesToExport = getSelectedExpenses();
     const doc = new jsPDF();
     
     doc.setFontSize(18);
-    doc.text("Relatório de Fechamento de Despesas", 14, 22);
+    const title = closingMode === 'payment' ? 
+      "Relatório de Pagamento de Despesas" : 
+      "Relatório de Fechamento de Despesas";
+    doc.text(title, 14, 22);
     
     doc.setFontSize(12);
     doc.text(`Competência: ${format(new Date(selectedMonth), 'MMMM/yyyy', { locale: ptBR })}`, 14, 32);
-    doc.text(`Total de Despesas: ${expenses.length}`, 14, 40);
+    doc.text(`Total de Despesas: ${expensesToExport.length}`, 14, 40);
     
-    const tableData = expenses.map(e => [
+    if (closingMode === 'payment') {
+      doc.text(`Despesas Selecionadas: ${selectedExpenseIds.size} de ${expenses.length}`, 14, 48);
+    }
+    
+    const tableData = expensesToExport.map(e => [
       e.description,
       formatCurrency(e.amount_base || e.amount_original || 0),
       e.tipo_fornecedor,
@@ -494,10 +504,11 @@ function FechamentoDespesasContent() {
     (doc as any).autoTable({
       head: [['Descrição', 'Valor', 'Tipo', 'Data']],
       body: tableData,
-      startY: 50
+      startY: closingMode === 'payment' ? 56 : 50
     });
 
-    doc.save(`fechamento-despesas-${selectedMonth}.pdf`);
+    const suffix = closingMode === 'payment' ? '-pagamento' : '';
+    doc.save(`fechamento-despesas${suffix}-${selectedMonth}.pdf`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -1091,6 +1102,18 @@ function FechamentoDespesasContent() {
             </TabsContent>
 
             <TabsContent value="review" className="space-y-4">
+              {/* Debug log for selected expenses */}
+              {(() => {
+                console.log('Review Tab Debug:', {
+                  closingMode,
+                  selectedExpenseIds: Array.from(selectedExpenseIds),
+                  totalExpenses: expenses.length,
+                  selectedExpenses: getSelectedExpenses().length,
+                  groupedCategories: Object.keys(groupExpensesByCategory())
+                });
+                return null;
+              })()}
+              
               {/* Show selection indicator for payment mode */}
               {closingMode === 'payment' && selectedExpenseIds.size > 0 && (
                 <Alert>
