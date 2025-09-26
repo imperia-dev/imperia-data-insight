@@ -179,7 +179,7 @@ function FechamentoDespesasContent() {
         .gte('data_competencia', format(start, 'yyyy-MM-dd'))
         .lte('data_competencia', format(end, 'yyyy-MM-dd'))
         .is('closing_protocol_id', null)
-        .neq('status', 'pago');
+        .in('status', ['previsto', 'lancado', 'conciliado']);
 
       if (expensesError) {
         console.error('Supabase error:', expensesError);
@@ -188,6 +188,13 @@ function FechamentoDespesasContent() {
 
       console.log('Raw expenses data:', expensesData);
       console.log('Number of expenses found:', expensesData?.length || 0);
+      
+      // Log status breakdown
+      const statusBreakdown = expensesData?.reduce((acc, exp) => {
+        acc[exp.status] = (acc[exp.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('Status breakdown:', statusBreakdown);
 
       // Map the data directly from expenses table
       const mappedExpenses = (expensesData || []).map(expense => {
@@ -839,9 +846,9 @@ function FechamentoDespesasContent() {
                                 </>
                               )}
                               <TableHead>Tipo</TableHead>
+                              <TableHead>Status</TableHead>
                               <TableHead>Competência</TableHead>
                               {showDetailedView && <TableHead>Vencimento</TableHead>}
-                              <TableHead>Status</TableHead>
                               <TableHead className="text-right">Valor</TableHead>
                               <TableHead>Anexos</TableHead>
                             </TableRow>
@@ -889,6 +896,25 @@ function FechamentoDespesasContent() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
+                                  <Badge 
+                                    variant={
+                                      expense.status === "previsto" ? "secondary" : 
+                                      expense.status === "lancado" ? "outline" : 
+                                      expense.status === "conciliado" ? "default" : "default"
+                                    }
+                                    className={
+                                      expense.status === "previsto" ? "bg-yellow-100 text-yellow-800 border-yellow-300" : 
+                                      expense.status === "lancado" ? "bg-blue-100 text-blue-800 border-blue-300" : 
+                                      expense.status === "conciliado" ? "bg-green-100 text-green-800 border-green-300" : ""
+                                    }
+                                  >
+                                    {expense.status === "previsto" && <AlertCircle className="w-3 h-3 mr-1" />}
+                                    {expense.status === "lancado" && <FileText className="w-3 h-3 mr-1" />}
+                                    {expense.status === "conciliado" && <CheckCircle className="w-3 h-3 mr-1" />}
+                                    {expense.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
                                   {format(new Date(expense.data_competencia), 'dd/MM/yyyy')}
                                 </TableCell>
                                 {showDetailedView && (
@@ -898,11 +924,6 @@ function FechamentoDespesasContent() {
                                       "-"}
                                   </TableCell>
                                 )}
-                                <TableCell>
-                                  <Badge variant={expense.status === "lancado" ? "outline" : "default"}>
-                                    {expense.status}
-                                  </Badge>
-                                </TableCell>
                                 <TableCell className="text-right font-semibold">
                                   {formatCurrency(expense.amount_base || expense.amount_original || 0)}
                                 </TableCell>
