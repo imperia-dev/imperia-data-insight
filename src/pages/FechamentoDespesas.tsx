@@ -15,6 +15,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -36,7 +38,13 @@ import {
   XCircle,
   Upload,
   Paperclip,
-  File
+  File,
+  Filter,
+  ArrowUpDown,
+  CreditCard,
+  Receipt,
+  User,
+  Eye
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import * as XLSX from "xlsx";
@@ -51,8 +59,17 @@ interface ExpenseData {
   centro_custo_id: string;
   tipo_fornecedor: string;
   data_competencia: string;
+  data_vencimento?: string;
   status: string;
   files?: string[];
+  fornecedor_id?: string;
+  fornecedor_name?: string;
+  payment_method?: string;
+  invoice_number?: string;
+  cnpj?: string;
+  cpf?: string;
+  email?: string;
+  pix_key?: string;
 }
 
 interface ClosingProtocol {
@@ -90,6 +107,14 @@ function FechamentoDespesasContent() {
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  
+  // New states for selection and payment mode
+  const [selectedExpenseIds, setSelectedExpenseIds] = useState<Set<string>>(new Set());
+  const [closingMode, setClosingMode] = useState<"complete" | "payment">("complete");
+  const [filterType, setFilterType] = useState<"all" | "empresa" | "prestador">("all");
+  const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [showDetailedView, setShowDetailedView] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
@@ -127,24 +152,52 @@ function FechamentoDespesasContent() {
 
     setLoading(true);
     setValidationErrors([]);
+    setSelectedExpenseIds(new Set());
 
     try {
       const date = new Date(selectedMonth);
       const start = startOfMonth(date);
       const end = endOfMonth(date);
 
-      const { data, error } = await supabase
+      // Fetch expenses with supplier information
+      const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
-        .select('*')
+        .select(`
+          *,
+          suppliers:fornecedor_id (
+            id,
+            name,
+            cnpj,
+            cpf,
+            email,
+            pix_key
+          )
+        `)
         .gte('data_competencia', format(start, 'yyyy-MM-dd'))
         .lte('data_competencia', format(end, 'yyyy-MM-dd'))
         .is('closing_protocol_id', null)
-        .in('status', ['lancado', 'pago']);
+        .eq('status', 'lancado');
 
-      if (error) throw error;
+      if (expensesError) throw expensesError;
 
-      setExpenses(data || []);
-      validateExpenses(data || []);
+      // Map the data to include supplier information
+      const mappedExpenses = (expensesData || []).map(expense => ({
+        ...expense,
+        fornecedor_name: expense.suppliers?.name || expense.description,
+        cnpj: expense.cnpj || expense.suppliers?.cnpj,
+        cpf: expense.cpf || expense.suppliers?.cpf,
+        email: expense.email || expense.suppliers?.email,
+        pix_key: expense.pix_key || expense.suppliers?.pix_key
+      }));
+
+      setExpenses(mappedExpenses);
+      validateExpenses(mappedExpenses);
+      
+      // In payment mode, automatically select all expenses
+      if (closingMode === "payment") {
+        setSelectedExpenseIds(new Set(mappedExpenses.map(e => e.id)));
+      }
+      
       setCurrentStep("validation");
     } catch (error: any) {
       toast({
@@ -262,8 +315,13 @@ function FechamentoDespesasContent() {
     try {
       const protocolNumber = await generateProtocolNumber();
       
-      const companyExpenses = expenses.filter(e => e.tipo_fornecedor === 'empresa');
-      const serviceProviderExpenses = expenses.filter(e => e.tipo_fornecedor === 'prestador');
+      // Filter expenses based on mode
+      const expensesToProcess = closingMode === "payment" 
+        ? expenses.filter(e => selectedExpenseIds.has(e.id))
+        : expenses;
+      
+      const companyExpenses = expensesToProcess.filter(e => e.tipo_fornecedor === 'empresa');
+      const serviceProviderExpenses = expensesToProcess.filter(e => e.tipo_fornecedor === 'prestador');
       
       const totalCompany = companyExpenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0);
       const totalServiceProvider = serviceProviderExpenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0);
@@ -277,10 +335,10 @@ function FechamentoDespesasContent() {
           total_company_expenses: totalCompany,
           total_service_provider_expenses: totalServiceProvider,
           total_amount: totalAmount,
-          expense_count: expenses.length,
+          expense_count: expensesToProcess.length,
           status: 'draft',
-          closing_data: expenses as any,
-          notes: notes,
+          closing_data: expensesToProcess as any,
+          notes: `${closingMode === "payment" ? "[PAGAMENTO] " : ""}${notes}`,
           created_by: user?.id
         })
         .select()
@@ -288,11 +346,14 @@ function FechamentoDespesasContent() {
 
       if (protocolError) throw protocolError;
 
-      // Update expenses with protocol ID
-      const expenseIds = expenses.map(e => e.id);
+      // Update expenses with protocol ID (keep status as 'lancado' for payment mode)
+      const expenseIds = expensesToProcess.map(e => e.id);
+      
       const { error: updateError } = await supabase
         .from('expenses')
-        .update({ closing_protocol_id: protocol.id })
+        .update({ 
+          closing_protocol_id: protocol.id 
+        })
         .in('id', expenseIds);
 
       if (updateError) throw updateError;
@@ -302,8 +363,8 @@ function FechamentoDespesasContent() {
       await fetchProtocols();
 
       toast({
-        title: "Protocolo gerado com sucesso",
-        description: `Protocolo ${protocolNumber} criado`
+        title: closingMode === "payment" ? "Protocolo de Pagamento Gerado" : "Protocolo de Fechamento Gerado",
+        description: `Protocolo ${protocolNumber} criado com ${expensesToProcess.length} despesas`
       });
     } catch (error: any) {
       toast({
@@ -440,6 +501,60 @@ function FechamentoDespesasContent() {
     return grouped;
   };
 
+  // Helper functions for filtering and sorting
+  const getFilteredExpenses = () => {
+    let filtered = [...expenses];
+    
+    // Apply type filter
+    if (filterType !== "all") {
+      filtered = filtered.filter(e => e.tipo_fornecedor === filterType);
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case "amount":
+          comparison = a.amount_base - b.amount_base;
+          break;
+        case "name":
+          comparison = (a.fornecedor_name || a.description).localeCompare(b.fornecedor_name || b.description);
+          break;
+        case "date":
+        default:
+          comparison = new Date(a.data_competencia).getTime() - new Date(b.data_competencia).getTime();
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+    
+    return filtered;
+  };
+
+  const toggleExpenseSelection = (expenseId: string) => {
+    const newSelected = new Set(selectedExpenseIds);
+    if (newSelected.has(expenseId)) {
+      newSelected.delete(expenseId);
+    } else {
+      newSelected.add(expenseId);
+    }
+    setSelectedExpenseIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    const filtered = getFilteredExpenses();
+    if (selectedExpenseIds.size === filtered.length) {
+      setSelectedExpenseIds(new Set());
+    } else {
+      setSelectedExpenseIds(new Set(filtered.map(e => e.id)));
+    }
+  };
+
+  const getSelectedTotal = () => {
+    return expenses
+      .filter(e => selectedExpenseIds.has(e.id))
+      .reduce((sum, e) => sum + Number(e.amount_base || 0), 0);
+  };
+
   return (
     <>
       <Sidebar userRole={userRole} />
@@ -490,11 +605,35 @@ function FechamentoDespesasContent() {
                   <CardHeader>
                     <CardTitle>Selecionar Período de Competência</CardTitle>
                     <CardDescription>
-                      Escolha o mês para realizar o fechamento das despesas
+                      Escolha o mês e o modo de operação para o fechamento
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid gap-6 max-w-2xl mx-auto">
+                      <div className="space-y-2">
+                        <Label>Modo de Operação</Label>
+                        <ToggleGroup
+                          type="single"
+                          value={closingMode}
+                          onValueChange={(value) => value && setClosingMode(value as "complete" | "payment")}
+                          className="justify-start"
+                        >
+                          <ToggleGroupItem value="complete" className="gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            Fechamento Completo
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="payment" className="gap-2">
+                            <CreditCard className="w-4 h-4" />
+                            Seleção para Pagamento
+                          </ToggleGroupItem>
+                        </ToggleGroup>
+                        <p className="text-sm text-muted-foreground">
+                          {closingMode === "complete" 
+                            ? "Fecha todas as despesas do período selecionado"
+                            : "Permite selecionar despesas específicas para pagamento"}
+                        </p>
+                      </div>
+                      
                       <div className="space-y-2">
                         <Label htmlFor="month-select">Mês de Competência</Label>
                         <input
@@ -505,9 +644,10 @@ function FechamentoDespesasContent() {
                           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         />
                         <p className="text-sm text-muted-foreground">
-                          Selecione o mês que deseja fechar e clique em "Buscar Despesas"
+                          Selecione o mês que deseja processar
                         </p>
                       </div>
+                      
                       <Button
                         onClick={fetchExpenses}
                         disabled={!selectedMonth || loading}
@@ -519,7 +659,7 @@ function FechamentoDespesasContent() {
                         ) : (
                           <>
                             <Calendar className="w-4 h-4 mr-2" />
-                            Buscar Despesas do Período
+                            Buscar Despesas em Aberto
                           </>
                         )}
                       </Button>
@@ -531,10 +671,28 @@ function FechamentoDespesasContent() {
             <TabsContent value="validation" className="space-y-4">
               <Card className="w-full">
                 <CardHeader>
-                  <CardTitle>Validação de Despesas</CardTitle>
-                  <CardDescription>
-                    Verifique pendências antes de prosseguir com o fechamento
-                  </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>
+                        {closingMode === "payment" ? "Seleção de Despesas para Pagamento" : "Validação de Despesas"}
+                      </CardTitle>
+                      <CardDescription>
+                        {closingMode === "payment" 
+                          ? "Selecione as despesas que deseja pagar" 
+                          : "Verifique pendências antes de prosseguir com o fechamento"}
+                      </CardDescription>
+                    </div>
+                    {closingMode === "payment" && expenses.length > 0 && (
+                      <div className="flex items-center gap-4">
+                        <Badge variant="outline" className="text-lg px-3 py-1">
+                          {selectedExpenseIds.size} de {expenses.length} selecionadas
+                        </Badge>
+                        <Badge variant="secondary" className="text-lg px-3 py-1">
+                          Total: {formatCurrency(getSelectedTotal())}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {validationErrors.length > 0 ? (
@@ -580,38 +738,157 @@ function FechamentoDespesasContent() {
 
                   {expenses.length > 0 && (
                     <>
-                      <div className="mt-4 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Total de Despesas</span>
-                          <Badge>{expenses.length}</Badge>
+                      {/* Filters and Controls */}
+                      {closingMode === "payment" && (
+                        <div className="flex flex-wrap gap-4 p-4 bg-muted/30 rounded-lg">
+                          <div className="flex gap-2">
+                            <ToggleGroup
+                              type="single"
+                              value={filterType}
+                              onValueChange={(value) => value && setFilterType(value as any)}
+                            >
+                              <ToggleGroupItem value="all" size="sm">
+                                Todos
+                              </ToggleGroupItem>
+                              <ToggleGroupItem value="empresa" size="sm">
+                                <Building2 className="w-3 h-3 mr-1" />
+                                Empresa
+                              </ToggleGroupItem>
+                              <ToggleGroupItem value="prestador" size="sm">
+                                <Users className="w-3 h-3 mr-1" />
+                                Prestador
+                              </ToggleGroupItem>
+                            </ToggleGroup>
+                          </div>
+                          
+                          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="date">Ordenar por Data</SelectItem>
+                              <SelectItem value="amount">Ordenar por Valor</SelectItem>
+                              <SelectItem value="name">Ordenar por Nome</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                          >
+                            <ArrowUpDown className="w-4 h-4" />
+                            {sortOrder === "asc" ? "Crescente" : "Decrescente"}
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowDetailedView(!showDetailedView)}
+                            className="ml-auto"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            {showDetailedView ? "Ocultar Detalhes" : "Mostrar Detalhes"}
+                          </Button>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Valor Total</span>
-                          <span className="font-semibold">
-                            {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0))}
-                          </span>
-                        </div>
-                      </div>
+                      )}
 
-                      {/* Lista de despesas com status de anexo */}
-                      <div className="border rounded-lg p-4 space-y-2">
-                        <h4 className="font-semibold text-sm mb-2">Status dos Documentos</h4>
-                        <div className="max-h-60 overflow-y-auto space-y-1">
-                          {expenses.map((expense) => (
-                            <div key={expense.id} className="flex items-center justify-between text-sm py-1">
-                              <span className="truncate flex-1 mr-2">{expense.description}</span>
-                              <div className="flex items-center gap-2">
-                                {expense.files && expense.files.length > 0 ? (
-                                  <Badge variant="outline" className="text-green-600">
-                                    <File className="w-3 h-3 mr-1" />
-                                    {expense.files.length} arquivo(s)
-                                  </Badge>
-                                ) : (
+                      {/* Enhanced Expense Table */}
+                      <div className="border rounded-lg overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {closingMode === "payment" && (
+                                <TableHead className="w-[50px]">
+                                  <Checkbox
+                                    checked={selectedExpenseIds.size === getFilteredExpenses().length}
+                                    onCheckedChange={toggleSelectAll}
+                                  />
+                                </TableHead>
+                              )}
+                              <TableHead>Descrição</TableHead>
+                              {showDetailedView && (
+                                <>
+                                  <TableHead>Fornecedor</TableHead>
+                                  <TableHead>CPF/CNPJ</TableHead>
+                                  <TableHead>Conta</TableHead>
+                                </>
+                              )}
+                              <TableHead>Tipo</TableHead>
+                              <TableHead>Competência</TableHead>
+                              {showDetailedView && <TableHead>Vencimento</TableHead>}
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead>Anexos</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {getFilteredExpenses().map((expense) => (
+                              <TableRow 
+                                key={expense.id}
+                                className={selectedExpenseIds.has(expense.id) ? "bg-muted/50" : ""}
+                              >
+                                {closingMode === "payment" && (
+                                  <TableCell>
+                                    <Checkbox
+                                      checked={selectedExpenseIds.has(expense.id)}
+                                      onCheckedChange={() => toggleExpenseSelection(expense.id)}
+                                    />
+                                  </TableCell>
+                                )}
+                                <TableCell className="font-medium max-w-[200px] truncate">
+                                  {expense.description}
+                                </TableCell>
+                                {showDetailedView && (
                                   <>
-                                    <Badge variant="destructive">
-                                      <XCircle className="w-3 h-3 mr-1" />
-                                      Sem anexos
+                                    <TableCell className="max-w-[150px] truncate">
+                                      {expense.fornecedor_name || "-"}
+                                    </TableCell>
+                                    <TableCell className="text-xs">
+                                      {expense.cpf || expense.cnpj || "-"}
+                                    </TableCell>
+                                    <TableCell className="text-xs">
+                                      {expense.conta_contabil_id ? 
+                                        expense.conta_contabil_id.substring(0, 8) + "..." : 
+                                        "-"}
+                                    </TableCell>
+                                  </>
+                                )}
+                                <TableCell>
+                                  <Badge variant={expense.tipo_fornecedor === "empresa" ? "default" : "secondary"}>
+                                    {expense.tipo_fornecedor === "empresa" ? (
+                                      <Building2 className="w-3 h-3 mr-1" />
+                                    ) : (
+                                      <Users className="w-3 h-3 mr-1" />
+                                    )}
+                                    {expense.tipo_fornecedor}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {format(new Date(expense.data_competencia), 'dd/MM/yyyy')}
+                                </TableCell>
+                                {showDetailedView && (
+                                  <TableCell>
+                                    {expense.data_vencimento ? 
+                                      format(new Date(expense.data_vencimento), 'dd/MM/yyyy') : 
+                                      "-"}
+                                  </TableCell>
+                                )}
+                                <TableCell>
+                                  <Badge variant={expense.status === "lancado" ? "outline" : "default"}>
+                                    {expense.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right font-semibold">
+                                  {formatCurrency(expense.amount_base)}
+                                </TableCell>
+                                <TableCell>
+                                  {expense.files && expense.files.length > 0 ? (
+                                    <Badge variant="outline" className="text-green-600">
+                                      <File className="w-3 h-3 mr-1" />
+                                      {expense.files.length}
                                     </Badge>
+                                  ) : (
                                     <Button
                                       size="sm"
                                       variant="ghost"
@@ -622,12 +899,61 @@ function FechamentoDespesasContent() {
                                     >
                                       <Upload className="w-3 h-3" />
                                     </Button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {/* Summary Cards */}
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Total Geral</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold">
+                              {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0))}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{expenses.length} despesas</p>
+                          </CardContent>
+                        </Card>
+                        
+                        {closingMode === "payment" && (
+                          <>
+                            <Card>
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium">Total Selecionado</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <p className="text-2xl font-bold text-primary">
+                                  {formatCurrency(getSelectedTotal())}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {selectedExpenseIds.size} despesas selecionadas
+                                </p>
+                              </CardContent>
+                            </Card>
+                            
+                            <Card>
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium">Restante</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <p className="text-2xl font-bold text-muted-foreground">
+                                  {formatCurrency(
+                                    expenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0) - getSelectedTotal()
+                                  )}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {expenses.length - selectedExpenseIds.size} despesas não selecionadas
+                                </p>
+                              </CardContent>
+                            </Card>
+                          </>
+                        )}
                       </div>
                     </>
                   )}
