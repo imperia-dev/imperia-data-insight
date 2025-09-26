@@ -94,7 +94,7 @@ function FechamentoDespesasContent() {
   const { toast } = useToast();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
-  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [expenses, setExpenses] = useState<ExpenseData[]>([]);
   const [protocols, setProtocols] = useState<ClosingProtocol[]>([]);
   const [loading, setLoading] = useState(false);
@@ -121,6 +121,13 @@ function FechamentoDespesasContent() {
     fetchUserProfile();
     fetchProtocols();
   }, [user]);
+
+  // Auto-fetch expenses when component loads or month changes
+  useEffect(() => {
+    if (selectedMonth && user) {
+      fetchExpenses();
+    }
+  }, [selectedMonth, user]);
 
   const fetchUserProfile = async () => {
     if (user) {
@@ -172,7 +179,7 @@ function FechamentoDespesasContent() {
         .gte('data_competencia', format(start, 'yyyy-MM-dd'))
         .lte('data_competencia', format(end, 'yyyy-MM-dd'))
         .is('closing_protocol_id', null)
-        .eq('status', 'lancado');
+        .neq('status', 'pago');
 
       if (expensesError) {
         console.error('Supabase error:', expensesError);
