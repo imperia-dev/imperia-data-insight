@@ -54,9 +54,10 @@ import "jspdf-autotable";
 interface ExpenseData {
   id: string;
   description: string;
+  amount_original: number;
   amount_base: number;
-  conta_contabil_id: string;
-  centro_custo_id: string;
+  conta_contabil_id?: string;
+  centro_custo_id?: string;
   tipo_fornecedor: string;
   data_competencia: string;
   data_vencimento?: string;
@@ -323,8 +324,8 @@ function FechamentoDespesasContent() {
       const companyExpenses = expensesToProcess.filter(e => e.tipo_fornecedor === 'empresa');
       const serviceProviderExpenses = expensesToProcess.filter(e => e.tipo_fornecedor === 'prestador');
       
-      const totalCompany = companyExpenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0);
-      const totalServiceProvider = serviceProviderExpenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0);
+      const totalCompany = companyExpenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0);
+      const totalServiceProvider = serviceProviderExpenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0);
       const totalAmount = totalCompany + totalServiceProvider;
 
       const { data: protocol, error: protocolError } = await supabase
@@ -431,7 +432,7 @@ function FechamentoDespesasContent() {
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(expenses.map(e => ({
       'Descrição': e.description,
-      'Valor': e.amount_base,
+      'Valor': e.amount_base || e.amount_original || 0,
       'Tipo Fornecedor': e.tipo_fornecedor,
       'Data Competência': format(new Date(e.data_competencia), 'dd/MM/yyyy'),
       'Status': e.status
@@ -454,7 +455,7 @@ function FechamentoDespesasContent() {
     
     const tableData = expenses.map(e => [
       e.description,
-      formatCurrency(e.amount_base),
+      formatCurrency(e.amount_base || e.amount_original || 0),
       e.tipo_fornecedor,
       format(new Date(e.data_competencia), 'dd/MM/yyyy')
     ]);
@@ -515,7 +516,7 @@ function FechamentoDespesasContent() {
       let comparison = 0;
       switch (sortBy) {
         case "amount":
-          comparison = a.amount_base - b.amount_base;
+          comparison = (a.amount_base || a.amount_original || 0) - (b.amount_base || b.amount_original || 0);
           break;
         case "name":
           comparison = (a.fornecedor_name || a.description).localeCompare(b.fornecedor_name || b.description);
@@ -552,7 +553,7 @@ function FechamentoDespesasContent() {
   const getSelectedTotal = () => {
     return expenses
       .filter(e => selectedExpenseIds.has(e.id))
-      .reduce((sum, e) => sum + Number(e.amount_base || 0), 0);
+      .reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0);
   };
 
   return (
@@ -880,7 +881,7 @@ function FechamentoDespesasContent() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-right font-semibold">
-                                  {formatCurrency(expense.amount_base)}
+                                  {formatCurrency(expense.amount_base || expense.amount_original || 0)}
                                 </TableCell>
                                 <TableCell>
                                   {expense.files && expense.files.length > 0 ? (
@@ -915,7 +916,7 @@ function FechamentoDespesasContent() {
                           </CardHeader>
                           <CardContent>
                             <p className="text-2xl font-bold">
-                              {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0))}
+                              {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0))}
                             </p>
                             <p className="text-xs text-muted-foreground">{expenses.length} despesas</p>
                           </CardContent>
@@ -944,7 +945,7 @@ function FechamentoDespesasContent() {
                               <CardContent>
                                 <p className="text-2xl font-bold text-muted-foreground">
                                   {formatCurrency(
-                                    expenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0) - getSelectedTotal()
+                                    expenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0) - getSelectedTotal()
                                   )}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
@@ -984,7 +985,7 @@ function FechamentoDespesasContent() {
                           {formatCurrency(
                             expenses
                               .filter(e => e.tipo_fornecedor === 'empresa')
-                              .reduce((sum, e) => sum + Number(e.amount_base || 0), 0)
+                              .reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0)
                           )}
                         </p>
                         <p className="text-sm text-muted-foreground">
@@ -1007,7 +1008,7 @@ function FechamentoDespesasContent() {
                           {formatCurrency(
                             expenses
                               .filter(e => e.tipo_fornecedor === 'prestador')
-                              .reduce((sum, e) => sum + Number(e.amount_base || 0), 0)
+                              .reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0)
                           )}
                         </p>
                         <p className="text-sm text-muted-foreground">
@@ -1028,7 +1029,7 @@ function FechamentoDespesasContent() {
                       <div>
                         <p className="text-2xl font-bold">
                           {formatCurrency(
-                            expenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0)
+                            expenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0)
                           )}
                         </p>
                         <p className="text-sm text-muted-foreground">
@@ -1055,7 +1056,7 @@ function FechamentoDespesasContent() {
                           <h3 className="font-semibold capitalize">{category}</h3>
                           <Badge variant="outline">
                             {items.length} itens | {formatCurrency(
-                              items.reduce((sum, e) => sum + Number(e.amount_base || 0), 0)
+                              items.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0)
                             )}
                           </Badge>
                         </div>
@@ -1075,7 +1076,7 @@ function FechamentoDespesasContent() {
                                   {format(new Date(expense.data_competencia), 'dd/MM/yyyy')}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  {formatCurrency(expense.amount_base)}
+                                  {formatCurrency(expense.amount_base || expense.amount_original || 0)}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -1287,7 +1288,7 @@ function FechamentoDespesasContent() {
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Valor Total:</span>
                 <span className="font-semibold">
-                  {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount_base || 0), 0))}
+                  {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0))}
                 </span>
               </div>
             </div>
