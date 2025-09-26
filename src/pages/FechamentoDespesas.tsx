@@ -233,11 +233,6 @@ function FechamentoDespesasContent() {
         });
       }
       
-      // In payment mode, automatically select all expenses
-      if (closingMode === "payment") {
-        setSelectedExpenseIds(new Set(mappedExpenses.map(e => e.id)));
-      }
-      
       setCurrentStep("validation");
     } catch (error: any) {
       toast({
@@ -526,7 +521,7 @@ function FechamentoDespesasContent() {
 
   // Helper function to get selected expenses based on mode
   const getSelectedExpenses = (): ExpenseData[] => {
-    if (closingMode === 'payment' && selectedExpenseIds.size > 0) {
+    if (closingMode === 'payment') {
       return expenses.filter(e => selectedExpenseIds.has(e.id));
     }
     return expenses;
