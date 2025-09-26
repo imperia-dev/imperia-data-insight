@@ -211,7 +211,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("[send-payment-email] Sending email via Resend API");
     
     // Use verified domain to send to any recipient
-    const fromEmail = "Imperia Traduções <noreply@imperiatraducoes.com.br>";
+    const fromEmail = "Imperia Traduções <noreply@appimperiatraducoes.com>";
     
     console.log("[send-payment-email] From:", fromEmail);
     console.log("[send-payment-email] To:", requestData.recipient_email);
