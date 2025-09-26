@@ -196,9 +196,17 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("[send-payment-email] To:", requestData.recipient_email);
     console.log("[send-payment-email] CC:", requestData.cc_emails?.join(", ") || "none");
     console.log("[send-payment-email] Has attachments:", !!requestData.attachments);
+    console.log("[send-payment-email] Number of attachments:", requestData.attachments?.length || 0);
     
     // Prepare attachments array - use the attachments from the request
     const attachments = requestData.attachments || [];
+    
+    // Log attachment details
+    if (attachments.length > 0) {
+      attachments.forEach((att, idx) => {
+        console.log(`[send-payment-email] Attachment ${idx + 1}: ${att.filename}`);
+      });
+    }
     
     // Send email using Resend
     try {

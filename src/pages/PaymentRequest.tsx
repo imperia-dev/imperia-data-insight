@@ -307,25 +307,32 @@ ${userFullName || 'Equipe Império Traduções'}`);
             }
           }
           
-          // Get file URLs from closing_data
+          // Get file URLs from closing_data - files are stored as relative paths
           if (Array.isArray(closingData)) {
             for (const item of closingData) {
               if (item.files && Array.isArray(item.files)) {
-                for (const fileUrl of item.files) {
+                for (const filePath of item.files) {
                   try {
-                    // Extract the file path from the URL
-                    const urlParts = fileUrl.split('/storage/v1/object/public/');
-                    if (urlParts.length > 1) {
-                      const pathParts = urlParts[1].split('/');
-                      const bucket = pathParts[0];
-                      const path = pathParts.slice(1).join('/');
+                    console.log('Processing file:', filePath);
+                    
+                    // Files are stored as relative paths like "bd4c7a64-ef45-4b18-ade7-3f38a5a92ca1/filename.pdf"
+                    // Determine the bucket based on the expense type
+                    const bucket = protocol.type === 'expense' ? 'company-cost-files' : 'service-provider-files';
+                    
+                    // Download the file from Supabase Storage
+                    const { data: fileData, error: downloadError } = await supabase.storage
+                      .from(bucket)
+                      .download(filePath);
+                    
+                    if (downloadError) {
+                      console.error('Error downloading file:', downloadError);
+                      // Try the other bucket if the first one fails
+                      const altBucket = bucket === 'company-cost-files' ? 'service-provider-files' : 'company-cost-files';
+                      const { data: altFileData, error: altError } = await supabase.storage
+                        .from(altBucket)
+                        .download(filePath);
                       
-                      // Download the file from Supabase Storage
-                      const { data: fileData, error: downloadError } = await supabase.storage
-                        .from(bucket)
-                        .download(path);
-                      
-                      if (!downloadError && fileData) {
+                      if (!altError && altFileData) {
                         // Convert blob to base64
                         const reader = new FileReader();
                         const base64Content = await new Promise<string>((resolve, reject) => {
@@ -334,20 +341,41 @@ ${userFullName || 'Equipe Império Traduções'}`);
                             resolve(base64.split(',')[1]); // Remove data:type;base64, prefix
                           };
                           reader.onerror = reject;
-                          reader.readAsDataURL(fileData);
+                          reader.readAsDataURL(altFileData);
                         });
                         
                         // Extract filename from path
-                        const filename = path.split('/').pop() || 'documento.pdf';
+                        const filename = filePath.split('/').pop() || 'documento.pdf';
                         
                         attachments.push({
                           content: base64Content,
                           filename: filename
                         });
+                        console.log('File attached successfully:', filename);
                       }
+                    } else if (fileData) {
+                      // Convert blob to base64
+                      const reader = new FileReader();
+                      const base64Content = await new Promise<string>((resolve, reject) => {
+                        reader.onloadend = () => {
+                          const base64 = reader.result as string;
+                          resolve(base64.split(',')[1]); // Remove data:type;base64, prefix
+                        };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(fileData);
+                      });
+                      
+                      // Extract filename from path
+                      const filename = filePath.split('/').pop() || 'documento.pdf';
+                      
+                      attachments.push({
+                        content: base64Content,
+                        filename: filename
+                      });
+                      console.log('File attached successfully:', filename);
                     }
                   } catch (e) {
-                    console.error('Error downloading file:', e);
+                    console.error('Error processing file:', e);
                   }
                 }
               }
