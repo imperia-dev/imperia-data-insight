@@ -15,6 +15,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageLayout } from "@/hooks/usePageLayout";
+import { cn } from "@/lib/utils";
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -90,7 +91,7 @@ export default function Leads() {
       <Header userName={user?.user_metadata?.name || ""} userRole={user?.user_metadata?.user_role || "viewer"} />
       <Sidebar userRole={user?.user_metadata?.user_role || "viewer"} />
       
-      <main className={mainContainerClass}>
+      <main className={cn(mainContainerClass, "pt-16")}>
         <div className="container mx-auto px-4 py-8 space-y-6">
           <div className="flex justify-between items-center">
             <div>
