@@ -1079,8 +1079,11 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          interest_level: number | null
+          meeting_time: string | null
           message: string | null
           metadata: Json | null
+          monthly_revenue: string | null
           name: string
           phone: string | null
           source: string | null
@@ -1091,8 +1094,11 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          interest_level?: number | null
+          meeting_time?: string | null
           message?: string | null
           metadata?: Json | null
+          monthly_revenue?: string | null
           name: string
           phone?: string | null
           source?: string | null
@@ -1103,8 +1109,11 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          interest_level?: number | null
+          meeting_time?: string | null
           message?: string | null
           metadata?: Json | null
+          monthly_revenue?: string | null
           name?: string
           phone?: string | null
           source?: string | null
