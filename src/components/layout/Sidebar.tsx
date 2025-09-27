@@ -214,13 +214,13 @@ const navigationGroups: NavigationGroup[] = [
   {
     title: "Integração",
     icon: Link,
-    roles: ["owner"],
+    roles: ["owner", "master", "admin"], // Adicionado master e admin
     items: [
       {
         title: "Leads",
         icon: UserPlus,
         href: "/leads",
-        roles: ["owner"],
+        roles: ["owner", "master", "admin"], // Adicionado master e admin
       },
     ],
   },
