@@ -96,7 +96,7 @@ export default function Leads() {
             <div>
               <h1 className="text-3xl font-bold">Leads</h1>
               <p className="text-muted-foreground">
-                Gerencie os leads recebidos via webhook
+                Gerencie os leads cadastrados no sistema
               </p>
             </div>
             <Button onClick={handleRefresh} variant="outline">
@@ -109,7 +109,7 @@ export default function Leads() {
         <CardHeader>
           <CardTitle>Lista de Leads</CardTitle>
           <CardDescription>
-            Todos os leads recebidos através da integração webhook
+            Visualize todos os leads cadastrados no sistema
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -210,83 +210,13 @@ export default function Leads() {
           ) : (
             <div className="text-center py-12">
               <p className="text-muted-foreground">
-                Nenhum lead encontrado. Os leads aparecerão aqui quando forem recebidos via webhook.
+                Nenhum lead encontrado. Os leads aparecerão aqui quando forem cadastrados.
               </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Instruções para Integração</CardTitle>
-          <CardDescription>
-            Configure sua outra plataforma Lovable para enviar leads
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h3 className="font-semibold">1. URL do Webhook</h3>
-            <code className="block p-3 bg-muted rounded-md text-sm">
-              https://agttqqaampznczkyfvkf.supabase.co/functions/v1/webhook-leads
-            </code>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="font-semibold">2. Header de Autenticação</h3>
-            <p className="text-sm text-muted-foreground">
-              Adicione o seguinte header em todas as requisições:
-            </p>
-            <code className="block p-3 bg-muted rounded-md text-sm">
-              x-webhook-signature: [valor do WEBHOOK_SECRET]
-            </code>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="font-semibold">3. Estrutura do Payload (JSON)</h3>
-            <pre className="p-3 bg-muted rounded-md text-sm overflow-x-auto">
-{`{
-  "lead": {
-    "name": "Nome do Lead",
-    "email": "email@exemplo.com",
-    "phone": "11999999999",
-    "company": "Empresa XYZ",
-    "message": "Mensagem opcional",
-    "source": "landing-page"
-  },
-  "metadata": {
-    "campaign": "black-friday-2024",
-    "utm_source": "google",
-    "utm_medium": "cpc"
-  }
-}`}
-            </pre>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="font-semibold">4. Exemplo de Edge Function (Plataforma Emissora)</h3>
-            <pre className="p-3 bg-muted rounded-md text-sm overflow-x-auto">
-{`// Adicione esta função na sua outra plataforma
-// supabase/functions/send-lead-webhook/index.ts
-
-const WEBHOOK_URL = Deno.env.get('WEBHOOK_URL');
-const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET');
-
-const response = await fetch(WEBHOOK_URL, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-webhook-signature': WEBHOOK_SECRET
-  },
-  body: JSON.stringify({
-    lead: leadData,
-    metadata: metadataInfo
-  })
-});`}
-            </pre>
-          </div>
-        </CardContent>
-      </Card>
         </div>
       </main>
     </div>
