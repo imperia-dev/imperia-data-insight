@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.reset-password]
 verify_jwt = false
+
+[functions.webhook-leads]
+verify_jwt = false

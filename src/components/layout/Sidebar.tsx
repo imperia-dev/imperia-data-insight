@@ -38,6 +38,7 @@ import {
   Code,
   Shield,
   FileBarChart,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -206,6 +207,19 @@ const navigationGroups: NavigationGroup[] = [
         title: "Dashboard Tech",
         icon: Code,
         href: "/dashboard-tech",
+        roles: ["owner"],
+      },
+    ],
+  },
+  {
+    title: "Integração",
+    icon: Link,
+    roles: ["owner"],
+    items: [
+      {
+        title: "Leads",
+        icon: UserPlus,
+        href: "/leads",
         roles: ["owner"],
       },
     ],

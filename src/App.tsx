@@ -43,6 +43,7 @@ import PendingApproval from "./pages/PendingApproval";
 import BTGIntegration from "./pages/BTGIntegration";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import PasswordReset from "./pages/PasswordReset";
+import Leads from "./pages/Leads";
 
 const queryClient = new QueryClient();
 
@@ -208,6 +209,11 @@ const App = () => (
             <Route path="/security-dashboard" element={
               <ProtectedRouteWithApproval>
                 <SecurityDashboard />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/leads" element={
+              <ProtectedRouteWithApproval>
+                <Leads />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

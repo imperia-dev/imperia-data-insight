@@ -1073,6 +1073,45 @@ export type Database = {
           },
         ]
       }
+      leads: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          metadata: Json | null
+          name: string
+          phone: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          name: string
+          phone?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          name?: string
+          phone?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mfa_audit_logs: {
         Row: {
           created_at: string | null
@@ -2174,6 +2213,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webhook_logs: {
+        Row: {
+          error_message: string | null
+          event_type: string
+          headers: Json | null
+          id: string
+          ip_address: unknown | null
+          payload: Json
+          processed_at: string
+          response: Json | null
+          status_code: number | null
+        }
+        Insert: {
+          error_message?: string | null
+          event_type: string
+          headers?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          payload: Json
+          processed_at?: string
+          response?: Json | null
+          status_code?: number | null
+        }
+        Update: {
+          error_message?: string | null
+          event_type?: string
+          headers?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          payload?: Json
+          processed_at?: string
+          response?: Json | null
+          status_code?: number | null
+        }
+        Relationships: []
       }
     }
     Views: {
