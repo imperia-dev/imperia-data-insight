@@ -431,7 +431,7 @@ export default function DashboardComercial() {
                                       {/* Receita Mensal */}
                                       {lead.monthly_revenue && (
                                         <div className="flex items-center justify-between">
-                                          <span className="text-muted-foreground">Receita Mensal:</span>
+                                          <span className="text-muted-foreground">Volume Mensal:</span>
                                           <span className="font-medium">{lead.monthly_revenue}</span>
                                         </div>
                                       )}
