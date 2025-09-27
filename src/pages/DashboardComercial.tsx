@@ -17,7 +17,8 @@ import {
   Plus,
   Filter,
   RefreshCw,
-  MessageCircle
+  MessageCircle,
+  GripVertical
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -57,6 +58,8 @@ export default function DashboardComercial() {
   const { userRole, userName, mainContainerClass } = useConstructionPage();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Fetch leads from database
@@ -171,6 +174,58 @@ export default function DashboardComercial() {
       style: 'currency',
       currency: 'BRL'
     }).format(value);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, lead: Lead) => {
+    setDraggedLead(lead);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedLead(null);
+    setDragOverStage(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDragEnter = (stage: string) => {
+    setDragOverStage(stage);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverStage(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, newStage: string) => {
+    e.preventDefault();
+    setDragOverStage(null);
+
+    if (!draggedLead || draggedLead.stage === newStage) return;
+
+    // Find the stage configuration
+    const stageConfig = pipelineStages.find(s => s.id === newStage);
+    if (!stageConfig) return;
+
+    // Update lead locally for immediate feedback
+    const updatedLeads = leads.map(lead => 
+      lead.id === draggedLead.id 
+        ? { ...lead, stage: newStage as Lead['stage'], probability: stageConfig.probability }
+        : lead
+    );
+    setLeads(updatedLeads);
+
+    // Show success message
+    toast({
+      title: "Lead movido!",
+      description: `${draggedLead.name} foi movido para ${stageConfig.name}`,
+    });
+
+    // Here you could update the database if you have a column for stage
+    // For now, we're just updating the local state
   };
 
   return (
@@ -295,7 +350,15 @@ export default function DashboardComercial() {
                           </p>
                         </div>
                         
-                        <div className="bg-muted/20 border border-t-0 rounded-b-lg p-2 min-h-[400px]">
+                        <div 
+                          className={`bg-muted/20 border border-t-0 rounded-b-lg p-2 min-h-[400px] transition-all duration-200 ${
+                            dragOverStage === stage.id ? 'bg-primary/10 border-primary' : ''
+                          }`}
+                          onDragOver={handleDragOver}
+                          onDragEnter={() => handleDragEnter(stage.id)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, stage.id)}
+                        >
                           <div className="space-y-2">
                             {getLeadsByStage(stage.id).length === 0 ? (
                               <p className="text-center text-sm text-muted-foreground py-8">
@@ -303,19 +366,30 @@ export default function DashboardComercial() {
                               </p>
                             ) : (
                               getLeadsByStage(stage.id).map(lead => (
-                                <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                                <Card 
+                                  key={lead.id} 
+                                  className={`cursor-move hover:shadow-md transition-all duration-200 ${
+                                    draggedLead?.id === lead.id ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
+                                  }`}
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(e, lead)}
+                                  onDragEnd={handleDragEnd}
+                                >
                                   <CardContent className="p-3">
-                                    <div className="flex items-start justify-between mb-2">
-                                      <div className="flex-1">
-                                        <p className="font-semibold text-sm truncate">{lead.name}</p>
-                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                          <Building className="h-3 w-3" />
-                                          {lead.company || 'Sem empresa'}
-                                        </p>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+                                      <div className="flex items-start justify-between flex-1">
+                                        <div className="flex-1">
+                                          <p className="font-semibold text-sm truncate">{lead.name}</p>
+                                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                            <Building className="h-3 w-3" />
+                                            {lead.company || 'Sem empresa'}
+                                          </p>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs ml-2">
+                                          {lead.probability}%
+                                        </Badge>
                                       </div>
-                                      <Badge variant="outline" className="text-xs ml-2">
-                                        {lead.probability}%
-                                      </Badge>
                                     </div>
                                     
                                     <div className="text-lg font-bold text-primary mb-2">
