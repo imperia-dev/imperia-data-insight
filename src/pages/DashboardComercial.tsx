@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   TrendingUp, 
   Users, 
@@ -13,96 +15,151 @@ import {
   Building,
   ChevronRight,
   Plus,
-  Filter
+  Filter,
+  RefreshCw,
+  MessageCircle
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useConstructionPage } from "@/hooks/useConstructionPage";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format, differenceInDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Lead {
   id: string;
   name: string;
-  company: string;
-  value: number;
+  company: string | null;
+  email: string;
+  phone: string | null;
+  source: string | null;
+  message: string | null;
+  created_at: string;
   stage: "lead" | "qualified" | "proposal" | "negotiation" | "closed-won" | "closed-lost";
+  value: number;
   probability: number;
-  daysInStage: number;
-  nextAction: string;
   owner: string;
+  nextAction: string;
+  daysInStage: number;
 }
 
-const mockLeads: Lead[] = [
-  {
-    id: "1",
-    name: "João Silva",
-    company: "Tech Solutions Ltda",
-    value: 45000,
-    stage: "lead",
-    probability: 20,
-    daysInStage: 3,
-    nextAction: "Agendar reunião inicial",
-    owner: "Carlos Santos"
-  },
-  {
-    id: "2",
-    name: "Maria Oliveira",
-    company: "Inovação Digital",
-    value: 78000,
-    stage: "qualified",
-    probability: 40,
-    daysInStage: 5,
-    nextAction: "Enviar proposta",
-    owner: "Ana Costa"
-  },
-  {
-    id: "3",
-    name: "Pedro Almeida",
-    company: "Consultoria ABC",
-    value: 120000,
-    stage: "proposal",
-    probability: 60,
-    daysInStage: 7,
-    nextAction: "Follow-up proposta",
-    owner: "Carlos Santos"
-  },
-  {
-    id: "4",
-    name: "Ana Costa",
-    company: "Startup XYZ",
-    value: 35000,
-    stage: "negotiation",
-    probability: 80,
-    daysInStage: 10,
-    nextAction: "Ajustar termos contratuais",
-    owner: "Ana Costa"
-  },
-  {
-    id: "5",
-    name: "Roberto Lima",
-    company: "Empresa 123",
-    value: 95000,
-    stage: "closed-won",
-    probability: 100,
-    daysInStage: 2,
-    nextAction: "Iniciar onboarding",
-    owner: "Carlos Santos"
-  }
-];
-
 const pipelineStages = [
-  { id: "lead", name: "Lead", color: "bg-gray-500" },
-  { id: "qualified", name: "Qualificado", color: "bg-blue-500" },
-  { id: "proposal", name: "Proposta", color: "bg-purple-500" },
-  { id: "negotiation", name: "Negociação", color: "bg-yellow-500" },
-  { id: "closed-won", name: "Ganho", color: "bg-green-500" },
-  { id: "closed-lost", name: "Perdido", color: "bg-red-500" }
+  { id: "lead", name: "Lead", color: "bg-gray-500", probability: 20 },
+  { id: "qualified", name: "Qualificado", color: "bg-blue-500", probability: 40 },
+  { id: "proposal", name: "Proposta", color: "bg-purple-500", probability: 60 },
+  { id: "negotiation", name: "Negociação", color: "bg-yellow-500", probability: 80 },
+  { id: "closed-won", name: "Ganho", color: "bg-green-500", probability: 100 },
+  { id: "closed-lost", name: "Perdido", color: "bg-red-500", probability: 0 }
 ];
 
 export default function DashboardComercial() {
   const { userRole, userName, mainContainerClass } = useConstructionPage();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Fetch leads from database
+  useEffect(() => {
+    fetchLeads();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('leads-comercial')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'leads'
+        },
+        (payload) => {
+          toast({
+            title: "🎉 Novo lead recebido!",
+            description: `${payload.new.name} - ${payload.new.company || 'Empresa não informada'}`,
+          });
+          fetchLeads();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchLeads = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform database leads to pipeline format
+      const transformedLeads: Lead[] = (data || []).map((lead) => {
+        // Calculate days since creation
+        const daysInStage = differenceInDays(new Date(), new Date(lead.created_at));
+        
+        // Always start as lead stage for new entries
+        let stage: Lead['stage'] = 'lead';
+        let probability = 20;
+        
+        // Check metadata for additional info if available
+        const metadata = lead.metadata as any;
+        if (metadata) {
+          // If there's interest level in metadata
+          if (metadata.interest_level && metadata.interest_level >= 8) {
+            stage = 'qualified';
+            probability = 40;
+          }
+        }
+
+        // Calculate estimated value based on source or a default
+        let estimatedValue = 50000; // Default value
+        
+        // You can adjust value based on source
+        if (lead.source === 'landing-page') {
+          estimatedValue = 75000;
+        } else if (lead.source === 'website') {
+          estimatedValue = 60000;
+        }
+
+        return {
+          id: lead.id,
+          name: lead.name,
+          company: lead.company,
+          email: lead.email,
+          phone: lead.phone,
+          source: lead.source,
+          message: lead.message,
+          created_at: lead.created_at,
+          stage,
+          value: estimatedValue,
+          probability,
+          owner: 'Comercial',
+          nextAction: stage === 'lead' ? 'Qualificar lead' : 'Enviar proposta',
+          daysInStage
+        };
+      });
+
+      setLeads(transformedLeads);
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      toast({
+        title: "Erro ao carregar leads",
+        description: "Não foi possível carregar os leads. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getLeadsByStage = (stage: string) => {
-    return mockLeads.filter(lead => lead.stage === stage);
+    return leads.filter(lead => lead.stage === stage);
   };
 
   const getTotalValueByStage = (stage: string) => {
@@ -133,7 +190,9 @@ export default function DashboardComercial() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(373000)}</div>
+                <div className="text-2xl font-bold">
+                  {isLoading ? <Skeleton className="h-8 w-24" /> : formatCurrency(leads.reduce((sum, lead) => sum + lead.value, 0))}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   <span className="text-green-500">+12%</span> vs mês anterior
                 </p>
@@ -146,9 +205,11 @@ export default function DashboardComercial() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">24</div>
+                <div className="text-2xl font-bold">
+                  {isLoading ? <Skeleton className="h-8 w-16" /> : leads.length}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  5 novos esta semana
+                  {leads.filter(l => differenceInDays(new Date(), new Date(l.created_at)) <= 7).length} novos esta semana
                 </p>
               </CardContent>
             </Card>
@@ -159,7 +220,10 @@ export default function DashboardComercial() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">32%</div>
+                <div className="text-2xl font-bold">
+                  {isLoading ? <Skeleton className="h-8 w-16" /> : 
+                    `${leads.length > 0 ? Math.round((leads.filter(l => l.stage === 'closed-won').length / leads.length) * 100) : 0}%`
+                  }</div>
                 <Progress value={32} className="mt-2" />
               </CardContent>
             </Card>
@@ -184,6 +248,10 @@ export default function DashboardComercial() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl">CRM - Pipeline de Vendas</CardTitle>
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={fetchLeads}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Atualizar
+                  </Button>
                   <Button variant="outline" size="sm">
                     <Filter className="h-4 w-4 mr-2" />
                     Filtrar
@@ -196,81 +264,121 @@ export default function DashboardComercial() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[600px] w-full">
-                <div className="flex gap-4 pb-4">
-                  {pipelineStages.map(stage => (
-                    <div key={stage.id} className="flex-1 min-w-[280px]">
-                      <div className={`${stage.color} text-white p-3 rounded-t-lg`}>
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold">{stage.name}</h3>
-                          <Badge variant="secondary" className="bg-white/20 text-white">
-                            {getLeadsByStage(stage.id).length}
-                          </Badge>
-                        </div>
-                        <p className="text-sm opacity-90 mt-1">
-                          {formatCurrency(getTotalValueByStage(stage.id))}
-                        </p>
-                      </div>
-                      
-                      <div className="bg-muted/20 border border-t-0 rounded-b-lg p-2 min-h-[400px]">
+              {isLoading ? (
+                <div className="flex gap-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex-1 min-w-[280px]">
+                      <Skeleton className="h-20 rounded-t-lg" />
+                      <div className="border border-t-0 rounded-b-lg p-2 min-h-[400px]">
                         <div className="space-y-2">
-                          {getLeadsByStage(stage.id).map(lead => (
-                            <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                              <CardContent className="p-3">
-                                <div className="flex items-start justify-between mb-2">
-                                  <div>
-                                    <p className="font-semibold text-sm">{lead.name}</p>
-                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <Building className="h-3 w-3" />
-                                      {lead.company}
-                                    </p>
-                                  </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {lead.probability}%
-                                  </Badge>
-                                </div>
-                                
-                                <div className="text-lg font-bold text-primary mb-2">
-                                  {formatCurrency(lead.value)}
-                                </div>
-                                
-                                <div className="space-y-1">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">Responsável:</span>
-                                    <span className="font-medium">{lead.owner}</span>
-                                  </div>
-                                  
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">Dias no estágio:</span>
-                                    <span className="font-medium">{lead.daysInStage}</span>
-                                  </div>
-                                </div>
-                                
-                                <div className="mt-3 pt-3 border-t">
-                                  <p className="text-xs text-muted-foreground">Próxima ação:</p>
-                                  <p className="text-xs font-medium flex items-center gap-1">
-                                    <ChevronRight className="h-3 w-3" />
-                                    {lead.nextAction}
-                                  </p>
-                                </div>
-                                
-                                <div className="flex gap-2 mt-3">
-                                  <Button size="sm" variant="ghost" className="h-7 px-2">
-                                    <Phone className="h-3 w-3" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost" className="h-7 px-2">
-                                    <Mail className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
+                          <Skeleton className="h-32" />
+                          <Skeleton className="h-32" />
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              ) : (
+                <ScrollArea className="h-[600px] w-full">
+                  <div className="flex gap-4 pb-4">
+                    {pipelineStages.map(stage => (
+                      <div key={stage.id} className="flex-1 min-w-[280px]">
+                        <div className={`${stage.color} text-white p-3 rounded-t-lg`}>
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold">{stage.name}</h3>
+                            <Badge variant="secondary" className="bg-white/20 text-white">
+                              {getLeadsByStage(stage.id).length}
+                            </Badge>
+                          </div>
+                          <p className="text-sm opacity-90 mt-1">
+                            {formatCurrency(getTotalValueByStage(stage.id))}
+                          </p>
+                        </div>
+                        
+                        <div className="bg-muted/20 border border-t-0 rounded-b-lg p-2 min-h-[400px]">
+                          <div className="space-y-2">
+                            {getLeadsByStage(stage.id).length === 0 ? (
+                              <p className="text-center text-sm text-muted-foreground py-8">
+                                Nenhum lead neste estágio
+                              </p>
+                            ) : (
+                              getLeadsByStage(stage.id).map(lead => (
+                                <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                                  <CardContent className="p-3">
+                                    <div className="flex items-start justify-between mb-2">
+                                      <div className="flex-1">
+                                        <p className="font-semibold text-sm truncate">{lead.name}</p>
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                          <Building className="h-3 w-3" />
+                                          {lead.company || 'Sem empresa'}
+                                        </p>
+                                      </div>
+                                      <Badge variant="outline" className="text-xs ml-2">
+                                        {lead.probability}%
+                                      </Badge>
+                                    </div>
+                                    
+                                    <div className="text-lg font-bold text-primary mb-2">
+                                      {formatCurrency(lead.value)}
+                                    </div>
+                                    
+                                    <div className="space-y-1">
+                                      {lead.source && (
+                                        <div className="flex items-center justify-between text-xs">
+                                          <span className="text-muted-foreground">Origem:</span>
+                                          <span className="font-medium">{lead.source}</span>
+                                        </div>
+                                      )}
+                                      
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">Dias no estágio:</span>
+                                        <span className="font-medium">{lead.daysInStage}</span>
+                                      </div>
+                                      
+                                      {lead.email && (
+                                        <div className="text-xs truncate">
+                                          <Mail className="h-3 w-3 inline mr-1" />
+                                          {lead.email}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {lead.message && (
+                                      <div className="mt-2 pt-2 border-t">
+                                        <p className="text-xs text-muted-foreground">Mensagem:</p>
+                                        <p className="text-xs line-clamp-2">{lead.message}</p>
+                                      </div>
+                                    )}
+                                    
+                                    <div className="mt-3 pt-3 border-t">
+                                      <p className="text-xs text-muted-foreground">Próxima ação:</p>
+                                      <p className="text-xs font-medium flex items-center gap-1">
+                                        <ChevronRight className="h-3 w-3" />
+                                        {lead.nextAction}
+                                      </p>
+                                    </div>
+                                    
+                                    <div className="flex gap-2 mt-3">
+                                      {lead.phone && (
+                                        <Button size="sm" variant="ghost" className="h-7 px-2" title={lead.phone}>
+                                          <Phone className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                      <Button size="sm" variant="ghost" className="h-7 px-2" title={lead.email}>
+                                        <Mail className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
             </CardContent>
           </Card>
         </main>
