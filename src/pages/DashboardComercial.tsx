@@ -43,6 +43,9 @@ interface Lead {
   owner: string;
   nextAction: string;
   daysInStage: number;
+  monthly_revenue: string | null;
+  interest_level: number | null;
+  meeting_time: string | null;
 }
 
 const pipelineStages = [
@@ -138,7 +141,10 @@ export default function DashboardComercial() {
                      stage === 'proposal' ? 'Negociar termos' :
                      stage === 'negotiation' ? 'Fechar negócio' :
                      stage === 'closed-won' ? 'Iniciar onboarding' : 'Analisar motivos',
-          daysInStage
+          daysInStage,
+          monthly_revenue: lead.monthly_revenue,
+          interest_level: lead.interest_level,
+          meeting_time: lead.meeting_time
         };
       });
 
@@ -392,70 +398,74 @@ export default function DashboardComercial() {
                                   onDragEnd={handleDragEnd}
                                 >
                                   <CardContent className="p-3">
-                                    <div className="flex items-center gap-2 mb-2">
+                                    {/* Header com nome e empresa */}
+                                    <div className="flex items-center gap-2 mb-3">
                                       <GripVertical className="h-4 w-4 text-muted-foreground/50" />
-                                      <div className="flex items-start justify-between flex-1">
-                                        <div className="flex-1">
-                                          <p className="font-semibold text-sm truncate">{lead.name}</p>
+                                      <div className="flex-1">
+                                        <p className="font-semibold text-sm">{lead.name}</p>
+                                        {lead.company && (
                                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                                             <Building className="h-3 w-3" />
-                                            {lead.company || 'Sem empresa'}
+                                            {lead.company}
                                           </p>
-                                        </div>
-                                        <Badge variant="outline" className="text-xs ml-2">
-                                          {lead.probability}%
-                                        </Badge>
+                                        )}
                                       </div>
                                     </div>
                                     
-                                    <div className="text-lg font-bold text-primary mb-2">
-                                      {formatCurrency(lead.value)}
-                                    </div>
-                                    
-                                    <div className="space-y-1">
-                                      {lead.source && (
-                                        <div className="flex items-center justify-between text-xs">
-                                          <span className="text-muted-foreground">Origem:</span>
-                                          <span className="font-medium">{lead.source}</span>
-                                        </div>
-                                      )}
-                                      
-                                      <div className="flex items-center justify-between text-xs">
-                                        <span className="text-muted-foreground">Dias no estágio:</span>
-                                        <span className="font-medium">{lead.daysInStage}</span>
+                                    {/* Informações principais */}
+                                    <div className="space-y-2 text-xs">
+                                      {/* Email */}
+                                      <div className="flex items-center gap-2">
+                                        <Mail className="h-3 w-3 text-muted-foreground" />
+                                        <span className="truncate">{lead.email}</span>
                                       </div>
                                       
-                                      {lead.email && (
-                                        <div className="text-xs truncate">
-                                          <Mail className="h-3 w-3 inline mr-1" />
-                                          {lead.email}
-                                        </div>
-                                      )}
-                                    </div>
-                                    
-                                    {lead.message && (
-                                      <div className="mt-2 pt-2 border-t">
-                                        <p className="text-xs text-muted-foreground">Mensagem:</p>
-                                        <p className="text-xs line-clamp-2">{lead.message}</p>
-                                      </div>
-                                    )}
-                                    
-                                    <div className="mt-3 pt-3 border-t">
-                                      <p className="text-xs text-muted-foreground">Próxima ação:</p>
-                                      <p className="text-xs font-medium flex items-center gap-1">
-                                        <ChevronRight className="h-3 w-3" />
-                                        {lead.nextAction}
-                                      </p>
-                                    </div>
-                                    
-                                    <div className="flex gap-2 mt-3">
+                                      {/* Telefone */}
                                       {lead.phone && (
-                                        <Button size="sm" variant="ghost" className="h-7 px-2" title={lead.phone}>
-                                          <Phone className="h-3 w-3" />
-                                        </Button>
+                                        <div className="flex items-center gap-2">
+                                          <Phone className="h-3 w-3 text-muted-foreground" />
+                                          <span>{lead.phone}</span>
+                                        </div>
                                       )}
-                                      <Button size="sm" variant="ghost" className="h-7 px-2" title={lead.email}>
-                                        <Mail className="h-3 w-3" />
+                                      
+                                      {/* Receita Mensal */}
+                                      {lead.monthly_revenue && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-muted-foreground">Receita Mensal:</span>
+                                          <span className="font-medium">{lead.monthly_revenue}</span>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Nível de Interesse */}
+                                      {lead.interest_level !== null && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-muted-foreground">Interesse:</span>
+                                          <div className="flex items-center gap-1">
+                                            <span className="font-medium">{lead.interest_level}/10</span>
+                                            <Progress 
+                                              value={lead.interest_level * 10} 
+                                              className="w-12 h-2"
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Horário da Reunião */}
+                                      {lead.meeting_time && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-muted-foreground">Reunião:</span>
+                                          <span className="font-medium">
+                                            {format(new Date(lead.meeting_time), "dd/MM HH:mm", { locale: ptBR })}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Ações */}
+                                    <div className="flex gap-2 mt-3 pt-3 border-t">
+                                      <Button size="sm" variant="outline" className="h-7 flex-1">
+                                        <MessageCircle className="h-3 w-3 mr-1" />
+                                        Contatar
                                       </Button>
                                     </div>
                                   </CardContent>
