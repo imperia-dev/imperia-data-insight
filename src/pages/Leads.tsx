@@ -11,10 +11,16 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePageLayout } from "@/hooks/usePageLayout";
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
 
   // Fetch leads from database
   const { data: leads, isLoading, refetch } = useQuery({
@@ -80,19 +86,24 @@ export default function Leads() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Leads</h1>
-          <p className="text-muted-foreground">
-            Gerencie os leads recebidos via webhook
-          </p>
-        </div>
-        <Button onClick={handleRefresh} variant="outline">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Atualizar
-        </Button>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Header userName={user?.user_metadata?.name || ""} userRole={user?.user_metadata?.user_role || "viewer"} />
+      <Sidebar userRole={user?.user_metadata?.user_role || "viewer"} />
+      
+      <main className={mainContainerClass}>
+        <div className="container mx-auto px-4 py-8 space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">Leads</h1>
+              <p className="text-muted-foreground">
+                Gerencie os leads recebidos via webhook
+              </p>
+            </div>
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
 
       <Card>
         <CardHeader>
@@ -276,6 +287,8 @@ const response = await fetch(WEBHOOK_URL, {
           </div>
         </CardContent>
       </Card>
+        </div>
+      </main>
     </div>
   );
 }
