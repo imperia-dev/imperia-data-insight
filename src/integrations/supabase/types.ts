@@ -1086,7 +1086,9 @@ export type Database = {
           monthly_revenue: string | null
           name: string
           phone: string | null
+          probability: number | null
           source: string | null
+          stage: string | null
           updated_at: string
         }
         Insert: {
@@ -1101,7 +1103,9 @@ export type Database = {
           monthly_revenue?: string | null
           name: string
           phone?: string | null
+          probability?: number | null
           source?: string | null
+          stage?: string | null
           updated_at?: string
         }
         Update: {
@@ -1116,7 +1120,9 @@ export type Database = {
           monthly_revenue?: string | null
           name?: string
           phone?: string | null
+          probability?: number | null
           source?: string | null
+          stage?: string | null
           updated_at?: string
         }
         Relationships: []

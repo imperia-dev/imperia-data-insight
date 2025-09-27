@@ -106,20 +106,10 @@ export default function DashboardComercial() {
         // Calculate days since creation
         const daysInStage = differenceInDays(new Date(), new Date(lead.created_at));
         
-        // Always start as lead stage for new entries
-        let stage: Lead['stage'] = 'lead';
-        let probability = 20;
+        // Use stage from database or default to 'lead'
+        const stage = lead.stage || 'lead';
+        const stageConfig = pipelineStages.find(s => s.id === stage) || pipelineStages[0];
         
-        // Check metadata for additional info if available
-        const metadata = lead.metadata as any;
-        if (metadata) {
-          // If there's interest level in metadata
-          if (metadata.interest_level && metadata.interest_level >= 8) {
-            stage = 'qualified';
-            probability = 40;
-          }
-        }
-
         // Calculate estimated value based on source or a default
         let estimatedValue = 50000; // Default value
         
@@ -139,11 +129,15 @@ export default function DashboardComercial() {
           source: lead.source,
           message: lead.message,
           created_at: lead.created_at,
-          stage,
+          stage: stage as Lead['stage'],
           value: estimatedValue,
-          probability,
+          probability: lead.probability || stageConfig.probability,
           owner: 'Comercial',
-          nextAction: stage === 'lead' ? 'Qualificar lead' : 'Enviar proposta',
+          nextAction: stage === 'lead' ? 'Qualificar lead' : 
+                     stage === 'qualified' ? 'Enviar proposta' :
+                     stage === 'proposal' ? 'Negociar termos' :
+                     stage === 'negotiation' ? 'Fechar negócio' :
+                     stage === 'closed-won' ? 'Iniciar onboarding' : 'Analisar motivos',
           daysInStage
         };
       });
@@ -218,14 +212,36 @@ export default function DashboardComercial() {
     );
     setLeads(updatedLeads);
 
-    // Show success message
-    toast({
-      title: "Lead movido!",
-      description: `${draggedLead.name} foi movido para ${stageConfig.name}`,
-    });
+    try {
+      // Update the database
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          stage: newStage,
+          probability: stageConfig.probability,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', draggedLead.id);
 
-    // Here you could update the database if you have a column for stage
-    // For now, we're just updating the local state
+      if (error) throw error;
+
+      // Show success message
+      toast({
+        title: "✅ Lead movido com sucesso!",
+        description: `${draggedLead.name} foi movido para ${stageConfig.name}`,
+      });
+    } catch (error) {
+      console.error('Error updating lead stage:', error);
+      
+      // Revert the local change on error
+      fetchLeads();
+      
+      toast({
+        title: "Erro ao mover lead",
+        description: "Não foi possível salvar a mudança. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
