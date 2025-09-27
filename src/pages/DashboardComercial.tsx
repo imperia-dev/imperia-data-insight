@@ -350,8 +350,8 @@ export default function DashboardComercial() {
                   ))}
                 </div>
               ) : (
-                <ScrollArea className="h-[600px] w-full">
-                  <div className="flex gap-4 pb-4">
+                <ScrollArea className="h-[600px] w-full rounded-md border">
+                  <div className="flex gap-4 p-4 min-w-max">
                     {pipelineStages.map(stage => (
                       <div key={stage.id} className="flex-1 min-w-[280px]">
                         <div className={`${stage.color} text-white p-3 rounded-t-lg`}>
