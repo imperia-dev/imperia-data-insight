@@ -309,7 +309,19 @@ export function Sidebar({ userRole }: SidebarProps) {
   const location = useLocation();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const [pendingCount, setPendingCount] = useState(0);
-  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  
+  // Initialize with the group containing the current route
+  const getInitialOpenGroups = () => {
+    const currentPath = location.pathname;
+    const activeGroups = navigationGroups
+      .filter(group => 
+        group.items.some(item => item.href === currentPath)
+      )
+      .map(group => group.title);
+    return activeGroups;
+  };
+  
+  const [openGroups, setOpenGroups] = useState<string[]>(getInitialOpenGroups);
 
   useEffect(() => {
     if (userRole === 'owner') {
