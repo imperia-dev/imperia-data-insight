@@ -147,7 +147,8 @@ export default function Chat() {
         .eq("status", "online");
       
       if (error) throw error;
-      return data;
+      // Filter out presence entries without user profiles
+      return (data || []).filter(presence => presence.user !== null);
     },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
@@ -459,18 +460,18 @@ export default function Chat() {
               <div key={presence.user_id} className="flex items-center gap-2 p-2 rounded hover:bg-accent">
                 <div className="relative">
                   <AnimatedAvatar
-                    src={presence.user?.avatar_url || undefined}
-                    alt={presence.user?.full_name || ""}
+                    src={presence.user.avatar_url || undefined}
+                    alt={presence.user.full_name || ""}
                     size="sm"
-                    style={presence.user?.avatar_style as any}
-                    color={presence.user?.avatar_color || undefined}
+                    style={presence.user.avatar_style as any}
+                    color={presence.user.avatar_color || undefined}
                     showStatus
                     status={presence.status as any}
                   />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {presence.user?.full_name}
+                    {presence.user.full_name}
                   </p>
                   {presence.is_typing && (
                     <p className="text-xs text-muted-foreground">Digitando...</p>
