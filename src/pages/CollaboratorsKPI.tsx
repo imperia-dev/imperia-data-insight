@@ -51,6 +51,8 @@ export default function CollaboratorsKPI() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
   const [selectedCollaborator, setSelectedCollaborator] = useState<string>("all");
   const [collaborators, setCollaborators] = useState<Profile[]>([]);
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: undefined,
     departments: [],
@@ -64,6 +66,13 @@ export default function CollaboratorsKPI() {
     documentsCompleted: { count: 456, goal: 500 }
   });
   const { mainContainerClass } = usePageLayout();
+
+  // Handle period change
+  useEffect(() => {
+    if (selectedPeriod === 'custom') {
+      setShowDatePicker(true);
+    }
+  }, [selectedPeriod]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -353,19 +362,71 @@ export default function CollaboratorsKPI() {
                 </SelectContent>
               </Select>
               
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Hoje</SelectItem>
-                  <SelectItem value="week">Esta Semana</SelectItem>
-                  <SelectItem value="month">Este Mês</SelectItem>
-                  <SelectItem value="quarter">Este Trimestre</SelectItem>
-                  <SelectItem value="year">Este Ano</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Select value={selectedPeriod} onValueChange={(value) => {
+                  setSelectedPeriod(value);
+                  if (value === 'custom') {
+                    setShowDatePicker(true);
+                  } else {
+                    setCustomDateRange(undefined);
+                  }
+                }}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Hoje</SelectItem>
+                    <SelectItem value="week">Esta Semana</SelectItem>
+                    <SelectItem value="month">Este Mês</SelectItem>
+                    <SelectItem value="quarter">Este Trimestre</SelectItem>
+                    <SelectItem value="year">Este Ano</SelectItem>
+                    <SelectItem value="custom">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Custom Date Range Picker */}
+                <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !customDateRange && "text-muted-foreground",
+                        selectedPeriod !== 'custom' && "hidden"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customDateRange?.from ? (
+                        customDateRange.to ? (
+                          <>
+                            {format(customDateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
+                            {format(customDateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                          </>
+                        ) : (
+                          format(customDateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                        )
+                      ) : (
+                        <span>Selecione as datas</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <CalendarComponent
+                      mode="range"
+                      selected={customDateRange}
+                      onSelect={(range) => {
+                        setCustomDateRange(range);
+                        if (range?.from && range?.to) {
+                          setShowDatePicker(false);
+                        }
+                      }}
+                      locale={ptBR}
+                      numberOfMonths={2}
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
 
