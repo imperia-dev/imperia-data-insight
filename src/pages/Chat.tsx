@@ -12,6 +12,9 @@ import { ptBR } from "date-fns/locale";
 import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ManageChannelMembersDialog } from "@/components/chat/ManageChannelMembersDialog";
+import { CreateChannelDialog } from "@/components/chat/CreateChannelDialog";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 interface Channel {
   id: string;
@@ -53,6 +56,7 @@ interface Presence {
 export default function Chat() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { userRole } = useRoleAccess("/chat");
   const queryClient = useQueryClient();
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -301,14 +305,7 @@ export default function Chat() {
               </button>
             ))}
           </div>
-          <Button
-            variant="ghost"
-            className="w-full mt-4 justify-start"
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Criar Canal
-          </Button>
+          {userRole === 'owner' && <CreateChannelDialog />}
         </div>
       </div>
 
@@ -325,9 +322,12 @@ export default function Chat() {
               </span>
             )}
           </div>
-          <Button variant="ghost" size="icon">
-            <Users className="h-4 w-4" />
-          </Button>
+          {userRole === 'owner' && selectedChannel && (
+            <ManageChannelMembersDialog
+              channelId={selectedChannel}
+              channelName={currentChannel?.name || ""}
+            />
+          )}
         </div>
 
         {/* Messages Area */}
