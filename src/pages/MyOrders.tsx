@@ -17,22 +17,23 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Package, CheckCircle, Clock, AlertTriangle, AlertCircle } from "lucide-react";
+import { Package, CheckCircle, Clock, AlertTriangle, AlertCircle, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 
 export function MyOrders() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
   const queryClient = useQueryClient();
 
-  // Fetch user profile with operation_account_id
+  // Fetch user profile with operation_account_id and avatar data
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("*, avatar_url, avatar_style, avatar_color, avatar_animation_preference")
         .eq("id", user?.id)
         .single();
       
@@ -326,7 +327,44 @@ export function MyOrders() {
         <Header userName={profile?.full_name || user?.email || ""} userRole={profile?.role || "operation"} />
         
         <main className="p-4 md:p-6 lg:p-8">
-          <h1 className="text-3xl font-bold text-foreground mb-6">Meus Pedidos</h1>
+          {/* User Profile Section */}
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <AnimatedAvatar
+                src={profile?.avatar_style === 'photo' ? profile?.avatar_url : undefined}
+                fallback={profile?.full_name || user?.email || ""}
+                size="lg"
+                showStatus
+                status="online"
+                animationLevel={
+                  profile?.avatar_animation_preference && 
+                  typeof profile.avatar_animation_preference === 'object' &&
+                  'enabled' in profile.avatar_animation_preference &&
+                  profile.avatar_animation_preference.enabled
+                    ? ((profile.avatar_animation_preference as any).level || "normal")
+                    : "subtle"
+                }
+                style={profile?.avatar_style as any}
+              />
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Meus Pedidos</h1>
+                <p className="text-sm text-muted-foreground">
+                  {profile?.full_name} • {profile?.operation_account_id ? `ID: ${profile.operation_account_id}` : 'Sem ID de operação'}
+                </p>
+              </div>
+            </div>
+            
+            {/* Performance Summary */}
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Pedidos Hoje</p>
+                  <p className="text-2xl font-bold">{myOrders?.length || 0}</p>
+                </div>
+                <Package className="h-8 w-8 text-primary" />
+              </div>
+            </Card>
+          </div>
 
           {/* Order Status Badge */}
           <div className="mb-6 flex items-center gap-4">
