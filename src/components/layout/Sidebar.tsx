@@ -334,7 +334,11 @@ export function Sidebar({ userRole }: SidebarProps) {
       .map(group => group.title);
     
     if (activeGroups.length > 0) {
-      setOpenGroups(activeGroups);
+      setOpenGroups(prev => {
+        // Merge with existing open groups to maintain user's manual expansions
+        const merged = [...new Set([...prev, ...activeGroups])];
+        return merged;
+      });
     }
   }, [location.pathname]);
 
