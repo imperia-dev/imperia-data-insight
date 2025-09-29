@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { AnimatedAvatar } from "@/components/ui/animated-avatar";
-import { Upload, Trash2, Sparkles, User } from "lucide-react";
+import { Avatar3D } from "@/components/ui/avatar-3d";
+import { Upload, Trash2, Sparkles, User, Box, Smile, Shapes } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -207,6 +208,27 @@ export function AvatarSettings({ userProfile, onUpdate }: AvatarSettingsProps) {
               <Label htmlFor="generated" className="flex items-center gap-2 cursor-pointer">
                 <Sparkles className="h-4 w-4" />
                 Avatar Gerado
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="3d-robot" id="3d-robot" />
+              <Label htmlFor="3d-robot" className="flex items-center gap-2 cursor-pointer">
+                <Box className="h-4 w-4" />
+                Robô 3D
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="3d-character" id="3d-character" />
+              <Label htmlFor="3d-character" className="flex items-center gap-2 cursor-pointer">
+                <Smile className="h-4 w-4" />
+                Personagem 3D
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="3d-abstract" id="3d-abstract" />
+              <Label htmlFor="3d-abstract" className="flex items-center gap-2 cursor-pointer">
+                <Shapes className="h-4 w-4" />
+                Abstrato 3D
               </Label>
             </div>
           </RadioGroup>

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, TrendingUp, Award, Zap } from "lucide-react"
+import { Avatar3D } from "./avatar-3d"
 
 interface AnimatedAvatarProps {
   src?: string | null
@@ -18,7 +19,7 @@ interface AnimatedAvatarProps {
   pulse?: boolean
   animationLevel?: "subtle" | "normal" | "fun"
   color?: string
-  style?: "initials" | "photo" | "generated"
+  style?: "initials" | "photo" | "generated" | "3d-robot" | "3d-character" | "3d-abstract"
   onClick?: () => void
 }
 
@@ -95,6 +96,9 @@ export function AnimatedAvatar({
   const hoverScale = animationLevel === "subtle" ? 1.05 : animationLevel === "fun" ? 1.15 : 1.1
   const hoverRotate = animationLevel === "fun" ? 5 : 0
   
+  // Check if it's a 3D style
+  const is3D = style?.startsWith('3d-')
+  
   // Calculate ring dimensions
   const ringSize = {
     xs: 28,
@@ -104,10 +108,72 @@ export function AnimatedAvatar({
     xl: 84
   }[size]
   
+  const avatarPixelSize = {
+    xs: 24,
+    sm: 32,
+    md: 40,
+    lg: 56,
+    xl: 80
+  }[size]
+  
   const strokeWidth = size === "xs" ? 2 : size === "sm" ? 2 : 3
   const radius = (ringSize - strokeWidth * 2) / 2
   const circumference = 2 * Math.PI * radius
   const strokeDashoffset = circumference - (performanceScore / 100) * circumference
+  
+  // If it's a 3D avatar, render the 3D component
+  if (is3D) {
+    const avatar3DStyle = style.replace('3d-', '') as 'robot' | 'character' | 'abstract'
+    
+    return (
+      <motion.div
+        className={cn("relative inline-block", className)}
+        whileHover={animationLevel !== "subtle" ? {
+          scale: hoverScale,
+        } : {}}
+        animate={pulse ? {
+          scale: [1, 1.05, 1],
+        } : {}}
+        transition={pulse ? {
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut"
+        } : {
+          type: "spring",
+          stiffness: 300,
+          damping: 20
+        }}
+        onClick={onClick}
+        style={{ cursor: onClick ? "pointer" : "default" }}
+      >
+        <Avatar3D 
+          color={autoColor}
+          style={avatar3DStyle}
+          size={avatarPixelSize * 2}
+          interactive={animationLevel !== "subtle"}
+        />
+        
+        {/* Status Indicator for 3D */}
+        {showStatus && (
+          <motion.div
+            className={cn(
+              "absolute bottom-2 right-2 rounded-full border-2 border-background z-10",
+              size === "xs" ? "h-2 w-2" : size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3"
+            )}
+            style={{ backgroundColor: statusColors[status] }}
+            animate={status === "online" ? {
+              scale: [1, 1.2, 1],
+            } : {}}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        )}
+      </motion.div>
+    )
+  }
 
   return (
     <motion.div
