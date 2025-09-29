@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { cn } from "@/lib/utils";
-import { Users, TrendingUp, Target, Award, Activity, AlertTriangle, FileText, CheckCircle2, XCircle, Calendar, Clock, BarChart, Filter, CalendarIcon, Search } from "lucide-react";
+import { Users, TrendingUp, Target, Award, Activity, AlertTriangle, FileText, CheckCircle2, XCircle, Calendar, Clock, BarChart, Filter, CalendarIcon, Search, Eye } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
@@ -22,6 +22,9 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Profile {
   id: string;
@@ -34,6 +37,16 @@ interface KPIData {
   delays: { count: number; percentage: number; goal: number };
   errors: { count: number; percentage: number; goal: number };
   documentsCompleted: { count: number; goal: number };
+}
+
+interface DocumentDetail {
+  id: string;
+  document_name: string;
+  client: string;
+  status: string;
+  date: string;
+  delay_days?: number;
+  error_type?: string;
 }
 
 interface FilterOptions {
@@ -53,6 +66,12 @@ export default function CollaboratorsKPI() {
   const [collaborators, setCollaborators] = useState<Profile[]>([]);
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [detailsDialog, setDetailsDialog] = useState<{open: boolean; type: string; title: string}>({
+    open: false,
+    type: '',
+    title: ''
+  });
+  const [documentDetails, setDocumentDetails] = useState<DocumentDetail[]>([]);
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: undefined,
     departments: [],
@@ -73,6 +92,45 @@ export default function CollaboratorsKPI() {
       setShowDatePicker(true);
     }
   }, [selectedPeriod]);
+
+  // Function to show details dialog
+  const showDetails = (type: string) => {
+    let title = '';
+    let mockData: DocumentDetail[] = [];
+    
+    switch(type) {
+      case 'delays':
+        title = 'Documentos Atrasados';
+        mockData = [
+          { id: '1', document_name: 'Contrato #123', client: 'Empresa ABC', status: 'Atrasado', date: '2024-03-15', delay_days: 3 },
+          { id: '2', document_name: 'Relatório Q1', client: 'Cliente XYZ', status: 'Atrasado', date: '2024-03-14', delay_days: 2 },
+          { id: '3', document_name: 'Proposta Comercial', client: 'Tech Corp', status: 'Atrasado', date: '2024-03-13', delay_days: 5 },
+          { id: '4', document_name: 'NF-e 456', client: 'Startup Inc', status: 'Atrasado', date: '2024-03-12', delay_days: 1 },
+        ];
+        break;
+      case 'errors':
+        title = 'Documentos com Erros';
+        mockData = [
+          { id: '1', document_name: 'Relatório Mensal', client: 'Empresa DEF', status: 'Com Erro', date: '2024-03-16', error_type: 'Formatação' },
+          { id: '2', document_name: 'Contrato #789', client: 'Cliente GHI', status: 'Com Erro', date: '2024-03-15', error_type: 'Dados Incorretos' },
+          { id: '3', document_name: 'Proposta #321', client: 'Corp Solutions', status: 'Com Erro', date: '2024-03-14', error_type: 'Cálculo' },
+        ];
+        break;
+      case 'completed':
+        title = 'Documentos Concluídos';
+        mockData = [
+          { id: '1', document_name: 'Contrato #111', client: 'Big Corp', status: 'Concluído', date: '2024-03-16' },
+          { id: '2', document_name: 'Relatório Anual', client: 'Small Co', status: 'Concluído', date: '2024-03-16' },
+          { id: '3', document_name: 'NF-e 999', client: 'Medium Inc', status: 'Concluído', date: '2024-03-15' },
+          { id: '4', document_name: 'Proposta #555', client: 'Startup LLC', status: 'Concluído', date: '2024-03-15' },
+          { id: '5', document_name: 'Contrato #222', client: 'Enterprise SA', status: 'Concluído', date: '2024-03-14' },
+        ];
+        break;
+    }
+    
+    setDocumentDetails(mockData);
+    setDetailsDialog({ open: true, type, title });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -441,9 +499,19 @@ export default function CollaboratorsKPI() {
                     <AlertTriangle className="h-5 w-5 text-orange-500" />
                     Atrasos de Documentos
                   </span>
-                  <Badge variant={kpiData.delays.percentage <= kpiData.delays.goal ? "outline" : "destructive"} className={kpiData.delays.percentage <= kpiData.delays.goal ? "border-green-500 text-green-600" : ""}>
-                    {kpiData.delays.percentage <= kpiData.delays.goal ? "Meta OK" : "Acima da Meta"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={kpiData.delays.percentage <= kpiData.delays.goal ? "outline" : "destructive"} className={kpiData.delays.percentage <= kpiData.delays.goal ? "border-green-500 text-green-600" : ""}>
+                      {kpiData.delays.percentage <= kpiData.delays.goal ? "Meta OK" : "Acima da Meta"}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => showDetails('delays')}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -473,9 +541,19 @@ export default function CollaboratorsKPI() {
                     <XCircle className="h-5 w-5 text-red-500" />
                     Erros
                   </span>
-                  <Badge variant={kpiData.errors.percentage <= kpiData.errors.goal ? "outline" : "destructive"} className={kpiData.errors.percentage <= kpiData.errors.goal ? "border-green-500 text-green-600" : ""}>
-                    {kpiData.errors.percentage <= kpiData.errors.goal ? "Meta OK" : "Acima da Meta"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={kpiData.errors.percentage <= kpiData.errors.goal ? "outline" : "destructive"} className={kpiData.errors.percentage <= kpiData.errors.goal ? "border-green-500 text-green-600" : ""}>
+                      {kpiData.errors.percentage <= kpiData.errors.goal ? "Meta OK" : "Acima da Meta"}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => showDetails('errors')}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -505,9 +583,19 @@ export default function CollaboratorsKPI() {
                     <FileText className="h-5 w-5 text-green-500" />
                     Documentos Feitos
                   </span>
-                  <Badge variant={kpiData.documentsCompleted.count >= kpiData.documentsCompleted.goal ? "outline" : "secondary"} className={kpiData.documentsCompleted.count >= kpiData.documentsCompleted.goal ? "border-green-500 text-green-600" : "border-yellow-500 text-yellow-600"}>
-                    {((kpiData.documentsCompleted.count / kpiData.documentsCompleted.goal) * 100).toFixed(0)}%
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={kpiData.documentsCompleted.count >= kpiData.documentsCompleted.goal ? "outline" : "secondary"} className={kpiData.documentsCompleted.count >= kpiData.documentsCompleted.goal ? "border-green-500 text-green-600" : "border-yellow-500 text-yellow-600"}>
+                      {((kpiData.documentsCompleted.count / kpiData.documentsCompleted.goal) * 100).toFixed(0)}%
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => showDetails('completed')}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -668,6 +756,89 @@ export default function CollaboratorsKPI() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          {/* Details Dialog */}
+          <Dialog open={detailsDialog.open} onOpenChange={(open) => setDetailsDialog({...detailsDialog, open})}>
+            <DialogContent className="max-w-4xl max-h-[80vh]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Eye className="h-5 w-5" />
+                  {detailsDialog.title}
+                </DialogTitle>
+                <DialogDescription>
+                  Lista detalhada de documentos {detailsDialog.type === 'delays' ? 'atrasados' : 
+                                                  detailsDialog.type === 'errors' ? 'com erros' : 
+                                                  'concluídos'} no período selecionado
+                </DialogDescription>
+              </DialogHeader>
+              
+              <ScrollArea className="h-[500px] w-full rounded-md border p-4">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">#</TableHead>
+                      <TableHead>Documento</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Data</TableHead>
+                      {detailsDialog.type === 'delays' && <TableHead>Dias de Atraso</TableHead>}
+                      {detailsDialog.type === 'errors' && <TableHead>Tipo de Erro</TableHead>}
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {documentDetails.map((doc, index) => (
+                      <TableRow key={doc.id}>
+                        <TableCell className="font-medium">{index + 1}</TableCell>
+                        <TableCell className="font-medium">{doc.document_name}</TableCell>
+                        <TableCell>{doc.client}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={doc.status === 'Concluído' ? 'outline' : 
+                                    doc.status === 'Atrasado' ? 'destructive' : 
+                                    'secondary'}
+                            className={doc.status === 'Concluído' ? 'border-green-500 text-green-600' : ''}
+                          >
+                            {doc.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{doc.date}</TableCell>
+                        {detailsDialog.type === 'delays' && (
+                          <TableCell>
+                            <span className="text-red-600 font-medium">{doc.delay_days} dias</span>
+                          </TableCell>
+                        )}
+                        {detailsDialog.type === 'errors' && (
+                          <TableCell>
+                            <span className="text-orange-600">{doc.error_type}</span>
+                          </TableCell>
+                        )}
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm">
+                            Ver Detalhes
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+              
+              <div className="flex justify-between items-center mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Total: {documentDetails.length} documentos
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setDetailsDialog({...detailsDialog, open: false})}>
+                    Fechar
+                  </Button>
+                  <Button>
+                    Exportar Lista
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>
