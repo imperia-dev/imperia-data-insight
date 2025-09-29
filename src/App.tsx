@@ -44,6 +44,7 @@ import BTGIntegration from "./pages/BTGIntegration";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import PasswordReset from "./pages/PasswordReset";
 import Leads from "./pages/Leads";
+import CollaboratorsKPI from "./pages/CollaboratorsKPI";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +105,11 @@ const App = () => (
             <Route path="/productivity" element={
               <ProtectedRouteWithApproval>
                 <Productivity />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/collaborators-kpi" element={
+              <ProtectedRouteWithApproval>
+                <CollaboratorsKPI />
               </ProtectedRouteWithApproval>
             } />
             <Route path="/wallet" element={
