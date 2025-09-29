@@ -35,7 +35,6 @@ export const rolePermissions: Record<Role, string[]> = {
     '/registration-approvals',
     '/pending-approval',
     '/security-dashboard',
-    '/chat',
     '/collaborators-kpi',
     '/leads'
   ],
@@ -80,6 +79,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/wallet',
     '/productivity',
     '/notifications',
+    '/chat',
     '/settings'
   ]
 };
