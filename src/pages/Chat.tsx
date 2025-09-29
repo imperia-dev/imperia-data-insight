@@ -64,18 +64,33 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Fetch channels
+  // Fetch channels where user is a member
   const { data: channels = [] } = useQuery({
-    queryKey: ["chat-channels"],
+    queryKey: ["chat-channels", user?.id],
+    enabled: !!user,
     queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
-        .from("chat_channels")
-        .select("*")
-        .eq("archived", false)
-        .order("created_at");
+        .from("chat_channel_members")
+        .select(`
+          channel:chat_channels(
+            id,
+            name,
+            description,
+            type,
+            icon,
+            archived
+          )
+        `)
+        .eq("user_id", user.id);
       
       if (error) throw error;
-      return data as Channel[];
+      
+      // Filter out archived channels and map to Channel type
+      return (data
+        ?.map(item => item.channel)
+        .filter(channel => channel && !channel.archived) || []) as Channel[];
     },
   });
 
