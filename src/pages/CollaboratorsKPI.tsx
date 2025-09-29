@@ -6,12 +6,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { cn } from "@/lib/utils";
-import { Users, TrendingUp, Target, Award, Activity, AlertTriangle, FileText, CheckCircle2, XCircle, Calendar, Clock, BarChart } from "lucide-react";
+import { Users, TrendingUp, Target, Award, Activity, AlertTriangle, FileText, CheckCircle2, XCircle, Calendar, Clock, BarChart, Filter, CalendarIcon, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Profile {
   id: string;
@@ -26,6 +36,14 @@ interface KPIData {
   documentsCompleted: { count: number; goal: number };
 }
 
+interface FilterOptions {
+  dateRange: DateRange | undefined;
+  departments: string[];
+  documentTypes: string[];
+  status: string[];
+  searchTerm: string;
+}
+
 export default function CollaboratorsKPI() {
   const { user } = useAuth();
   const [userRole, setUserRole] = useState<string>("");
@@ -33,6 +51,13 @@ export default function CollaboratorsKPI() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
   const [selectedCollaborator, setSelectedCollaborator] = useState<string>("all");
   const [collaborators, setCollaborators] = useState<Profile[]>([]);
+  const [filters, setFilters] = useState<FilterOptions>({
+    dateRange: undefined,
+    departments: [],
+    documentTypes: [],
+    status: [],
+    searchTerm: ""
+  });
   const [kpiData, setKpiData] = useState<KPIData>({
     delays: { count: 12, percentage: 4.5, goal: 5 },
     errors: { count: 8, percentage: 3.2, goal: 5 },
@@ -135,6 +160,181 @@ export default function CollaboratorsKPI() {
             </div>
             
             <div className="flex gap-3">
+              {/* Filter Button */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filtros
+                    {(filters.departments.length > 0 || filters.documentTypes.length > 0 || 
+                      filters.status.length > 0 || filters.dateRange) && (
+                      <Badge variant="secondary" className="ml-1">
+                        {filters.departments.length + filters.documentTypes.length + 
+                         filters.status.length + (filters.dateRange ? 1 : 0)}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="w-[400px] sm:w-[540px]">
+                  <SheetHeader>
+                    <SheetTitle>Filtros Personalizados</SheetTitle>
+                    <SheetDescription>
+                      Configure os filtros para análise detalhada dos KPIs
+                    </SheetDescription>
+                  </SheetHeader>
+                  
+                  <div className="mt-6 space-y-6">
+                    {/* Search */}
+                    <div className="space-y-2">
+                      <Label>Buscar</Label>
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          placeholder="Buscar por nome ou documento..." 
+                          className="pl-8"
+                          value={filters.searchTerm}
+                          onChange={(e) => setFilters({...filters, searchTerm: e.target.value})}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Date Range */}
+                    <div className="space-y-2">
+                      <Label>Período Personalizado</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !filters.dateRange && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {filters.dateRange?.from ? (
+                              filters.dateRange.to ? (
+                                <>
+                                  {format(filters.dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
+                                  {format(filters.dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                                </>
+                              ) : (
+                                format(filters.dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                              )
+                            ) : (
+                              <span>Selecione um período</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="range"
+                            selected={filters.dateRange}
+                            onSelect={(range) => setFilters({...filters, dateRange: range})}
+                            locale={ptBR}
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Departments */}
+                    <div className="space-y-2">
+                      <Label>Departamentos</Label>
+                      <div className="space-y-2">
+                        {['Operação', 'Administrativo', 'Financeiro', 'Comercial'].map((dept) => (
+                          <div key={dept} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={dept}
+                              checked={filters.departments.includes(dept)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFilters({...filters, departments: [...filters.departments, dept]});
+                                } else {
+                                  setFilters({...filters, departments: filters.departments.filter(d => d !== dept)});
+                                }
+                              }}
+                            />
+                            <Label htmlFor={dept} className="text-sm font-normal cursor-pointer">
+                              {dept}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Document Types */}
+                    <div className="space-y-2">
+                      <Label>Tipos de Documento</Label>
+                      <div className="space-y-2">
+                        {['Contrato', 'Relatório', 'Proposta', 'Nota Fiscal', 'Outros'].map((type) => (
+                          <div key={type} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={type}
+                              checked={filters.documentTypes.includes(type)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFilters({...filters, documentTypes: [...filters.documentTypes, type]});
+                                } else {
+                                  setFilters({...filters, documentTypes: filters.documentTypes.filter(t => t !== type)});
+                                }
+                              }}
+                            />
+                            <Label htmlFor={type} className="text-sm font-normal cursor-pointer">
+                              {type}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <div className="space-y-2">
+                        {['Concluído', 'Em Andamento', 'Atrasado', 'Cancelado'].map((status) => (
+                          <div key={status} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={status}
+                              checked={filters.status.includes(status)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFilters({...filters, status: [...filters.status, status]});
+                                } else {
+                                  setFilters({...filters, status: filters.status.filter(s => s !== status)});
+                                }
+                              }}
+                            />
+                            <Label htmlFor={status} className="text-sm font-normal cursor-pointer">
+                              {status}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-4">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => setFilters({
+                          dateRange: undefined,
+                          departments: [],
+                          documentTypes: [],
+                          status: [],
+                          searchTerm: ""
+                        })}
+                      >
+                        Limpar Filtros
+                      </Button>
+                      <Button className="flex-1">
+                        Aplicar Filtros
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
               <Select value={selectedCollaborator} onValueChange={setSelectedCollaborator}>
                 <SelectTrigger className="w-[280px]">
                   <SelectValue placeholder="Selecione o colaborador" />
@@ -163,6 +363,7 @@ export default function CollaboratorsKPI() {
                   <SelectItem value="month">Este Mês</SelectItem>
                   <SelectItem value="quarter">Este Trimestre</SelectItem>
                   <SelectItem value="year">Este Ano</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
