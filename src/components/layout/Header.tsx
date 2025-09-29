@@ -17,6 +17,7 @@ import { Logo } from "@/components/layout/Logo";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 
 interface HeaderProps {
   userName: string;
@@ -177,9 +178,13 @@ export function Header({ userName, userRole }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-primary text-white">
-                  <User className="h-4 w-4" />
-                </div>
+                <AnimatedAvatar
+                  fallback={userName}
+                  size="sm"
+                  showStatus
+                  status="online"
+                  animationLevel="normal"
+                />
                 <div className="hidden md:flex flex-col items-start">
                   <span className="text-sm font-semibold">{userName}</span>
                   <span className="text-xs text-muted-foreground">{user?.email}</span>

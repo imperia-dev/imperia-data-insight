@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -529,10 +530,13 @@ export default function Team() {
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${member.full_name}`} />
-                        <AvatarFallback>{getInitials(member.full_name)}</AvatarFallback>
-                      </Avatar>
+                      <AnimatedAvatar
+                        fallback={member.full_name}
+                        size="lg"
+                        showStatus
+                        status={member.approval_status === 'approved' ? 'online' : member.approval_status === 'pending' ? 'busy' : 'offline'}
+                        animationLevel="normal"
+                      />
                       {getStatusBadge(member.approval_status)}
                     </div>
                     
@@ -567,10 +571,13 @@ export default function Team() {
                   <DialogHeader>
                     <DialogTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${selectedMember.full_name}`} />
-                          <AvatarFallback>{getInitials(selectedMember.full_name)}</AvatarFallback>
-                        </Avatar>
+                        <AnimatedAvatar
+                          fallback={selectedMember.full_name}
+                          size="lg"
+                          showStatus
+                          status={selectedMember.approval_status === 'approved' ? 'online' : selectedMember.approval_status === 'pending' ? 'busy' : 'offline'}
+                          animationLevel="subtle"
+                        />
                         <div>
                           <div className="flex items-center gap-2">
                             {selectedMember.full_name}

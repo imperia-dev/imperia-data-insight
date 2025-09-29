@@ -1073,13 +1073,277 @@ export type Database = {
           },
         ]
       }
+      lead_conversions: {
+        Row: {
+          attribution_campaign: string | null
+          attribution_medium: string | null
+          attribution_source: string | null
+          conversion_page: string | null
+          conversion_type: string
+          conversion_value: number | null
+          created_at: string
+          id: string
+          lead_id: string
+          session_id: string
+        }
+        Insert: {
+          attribution_campaign?: string | null
+          attribution_medium?: string | null
+          attribution_source?: string | null
+          conversion_page?: string | null
+          conversion_type: string
+          conversion_value?: number | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          session_id: string
+        }
+        Update: {
+          attribution_campaign?: string | null
+          attribution_medium?: string | null
+          attribution_source?: string | null
+          conversion_page?: string | null
+          conversion_type?: string
+          conversion_value?: number | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_conversions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_events: {
+        Row: {
+          created_at: string
+          element_class: string | null
+          element_id: string | null
+          element_text: string | null
+          event_action: string | null
+          event_category: string | null
+          event_label: string | null
+          event_type: string
+          event_value: number | null
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+          page_url: string | null
+          scroll_depth: number | null
+          session_id: string
+          time_on_page: number | null
+        }
+        Insert: {
+          created_at?: string
+          element_class?: string | null
+          element_id?: string | null
+          element_text?: string | null
+          event_action?: string | null
+          event_category?: string | null
+          event_label?: string | null
+          event_type: string
+          event_value?: number | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          page_url?: string | null
+          scroll_depth?: number | null
+          session_id: string
+          time_on_page?: number | null
+        }
+        Update: {
+          created_at?: string
+          element_class?: string | null
+          element_id?: string | null
+          element_text?: string | null
+          event_action?: string | null
+          event_category?: string | null
+          event_label?: string | null
+          event_type?: string
+          event_value?: number | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          page_url?: string | null
+          scroll_depth?: number | null
+          session_id?: string
+          time_on_page?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_page_views: {
+        Row: {
+          bounce: boolean | null
+          created_at: string
+          exit_intent: boolean | null
+          id: string
+          lead_id: string | null
+          page_path: string | null
+          page_title: string | null
+          page_url: string
+          scroll_depth_percentage: number | null
+          session_id: string
+          time_spent_seconds: number | null
+        }
+        Insert: {
+          bounce?: boolean | null
+          created_at?: string
+          exit_intent?: boolean | null
+          id?: string
+          lead_id?: string | null
+          page_path?: string | null
+          page_title?: string | null
+          page_url: string
+          scroll_depth_percentage?: number | null
+          session_id: string
+          time_spent_seconds?: number | null
+        }
+        Update: {
+          bounce?: boolean | null
+          created_at?: string
+          exit_intent?: boolean | null
+          id?: string
+          lead_id?: string | null
+          page_path?: string | null
+          page_title?: string | null
+          page_url?: string
+          scroll_depth_percentage?: number | null
+          session_id?: string
+          time_spent_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_page_views_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_sessions: {
+        Row: {
+          browser: string | null
+          created_at: string
+          device_type: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          entry_page: string | null
+          entry_utm_campaign: string | null
+          entry_utm_content: string | null
+          entry_utm_medium: string | null
+          entry_utm_source: string | null
+          entry_utm_term: string | null
+          events_count: number | null
+          id: string
+          ip_address: unknown | null
+          language: string | null
+          lead_id: string | null
+          lead_score: number | null
+          os: string | null
+          page_views_count: number | null
+          referrer: string | null
+          screen_resolution: string | null
+          session_id: string
+          started_at: string
+          timezone: string | null
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          entry_page?: string | null
+          entry_utm_campaign?: string | null
+          entry_utm_content?: string | null
+          entry_utm_medium?: string | null
+          entry_utm_source?: string | null
+          entry_utm_term?: string | null
+          events_count?: number | null
+          id?: string
+          ip_address?: unknown | null
+          language?: string | null
+          lead_id?: string | null
+          lead_score?: number | null
+          os?: string | null
+          page_views_count?: number | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          session_id: string
+          started_at?: string
+          timezone?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          entry_page?: string | null
+          entry_utm_campaign?: string | null
+          entry_utm_content?: string | null
+          entry_utm_medium?: string | null
+          entry_utm_source?: string | null
+          entry_utm_term?: string | null
+          events_count?: number | null
+          id?: string
+          ip_address?: unknown | null
+          language?: string | null
+          lead_id?: string | null
+          lead_score?: number | null
+          os?: string | null
+          page_views_count?: number | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          session_id?: string
+          started_at?: string
+          timezone?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
+          attribution_campaign: string | null
+          attribution_medium: string | null
+          attribution_source: string | null
           company: string | null
           created_at: string
+          device_fingerprint: string | null
           email: string
+          first_seen_at: string | null
           id: string
           interest_level: number | null
+          last_seen_at: string | null
+          lead_score: number | null
           meeting_time: string | null
           message: string | null
           metadata: Json | null
@@ -1089,14 +1353,24 @@ export type Database = {
           probability: number | null
           source: string | null
           stage: string | null
+          total_page_views: number | null
+          total_sessions: number | null
+          total_time_spent_seconds: number | null
           updated_at: string
         }
         Insert: {
+          attribution_campaign?: string | null
+          attribution_medium?: string | null
+          attribution_source?: string | null
           company?: string | null
           created_at?: string
+          device_fingerprint?: string | null
           email: string
+          first_seen_at?: string | null
           id?: string
           interest_level?: number | null
+          last_seen_at?: string | null
+          lead_score?: number | null
           meeting_time?: string | null
           message?: string | null
           metadata?: Json | null
@@ -1106,14 +1380,24 @@ export type Database = {
           probability?: number | null
           source?: string | null
           stage?: string | null
+          total_page_views?: number | null
+          total_sessions?: number | null
+          total_time_spent_seconds?: number | null
           updated_at?: string
         }
         Update: {
+          attribution_campaign?: string | null
+          attribution_medium?: string | null
+          attribution_source?: string | null
           company?: string | null
           created_at?: string
+          device_fingerprint?: string | null
           email?: string
+          first_seen_at?: string | null
           id?: string
           interest_level?: number | null
+          last_seen_at?: string | null
+          lead_score?: number | null
           meeting_time?: string | null
           message?: string | null
           metadata?: Json | null
@@ -1123,6 +1407,9 @@ export type Database = {
           probability?: number | null
           source?: string | null
           stage?: string | null
+          total_page_views?: number | null
+          total_sessions?: number | null
+          total_time_spent_seconds?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -1649,6 +1936,10 @@ export type Database = {
           approval_status: Database["public"]["Enums"]["approval_status"] | null
           approved_at: string | null
           approved_by: string | null
+          avatar_animation_preference: Json | null
+          avatar_color: string | null
+          avatar_style: string | null
+          avatar_url: string | null
           created_at: string | null
           daily_rate: number | null
           email: string
@@ -1676,6 +1967,10 @@ export type Database = {
             | null
           approved_at?: string | null
           approved_by?: string | null
+          avatar_animation_preference?: Json | null
+          avatar_color?: string | null
+          avatar_style?: string | null
+          avatar_url?: string | null
           created_at?: string | null
           daily_rate?: number | null
           email: string
@@ -1703,6 +1998,10 @@ export type Database = {
             | null
           approved_at?: string | null
           approved_by?: string | null
+          avatar_animation_preference?: Json | null
+          avatar_color?: string | null
+          avatar_style?: string | null
+          avatar_url?: string | null
           created_at?: string | null
           daily_rate?: number | null
           email?: string
@@ -2453,6 +2752,10 @@ export type Database = {
       approve_user: {
         Args: { p_notes?: string; p_user_id: string }
         Returns: undefined
+      }
+      calculate_lead_score: {
+        Args: { p_lead_id: string }
+        Returns: number
       }
       check_sensitive_data_rate_limit: {
         Args: Record<PropertyKey, never>

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, User, Bell, AlertCircle, CheckCircle, Key, Download, Copy } from "lucide-react";
+import { Shield, User, Bell, AlertCircle, CheckCircle, Key, Download, Copy, Palette } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMFA } from "@/hooks/useMFA";
 import { MFAEnrollment } from "@/components/mfa/MFAEnrollment";
 import { useToast } from "@/hooks/use-toast";
+import { AvatarSettings } from "@/components/settings/AvatarSettings";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function Settings() {
   const [showMFAEnrollment, setShowMFAEnrollment] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showBackupCodes, setShowBackupCodes] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
   
   const { 
     mfaEnabled, 
@@ -34,22 +36,23 @@ export default function Settings() {
     cleanupUnverifiedFactors 
   } = useMFA();
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, role')
-          .eq('id', user.id)
-          .single();
+  const fetchUserProfile = async () => {
+    if (user) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, role, avatar_url, avatar_style, avatar_color, avatar_animation_preference')
+        .eq('id', user.id)
+        .single();
 
-        if (data && !error) {
-          setUserName(data.full_name);
-          setUserRole(data.role);
-        }
+      if (data && !error) {
+        setUserName(data.full_name);
+        setUserRole(data.role);
+        setUserProfile(data);
       }
-    };
+    }
+  };
 
+  useEffect(() => {
     fetchUserProfile();
   }, [user]);
 
@@ -135,10 +138,14 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
           <h1 className="text-3xl font-bold mb-6 text-foreground">Configurações</h1>
           
           <Tabs defaultValue="profile" className="max-w-4xl mx-auto">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="profile">
                 <User className="h-4 w-4 mr-2" />
                 Perfil
+              </TabsTrigger>
+              <TabsTrigger value="avatar">
+                <Palette className="h-4 w-4 mr-2" />
+                Avatar
               </TabsTrigger>
               <TabsTrigger value="security">
                 <Shield className="h-4 w-4 mr-2" />
@@ -175,6 +182,15 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+            
+            <TabsContent value="avatar">
+              {userProfile && (
+                <AvatarSettings 
+                  userProfile={userProfile} 
+                  onUpdate={fetchUserProfile}
+                />
+              )}
             </TabsContent>
             
             <TabsContent value="security">
