@@ -19,9 +19,29 @@ import { cn } from "@/lib/utils";
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [userRole, setUserRole] = useState<string>("");
   const { toast } = useToast();
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
+
+  // Fetch user role from profiles
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setUserRole(data.role);
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
 
   // Fetch leads from database
   const { data: leads, isLoading, refetch } = useQuery({
@@ -88,8 +108,8 @@ export default function Leads() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header userName={user?.user_metadata?.name || ""} userRole={user?.user_metadata?.user_role || "viewer"} />
-      <Sidebar userRole={user?.user_metadata?.user_role || "viewer"} />
+      <Header userName={user?.user_metadata?.name || ""} userRole={userRole} />
+      <Sidebar userRole={userRole} />
       
       <main className={cn(mainContainerClass, "pt-16")}>
         <div className="container mx-auto px-4 py-8 space-y-6">
