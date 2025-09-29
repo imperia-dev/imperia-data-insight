@@ -36,6 +36,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/pending-approval',
     '/security-dashboard',
     '/collaborators-kpi',
+    '/chat',
     '/leads'
   ],
   master: [
