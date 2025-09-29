@@ -39,6 +39,7 @@ import {
   Shield,
   FileBarChart,
   UserPlus,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -290,6 +291,12 @@ const navigationGroups: NavigationGroup[] = [
 
 // Itens que ficam fora dos grupos (sempre visíveis)
 const standaloneItems: NavigationItem[] = [
+  {
+    title: "Chat",
+    icon: MessageSquare,
+    href: "/chat",
+    roles: ["owner", "master", "admin", "operation"],
+  },
   {
     title: "Segurança",
     icon: Shield,

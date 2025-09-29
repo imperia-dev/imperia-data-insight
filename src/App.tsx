@@ -45,6 +45,7 @@ import SecurityDashboard from "./pages/SecurityDashboard";
 import PasswordReset from "./pages/PasswordReset";
 import Leads from "./pages/Leads";
 import CollaboratorsKPI from "./pages/CollaboratorsKPI";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -220,6 +221,11 @@ const App = () => (
             <Route path="/leads" element={
               <ProtectedRouteWithApproval>
                 <Leads />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/chat" element={
+              <ProtectedRouteWithApproval>
+                <Chat />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
