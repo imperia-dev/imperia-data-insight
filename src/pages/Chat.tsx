@@ -2,19 +2,18 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Hash, Plus, Users, Send, Smile } from "lucide-react";
+import { Hash, Plus, Users, Send, Smile, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { ManageChannelMembersDialog } from "@/components/chat/ManageChannelMembersDialog";
-import { CreateChannelDialog } from "@/components/chat/CreateChannelDialog";
-import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { ChannelMembersModal } from "@/components/chat/ChannelMembersModal";
 
 interface Channel {
   id: string;
@@ -61,6 +60,7 @@ export default function Chat() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -305,7 +305,16 @@ export default function Chat() {
               </button>
             ))}
           </div>
-          {userRole === 'owner' && <CreateChannelDialog />}
+          {userRole === 'owner' && (
+            <Button
+              variant="ghost"
+              className="w-full mt-4 justify-start"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Criar Canal
+            </Button>
+          )}
         </div>
       </div>
 
@@ -322,12 +331,20 @@ export default function Chat() {
               </span>
             )}
           </div>
-          {userRole === 'owner' && selectedChannel && (
-            <ManageChannelMembersDialog
-              channelId={selectedChannel}
-              channelName={currentChannel?.name || ""}
-            />
-          )}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon">
+              <Users className="h-4 w-4" />
+            </Button>
+            {userRole === 'owner' && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setMembersModalOpen(true)}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Messages Area */}
@@ -449,6 +466,13 @@ export default function Chat() {
           </div>
         </div>
       </div>
+
+      {/* Channel Members Modal */}
+      <ChannelMembersModal
+        isOpen={membersModalOpen}
+        onClose={() => setMembersModalOpen(false)}
+        channel={currentChannel}
+      />
     </div>
   );
 }
