@@ -46,7 +46,6 @@ export const rolePermissions: Record<Role, string[]> = {
     '/orders',
     '/delivered-orders',
     '/documents',
-    '/team',
     '/productivity',
     '/wallet',
     '/calendar',
@@ -58,13 +57,13 @@ export const rolePermissions: Record<Role, string[]> = {
     '/notifications'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
+    // Removed: '/team'
   ],
   admin: [
     '/',
     '/orders',
     '/delivered-orders',
     '/documents',
-    '/team',
     '/productivity',
     '/reports',
     '/calendar',
@@ -72,6 +71,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/ai-analytics',
     '/settings',
     '/notifications'
+    // Removed: '/team'
   ],
   operation: [
     '/my-orders',

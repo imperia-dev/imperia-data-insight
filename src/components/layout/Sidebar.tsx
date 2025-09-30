@@ -246,7 +246,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Equipe",
         icon: Users,
         href: "/team",
-        roles: ["owner", "master", "admin"],
+        roles: ["owner"],
       },
       {
         title: "Carteira",
