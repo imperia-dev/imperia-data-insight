@@ -70,6 +70,8 @@ interface TeamMember {
   mfa_enabled: boolean;
   last_access?: string;
   failed_access_attempts?: number;
+  avatar_url?: string | null;
+  avatar_style?: string;
 }
 
 interface ProductivityStats {
@@ -531,11 +533,13 @@ export default function Team() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <AnimatedAvatar
+                        src={member.avatar_url}
                         fallback={member.full_name}
                         size="lg"
                         showStatus
                         status={member.approval_status === 'approved' ? 'online' : member.approval_status === 'pending' ? 'busy' : 'offline'}
                         animationLevel="normal"
+                        style={member.avatar_url ? "photo" : (member.avatar_style as any || "initials")}
                       />
                       {getStatusBadge(member.approval_status)}
                     </div>
@@ -572,11 +576,13 @@ export default function Team() {
                     <DialogTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <AnimatedAvatar
+                          src={selectedMember.avatar_url}
                           fallback={selectedMember.full_name}
                           size="lg"
                           showStatus
                           status={selectedMember.approval_status === 'approved' ? 'online' : selectedMember.approval_status === 'pending' ? 'busy' : 'offline'}
                           animationLevel="subtle"
+                          style={selectedMember.avatar_url ? "photo" : (selectedMember.avatar_style as any || "initials")}
                         />
                         <div>
                           <div className="flex items-center gap-2">
