@@ -271,19 +271,19 @@ const navigationGroups: NavigationGroup[] = [
   {
     title: "Relatórios & Analytics",
     icon: FileBarChart,
-    roles: ["owner", "master", "admin"],
+    roles: ["owner"],
     items: [
       {
         title: "Relatórios",
         icon: BarChart3,
         href: "/reports",
-        roles: ["owner", "master", "admin"],
+        roles: ["owner"],
       },
       {
         title: "AI Analytics",
         icon: Sparkles,
         href: "/ai-analytics",
-        roles: ["owner", "master"],
+        roles: ["owner"],
       },
     ],
   },
