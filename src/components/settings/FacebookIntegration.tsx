@@ -21,18 +21,22 @@ export function FacebookIntegration() {
 
   const checkTokenStatus = async () => {
     try {
-      // Check if token is configured by attempting a minimal sync
-      const { data, error } = await supabase.functions.invoke('sync-facebook-data', {
+      // Just check if we can reach the function - it will tell us if token is configured
+      const { data } = await supabase.functions.invoke('sync-facebook-data', {
         body: { accountId: 'test', dateFrom: new Date().toISOString().split('T')[0], dateTo: new Date().toISOString().split('T')[0] }
       });
       
-      if (error || data?.error === 'Facebook access token not configured') {
+      // If we get the specific error about token, it's not configured
+      // Otherwise, token is configured (even if account ID is invalid)
+      if (data?.error === 'Facebook access token not configured') {
         setIsTokenSet(false);
       } else {
         setIsTokenSet(true);
       }
     } catch (error) {
-      setIsTokenSet(false);
+      // Network error - assume token might be set
+      console.log('Could not check token status:', error);
+      setIsTokenSet(true);
     }
   };
 

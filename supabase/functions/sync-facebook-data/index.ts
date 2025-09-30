@@ -17,6 +17,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const facebookToken = Deno.env.get('FACEBOOK_ACCESS_TOKEN');
 
+    console.log('Starting Facebook sync - Token configured:', !!facebookToken);
+
     if (!facebookToken) {
       console.log('Facebook access token not configured');
       return new Response(
@@ -36,9 +38,10 @@ serve(async (req) => {
     // Get request body
     const { accountId, dateFrom, dateTo } = await req.json();
 
-    if (!accountId) {
+    if (!accountId || accountId === 'test') {
+      console.log('Invalid or test account ID provided:', accountId);
       return new Response(
-        JSON.stringify({ error: 'Account ID is required' }),
+        JSON.stringify({ error: 'Please provide a valid Facebook Account ID (e.g., act_123456789)' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
