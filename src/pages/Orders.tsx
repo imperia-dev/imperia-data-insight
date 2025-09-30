@@ -103,6 +103,16 @@ export function Orders() {
     deadline: "",
     attribution_date: "",
   });
+  
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState({
+    order_number: "",
+    document_count: "",
+    deadline: "",
+    attribution_date: "",
+    delivered_at: "",
+  });
 
   // Fetch user profile to get role
   const { data: profile } = useQuery({
@@ -372,6 +382,34 @@ export function Orders() {
     },
   });
 
+  // Update order mutation
+  const updateOrderMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: any }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update(data.updates)
+        .eq("id", data.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast({
+        title: "Pedido atualizado",
+        description: "O pedido foi atualizado com sucesso.",
+      });
+      setIsEditDialogOpen(false);
+      setEditingOrder(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar pedido",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete order mutation
   const deleteOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
@@ -414,6 +452,42 @@ export function Orders() {
       });
     },
   });
+
+  const handleEditClick = (order: any) => {
+    setEditingOrder(order);
+    setEditFormData({
+      order_number: order.order_number,
+      document_count: order.document_count.toString(),
+      deadline: order.deadline ? format(new Date(order.deadline), "yyyy-MM-dd'T'HH:mm") : "",
+      attribution_date: order.attribution_date ? format(new Date(order.attribution_date), "yyyy-MM-dd'T'HH:mm") : "",
+      delivered_at: order.delivered_at ? format(new Date(order.delivered_at), "yyyy-MM-dd'T'HH:mm") : "",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const updates: any = {
+      order_number: editFormData.order_number,
+      document_count: parseInt(editFormData.document_count),
+      deadline: new Date(editFormData.deadline).toISOString(),
+    };
+    
+    if (editFormData.attribution_date) {
+      updates.attribution_date = new Date(editFormData.attribution_date).toISOString();
+    }
+    
+    if (editFormData.delivered_at) {
+      updates.delivered_at = new Date(editFormData.delivered_at).toISOString();
+      updates.status_order = "delivered";
+    }
+    
+    updateOrderMutation.mutate({
+      id: editingOrder.id,
+      updates,
+    });
+  };
 
   const handleDeleteClick = async (order: any) => {
     setOrderToDelete(order);
@@ -1043,6 +1117,17 @@ export function Orders() {
                                 {order.is_urgent ? "Remover Urgência" : "Marcar Urgente"}
                               </Button>
                             )}
+                            {(isMaster || isOwner || isAdmin) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditClick(order)}
+                                disabled={updateOrderMutation.isPending}
+                              >
+                                <Edit className="h-4 w-4" />
+                                Editar
+                              </Button>
+                            )}
                             {(isMaster || isOwner) && (
                               <Button
                                 size="sm"
@@ -1201,6 +1286,98 @@ export function Orders() {
                   {toggleUrgentMutation.isPending ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Order Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Editar Pedido</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-order-number">Número do Pedido *</Label>
+                  <Input
+                    id="edit-order-number"
+                    value={editFormData.order_number}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, order_number: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-document-count">Quantidade de Documentos *</Label>
+                  <Input
+                    id="edit-document-count"
+                    type="number"
+                    min="1"
+                    value={editFormData.document_count}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, document_count: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-attribution-date">Data de Atribuição</Label>
+                  <Input
+                    id="edit-attribution-date"
+                    type="datetime-local"
+                    value={editFormData.attribution_date}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, attribution_date: e.target.value })
+                    }
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-deadline">Prazo *</Label>
+                  <Input
+                    id="edit-deadline"
+                    type="datetime-local"
+                    value={editFormData.deadline}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, deadline: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-delivered-at">Data de Entrega</Label>
+                  <Input
+                    id="edit-delivered-at"
+                    type="datetime-local"
+                    value={editFormData.delivered_at}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, delivered_at: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Preencher a data de entrega marcará o pedido como entregue
+                  </p>
+                </div>
+                
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditDialogOpen(false);
+                      setEditingOrder(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={updateOrderMutation.isPending}>
+                    {updateOrderMutation.isPending ? "Salvando..." : "Salvar"}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
 
