@@ -164,7 +164,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "KPIs dos Colaboradores",
         icon: BarChart3,
         href: "/collaborators-kpi",
-        roles: ["owner", "master", "admin"],
+        roles: ["owner"],
       },
       {
         title: "Controle de Demanda",
