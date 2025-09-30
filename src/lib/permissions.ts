@@ -42,6 +42,7 @@ export const rolePermissions: Record<Role, string[]> = {
   master: [
     '/',
     '/dashboard-operacao',
+    '/my-orders',
     '/orders',
     '/delivered-orders',
     '/documents',
