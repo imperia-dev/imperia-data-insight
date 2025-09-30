@@ -204,9 +204,6 @@ export function Header({ userName, userRole }: HeaderProps) {
               <DropdownMenuItem onClick={() => navigate('/settings')}>
                 Configurações
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.open('https://docs.lovable.dev/', '_blank')}>
-                Ajuda
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
