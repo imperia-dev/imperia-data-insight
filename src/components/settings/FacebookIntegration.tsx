@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Facebook, Key, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Facebook, Key, CheckCircle, AlertCircle, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -99,6 +99,11 @@ export function FacebookIntegration() {
     window.open(`https://supabase.com/dashboard/project/agttqqaampznczkyfvkf/settings/functions`, '_blank');
   };
 
+  const handleDisconnectAccount = async () => {
+    setAccountId("");
+    toast.success("Facebook account disconnected successfully");
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -183,24 +188,50 @@ export function FacebookIntegration() {
           </div>
         )}
 
-        {/* Sync Button */}
-        <Button 
-          onClick={handleSyncData} 
-          disabled={!isTokenSet || isSyncing || !accountId}
-          className="w-full"
-        >
-          {isSyncing ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Syncing...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Sync Facebook Data
-            </>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleSyncData} 
+            disabled={!isTokenSet || isSyncing || !accountId}
+            className="flex-1"
+          >
+            {isSyncing ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Sync Facebook Data
+              </>
+            )}
+          </Button>
+
+          {accountId && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Disconnect Facebook Account</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to disconnect the Facebook account? You'll need to enter the account ID again to sync data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDisconnectAccount}>
+                    Disconnect
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
-        </Button>
+        </div>
 
         <p className="text-xs text-muted-foreground text-center">
           Data will be synced for the last 30 days. You can set up automatic syncing using a cron job.
