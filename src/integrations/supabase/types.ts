@@ -1091,6 +1091,287 @@ export type Database = {
           },
         ]
       }
+      facebook_accounts: {
+        Row: {
+          account_id: string
+          account_name: string
+          created_at: string | null
+          currency: string | null
+          id: string
+          timezone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id: string
+          account_name: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string
+          account_name?: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      facebook_ad_sets: {
+        Row: {
+          adset_id: string
+          adset_name: string
+          bid_amount: number | null
+          campaign_id: string | null
+          created_at: string | null
+          daily_budget: number | null
+          id: string
+          lifetime_budget: number | null
+          status: string
+          targeting: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          adset_id: string
+          adset_name: string
+          bid_amount?: number | null
+          campaign_id?: string | null
+          created_at?: string | null
+          daily_budget?: number | null
+          id?: string
+          lifetime_budget?: number | null
+          status: string
+          targeting?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          adset_id?: string
+          adset_name?: string
+          bid_amount?: number | null
+          campaign_id?: string | null
+          created_at?: string | null
+          daily_budget?: number | null
+          id?: string
+          lifetime_budget?: number | null
+          status?: string
+          targeting?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_ad_sets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facebook_ads: {
+        Row: {
+          ad_id: string
+          ad_name: string
+          adset_id: string | null
+          created_at: string | null
+          creative: Json | null
+          id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          ad_id: string
+          ad_name: string
+          adset_id?: string | null
+          created_at?: string | null
+          creative?: Json | null
+          id?: string
+          status: string
+          updated_at?: string | null
+        }
+        Update: {
+          ad_id?: string
+          ad_name?: string
+          adset_id?: string | null
+          created_at?: string | null
+          creative?: Json | null
+          id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_ads_adset_id_fkey"
+            columns: ["adset_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_ad_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facebook_campaigns: {
+        Row: {
+          account_id: string | null
+          budget_spent: number | null
+          budget_total: number | null
+          campaign_id: string
+          campaign_name: string
+          created_at: string | null
+          created_time: string | null
+          id: string
+          objective: string | null
+          start_time: string | null
+          status: string
+          stop_time: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          budget_spent?: number | null
+          budget_total?: number | null
+          campaign_id: string
+          campaign_name: string
+          created_at?: string | null
+          created_time?: string | null
+          id?: string
+          objective?: string | null
+          start_time?: string | null
+          status: string
+          stop_time?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          budget_spent?: number | null
+          budget_total?: number | null
+          campaign_id?: string
+          campaign_name?: string
+          created_at?: string | null
+          created_time?: string | null
+          id?: string
+          objective?: string | null
+          start_time?: string | null
+          status?: string
+          stop_time?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_campaigns_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facebook_metrics: {
+        Row: {
+          account_id: string | null
+          ad_id: string | null
+          adset_id: string | null
+          campaign_id: string | null
+          clicks: number | null
+          conversion_value: number | null
+          conversions: number | null
+          cost_per_conversion: number | null
+          cpc: number | null
+          cpm: number | null
+          created_at: string | null
+          ctr: number | null
+          date: string
+          engagement: number | null
+          frequency: number | null
+          id: string
+          impressions: number | null
+          reach: number | null
+          roas: number | null
+          spend: number | null
+          updated_at: string | null
+          video_views: number | null
+        }
+        Insert: {
+          account_id?: string | null
+          ad_id?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_value?: number | null
+          conversions?: number | null
+          cost_per_conversion?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date: string
+          engagement?: number | null
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          reach?: number | null
+          roas?: number | null
+          spend?: number | null
+          updated_at?: string | null
+          video_views?: number | null
+        }
+        Update: {
+          account_id?: string | null
+          ad_id?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_value?: number | null
+          conversions?: number | null
+          cost_per_conversion?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date?: string
+          engagement?: number | null
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          reach?: number | null
+          roas?: number | null
+          spend?: number | null
+          updated_at?: string | null
+          video_views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_metrics_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_metrics_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_ads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_metrics_adset_id_fkey"
+            columns: ["adset_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_ad_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_metrics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_entries: {
         Row: {
           accounting_method: string | null
