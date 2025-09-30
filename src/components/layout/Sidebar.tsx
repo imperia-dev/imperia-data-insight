@@ -134,7 +134,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Meus Pedidos",
         icon: Package,
         href: "/my-orders",
-        roles: ["owner", "operation"],
+        roles: ["owner", "master", "operation"],
       },
       {
         title: "Pedidos",
