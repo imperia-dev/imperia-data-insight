@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, User, Bell, AlertCircle, CheckCircle, Key, Download, Copy, Palette } from "lucide-react";
+import { Shield, User, Bell, AlertCircle, CheckCircle, Key, Download, Copy, Palette, Facebook } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ import { useMFA } from "@/hooks/useMFA";
 import { MFAEnrollment } from "@/components/mfa/MFAEnrollment";
 import { useToast } from "@/hooks/use-toast";
 import { AvatarSettings } from "@/components/settings/AvatarSettings";
+import { FacebookIntegration } from "@/components/settings/FacebookIntegration";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -138,7 +139,7 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
           <h1 className="text-3xl font-bold mb-6 text-foreground">Configurações</h1>
           
           <Tabs defaultValue="profile" className="max-w-4xl mx-auto">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="profile">
                 <User className="h-4 w-4 mr-2" />
                 Perfil
@@ -150,6 +151,10 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
               <TabsTrigger value="security">
                 <Shield className="h-4 w-4 mr-2" />
                 Segurança
+              </TabsTrigger>
+              <TabsTrigger value="integrations">
+                <Facebook className="h-4 w-4 mr-2" />
+                Integrações
               </TabsTrigger>
               <TabsTrigger value="preferences">
                 <Bell className="h-4 w-4 mr-2" />
@@ -305,6 +310,30 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+            
+            <TabsContent value="integrations">
+              {userRole === 'owner' && (
+                <FacebookIntegration />
+              )}
+              {userRole !== 'owner' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Integrações</CardTitle>
+                    <CardDescription>
+                      Configure integrações com serviços externos
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Apenas administradores podem configurar integrações.
+                      </AlertDescription>
+                    </Alert>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
             
             <TabsContent value="preferences">

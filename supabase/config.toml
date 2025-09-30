@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.reset-password]
 verify_jwt = false
+
+[functions.sync-facebook-data]
+verify_jwt = true
