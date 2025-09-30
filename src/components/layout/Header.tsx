@@ -18,6 +18,8 @@ import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { AnimatedAvatar } from "@/components/ui/animated-avatar";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface HeaderProps {
   userName: string;
@@ -28,6 +30,27 @@ export function Header({ userName, userRole }: HeaderProps) {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, getTimeAgo } = useNotifications();
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [avatarStyle, setAvatarStyle] = useState<"initials" | "photo" | "generated" | "3d-robot" | "3d-character" | "3d-abstract">("initials");
+  
+  useEffect(() => {
+    const fetchUserAvatar = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('avatar_url, avatar_style')
+          .eq('id', user.id)
+          .single();
+        
+        if (data && !error) {
+          setUserAvatar(data.avatar_url);
+          setAvatarStyle((data.avatar_style || "initials") as "initials" | "photo" | "generated" | "3d-robot" | "3d-character" | "3d-abstract");
+        }
+      }
+    };
+    
+    fetchUserAvatar();
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut();
@@ -179,11 +202,13 @@ export function Header({ userName, userRole }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-3">
                 <AnimatedAvatar
+                  src={userAvatar}
                   fallback={userName}
                   size="sm"
                   showStatus
                   status="online"
                   animationLevel="normal"
+                  style={userAvatar ? "photo" : avatarStyle}
                 />
                 <div className="hidden md:flex flex-col items-start">
                   <span className="text-sm font-semibold">{userName}</span>
