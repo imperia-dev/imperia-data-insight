@@ -198,9 +198,15 @@ export function Header({ userName, userRole }: HeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Perfil</DropdownMenuItem>
-              <DropdownMenuItem>Configurações</DropdownMenuItem>
-              <DropdownMenuItem>Ajuda</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                Perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                Configurações
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.open('https://docs.lovable.dev/', '_blank')}>
+                Ajuda
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
