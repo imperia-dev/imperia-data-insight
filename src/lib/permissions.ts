@@ -48,7 +48,6 @@ export const rolePermissions: Record<Role, string[]> = {
     '/team',
     '/productivity',
     '/wallet',
-    '/reports',
     '/calendar',
     '/timesheet',
     '/ai-analytics',
