@@ -52,7 +52,7 @@ serve(async (req) => {
     console.log(`Syncing Facebook data for account ${accountId} from ${dateFrom} to ${dateTo}`);
 
     // Fetch account data
-    const accountUrl = `https://graph.facebook.com/v18.0/${accountId}?fields=name,currency,timezone&access_token=${facebookToken}`;
+    const accountUrl = `https://graph.facebook.com/v18.0/${accountId}?fields=name,currency&access_token=${facebookToken}`;
     const accountResponse = await fetch(accountUrl);
     const accountData = await accountResponse.json();
 
@@ -67,7 +67,7 @@ serve(async (req) => {
         account_id: accountId,
         account_name: accountData.name,
         currency: accountData.currency,
-        timezone: accountData.timezone
+        timezone: null // timezone field removed from API request
       }, {
         onConflict: 'account_id'
       });
