@@ -51,7 +51,14 @@ const TranslationOrders = () => {
   const [totalOrders, setTotalOrders] = useState(0);
   const itemsPerPage = 20;
 
-  // Filter states
+  // Temporary filter states (for user input)
+  const [tempSearchTerm, setTempSearchTerm] = useState("");
+  const [tempStatusFilter, setTempStatusFilter] = useState("all");
+  const [tempPaymentStatusFilter, setTempPaymentStatusFilter] = useState("all");
+  const [tempDateFilter, setTempDateFilter] = useState("");
+  const [tempReviewerFilter, setTempReviewerFilter] = useState("");
+
+  // Applied filter states (for actual filtering)
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
@@ -147,6 +154,7 @@ const TranslationOrders = () => {
     }
   };
 
+  // Fetch orders when filters are applied or page changes
   useEffect(() => {
     fetchOrders();
   }, [currentPage, searchTerm, statusFilter, paymentStatusFilter, dateFilter, reviewerFilter]);
@@ -176,6 +184,32 @@ const TranslationOrders = () => {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchOrders();
+  };
+
+  const handleSearch = () => {
+    // Apply temporary filters to actual filters
+    setSearchTerm(tempSearchTerm);
+    setStatusFilter(tempStatusFilter);
+    setPaymentStatusFilter(tempPaymentStatusFilter);
+    setDateFilter(tempDateFilter);
+    setReviewerFilter(tempReviewerFilter);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleClearFilters = () => {
+    // Clear both temporary and applied filters
+    setTempSearchTerm("");
+    setTempStatusFilter("all");
+    setTempPaymentStatusFilter("all");
+    setTempDateFilter("");
+    setTempReviewerFilter("");
+    
+    setSearchTerm("");
+    setStatusFilter("all");
+    setPaymentStatusFilter("all");
+    setDateFilter("");
+    setReviewerFilter("");
+    setCurrentPage(1);
   };
 
   const exportToExcel = () => {
@@ -288,8 +322,8 @@ const TranslationOrders = () => {
                 <Input
                   id="search"
                   placeholder="ID, Revisor, Email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={tempSearchTerm}
+                  onChange={(e) => setTempSearchTerm(e.target.value)}
                   className="pl-8"
                 />
               </div>
@@ -297,7 +331,7 @@ const TranslationOrders = () => {
 
             <div className="space-y-2">
               <Label htmlFor="status">Status do Pedido</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={tempStatusFilter} onValueChange={setTempStatusFilter}>
                 <SelectTrigger id="status">
                   <SelectValue />
                 </SelectTrigger>
@@ -313,7 +347,7 @@ const TranslationOrders = () => {
 
             <div className="space-y-2">
               <Label htmlFor="payment">Status Pagamento</Label>
-              <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+              <Select value={tempPaymentStatusFilter} onValueChange={setTempPaymentStatusFilter}>
                 <SelectTrigger id="payment">
                   <SelectValue />
                 </SelectTrigger>
@@ -332,8 +366,8 @@ const TranslationOrders = () => {
               <Input
                 id="date"
                 type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
+                value={tempDateFilter}
+                onChange={(e) => setTempDateFilter(e.target.value)}
               />
             </div>
 
@@ -342,14 +376,21 @@ const TranslationOrders = () => {
               <Input
                 id="reviewer"
                 placeholder="Nome do revisor"
-                value={reviewerFilter}
-                onChange={(e) => setReviewerFilter(e.target.value)}
+                value={tempReviewerFilter}
+                onChange={(e) => setTempReviewerFilter(e.target.value)}
               />
             </div>
           </div>
 
           <div className="flex gap-2 mt-4">
-            <Button onClick={handleRefresh} disabled={refreshing}>
+            <Button onClick={handleSearch} variant="default">
+              <Search className="h-4 w-4 mr-2" />
+              Buscar
+            </Button>
+            <Button onClick={handleClearFilters} variant="outline">
+              Limpar Filtros
+            </Button>
+            <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
