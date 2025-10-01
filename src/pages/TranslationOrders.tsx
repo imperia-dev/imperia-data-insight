@@ -12,7 +12,7 @@ import { usePageLayout } from "@/hooks/usePageLayout";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw } from "lucide-react";
+import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown } from "lucide-react";
 import * as XLSX from 'xlsx';
 import {
   Pagination,
@@ -57,6 +57,8 @@ const TranslationOrders = () => {
   const [tempPaymentStatusFilter, setTempPaymentStatusFilter] = useState("all");
   const [tempDateFilter, setTempDateFilter] = useState("");
   const [tempReviewerFilter, setTempReviewerFilter] = useState("");
+  const [tempSortBy, setTempSortBy] = useState("pedido_data");
+  const [tempSortOrder, setTempSortOrder] = useState("desc");
 
   // Applied filter states (for actual filtering)
   const [searchTerm, setSearchTerm] = useState("");
@@ -64,6 +66,8 @@ const TranslationOrders = () => {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
   const [reviewerFilter, setReviewerFilter] = useState("");
+  const [sortBy, setSortBy] = useState("pedido_data");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   // Metrics states
   const [metrics, setMetrics] = useState({
@@ -112,7 +116,7 @@ const TranslationOrders = () => {
       const to = from + itemsPerPage - 1;
 
       const { data, error, count } = await query
-        .order('pedido_data', { ascending: false })
+        .order(sortBy, { ascending: sortOrder === 'asc' })
         .range(from, to);
 
       if (error) throw error;
@@ -157,7 +161,7 @@ const TranslationOrders = () => {
   // Fetch orders when filters are applied or page changes
   useEffect(() => {
     fetchOrders();
-  }, [currentPage, searchTerm, statusFilter, paymentStatusFilter, dateFilter, reviewerFilter]);
+  }, [currentPage, searchTerm, statusFilter, paymentStatusFilter, dateFilter, reviewerFilter, sortBy, sortOrder]);
 
   // Set up real-time subscription
   useEffect(() => {
@@ -193,6 +197,8 @@ const TranslationOrders = () => {
     setPaymentStatusFilter(tempPaymentStatusFilter);
     setDateFilter(tempDateFilter);
     setReviewerFilter(tempReviewerFilter);
+    setSortBy(tempSortBy);
+    setSortOrder(tempSortOrder);
     setCurrentPage(1); // Reset to first page when searching
   };
 
@@ -203,12 +209,16 @@ const TranslationOrders = () => {
     setTempPaymentStatusFilter("all");
     setTempDateFilter("");
     setTempReviewerFilter("");
+    setTempSortBy("pedido_data");
+    setTempSortOrder("desc");
     
     setSearchTerm("");
     setStatusFilter("all");
     setPaymentStatusFilter("all");
     setDateFilter("");
     setReviewerFilter("");
+    setSortBy("pedido_data");
+    setSortOrder("desc");
     setCurrentPage(1);
   };
 
@@ -314,7 +324,7 @@ const TranslationOrders = () => {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Buscar</Label>
               <div className="relative">
@@ -379,6 +389,39 @@ const TranslationOrders = () => {
                 value={tempReviewerFilter}
                 onChange={(e) => setTempReviewerFilter(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sort">Ordenar por</Label>
+              <Select 
+                value={`${tempSortBy}:${tempSortOrder}`} 
+                onValueChange={(value) => {
+                  const [field, order] = value.split(':');
+                  setTempSortBy(field);
+                  setTempSortOrder(order);
+                }}
+              >
+                <SelectTrigger id="sort">
+                  <SelectValue />
+                  <ArrowUpDown className="h-4 w-4 ml-2" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pedido_data:desc">Data (Mais recente)</SelectItem>
+                  <SelectItem value="pedido_data:asc">Data (Mais antiga)</SelectItem>
+                  <SelectItem value="valor_pedido:desc">Valor Pedido (Maior)</SelectItem>
+                  <SelectItem value="valor_pedido:asc">Valor Pedido (Menor)</SelectItem>
+                  <SelectItem value="valor_pago:desc">Valor Pago (Maior)</SelectItem>
+                  <SelectItem value="valor_pago:asc">Valor Pago (Menor)</SelectItem>
+                  <SelectItem value="pedido_id:asc">ID Pedido (A-Z)</SelectItem>
+                  <SelectItem value="pedido_id:desc">ID Pedido (Z-A)</SelectItem>
+                  <SelectItem value="review_name:asc">Revisor (A-Z)</SelectItem>
+                  <SelectItem value="review_name:desc">Revisor (Z-A)</SelectItem>
+                  <SelectItem value="quantidade_documentos:desc">Documentos (Maior)</SelectItem>
+                  <SelectItem value="quantidade_documentos:asc">Documentos (Menor)</SelectItem>
+                  <SelectItem value="pedido_status:asc">Status (A-Z)</SelectItem>
+                  <SelectItem value="pedido_status:desc">Status (Z-A)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
