@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { usePageLayout } from "@/hooks/usePageLayout";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,9 +21,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { SidebarProvider } from "@/contexts/SidebarContext";
+import { useSidebarOffset } from "@/hooks/useSidebarOffset";
+import { cn } from "@/lib/utils";
 
 interface TranslationOrder {
   id: string;
@@ -84,8 +85,8 @@ const TranslationOrders = () => {
 
   // User data
   const [userProfile, setUserProfile] = useState<{ name: string; role: string } | null>(null);
-
-  usePageLayout();
+  
+  const { mainContainerClass } = useSidebarOffset();
 
   // Fetch user profile
   useEffect(() => {
@@ -311,12 +312,12 @@ const TranslationOrders = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex w-full min-h-screen">
+      <div className="flex w-full min-h-screen bg-background">
         <Sidebar userRole={userProfile?.role || 'operation'} />
-        <div className="flex-1 flex flex-col">
+        <div className={cn("flex-1 flex flex-col", mainContainerClass)}>
           <Header userName={userProfile?.name || ''} userRole={userProfile?.role || 'operation'} />
-          <main className="flex-1">
-            <div className="container mx-auto px-4 py-6 space-y-6">
+          <main className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-[1600px] mx-auto space-y-6">
               {/* Metrics Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card>
