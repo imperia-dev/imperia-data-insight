@@ -2942,6 +2942,63 @@ export type Database = {
         }
         Relationships: []
       }
+      translation_orders: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          pedido_data: string
+          pedido_id: string
+          pedido_status: string
+          quantidade_documentos: number | null
+          review_email: string | null
+          review_id: string | null
+          review_name: string | null
+          status_pagamento: string
+          sync_status: string | null
+          updated_at: string
+          valor_pago: number
+          valor_pedido: number
+          valor_total_pago_servico: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          pedido_data: string
+          pedido_id: string
+          pedido_status: string
+          quantidade_documentos?: number | null
+          review_email?: string | null
+          review_id?: string | null
+          review_name?: string | null
+          status_pagamento: string
+          sync_status?: string | null
+          updated_at?: string
+          valor_pago: number
+          valor_pedido: number
+          valor_total_pago_servico?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          pedido_data?: string
+          pedido_id?: string
+          pedido_status?: string
+          quantidade_documentos?: number | null
+          review_email?: string | null
+          review_id?: string | null
+          review_name?: string | null
+          status_pagamento?: string
+          sync_status?: string | null
+          updated_at?: string
+          valor_pago?: number
+          valor_pedido?: number
+          valor_total_pago_servico?: number | null
+        }
+        Relationships: []
+      }
       unit_economics: {
         Row: {
           arpu: number | null
