@@ -22,6 +22,9 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
 
 interface TranslationOrder {
   id: string;
@@ -79,7 +82,32 @@ const TranslationOrders = () => {
     totalDocuments: 0
   });
 
+  // User data
+  const [userProfile, setUserProfile] = useState<{ name: string; role: string } | null>(null);
+
   usePageLayout();
+
+  // Fetch user profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setUserProfile({
+            name: profile.full_name || user.email || '',
+            role: profile.role
+          });
+        }
+      }
+    };
+    fetchUserProfile();
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -282,286 +310,296 @@ const TranslationOrders = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.totalOrders}</div>
-          </CardContent>
-        </Card>
+    <SidebarProvider>
+      <div className="flex w-full min-h-screen">
+        <Sidebar userRole={userProfile?.role || 'operation'} />
+        <div className="flex-1 flex flex-col">
+          <Header userName={userProfile?.name || ''} userRole={userProfile?.role || 'operation'} />
+          <main className="flex-1">
+            <div className="container mx-auto px-4 py-6 space-y-6">
+              {/* Metrics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.totalOrders}</div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.totalValue)}</div>
-          </CardContent>
-        </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatCurrency(metrics.totalValue)}</div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pago</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.totalPaid)}</div>
-          </CardContent>
-        </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Pago</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatCurrency(metrics.totalPaid)}</div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Documentos</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.totalDocuments}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="search">Buscar</Label>
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  placeholder="ID, Revisor, Email..."
-                  value={tempSearchTerm}
-                  onChange={(e) => setTempSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total de Documentos</CardTitle>
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.totalDocuments}</div>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status do Pedido</Label>
-              <Select value={tempStatusFilter} onValueChange={setTempStatusFilter}>
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="processing">Processando</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Filters */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Filtros</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="search">Buscar</Label>
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="search"
+                          placeholder="ID, Revisor, Email..."
+                          value={tempSearchTerm}
+                          onChange={(e) => setTempSearchTerm(e.target.value)}
+                          className="pl-8"
+                        />
+                      </div>
+                    </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="payment">Status Pagamento</Label>
-              <Select value={tempPaymentStatusFilter} onValueChange={setTempPaymentStatusFilter}>
-                <SelectTrigger id="payment">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="pago">Pago</SelectItem>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="atrasado">Atrasado</SelectItem>
-                  <SelectItem value="parcial">Parcial</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status do Pedido</Label>
+                      <Select value={tempStatusFilter} onValueChange={setTempStatusFilter}>
+                        <SelectTrigger id="status">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="pending">Pendente</SelectItem>
+                          <SelectItem value="processing">Processando</SelectItem>
+                          <SelectItem value="completed">Concluído</SelectItem>
+                          <SelectItem value="cancelled">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="date-from">Data Inicial</Label>
-              <Input
-                id="date-from"
-                type="date"
-                value={tempDateFrom}
-                onChange={(e) => setTempDateFrom(e.target.value)}
-              />
-            </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="payment">Status Pagamento</Label>
+                      <Select value={tempPaymentStatusFilter} onValueChange={setTempPaymentStatusFilter}>
+                        <SelectTrigger id="payment">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="pago">Pago</SelectItem>
+                          <SelectItem value="pendente">Pendente</SelectItem>
+                          <SelectItem value="atrasado">Atrasado</SelectItem>
+                          <SelectItem value="parcial">Parcial</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="date-to">Data Final</Label>
-              <Input
-                id="date-to"
-                type="date"
-                value={tempDateTo}
-                onChange={(e) => setTempDateTo(e.target.value)}
-              />
-            </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="date-from">Data Inicial</Label>
+                      <Input
+                        id="date-from"
+                        type="date"
+                        value={tempDateFrom}
+                        onChange={(e) => setTempDateFrom(e.target.value)}
+                      />
+                    </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="reviewer">Revisor</Label>
-              <Input
-                id="reviewer"
-                placeholder="Nome do revisor"
-                value={tempReviewerFilter}
-                onChange={(e) => setTempReviewerFilter(e.target.value)}
-              />
-            </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="date-to">Data Final</Label>
+                      <Input
+                        id="date-to"
+                        type="date"
+                        value={tempDateTo}
+                        onChange={(e) => setTempDateTo(e.target.value)}
+                      />
+                    </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="sort">Ordenar por</Label>
-              <Select 
-                value={`${tempSortBy}:${tempSortOrder}`} 
-                onValueChange={(value) => {
-                  const [field, order] = value.split(':');
-                  setTempSortBy(field);
-                  setTempSortOrder(order);
-                }}
-              >
-                <SelectTrigger id="sort">
-                  <SelectValue />
-                  <ArrowUpDown className="h-4 w-4 ml-2" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pedido_data:desc">Data (Mais recente)</SelectItem>
-                  <SelectItem value="pedido_data:asc">Data (Mais antiga)</SelectItem>
-                  <SelectItem value="valor_pedido:desc">Valor Pedido (Maior)</SelectItem>
-                  <SelectItem value="valor_pedido:asc">Valor Pedido (Menor)</SelectItem>
-                  <SelectItem value="valor_pago:desc">Valor Pago (Maior)</SelectItem>
-                  <SelectItem value="valor_pago:asc">Valor Pago (Menor)</SelectItem>
-                  <SelectItem value="pedido_id:asc">ID Pedido (A-Z)</SelectItem>
-                  <SelectItem value="pedido_id:desc">ID Pedido (Z-A)</SelectItem>
-                  <SelectItem value="review_name:asc">Revisor (A-Z)</SelectItem>
-                  <SelectItem value="review_name:desc">Revisor (Z-A)</SelectItem>
-                  <SelectItem value="quantidade_documentos:desc">Documentos (Maior)</SelectItem>
-                  <SelectItem value="quantidade_documentos:asc">Documentos (Menor)</SelectItem>
-                  <SelectItem value="pedido_status:asc">Status (A-Z)</SelectItem>
-                  <SelectItem value="pedido_status:desc">Status (Z-A)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reviewer">Revisor</Label>
+                      <Input
+                        id="reviewer"
+                        placeholder="Nome do revisor"
+                        value={tempReviewerFilter}
+                        onChange={(e) => setTempReviewerFilter(e.target.value)}
+                      />
+                    </div>
 
-          <div className="flex gap-2 mt-4">
-            <Button onClick={handleSearch} variant="default">
-              <Search className="h-4 w-4 mr-2" />
-              Buscar
-            </Button>
-            <Button onClick={handleClearFilters} variant="outline">
-              Limpar Filtros
-            </Button>
-            <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
-            <Button onClick={exportToExcel} variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Excel
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+                    <div className="space-y-2">
+                      <Label htmlFor="sort">Ordenar por</Label>
+                      <Select 
+                        value={`${tempSortBy}:${tempSortOrder}`} 
+                        onValueChange={(value) => {
+                          const [field, order] = value.split(':');
+                          setTempSortBy(field);
+                          setTempSortOrder(order);
+                        }}
+                      >
+                        <SelectTrigger id="sort">
+                          <SelectValue />
+                          <ArrowUpDown className="h-4 w-4 ml-2" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pedido_data:desc">Data (Mais recente)</SelectItem>
+                          <SelectItem value="pedido_data:asc">Data (Mais antiga)</SelectItem>
+                          <SelectItem value="valor_pedido:desc">Valor Pedido (Maior)</SelectItem>
+                          <SelectItem value="valor_pedido:asc">Valor Pedido (Menor)</SelectItem>
+                          <SelectItem value="valor_pago:desc">Valor Pago (Maior)</SelectItem>
+                          <SelectItem value="valor_pago:asc">Valor Pago (Menor)</SelectItem>
+                          <SelectItem value="pedido_id:asc">ID Pedido (A-Z)</SelectItem>
+                          <SelectItem value="pedido_id:desc">ID Pedido (Z-A)</SelectItem>
+                          <SelectItem value="review_name:asc">Revisor (A-Z)</SelectItem>
+                          <SelectItem value="review_name:desc">Revisor (Z-A)</SelectItem>
+                          <SelectItem value="quantidade_documentos:desc">Documentos (Maior)</SelectItem>
+                          <SelectItem value="quantidade_documentos:asc">Documentos (Menor)</SelectItem>
+                          <SelectItem value="pedido_status:asc">Status (A-Z)</SelectItem>
+                          <SelectItem value="pedido_status:desc">Status (Z-A)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-      {/* Orders Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Pedidos de Tradução</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID Pedido</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Valor Pedido</TableHead>
-                  <TableHead>Valor Pago</TableHead>
-                  <TableHead>Status Pagamento</TableHead>
-                  <TableHead>Revisor</TableHead>
-                  <TableHead>Documentos</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      Carregando...
-                    </TableCell>
-                  </TableRow>
-                ) : orders.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      Nenhum pedido encontrado
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  orders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.pedido_id}</TableCell>
-                      <TableCell>{getStatusBadge(order.pedido_status)}</TableCell>
-                      <TableCell>
-                        {format(new Date(order.pedido_data), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-                      </TableCell>
-                      <TableCell>{formatCurrency(order.valor_pedido)}</TableCell>
-                      <TableCell>{formatCurrency(order.valor_pago)}</TableCell>
-                      <TableCell>{getPaymentStatusBadge(order.status_pagamento)}</TableCell>
-                      <TableCell>{order.review_name || '-'}</TableCell>
-                      <TableCell>{order.quantidade_documentos || 0}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={handleSearch} variant="default">
+                      <Search className="h-4 w-4 mr-2" />
+                      Buscar
+                    </Button>
+                    <Button onClick={handleClearFilters} variant="outline">
+                      Limpar Filtros
+                    </Button>
+                    <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
+                      <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                      Atualizar
+                    </Button>
+                    <Button onClick={exportToExcel} variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      Exportar Excel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-4 flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                  
-                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                    const pageNumber = i + 1;
-                    return (
-                      <PaginationItem key={pageNumber}>
-                        <PaginationLink
-                          onClick={() => setCurrentPage(pageNumber)}
-                          isActive={currentPage === pageNumber}
-                          className="cursor-pointer"
-                        >
-                          {pageNumber}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
-                  
-                  {totalPages > 5 && (
-                    <PaginationItem>
-                      <span className="px-2">...</span>
-                    </PaginationItem>
+              {/* Orders Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pedidos de Tradução</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID Pedido</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Valor Pedido</TableHead>
+                          <TableHead>Valor Pago</TableHead>
+                          <TableHead>Status Pagamento</TableHead>
+                          <TableHead>Revisor</TableHead>
+                          <TableHead>Documentos</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {loading ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-8">
+                              Carregando...
+                            </TableCell>
+                          </TableRow>
+                        ) : orders.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-8">
+                              Nenhum pedido encontrado
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          orders.map((order) => (
+                            <TableRow key={order.id}>
+                              <TableCell className="font-medium">{order.pedido_id}</TableCell>
+                              <TableCell>{getStatusBadge(order.pedido_status)}</TableCell>
+                              <TableCell>
+                                {format(new Date(order.pedido_data), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                              </TableCell>
+                              <TableCell>{formatCurrency(order.valor_pedido)}</TableCell>
+                              <TableCell>{formatCurrency(order.valor_pago)}</TableCell>
+                              <TableCell>{getPaymentStatusBadge(order.status_pagamento)}</TableCell>
+                              <TableCell>{order.review_name || '-'}</TableCell>
+                              <TableCell>{order.quantidade_documentos || 0}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-4 flex justify-center">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious 
+                              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                              className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                          </PaginationItem>
+                          
+                          {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                            const pageNumber = i + 1;
+                            return (
+                              <PaginationItem key={pageNumber}>
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(pageNumber)}
+                                  isActive={currentPage === pageNumber}
+                                  className="cursor-pointer"
+                                >
+                                  {pageNumber}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          })}
+                          
+                          {totalPages > 5 && (
+                            <PaginationItem>
+                              <span className="px-2">...</span>
+                            </PaginationItem>
+                          )}
+                          
+                          <PaginationItem>
+                            <PaginationNext 
+                              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                              className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
                   )}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 };
 
