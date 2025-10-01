@@ -89,18 +89,29 @@ const TranslationOrders = () => {
   
   const { mainContainerClass } = useSidebarOffset();
   
-  // Fetch total orders without filters
+  // Fetch total counts without filters
   useEffect(() => {
-    const fetchTotalCount = async () => {
-      const { count } = await supabase
+    const fetchTotalCounts = async () => {
+      // Get total orders without filters
+      const { count: ordersCount } = await supabase
         .from('translation_orders')
         .select('*', { count: 'exact', head: true });
       
-      if (count !== null) {
-        setTotalOrdersWithoutFilters(count);
+      if (ordersCount !== null) {
+        setTotalOrdersWithoutFilters(ordersCount);
+      }
+      
+      // Get total documents without filters
+      const { data: allDocs } = await supabase
+        .from('translation_orders')
+        .select('quantidade_documentos');
+      
+      if (allDocs) {
+        const totalDocs = allDocs.reduce((sum, order) => sum + (order.quantidade_documentos || 0), 0);
+        // Store this in a new state for total documents without filters
       }
     };
-    fetchTotalCount();
+    fetchTotalCounts();
   }, []);
 
   // Fetch user profile
@@ -177,13 +188,44 @@ const TranslationOrders = () => {
         setTotalPages(Math.ceil(count / itemsPerPage));
       }
 
-      // Calculate metrics
-      const metricsQuery = await supabase
+      // Calculate metrics from filtered data
+      let metricsQuery = supabase
         .from('translation_orders')
         .select('valor_pedido, valor_pago, quantidade_documentos');
 
-      if (!metricsQuery.error && metricsQuery.data) {
-        const totals = metricsQuery.data.reduce((acc, order) => ({
+      // Apply same filters for metrics
+      if (searchTerm) {
+        metricsQuery = metricsQuery.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
+      }
+
+      if (statusFilter !== "all") {
+        metricsQuery = metricsQuery.eq('pedido_status', statusFilter);
+      }
+
+      if (paymentStatusFilter !== "all") {
+        metricsQuery = metricsQuery.eq('status_pagamento', paymentStatusFilter);
+      }
+
+      if (dateFrom) {
+        const startDate = new Date(dateFrom);
+        startDate.setHours(0, 0, 0, 0);
+        metricsQuery = metricsQuery.gte('pedido_data', startDate.toISOString());
+      }
+
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        metricsQuery = metricsQuery.lte('pedido_data', endDate.toISOString());
+      }
+
+      if (reviewerFilter) {
+        metricsQuery = metricsQuery.ilike('review_name', `%${reviewerFilter}%`);
+      }
+
+      const { data: metricsData, error: metricsError } = await metricsQuery;
+
+      if (!metricsError && metricsData) {
+        const totals = metricsData.reduce((acc, order) => ({
           totalOrders: acc.totalOrders + 1,
           totalValue: acc.totalValue + (order.valor_pedido || 0),
           totalPaid: acc.totalPaid + (order.valor_pago || 0),
