@@ -53,6 +53,7 @@ const TranslationOrders = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
+  const [totalOrdersWithoutFilters, setTotalOrdersWithoutFilters] = useState(0);
   const itemsPerPage = 20;
 
   // Temporary filter states (for user input)
@@ -87,6 +88,20 @@ const TranslationOrders = () => {
   const [userProfile, setUserProfile] = useState<{ name: string; role: string } | null>(null);
   
   const { mainContainerClass } = useSidebarOffset();
+  
+  // Fetch total orders without filters
+  useEffect(() => {
+    const fetchTotalCount = async () => {
+      const { count } = await supabase
+        .from('translation_orders')
+        .select('*', { count: 'exact', head: true });
+      
+      if (count !== null) {
+        setTotalOrdersWithoutFilters(count);
+      }
+    };
+    fetchTotalCount();
+  }, []);
 
   // Fetch user profile
   useEffect(() => {
@@ -259,9 +274,49 @@ const TranslationOrders = () => {
     setCurrentPage(1);
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
-      const exportData = orders.map(order => ({
+      // Fetch all data without pagination
+      let query = supabase
+        .from('translation_orders')
+        .select('*');
+
+      // Apply the same filters as the current view
+      if (searchTerm) {
+        query = query.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
+      }
+
+      if (statusFilter !== "all") {
+        query = query.eq('pedido_status', statusFilter);
+      }
+
+      if (paymentStatusFilter !== "all") {
+        query = query.eq('status_pagamento', paymentStatusFilter);
+      }
+
+      if (dateFrom) {
+        const startDate = new Date(dateFrom);
+        startDate.setHours(0, 0, 0, 0);
+        query = query.gte('pedido_data', startDate.toISOString());
+      }
+
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        query = query.lte('pedido_data', endDate.toISOString());
+      }
+
+      if (reviewerFilter) {
+        query = query.ilike('review_name', `%${reviewerFilter}%`);
+      }
+
+      // Apply sorting
+      const { data: allOrders, error } = await query
+        .order(sortBy, { ascending: sortOrder === 'asc' });
+
+      if (error) throw error;
+
+      const exportData = (allOrders || []).map(order => ({
         'ID Pedido': order.pedido_id,
         'Status': order.pedido_status,
         'Data': format(new Date(order.pedido_data), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
@@ -279,7 +334,7 @@ const TranslationOrders = () => {
       XLSX.utils.book_append_sheet(wb, ws, 'Translation Orders');
       XLSX.writeFile(wb, `translation_orders_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
       
-      toast.success('Dados exportados com sucesso!');
+      toast.success(`${allOrders?.length || 0} registros exportados com sucesso!`);
     } catch (error) {
       console.error('Error exporting data:', error);
       toast.error('Erro ao exportar dados');
@@ -327,6 +382,11 @@ const TranslationOrders = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{metrics.totalOrders}</div>
+                    {(searchTerm || statusFilter !== "all" || paymentStatusFilter !== "all" || dateFrom || dateTo || reviewerFilter) && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total sem filtros: {totalOrdersWithoutFilters}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -357,6 +417,11 @@ const TranslationOrders = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{metrics.totalDocuments}</div>
+                    {(searchTerm || statusFilter !== "all" || paymentStatusFilter !== "all" || dateFrom || dateTo || reviewerFilter) && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total: {totalOrdersWithoutFilters} pedidos
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </div>
