@@ -172,6 +172,12 @@ const navigationGroups: NavigationGroup[] = [
         href: "/demand-control",
         roles: ["owner", "master"],
       },
+      {
+        title: "Translation Orders",
+        icon: FileText,
+        href: "/translation-orders",
+        roles: ["owner", "master", "admin"],
+      },
     ],
   },
   {

@@ -1,0 +1,466 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { usePageLayout } from "@/hooks/usePageLayout";
+import { formatCurrency } from "@/lib/currency";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw } from "lucide-react";
+import * as XLSX from 'xlsx';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+interface TranslationOrder {
+  id: string;
+  pedido_id: string;
+  pedido_status: string;
+  pedido_data: string;
+  valor_pedido: number;
+  valor_pago: number;
+  status_pagamento: string;
+  review_id: string | null;
+  review_name: string | null;
+  review_email: string | null;
+  quantidade_documentos: number | null;
+  valor_total_pago_servico: number | null;
+  sync_status: string | null;
+  metadata: any;
+  created_at: string;
+  updated_at: string;
+}
+
+const TranslationOrders = () => {
+  const [orders, setOrders] = useState<TranslationOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const itemsPerPage = 20;
+
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+  const [reviewerFilter, setReviewerFilter] = useState("");
+
+  // Metrics states
+  const [metrics, setMetrics] = useState({
+    totalOrders: 0,
+    totalValue: 0,
+    totalPaid: 0,
+    totalDocuments: 0
+  });
+
+  usePageLayout();
+
+  const fetchOrders = async () => {
+    try {
+      let query = supabase
+        .from('translation_orders')
+        .select('*', { count: 'exact' });
+
+      // Apply filters
+      if (searchTerm) {
+        query = query.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
+      }
+
+      if (statusFilter !== "all") {
+        query = query.eq('pedido_status', statusFilter);
+      }
+
+      if (paymentStatusFilter !== "all") {
+        query = query.eq('status_pagamento', paymentStatusFilter);
+      }
+
+      if (dateFilter) {
+        const startDate = new Date(dateFilter);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(dateFilter);
+        endDate.setHours(23, 59, 59, 999);
+        query = query.gte('pedido_data', startDate.toISOString())
+                     .lte('pedido_data', endDate.toISOString());
+      }
+
+      if (reviewerFilter) {
+        query = query.ilike('review_name', `%${reviewerFilter}%`);
+      }
+
+      // Order and pagination
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+
+      const { data, error, count } = await query
+        .order('pedido_data', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      setOrders(data || []);
+      
+      if (count) {
+        setTotalOrders(count);
+        setTotalPages(Math.ceil(count / itemsPerPage));
+      }
+
+      // Calculate metrics
+      const metricsQuery = await supabase
+        .from('translation_orders')
+        .select('valor_pedido, valor_pago, quantidade_documentos');
+
+      if (!metricsQuery.error && metricsQuery.data) {
+        const totals = metricsQuery.data.reduce((acc, order) => ({
+          totalOrders: acc.totalOrders + 1,
+          totalValue: acc.totalValue + (order.valor_pedido || 0),
+          totalPaid: acc.totalPaid + (order.valor_pago || 0),
+          totalDocuments: acc.totalDocuments + (order.quantidade_documentos || 0)
+        }), {
+          totalOrders: 0,
+          totalValue: 0,
+          totalPaid: 0,
+          totalDocuments: 0
+        });
+
+        setMetrics(totals);
+      }
+
+    } catch (error) {
+      console.error('Error fetching translation orders:', error);
+      toast.error('Erro ao carregar pedidos de tradução');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, [currentPage, searchTerm, statusFilter, paymentStatusFilter, dateFilter, reviewerFilter]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('translation_orders_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'translation_orders'
+        },
+        () => {
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchOrders();
+  };
+
+  const exportToExcel = () => {
+    try {
+      const exportData = orders.map(order => ({
+        'ID Pedido': order.pedido_id,
+        'Status': order.pedido_status,
+        'Data': format(new Date(order.pedido_data), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+        'Valor Pedido': order.valor_pedido,
+        'Valor Pago': order.valor_pago,
+        'Status Pagamento': order.status_pagamento,
+        'Revisor': order.review_name || '-',
+        'Email Revisor': order.review_email || '-',
+        'Documentos': order.quantidade_documentos || 0,
+        'Valor Serviço': order.valor_total_pago_servico || 0
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Translation Orders');
+      XLSX.writeFile(wb, `translation_orders_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
+      
+      toast.success('Dados exportados com sucesso!');
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast.error('Erro ao exportar dados');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusMap: { [key: string]: { label: string; variant: "default" | "secondary" | "destructive" | "outline" } } = {
+      'pending': { label: 'Pendente', variant: 'secondary' },
+      'processing': { label: 'Processando', variant: 'default' },
+      'completed': { label: 'Concluído', variant: 'outline' },
+      'cancelled': { label: 'Cancelado', variant: 'destructive' }
+    };
+
+    const config = statusMap[status] || { label: status, variant: 'outline' as const };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getPaymentStatusBadge = (status: string) => {
+    const statusMap: { [key: string]: { label: string; variant: "default" | "secondary" | "destructive" | "outline" } } = {
+      'pago': { label: 'Pago', variant: 'outline' },
+      'pendente': { label: 'Pendente', variant: 'secondary' },
+      'atrasado': { label: 'Atrasado', variant: 'destructive' },
+      'parcial': { label: 'Parcial', variant: 'default' }
+    };
+
+    const config = statusMap[status] || { label: status, variant: 'outline' as const };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.totalOrders}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(metrics.totalValue)}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Pago</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(metrics.totalPaid)}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Documentos</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.totalDocuments}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="search">Buscar</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="ID, Revisor, Email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status do Pedido</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="processing">Processando</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment">Status Pagamento</Label>
+              <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                <SelectTrigger id="payment">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pago">Pago</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="atrasado">Atrasado</SelectItem>
+                  <SelectItem value="parcial">Parcial</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date">Data</Label>
+              <Input
+                id="date"
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reviewer">Revisor</Label>
+              <Input
+                id="reviewer"
+                placeholder="Nome do revisor"
+                value={reviewerFilter}
+                onChange={(e) => setReviewerFilter(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-4">
+            <Button onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <Button onClick={exportToExcel} variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Excel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Orders Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pedidos de Tradução</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID Pedido</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Valor Pedido</TableHead>
+                  <TableHead>Valor Pago</TableHead>
+                  <TableHead>Status Pagamento</TableHead>
+                  <TableHead>Revisor</TableHead>
+                  <TableHead>Documentos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      Carregando...
+                    </TableCell>
+                  </TableRow>
+                ) : orders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      Nenhum pedido encontrado
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">{order.pedido_id}</TableCell>
+                      <TableCell>{getStatusBadge(order.pedido_status)}</TableCell>
+                      <TableCell>
+                        {format(new Date(order.pedido_data), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>{formatCurrency(order.valor_pedido)}</TableCell>
+                      <TableCell>{formatCurrency(order.valor_pago)}</TableCell>
+                      <TableCell>{getPaymentStatusBadge(order.status_pagamento)}</TableCell>
+                      <TableCell>{order.review_name || '-'}</TableCell>
+                      <TableCell>{order.quantidade_documentos || 0}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-4 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  
+                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                    const pageNumber = i + 1;
+                    return (
+                      <PaginationItem key={pageNumber}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(pageNumber)}
+                          isActive={currentPage === pageNumber}
+                          className="cursor-pointer"
+                        >
+                          {pageNumber}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  {totalPages > 5 && (
+                    <PaginationItem>
+                      <span className="px-2">...</span>
+                    </PaginationItem>
+                  )}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default TranslationOrders;

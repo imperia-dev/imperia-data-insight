@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.sync-facebook-data]
 verify_jwt = true
+
+[functions.webhook-translation-orders]
+verify_jwt = false
