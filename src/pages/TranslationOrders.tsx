@@ -55,7 +55,8 @@ const TranslationOrders = () => {
   const [tempSearchTerm, setTempSearchTerm] = useState("");
   const [tempStatusFilter, setTempStatusFilter] = useState("all");
   const [tempPaymentStatusFilter, setTempPaymentStatusFilter] = useState("all");
-  const [tempDateFilter, setTempDateFilter] = useState("");
+  const [tempDateFrom, setTempDateFrom] = useState("");
+  const [tempDateTo, setTempDateTo] = useState("");
   const [tempReviewerFilter, setTempReviewerFilter] = useState("");
   const [tempSortBy, setTempSortBy] = useState("pedido_data");
   const [tempSortOrder, setTempSortOrder] = useState("desc");
@@ -64,7 +65,8 @@ const TranslationOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [reviewerFilter, setReviewerFilter] = useState("");
   const [sortBy, setSortBy] = useState("pedido_data");
   const [sortOrder, setSortOrder] = useState("desc");
@@ -98,13 +100,16 @@ const TranslationOrders = () => {
         query = query.eq('status_pagamento', paymentStatusFilter);
       }
 
-      if (dateFilter) {
-        const startDate = new Date(dateFilter);
+      if (dateFrom) {
+        const startDate = new Date(dateFrom);
         startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(dateFilter);
+        query = query.gte('pedido_data', startDate.toISOString());
+      }
+
+      if (dateTo) {
+        const endDate = new Date(dateTo);
         endDate.setHours(23, 59, 59, 999);
-        query = query.gte('pedido_data', startDate.toISOString())
-                     .lte('pedido_data', endDate.toISOString());
+        query = query.lte('pedido_data', endDate.toISOString());
       }
 
       if (reviewerFilter) {
@@ -161,7 +166,7 @@ const TranslationOrders = () => {
   // Fetch orders when filters are applied or page changes
   useEffect(() => {
     fetchOrders();
-  }, [currentPage, searchTerm, statusFilter, paymentStatusFilter, dateFilter, reviewerFilter, sortBy, sortOrder]);
+  }, [currentPage, searchTerm, statusFilter, paymentStatusFilter, dateFrom, dateTo, reviewerFilter, sortBy, sortOrder]);
 
   // Set up real-time subscription
   useEffect(() => {
@@ -195,7 +200,8 @@ const TranslationOrders = () => {
     setSearchTerm(tempSearchTerm);
     setStatusFilter(tempStatusFilter);
     setPaymentStatusFilter(tempPaymentStatusFilter);
-    setDateFilter(tempDateFilter);
+    setDateFrom(tempDateFrom);
+    setDateTo(tempDateTo);
     setReviewerFilter(tempReviewerFilter);
     setSortBy(tempSortBy);
     setSortOrder(tempSortOrder);
@@ -207,7 +213,8 @@ const TranslationOrders = () => {
     setTempSearchTerm("");
     setTempStatusFilter("all");
     setTempPaymentStatusFilter("all");
-    setTempDateFilter("");
+    setTempDateFrom("");
+    setTempDateTo("");
     setTempReviewerFilter("");
     setTempSortBy("pedido_data");
     setTempSortOrder("desc");
@@ -215,7 +222,8 @@ const TranslationOrders = () => {
     setSearchTerm("");
     setStatusFilter("all");
     setPaymentStatusFilter("all");
-    setDateFilter("");
+    setDateFrom("");
+    setDateTo("");
     setReviewerFilter("");
     setSortBy("pedido_data");
     setSortOrder("desc");
@@ -324,7 +332,7 @@ const TranslationOrders = () => {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Buscar</Label>
               <div className="relative">
@@ -372,12 +380,22 @@ const TranslationOrders = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="date">Data</Label>
+              <Label htmlFor="date-from">Data Inicial</Label>
               <Input
-                id="date"
+                id="date-from"
                 type="date"
-                value={tempDateFilter}
-                onChange={(e) => setTempDateFilter(e.target.value)}
+                value={tempDateFrom}
+                onChange={(e) => setTempDateFrom(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date-to">Data Final</Label>
+              <Input
+                id="date-to"
+                type="date"
+                value={tempDateTo}
+                onChange={(e) => setTempDateTo(e.target.value)}
               />
             </div>
 
