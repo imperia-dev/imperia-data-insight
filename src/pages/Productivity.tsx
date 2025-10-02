@@ -324,27 +324,43 @@ export default function Financial() {
       }
 
       // Prepare data for PDF export
-      const headers = ['Prestador', 'Documentos', 'Valor Total'];
+      // Daily payments will be the main table now
+      const dailyHeaders = ['Data', 'Prestador', 'Valor'];
+      const dailyRows = dailyPayments
+        .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
+        .map(payment => [
+          format(new Date(payment.date), 'dd/MM/yyyy'),
+          payment.user_name,
+          formatCurrency(payment.amount)
+        ]);
+
+      // Calculate daily totals
+      const dailyTotalAmount = dailyRows.reduce((sum, row) => {
+        const amount = parseFloat(row[2].replace('R$', '').replace('.', '').replace(',', '.').trim());
+        return sum + amount;
+      }, 0);
+
+      const dailyTotals = [
+        { label: 'Total:', value: formatCurrency(dailyTotalAmount) }
+      ];
+
+      // Prepare accumulated data for additional table
+      const accumulatedHeaders = ['Prestador', 'Documentos', 'Valor Total'];
       
       // Filter data based on user role
       const dataToExport = userRole === 'operation' 
         ? accumulatedPayments.filter(payment => payment.user_name !== 'Hellem Coelho')
         : accumulatedPayments;
 
-      const rows = dataToExport.map(payment => [
+      const accumulatedRows = dataToExport.map(payment => [
         payment.user_name,
         payment.total_documents.toString(),
         formatCurrency(payment.total_amount)
       ]);
 
-      // Calculate totals
+      // Calculate accumulated totals
       const totalDocuments = dataToExport.reduce((sum, payment) => sum + payment.total_documents, 0);
       const totalAmount = dataToExport.reduce((sum, payment) => sum + payment.total_amount, 0);
-
-      const totals = [
-        { label: 'Total de Documentos:', value: totalDocuments.toString() },
-        { label: 'Valor Total:', value: formatCurrency(totalAmount) }
-      ];
 
       // Prepare chart data for top performers
       const chartData = topPerformers.map(performer => ({
@@ -353,32 +369,26 @@ export default function Financial() {
         formattedValue: formatCurrency(performer.total_amount)
       }));
 
-      // Prepare additional tables (daily payments)
-      const dailyHeaders = ['Data', 'Prestador', 'Valor'];
-      const dailyRows = dailyPayments
-        .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
-        .slice(0, 20) // Limit to 20 most recent entries for PDF
-        .map(payment => [
-          format(new Date(payment.date), 'dd/MM/yyyy'),
-          payment.user_name,
-          formatCurrency(payment.amount)
-        ]);
-
       exportToPDF({
         title: 'Relatório de Produtividade',
         subtitle: `Período: ${periodLabel}`,
-        headers,
-        rows,
-        totals,
+        headers: dailyHeaders,
+        rows: dailyRows,
+        totals: dailyTotals,
         charts: chartData.length > 0 ? [{
           title: 'Top 5 Prestadores',
           type: 'bar' as const,
           data: chartData
         }] : undefined,
-        additionalTables: dailyRows.length > 0 ? [{
-          title: 'Pagamentos Recentes por Dia',
-          headers: dailyHeaders,
-          rows: dailyRows
+        additionalTables: accumulatedRows.length > 0 ? [{
+          title: 'Resumo do Período',
+          headers: accumulatedHeaders,
+          rows: [
+            ...accumulatedRows,
+            ['', '', ''],
+            ['Total de Documentos:', totalDocuments.toString(), ''],
+            ['Valor Total:', '', formatCurrency(totalAmount)]
+          ]
         }] : undefined
       });
 
