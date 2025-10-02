@@ -243,6 +243,18 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   // Add additional tables first if provided
   if (data.additionalTables && data.additionalTables.length > 0) {
     data.additionalTables.forEach((additionalTable) => {
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      // Check if we need a new page for the table
+      if (startY + 30 > pageHeight - 20) {
+        doc.addPage();
+        // Add watermark to new page
+        if ((doc as any).addWatermark) {
+          (doc as any).addWatermark();
+        }
+        startY = 20;
+      }
+      
       // Add table title
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
@@ -279,6 +291,12 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
           1: { halign: 'center', cellWidth: 'auto' },
         },
         margin: { left: 20, right: 20 },
+        didDrawPage: (data) => {
+          // Add watermark on each new page
+          if ((doc as any).addWatermark && data.pageNumber > 1) {
+            (doc as any).addWatermark();
+          }
+        },
       });
       
       // Update startY for next element
@@ -288,37 +306,66 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   
   // Add observations section if provided
   if (data.observations) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const boxWidth = pageWidth - 40;
+    const boxX = 20;
+    
+    // Calculate height needed for observations
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const splitText = doc.splitTextToSize(data.observations, boxWidth - 10);
+    const textHeight = splitText.length * 5; // Approximate height per line
+    const boxHeight = Math.max(30, textHeight + 10);
+    
+    // Check if observations will fit on current page
+    if (startY + boxHeight + 20 > pageHeight - 20) {
+      doc.addPage();
+      // Add watermark to new page
+      if ((doc as any).addWatermark) {
+        (doc as any).addWatermark();
+      }
+      startY = 20;
+    }
+    
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(44, 62, 80);
     doc.text('Observações', 20, startY + 5);
     
-    // Add observations text box
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const boxWidth = pageWidth - 40;
-    const boxX = 20;
     const boxY = startY + 10;
     
     // Draw box background
     doc.setFillColor(249, 250, 251);
     doc.setDrawColor(229, 231, 235);
     doc.setLineWidth(0.5);
-    doc.roundedRect(boxX, boxY, boxWidth, 30, 2, 2, 'FD');
+    doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 2, 2, 'FD');
     
     // Add observations text
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(44, 62, 80);
-    const splitText = doc.splitTextToSize(data.observations, boxWidth - 10);
     doc.text(splitText, boxX + 5, boxY + 7);
     
-    startY = boxY + 35;
+    startY = boxY + boxHeight + 5;
   }
   
   // Add main table
   if (data.rows && data.rows.length > 0) {
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
     // Add table title if there are additional tables
     if (data.additionalTables && data.additionalTables.length > 0) {
+      // Check if we need a new page for the main table
+      if (startY + 30 > pageHeight - 20) {
+        doc.addPage();
+        // Add watermark to new page
+        if ((doc as any).addWatermark) {
+          (doc as any).addWatermark();
+        }
+        startY = 20;
+      }
+      
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(44, 62, 80);
