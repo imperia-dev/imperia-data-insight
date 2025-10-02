@@ -11,10 +11,6 @@ interface ExportData {
   rows: any[][];
   title: string;
   subtitle?: string;
-  client?: {
-    name: string;
-    logo: string;
-  };
   totals?: { label: string; value: string }[];
   charts?: Array<{
     title: string;
@@ -182,40 +178,6 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   );
   
   let startY = subtitleY + 5;
-
-  // Add client info if provided (before stats)
-  if (data.client) {
-    startY += 10;
-    
-    // Add client section with logo and name
-    try {
-      // Load client logo
-      const clientLogo = new Image();
-      clientLogo.src = data.client.logo;
-      
-      // Center the client info
-      const logoSize = 15;
-      const centerX = doc.internal.pageSize.getWidth() / 2;
-      
-      // Add logo centered
-      doc.addImage(clientLogo, 'PNG', centerX - logoSize / 2, startY, logoSize, logoSize);
-      
-      // Add client name below logo
-      doc.setFontSize(12);
-      doc.setTextColor(60, 60, 60);
-      doc.setFont('helvetica', 'bold');
-      doc.text(data.client.name, centerX, startY + logoSize + 6, { align: 'center' });
-      
-      startY += logoSize + 12;
-    } catch (error) {
-      // If logo fails to load, just show the name
-      doc.setFontSize(12);
-      doc.setTextColor(60, 60, 60);
-      doc.setFont('helvetica', 'bold');
-      doc.text(data.client.name, doc.internal.pageSize.getWidth() / 2, startY + 5, { align: 'center' });
-      startY += 12;
-    }
-  }
   
   // Add summary cards if totals are provided (similar to the app layout)
   if (data.totals && data.totals.length > 0) {
