@@ -282,7 +282,7 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(44, 62, 80);
-      doc.text('Pendências Recentes', 20, startY + 5);
+      doc.text('Entregas por Dia', 20, startY + 5);
       startY += 10;
     }
     
