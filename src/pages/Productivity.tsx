@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,8 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { exportToPDF } from "@/utils/exportUtils";
+import { useToast } from "@/hooks/use-toast";
 
 interface PaymentData {
   user_id: string;
@@ -40,6 +42,7 @@ interface TopPerformer {
 
 export default function Financial() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { mainContainerClass } = usePageLayout();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
@@ -303,6 +306,96 @@ export default function Financial() {
     }).format(value);
   };
 
+  const handleExportPDF = () => {
+    try {
+      // Get period label for subtitle
+      let periodLabel = '';
+      if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
+        periodLabel = `${format(customStartDate, 'dd/MM/yyyy')} até ${format(customEndDate, 'dd/MM/yyyy')}`;
+      } else {
+        const periodMap: Record<string, string> = {
+          'day': 'Hoje',
+          'week': 'Esta Semana',
+          'month': 'Este Mês',
+          'quarter': 'Este Trimestre',
+          'year': 'Este Ano'
+        };
+        periodLabel = periodMap[selectedPeriod] || 'Período Selecionado';
+      }
+
+      // Prepare data for PDF export
+      const headers = ['Prestador', 'Documentos', 'Valor Total'];
+      
+      // Filter data based on user role
+      const dataToExport = userRole === 'operation' 
+        ? accumulatedPayments.filter(payment => payment.user_name !== 'Hellem Coelho')
+        : accumulatedPayments;
+
+      const rows = dataToExport.map(payment => [
+        payment.user_name,
+        payment.total_documents.toString(),
+        formatCurrency(payment.total_amount)
+      ]);
+
+      // Calculate totals
+      const totalDocuments = dataToExport.reduce((sum, payment) => sum + payment.total_documents, 0);
+      const totalAmount = dataToExport.reduce((sum, payment) => sum + payment.total_amount, 0);
+
+      const totals = [
+        { label: 'Total de Documentos:', value: totalDocuments.toString() },
+        { label: 'Valor Total:', value: formatCurrency(totalAmount) }
+      ];
+
+      // Prepare chart data for top performers
+      const chartData = topPerformers.map(performer => ({
+        label: performer.user_name,
+        value: performer.total_amount,
+        formattedValue: formatCurrency(performer.total_amount)
+      }));
+
+      // Prepare additional tables (daily payments)
+      const dailyHeaders = ['Data', 'Prestador', 'Valor'];
+      const dailyRows = dailyPayments
+        .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
+        .slice(0, 20) // Limit to 20 most recent entries for PDF
+        .map(payment => [
+          format(new Date(payment.date), 'dd/MM/yyyy'),
+          payment.user_name,
+          formatCurrency(payment.amount)
+        ]);
+
+      exportToPDF({
+        title: 'Relatório de Produtividade',
+        subtitle: `Período: ${periodLabel}`,
+        headers,
+        rows,
+        totals,
+        charts: chartData.length > 0 ? [{
+          title: 'Top 5 Prestadores',
+          type: 'bar' as const,
+          data: chartData
+        }] : undefined,
+        additionalTables: dailyRows.length > 0 ? [{
+          title: 'Pagamentos Recentes por Dia',
+          headers: dailyHeaders,
+          rows: dailyRows
+        }] : undefined
+      });
+
+      toast({
+        title: "PDF exportado com sucesso",
+        description: `Relatório de produtividade exportado para PDF`,
+      });
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast({
+        title: "Erro ao exportar PDF",
+        description: "Não foi possível exportar o relatório para PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   const totalPayments = accumulatedPayments.reduce((sum, payment) => sum + payment.total_amount, 0);
   
   // Get top 5 performers
@@ -373,6 +466,16 @@ export default function Financial() {
                     <SelectItem value="custom">Personalizado</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                <Button 
+                  onClick={handleExportPDF} 
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  disabled={loading || accumulatedPayments.length === 0}
+                >
+                  <FileDown className="h-4 w-4" />
+                  Exportar PDF
+                </Button>
                 
                 {selectedPeriod === 'custom' && (
                   <div className="flex flex-wrap items-center gap-2">
