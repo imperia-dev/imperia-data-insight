@@ -545,7 +545,7 @@ const TranslationOrders = () => {
           <main className="flex-1 overflow-y-auto p-6">
             <div className="max-w-[1600px] mx-auto space-y-6">
               {/* Metrics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
@@ -588,11 +588,22 @@ const TranslationOrders = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{metrics.totalDocuments}</div>
-                    {(searchTerm || statusFilter !== "all" || paymentStatusFilter !== "all" || dateFrom || dateTo || reviewerFilter) && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Total: {totalOrdersWithoutFilters} pedidos
-                      </p>
-                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Documentos Filtrados</CardTitle>
+                    <FileText className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-primary">{metrics.totalDocuments}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {(searchTerm || statusFilter !== "all" || paymentStatusFilter !== "all" || dateFrom || dateTo || reviewerFilter) ? 
+                        "Com filtros aplicados" : 
+                        "Todos os documentos"
+                      }
+                    </p>
                   </CardContent>
                 </Card>
               </div>
