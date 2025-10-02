@@ -370,7 +370,7 @@ export default function Financial() {
       }));
 
       exportToPDF({
-        title: 'Relatório de Produtividade',
+        title: 'Entregas por Dia',
         subtitle: `Período: ${periodLabel}`,
         headers: dailyHeaders,
         rows: dailyRows,
