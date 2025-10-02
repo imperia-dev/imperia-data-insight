@@ -325,23 +325,32 @@ export default function Financial() {
 
       // Prepare data for PDF export
       // Daily payments will be the main table now
-      const dailyHeaders = ['Data', 'Prestador', 'Valor'];
+      const dailyHeaders = ['Data', 'Prestador', 'Documentos', 'Valor'];
       const dailyRows = dailyPayments
         .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
-        .map(payment => [
-          format(new Date(payment.date), 'dd/MM/yyyy'),
-          payment.user_name,
-          formatCurrency(payment.amount)
-        ]);
+        .map(payment => {
+          const documents = Math.round(payment.amount / 1.30);
+          return [
+            format(new Date(payment.date), 'dd/MM/yyyy'),
+            payment.user_name,
+            documents.toString(),
+            formatCurrency(payment.amount)
+          ];
+        });
 
       // Calculate daily totals
+      const dailyTotalDocuments = dailyRows.reduce((sum, row) => {
+        return sum + parseInt(row[2]);
+      }, 0);
+      
       const dailyTotalAmount = dailyRows.reduce((sum, row) => {
-        const amount = parseFloat(row[2].replace('R$', '').replace('.', '').replace(',', '.').trim());
+        const amount = parseFloat(row[3].replace('R$', '').replace('.', '').replace(',', '.').trim());
         return sum + amount;
       }, 0);
 
       const dailyTotals = [
-        { label: 'Total:', value: formatCurrency(dailyTotalAmount) }
+        { label: 'Total de Documentos:', value: dailyTotalDocuments.toString() },
+        { label: 'Valor Total:', value: formatCurrency(dailyTotalAmount) }
       ];
 
       // Prepare accumulated data for additional table
