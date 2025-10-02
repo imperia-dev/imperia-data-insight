@@ -12,6 +12,7 @@ import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import * as XLSX from 'xlsx';
 import { exportToPDF } from "@/utils/exportUtils";
 import {
@@ -76,6 +77,7 @@ const TranslationOrders = () => {
   const [reviewerFilter, setReviewerFilter] = useState("");
   const [sortBy, setSortBy] = useState("pedido_data");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [observations, setObservations] = useState("");
 
   // Metrics states
   const [metrics, setMetrics] = useState({
@@ -426,6 +428,37 @@ const TranslationOrders = () => {
 
       if (error) throw error;
 
+      // Calculate monthly summary by reviewer
+      const reviewerSummary = (allOrders || []).reduce((acc, order) => {
+        const reviewer = order.review_name || 'Sem Revisor';
+        if (!acc[reviewer]) {
+          acc[reviewer] = {
+            documents: 0,
+            value: 0
+          };
+        }
+        acc[reviewer].documents += order.quantidade_documentos || 0;
+        acc[reviewer].value = acc[reviewer].documents * 2; // R$ 2,00 por documento
+        return acc;
+      }, {} as Record<string, { documents: number; value: number }>);
+
+      // Create monthly summary table
+      const summaryHeaders = ['Revisor', 'Documentos', 'Valor (R$ 2,00/doc)'];
+      const summaryRows = Object.entries(reviewerSummary).map(([reviewer, data]) => [
+        reviewer,
+        data.documents.toString(),
+        formatCurrency(data.value)
+      ]);
+
+      // Add total row
+      const totalDocs = Object.values(reviewerSummary).reduce((sum, data) => sum + data.documents, 0);
+      const totalValue = totalDocs * 2;
+      summaryRows.push([
+        'TOTAL',
+        totalDocs.toString(),
+        formatCurrency(totalValue)
+      ]);
+
       const headers = [
         'ID Pedido',
         'Status',
@@ -448,16 +481,27 @@ const TranslationOrders = () => {
         (order.quantidade_documentos || 0).toString()
       ]);
 
+      // Calculate corrected value
+      const valorCorrigido = metrics.totalDocuments * 2;
+
       exportToPDF({
-        title: 'Pedidos de Tradução',
+        title: 'Revisão - Plataforma Operação',
         subtitle: `Gerado em ${format(new Date(), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}`,
         headers,
         rows,
         totals: [
           { label: 'Total de Pedidos', value: metrics.totalOrders.toString() },
           { label: 'Valor Total', value: formatCurrency(metrics.totalValue) },
-          { label: 'Total Pago', value: formatCurrency(metrics.totalPaid) },
-          { label: 'Total de Documentos', value: metrics.totalDocuments.toString() }
+          { label: 'Total Pago - Incorreto', value: formatCurrency(metrics.totalPaid) },
+          { label: 'Valor Corrigido', value: formatCurrency(valorCorrigido), subtitle: `(${metrics.totalDocuments} documentos × R$ 2,00)` }
+        ],
+        observations: observations || undefined,
+        additionalTables: [
+          {
+            title: 'Resumo do Mês por Revisor',
+            headers: summaryHeaders,
+            rows: summaryRows
+          }
         ]
       }, 'landscape');
 
@@ -691,6 +735,21 @@ const TranslationOrders = () => {
                       Exportar PDF
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Observations Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Observações</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    placeholder="Digite observações que serão incluídas no PDF exportado..."
+                    value={observations}
+                    onChange={(e) => setObservations(e.target.value)}
+                    rows={4}
+                  />
                 </CardContent>
               </Card>
 

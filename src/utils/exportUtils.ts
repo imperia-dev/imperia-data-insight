@@ -11,7 +11,7 @@ interface ExportData {
   rows: any[][];
   title: string;
   subtitle?: string;
-  totals?: { label: string; value: string }[];
+  totals?: { label: string; value: string; subtitle?: string }[];
   charts?: Array<{
     title: string;
     type: 'bar' | 'pie';
@@ -224,6 +224,14 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
       }
       
       doc.text(total.value, cardX + 5, currentCardY + 15);
+      
+      // Add subtitle if provided
+      if (total.subtitle) {
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(107, 114, 128);
+        doc.text(total.subtitle, cardX + 5, currentCardY + 20);
+      }
     });
     
     const totalRows = Math.ceil(data.totals.length / cardsPerRow);
