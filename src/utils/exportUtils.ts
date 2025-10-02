@@ -27,6 +27,7 @@ interface ExportData {
     headers: string[];
     rows: any[][];
   }>;
+  observations?: string;
 }
 
 export const exportToExcel = (data: ExportData) => {
@@ -273,6 +274,35 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
       // Update startY for next element
       startY = (doc as any).lastAutoTable.finalY + 10;
     });
+  }
+  
+  // Add observations section if provided
+  if (data.observations) {
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(44, 62, 80);
+    doc.text('Observações', 20, startY + 5);
+    
+    // Add observations text box
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const boxWidth = pageWidth - 40;
+    const boxX = 20;
+    const boxY = startY + 10;
+    
+    // Draw box background
+    doc.setFillColor(249, 250, 251);
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(boxX, boxY, boxWidth, 30, 2, 2, 'FD');
+    
+    // Add observations text
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(44, 62, 80);
+    const splitText = doc.splitTextToSize(data.observations, boxWidth - 10);
+    doc.text(splitText, boxX + 5, boxY + 7);
+    
+    startY = boxY + 35;
   }
   
   // Add main table

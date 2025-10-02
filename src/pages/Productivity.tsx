@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon, FileDown } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon, FileDown, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +55,7 @@ export default function Financial() {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const [customStartTime, setCustomStartTime] = useState("00:00");
   const [customEndTime, setCustomEndTime] = useState("23:59");
+  const [observations, setObservations] = useState("");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -398,7 +400,8 @@ export default function Financial() {
             ['Total de Documentos:', totalDocuments.toString(), ''],
             ['Valor Total:', '', formatCurrency(totalAmount)]
           ]
-        }] : undefined
+        }] : undefined,
+        observations: observations.trim() || undefined
       });
 
       toast({
@@ -486,15 +489,17 @@ export default function Financial() {
                   </SelectContent>
                 </Select>
                 
-                <Button 
-                  onClick={handleExportPDF} 
-                  variant="outline"
-                  className="flex items-center gap-2"
-                  disabled={loading || accumulatedPayments.length === 0}
-                >
-                  <FileDown className="h-4 w-4" />
-                  Exportar PDF
-                </Button>
+                <div className="flex flex-col gap-2 w-full md:w-auto">
+                  <Button 
+                    onClick={handleExportPDF} 
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    disabled={loading || accumulatedPayments.length === 0}
+                  >
+                    <FileDown className="h-4 w-4" />
+                    Exportar PDF
+                  </Button>
+                </div>
                 
                 {selectedPeriod === 'custom' && (
                   <div className="flex flex-wrap items-center gap-2">
@@ -566,6 +571,31 @@ export default function Financial() {
               </div>
             </div>
           </div>
+
+          {/* Observations field */}
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <CardTitle>Observações para o Relatório</CardTitle>
+              </div>
+              <CardDescription>
+                Adicione informações relevantes que aparecerão no PDF exportado
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Digite aqui as observações que deseja incluir no relatório em PDF..."
+                value={observations}
+                onChange={(e) => setObservations(e.target.value)}
+                className="min-h-[100px] resize-none"
+                maxLength={1000}
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                {observations.length}/1000 caracteres
+              </p>
+            </CardContent>
+          </Card>
 
           {/* Summary Cards - Hide for operation role */}
           {userRole !== 'operation' && (
