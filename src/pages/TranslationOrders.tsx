@@ -11,10 +11,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown } from "lucide-react";
+import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import * as XLSX from 'xlsx';
 import { exportToPDF } from "@/utils/exportUtils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Pagination,
   PaginationContent,
@@ -317,6 +328,41 @@ const TranslationOrders = () => {
     setSortBy("pedido_data");
     setSortOrder("desc");
     setCurrentPage(1);
+  };
+
+  const handleClearAllOrders = async () => {
+    try {
+      setLoading(true);
+      
+      // Delete all records from translation_orders table
+      const { error } = await supabase
+        .from('translation_orders')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+      
+      if (error) throw error;
+      
+      toast.success('Todos os pedidos de tradução foram removidos com sucesso!');
+      
+      // Reset data
+      setOrders([]);
+      setMetrics({
+        totalOrders: 0,
+        totalValue: 0,
+        totalPaid: 0,
+        totalDocuments: 0
+      });
+      setTotalOrders(0);
+      setTotalOrdersWithoutFilters(0);
+      setTotalPages(1);
+      setCurrentPage(1);
+      
+    } catch (error) {
+      console.error('Error clearing translation orders:', error);
+      toast.error('Erro ao limpar pedidos de tradução');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const exportToExcel = async () => {
@@ -735,6 +781,29 @@ const TranslationOrders = () => {
                       <FileDown className="h-4 w-4 mr-2" />
                       Exportar PDF
                     </Button>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Limpar Todos os Dados
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. Isso irá remover permanentemente todos os pedidos de tradução da tabela, permitindo que você execute o webhook novamente para reprocessar os dados.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleClearAllOrders} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Sim, limpar todos os dados
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </CardContent>
               </Card>
