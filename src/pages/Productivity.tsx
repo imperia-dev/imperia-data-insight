@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
+import cidadania4uLogo from "@/assets/cidadania4u-logo.png";
 
 interface PaymentData {
   user_id: string;
@@ -56,6 +57,11 @@ export default function Financial() {
   const [customStartTime, setCustomStartTime] = useState("00:00");
   const [customEndTime, setCustomEndTime] = useState("23:59");
   const [observations, setObservations] = useState("");
+  const [selectedClient, setSelectedClient] = useState("cidadania4u");
+
+  const clients = [
+    { id: "cidadania4u", name: "Cidadania4U", logo: cidadania4uLogo }
+  ];
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -348,6 +354,9 @@ export default function Financial() {
         ? normalizeTextForPDF(observations.trim()) 
         : undefined;
 
+      // Get selected client info
+      const clientInfo = clients.find(c => c.id === selectedClient);
+
       // Prepare data for PDF export
       // Daily payments will be the main table now
       const dailyHeaders = ['Data', 'Prestador', 'Documentos', 'Valor'];
@@ -406,6 +415,10 @@ export default function Financial() {
       exportToPDF({
         title: 'Relatório de Produtividade',
         subtitle: `Período: ${periodLabel}`,
+        client: clientInfo ? {
+          name: clientInfo.name,
+          logo: clientInfo.logo
+        } : undefined,
         headers: dailyHeaders,
         rows: dailyRows,
         totals: dailyTotals,
@@ -595,28 +608,52 @@ export default function Financial() {
             </div>
           </div>
 
-          {/* Observations field */}
+          {/* Client Selection and Observations */}
           <Card className="mb-8">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                <CardTitle>Observações para o Relatório</CardTitle>
+                <CardTitle>Configurações do Relatório</CardTitle>
               </div>
               <CardDescription>
-                Adicione informações relevantes que aparecerão no PDF exportado
+                Configure o cliente e adicione observações para o relatório em PDF
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="Digite aqui as observações que deseja incluir no relatório em PDF..."
-                value={observations}
-                onChange={(e) => setObservations(e.target.value)}
-                className="min-h-[100px] resize-none"
-                maxLength={1000}
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                {observations.length}/1000 caracteres
-              </p>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="client-select" className="text-sm font-medium mb-2 block">
+                  Cliente
+                </Label>
+                <Select value={selectedClient} onValueChange={setSelectedClient}>
+                  <SelectTrigger id="client-select">
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="observations" className="text-sm font-medium mb-2 block">
+                  Observações
+                </Label>
+                <Textarea
+                  id="observations"
+                  placeholder="Digite aqui as observações que deseja incluir no relatório em PDF..."
+                  value={observations}
+                  onChange={(e) => setObservations(e.target.value)}
+                  className="min-h-[100px] resize-none"
+                  maxLength={1000}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {observations.length}/1000 caracteres
+                </p>
+              </div>
             </CardContent>
           </Card>
 
