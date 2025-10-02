@@ -11,8 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown } from "lucide-react";
+import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown } from "lucide-react";
 import * as XLSX from 'xlsx';
+import { exportToPDF } from "@/utils/exportUtils";
 import {
   Pagination,
   PaginationContent,
@@ -383,6 +384,90 @@ const TranslationOrders = () => {
     }
   };
 
+  const exportToPDFFile = async () => {
+    try {
+      // Fetch all data without pagination
+      let query = supabase
+        .from('translation_orders')
+        .select('*');
+
+      // Apply the same filters as the current view
+      if (searchTerm) {
+        query = query.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
+      }
+
+      if (statusFilter !== "all") {
+        query = query.eq('pedido_status', statusFilter);
+      }
+
+      if (paymentStatusFilter !== "all") {
+        query = query.eq('status_pagamento', paymentStatusFilter);
+      }
+
+      if (dateFrom) {
+        const startDate = new Date(dateFrom);
+        startDate.setHours(0, 0, 0, 0);
+        query = query.gte('pedido_data', startDate.toISOString());
+      }
+
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        query = query.lte('pedido_data', endDate.toISOString());
+      }
+
+      if (reviewerFilter) {
+        query = query.ilike('review_name', `%${reviewerFilter}%`);
+      }
+
+      // Apply sorting
+      const { data: allOrders, error } = await query
+        .order(sortBy, { ascending: sortOrder === 'asc' });
+
+      if (error) throw error;
+
+      const headers = [
+        'ID Pedido',
+        'Status',
+        'Data',
+        'Valor Pedido',
+        'Valor Pago',
+        'Status Pagamento',
+        'Revisor',
+        'Documentos'
+      ];
+
+      const rows = (allOrders || []).map(order => [
+        order.pedido_id,
+        order.pedido_status,
+        format(new Date(order.pedido_data), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+        formatCurrency(order.valor_pedido),
+        formatCurrency(order.valor_pago),
+        order.status_pagamento,
+        order.review_name || '-',
+        (order.quantidade_documentos || 0).toString()
+      ]);
+
+      exportToPDF({
+        title: 'Pedidos de Tradução',
+        subtitle: `Gerado em ${format(new Date(), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}`,
+        headers,
+        rows,
+        totals: [
+          { label: 'Total de Pedidos', value: metrics.totalOrders.toString() },
+          { label: 'Valor Total', value: formatCurrency(metrics.totalValue) },
+          { label: 'Total Pago', value: formatCurrency(metrics.totalPaid) },
+          { label: 'Total de Documentos', value: metrics.totalDocuments.toString() }
+        ]
+      }, 'landscape');
+
+      toast.success(`${allOrders?.length || 0} registros exportados em PDF com sucesso!`);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Erro ao exportar PDF');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusMap: { [key: string]: { label: string; variant: "default" | "secondary" | "destructive" | "outline" } } = {
       'pending': { label: 'Pendente', variant: 'secondary' },
@@ -600,6 +685,10 @@ const TranslationOrders = () => {
                     <Button onClick={exportToExcel} variant="outline">
                       <Download className="h-4 w-4 mr-2" />
                       Exportar Excel
+                    </Button>
+                    <Button onClick={exportToPDFFile} variant="outline">
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Exportar PDF
                     </Button>
                   </div>
                 </CardContent>
