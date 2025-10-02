@@ -215,8 +215,10 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
       doc.setFont('helvetica', 'bold');
       
       // Set color based on total type
-      if (total.label.toLowerCase().includes('pago') && !total.label.toLowerCase().includes('não')) {
-        doc.setTextColor(34, 197, 94); // Green for paid
+      if (total.label.toLowerCase().includes('corrigido')) {
+        doc.setTextColor(34, 197, 94); // Green for corrected value
+      } else if (total.label.toLowerCase().includes('incorreto')) {
+        doc.setTextColor(59, 130, 246); // Blue for incorrect
       } else if (total.label.toLowerCase().includes('pendente') || total.label.toLowerCase().includes('não pago')) {
         doc.setTextColor(234, 179, 8); // Yellow/orange for pending
       } else {
