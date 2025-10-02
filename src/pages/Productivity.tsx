@@ -325,6 +325,29 @@ export default function Financial() {
         periodLabel = periodMap[selectedPeriod] || 'Período Selecionado';
       }
 
+      // Normalize observations text for PDF compatibility
+      // Replace special Unicode characters with PDF-safe alternatives
+      const normalizeTextForPDF = (text: string): string => {
+        return text
+          .replace(/→/g, '->')  // Right arrow
+          .replace(/←/g, '<-')  // Left arrow
+          .replace(/↑/g, '^')   // Up arrow
+          .replace(/↓/g, 'v')   // Down arrow
+          .replace(/•/g, '*')   // Bullet point
+          .replace(/…/g, '...') // Ellipsis
+          .replace(/'/g, "'")   // Smart single quote left
+          .replace(/'/g, "'")   // Smart single quote right
+          .replace(/"/g, '"')   // Smart double quote left
+          .replace(/"/g, '"')   // Smart double quote right
+          .replace(/–/g, '-')   // En dash
+          .replace(/—/g, '-')   // Em dash
+          .replace(/[^\x00-\x7F]/g, ''); // Remove any remaining non-ASCII characters
+      };
+
+      const normalizedObservations = observations.trim() 
+        ? normalizeTextForPDF(observations.trim()) 
+        : undefined;
+
       // Prepare data for PDF export
       // Daily payments will be the main table now
       const dailyHeaders = ['Data', 'Prestador', 'Documentos', 'Valor'];
@@ -401,7 +424,7 @@ export default function Financial() {
             ['Valor Total:', '', formatCurrency(totalAmount)]
           ]
         }] : undefined,
-        observations: observations.trim() || undefined
+        observations: normalizedObservations
       });
 
       toast({
