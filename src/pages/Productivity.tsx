@@ -325,22 +325,43 @@ export default function Financial() {
 
       // Prepare data for PDF export
       // Daily payments will be the main table now
-      const dailyHeaders = ['Data', 'Prestador', 'Valor'];
-      const dailyRows = dailyPayments
+      const dailyHeaders = ['Data', 'Prestador', 'Documentos', 'Valor'];
+      
+      // Group daily payments to calculate documents count
+      const dailyPaymentsWithDocs = dailyPayments
         .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
+        .reduce((acc, payment) => {
+          const key = `${payment.date}-${payment.user_id}`;
+          if (!acc[key]) {
+            acc[key] = {
+              date: payment.date,
+              user_name: payment.user_name,
+              amount: payment.amount,
+              documents: Math.round(payment.amount / 1.30) // R$ 1.30 per document
+            };
+          }
+          return acc;
+        }, {} as Record<string, { date: string; user_name: string; amount: number; documents: number }>);
+
+      const dailyRows = Object.values(dailyPaymentsWithDocs)
         .map(payment => [
           format(new Date(payment.date), 'dd/MM/yyyy'),
           payment.user_name,
+          payment.documents.toString(),
           formatCurrency(payment.amount)
         ]);
 
       // Calculate daily totals
+      const dailyTotalDocs = dailyRows.reduce((sum, row) => {
+        return sum + parseInt(row[2]);
+      }, 0);
       const dailyTotalAmount = dailyRows.reduce((sum, row) => {
-        const amount = parseFloat(row[2].replace('R$', '').replace('.', '').replace(',', '.').trim());
+        const amount = parseFloat(row[3].replace('R$', '').replace('.', '').replace(',', '.').trim());
         return sum + amount;
       }, 0);
 
       const dailyTotals = [
+        { label: 'Total de Documentos:', value: dailyTotalDocs.toString() },
         { label: 'Total:', value: formatCurrency(dailyTotalAmount) }
       ];
 
@@ -370,7 +391,7 @@ export default function Financial() {
       }));
 
       exportToPDF({
-        title: 'Relatório de Produtividade',
+        title: 'Entregas por Dia',
         subtitle: `Período: ${periodLabel}`,
         headers: dailyHeaders,
         rows: dailyRows,
