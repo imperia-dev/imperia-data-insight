@@ -3139,48 +3139,6 @@ export type Database = {
       }
     }
     Views: {
-      company_costs_v: {
-        Row: {
-          amount: number | null
-          category: string | null
-          created_at: string | null
-          created_by: string | null
-          date: string | null
-          description: string | null
-          files: string[] | null
-          id: string | null
-          observations: string | null
-          sub_category: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          amount?: number | null
-          category?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          date?: string | null
-          description?: string | null
-          files?: string[] | null
-          id?: string | null
-          observations?: string | null
-          sub_category?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          amount?: number | null
-          category?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          date?: string | null
-          description?: string | null
-          files?: string[] | null
-          id?: string | null
-          observations?: string | null
-          sub_category?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       security_monitoring_dashboard: {
         Row: {
           access_count: number | null
@@ -3360,6 +3318,22 @@ export type Database = {
           successful_backups: number
           total_backups: number
           total_size_gb: number
+        }[]
+      }
+      get_company_costs_view: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string
+          date: string
+          description: string
+          files: string[]
+          id: string
+          observations: string
+          sub_category: string
+          updated_at: string
         }[]
       }
       get_service_provider_sensitive_data: {
