@@ -12,7 +12,8 @@ import {
   Banknote,
   Target,
   BarChart3,
-  Phone
+  Phone,
+  ClipboardCheck
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +28,10 @@ import { FinancialIndicators } from '@/components/financial/FinancialIndicators'
 import { UnitEconomics } from '@/components/financial/UnitEconomics';
 import { FinancialProjections } from '@/components/financial/FinancialProjections';
 import { WhatsAppFinancialReportModal } from '@/components/dashboard/WhatsAppFinancialReportModal';
+
+// Import closing pages
+import Fechamento from '@/pages/Fechamento';
+import FechamentoDespesas from '@/pages/FechamentoDespesas';
 
 function DashboardFinanceiroContent() {
   const { user } = useAuth();
@@ -105,7 +110,7 @@ function DashboardFinanceiroContent() {
 
             {/* Main Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-7">
+              <TabsList className="grid w-full grid-cols-8">
                 <TabsTrigger value="summary" className="flex items-center gap-1">
                   <DollarSign className="h-4 w-4" />
                   <span className="hidden lg:inline">Resumo</span>
@@ -133,6 +138,10 @@ function DashboardFinanceiroContent() {
                 <TabsTrigger value="projections" className="flex items-center gap-1">
                   <Target className="h-4 w-4" />
                   <span className="hidden lg:inline">Projeções</span>
+                </TabsTrigger>
+                <TabsTrigger value="closing" className="flex items-center gap-1">
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span className="hidden lg:inline">Fechamento</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -162,6 +171,23 @@ function DashboardFinanceiroContent() {
 
               <TabsContent value="projections">
                 <FinancialProjections />
+              </TabsContent>
+
+              <TabsContent value="closing">
+                <Tabs defaultValue="receitas" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="receitas">Fechamento de Receitas</TabsTrigger>
+                    <TabsTrigger value="despesas">Fechamento de Despesas</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="receitas">
+                    <Fechamento />
+                  </TabsContent>
+
+                  <TabsContent value="despesas">
+                    <FechamentoDespesas />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             </Tabs>
           </div>
