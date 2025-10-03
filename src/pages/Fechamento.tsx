@@ -258,18 +258,13 @@ export default function Fechamento() {
   };
 
   return (
-    <>
-      <Sidebar userRole={userRole} />
-      <div className={mainContainerClass}>
-        <Header userName={userName} userRole={userRole} />
-        <main className="flex-1 overflow-y-auto bg-background">
-          <div className="container mx-auto p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-primary">Fechamento</h1>
-                <p className="text-muted-foreground">Análise de dados pré-fechamento</p>
-              </div>
-            </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-primary">Fechamento de Receitas</h2>
+          <p className="text-muted-foreground">Análise de dados pré-fechamento</p>
+        </div>
+      </div>
 
             {currentStep === "upload" && (
               <Card>
@@ -521,11 +516,10 @@ export default function Fechamento() {
               </CollapsibleContent>
             </Collapsible>
           </div>
-        </main>
-      </div>
 
-      {/* Confirmation Dialog */}
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          {/* Confirmation Dialog */}
+          <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        </div>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Fechamento</DialogTitle>
@@ -560,9 +554,9 @@ export default function Fechamento() {
             <Button onClick={generateProtocol} disabled={isLoading}>
               {isLoading ? "Gerando..." : "Confirmar e Gerar Protocolo"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
   );
 }

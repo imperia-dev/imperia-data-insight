@@ -92,7 +92,6 @@ interface ClosingProtocol {
 
 function FechamentoDespesasContent() {
   const { user } = useAuth();
-  const { mainContainerClass } = useSidebarOffset();
   const { toast } = useToast();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
@@ -609,31 +608,26 @@ function FechamentoDespesasContent() {
   };
 
   return (
-    <>
-      <Sidebar userRole={userRole} />
-      <div className={mainContainerClass}>
-        <Header userName={userName} userRole={userRole} />
-        <main className="flex-1 overflow-y-auto bg-background">
-          <div className="container mx-auto p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold">Fechamento de Despesas</h1>
-                <p className="text-muted-foreground mt-2">
-                  Consolidação e fechamento mensal de despesas
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setHistoryOpen(!historyOpen)}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Histórico
-                </Button>
-              </div>
-            </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Fechamento de Despesas</h2>
+          <p className="text-muted-foreground mt-2">
+            Consolidação e fechamento mensal de despesas
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setHistoryOpen(!historyOpen)}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Histórico
+          </Button>
+        </div>
+      </div>
 
-            <Tabs value={currentStep} onValueChange={(v) => setCurrentStep(v as any)} className="w-full">
+      <Tabs value={currentStep} onValueChange={(v) => setCurrentStep(v as any)} className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="selection">
                   <Calendar className="w-4 h-4 mr-2" />
@@ -1422,9 +1416,8 @@ function FechamentoDespesasContent() {
             </CollapsibleContent>
           </Collapsible>
         </div>
-      </main>
 
-      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Geração de Protocolo</DialogTitle>
@@ -1530,8 +1523,7 @@ function FechamentoDespesasContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </div>
-    </>
+    </div>
   );
 }
 
