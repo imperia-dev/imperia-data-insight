@@ -628,26 +628,26 @@ function FechamentoDespesasContent() {
       </div>
 
       <Tabs value={currentStep} onValueChange={(v) => setCurrentStep(v as any)} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-6">
-                <TabsTrigger value="selection">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Seleção
-                </TabsTrigger>
-                <TabsTrigger value="validation" disabled={!selectedMonth}>
-                  <CheckSquare className="w-4 h-4 mr-2" />
-                  Validação
-                </TabsTrigger>
-                <TabsTrigger value="review" disabled={validationErrors.length > 0}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Revisão
-                </TabsTrigger>
-                <TabsTrigger value="completed" disabled={!currentProtocol}>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Concluído
-                </TabsTrigger>
-              </TabsList>
+        <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsTrigger value="selection">
+            <Calendar className="w-4 h-4 mr-2" />
+            Seleção
+          </TabsTrigger>
+          <TabsTrigger value="validation" disabled={!selectedMonth}>
+            <CheckSquare className="w-4 h-4 mr-2" />
+            Validação
+          </TabsTrigger>
+          <TabsTrigger value="review" disabled={validationErrors.length > 0}>
+            <FileText className="w-4 h-4 mr-2" />
+            Revisão
+          </TabsTrigger>
+          <TabsTrigger value="completed" disabled={!currentProtocol}>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Concluído
+          </TabsTrigger>
+        </TabsList>
 
-              <TabsContent value="selection" className="space-y-4">
+        <TabsContent value="selection" className="space-y-4">
                 <Card>
                   <CardHeader>
                     <CardTitle>Selecionar Período de Competência</CardTitle>
@@ -712,10 +712,10 @@ function FechamentoDespesasContent() {
                       </Button>
                     </div>
                   </CardContent>
-                </Card>
-              </TabsContent>
+          </Card>
+        </TabsContent>
 
-            <TabsContent value="validation" className="space-y-4">
+        <TabsContent value="validation" className="space-y-4">
               <Card className="w-full">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -1337,10 +1337,10 @@ function FechamentoDespesasContent() {
                   </CardContent>
                 </Card>
               )}
-            </TabsContent>
-          </Tabs>
+          </TabsContent>
+        </Tabs>
 
-          <Collapsible open={historyOpen} onOpenChange={setHistoryOpen} className="mt-6">
+        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen} className="mt-6">
             <CollapsibleTrigger asChild>
               <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
                 <CardHeader>
@@ -1412,13 +1412,12 @@ function FechamentoDespesasContent() {
                     </Table>
                   </div>
                 </CardContent>
-              </Card>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
 
         <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent>
+          <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Geração de Protocolo</DialogTitle>
             <DialogDescription>

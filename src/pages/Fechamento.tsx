@@ -266,7 +266,7 @@ export default function Fechamento() {
         </div>
       </div>
 
-            {currentStep === "upload" && (
+      {currentStep === "upload" && (
               <Card>
                 <CardHeader>
                   <CardTitle>Upload de Arquivo CSV</CardTitle>
@@ -300,10 +300,10 @@ export default function Fechamento() {
                     </AlertDescription>
                   </Alert>
                 </CardContent>
-              </Card>
-            )}
+        </Card>
+      )}
 
-            {currentStep === "preview" && analysisData && (
+      {currentStep === "preview" && analysisData && (
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -419,10 +419,10 @@ export default function Fechamento() {
                     Confirmar Fechamento
                   </Button>
                 </div>
-              </div>
-            )}
+          </div>
+        )}
 
-            {currentStep === "protocol" && protocol && (
+        {currentStep === "protocol" && protocol && (
               <Card>
                 <CardHeader>
                   <CardTitle>Protocolo de Fechamento Gerado</CardTitle>
@@ -459,101 +459,99 @@ export default function Fechamento() {
                   </Alert>
                 </CardContent>
               </Card>
-            )}
+        )}
 
-            {/* Histórico de Fechamentos */}
-            <Collapsible open={showHistory} onOpenChange={setShowHistory}>
-              <CollapsibleTrigger asChild>
-                <Button variant="outline" className="w-full gap-2">
-                  <History className="h-4 w-4" />
-                  Histórico de Fechamentos
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showHistory ? "rotate-180" : ""}`} />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Últimos Fechamentos</CardTitle>
-                    <CardDescription>
-                      Histórico dos últimos 10 protocolos de fechamento gerados
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {closingHistory.length > 0 ? (
-                      <div className="max-h-96 overflow-y-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Protocolo</TableHead>
-                              <TableHead>Competência</TableHead>
-                              <TableHead>Total IDs</TableHead>
-                              <TableHead>Páginas</TableHead>
-                              <TableHead>Valor Total</TableHead>
-                              <TableHead>Data</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {closingHistory.map((protocol) => (
-                              <TableRow key={protocol.id}>
-                                <TableCell className="font-mono font-medium">{protocol.protocol_number}</TableCell>
-                                <TableCell>{format(new Date(protocol.competence_month), "MM/yyyy")}</TableCell>
-                                <TableCell>{protocol.total_ids}</TableCell>
-                                <TableCell>{protocol.total_pages}</TableCell>
-                                <TableCell>{formatCurrency(protocol.total_value)}</TableCell>
-                                <TableCell>{format(new Date(protocol.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-8">
-                        Nenhum protocolo de fechamento encontrado
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+        {/* Histórico de Fechamentos */}
+        <Collapsible open={showHistory} onOpenChange={setShowHistory}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full gap-2">
+              <History className="h-4 w-4" />
+              Histórico de Fechamentos
+              <ChevronDown className={`h-4 w-4 transition-transform ${showHistory ? "rotate-180" : ""}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Últimos Fechamentos</CardTitle>
+                <CardDescription>
+                  Histórico dos últimos 10 protocolos de fechamento gerados
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {closingHistory.length > 0 ? (
+                  <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Competência</TableHead>
+                          <TableHead>Total IDs</TableHead>
+                          <TableHead>Páginas</TableHead>
+                          <TableHead>Valor Total</TableHead>
+                          <TableHead>Data</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {closingHistory.map((protocol) => (
+                          <TableRow key={protocol.id}>
+                            <TableCell className="font-mono font-medium">{protocol.protocol_number}</TableCell>
+                            <TableCell>{format(new Date(protocol.competence_month), "MM/yyyy")}</TableCell>
+                            <TableCell>{protocol.total_ids}</TableCell>
+                            <TableCell>{protocol.total_pages}</TableCell>
+                            <TableCell>{formatCurrency(protocol.total_value)}</TableCell>
+                            <TableCell>{format(new Date(protocol.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    Nenhum protocolo de fechamento encontrado
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
 
-          {/* Confirmation Dialog */}
-          <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        </div>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Fechamento</DialogTitle>
-            <DialogDescription>
-              Revise os dados antes de gerar o protocolo de fechamento. Este processo não pode ser revertido.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Total de Documentos</p>
-                <p className="font-medium">{analysisData?.totalIds}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Total de Páginas</p>
-                <p className="font-medium">{analysisData?.totalPages}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Valor Total</p>
-                <p className="font-medium">{formatCurrency(analysisData?.totalValue || 0)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Competência</p>
-                <p className="font-medium">{format(new Date(competenceMonth + "-01"), "MM/yyyy")}</p>
+        {/* Confirmation Dialog */}
+        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar Fechamento</DialogTitle>
+              <DialogDescription>
+                Revise os dados antes de gerar o protocolo de fechamento. Este processo não pode ser revertido.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Total de Documentos</p>
+                  <p className="font-medium">{analysisData?.totalIds}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Total de Páginas</p>
+                  <p className="font-medium">{analysisData?.totalPages}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Valor Total</p>
+                  <p className="font-medium">{formatCurrency(analysisData?.totalValue || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Competência</p>
+                  <p className="font-medium">{format(new Date(competenceMonth + "-01"), "MM/yyyy")}</p>
+                </div>
               </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={generateProtocol} disabled={isLoading}>
-              {isLoading ? "Gerando..." : "Confirmar e Gerar Protocolo"}
-            </Button>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={generateProtocol} disabled={isLoading}>
+                {isLoading ? "Gerando..." : "Confirmar e Gerar Protocolo"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
