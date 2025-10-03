@@ -164,35 +164,140 @@ export default function CollaboratorsKPI() {
     fetchData();
   }, [user]);
 
-  // Update KPI data based on selected collaborator
+  // Fetch and filter KPI data
   useEffect(() => {
-    if (selectedCollaborator === 'alineadrianacosta28@gmail.com') {
-      setKpiData({
-        delays: { count: 12, percentage: 4.5, goal: 5 },
-        errors: { count: 8, percentage: 3.2, goal: 5 },
-        documentsCompleted: { count: 456, goal: 500 }
-      });
-    } else if (selectedCollaborator === 'all-operation') {
-      setKpiData({
-        delays: { count: 25, percentage: 6.2, goal: 5 },
-        errors: { count: 18, percentage: 4.8, goal: 5 },
-        documentsCompleted: { count: 1850, goal: 2000 }
-      });
-    } else if (selectedCollaborator === 'all') {
-      setKpiData({
-        delays: { count: 45, percentage: 5.8, goal: 5 },
-        errors: { count: 32, percentage: 4.1, goal: 5 },
-        documentsCompleted: { count: 3456, goal: 4000 }
-      });
-    } else {
-      // Individual collaborator data (mock)
-      setKpiData({
-        delays: { count: Math.floor(Math.random() * 20), percentage: Math.random() * 10, goal: 5 },
-        errors: { count: Math.floor(Math.random() * 15), percentage: Math.random() * 8, goal: 5 },
-        documentsCompleted: { count: Math.floor(Math.random() * 600), goal: 500 }
-      });
-    }
-  }, [selectedCollaborator]);
+    const fetchKPIData = async () => {
+      try {
+        let query = supabase.from('documents').select('*');
+
+        // Filter by collaborator
+        if (selectedCollaborator !== 'all') {
+          if (selectedCollaborator === 'all-operation') {
+            // Get all operation users
+            const { data: operationUsers } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('role', 'operation');
+            
+            if (operationUsers) {
+              const operationIds = operationUsers.map(u => u.id);
+              query = query.in('assigned_to', operationIds);
+            }
+          } else {
+            // Specific collaborator by email
+            const { data: userData } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', selectedCollaborator)
+              .single();
+            
+            if (userData) {
+              query = query.eq('assigned_to', userData.id);
+            }
+          }
+        }
+
+        // Apply date range filter
+        if (filters.dateRange?.from) {
+          query = query.gte('created_at', filters.dateRange.from.toISOString());
+        }
+        if (filters.dateRange?.to) {
+          query = query.lte('created_at', filters.dateRange.to.toISOString());
+        }
+
+        // Apply period filter
+        if (selectedPeriod !== 'custom' && !filters.dateRange) {
+          const now = new Date();
+          let startDate = new Date();
+          
+          switch(selectedPeriod) {
+            case 'today':
+              startDate.setHours(0, 0, 0, 0);
+              break;
+            case 'week':
+              startDate.setDate(now.getDate() - 7);
+              break;
+            case 'month':
+              startDate.setMonth(now.getMonth() - 1);
+              break;
+            case 'quarter':
+              startDate.setMonth(now.getMonth() - 3);
+              break;
+            case 'year':
+              startDate.setFullYear(now.getFullYear() - 1);
+              break;
+          }
+          
+          query = query.gte('created_at', startDate.toISOString());
+        }
+
+        // Apply status filter
+        if (filters.status.length > 0) {
+          const statusMap: { [key: string]: 'completed' | 'delivered' | 'in_progress' | 'pending' | 'review' } = {
+            'Concluído': 'completed',
+            'Em Andamento': 'in_progress',
+            'Atrasado': 'pending',
+            'Cancelado': 'review'
+          };
+          const mappedStatuses = filters.status
+            .map(s => statusMap[s])
+            .filter((s): s is 'completed' | 'delivered' | 'in_progress' | 'pending' | 'review' => s !== undefined);
+          
+          if (mappedStatuses.length > 0) {
+            query = query.in('status', mappedStatuses);
+          }
+        }
+
+        // Apply search term filter
+        if (filters.searchTerm) {
+          query = query.or(`document_name.ilike.%${filters.searchTerm}%,client_name.ilike.%${filters.searchTerm}%`);
+        }
+
+        const { data: documents, error } = await query;
+
+        if (error) throw error;
+
+        // Calculate KPIs from real data
+        const totalDocs = documents?.length || 0;
+        const completedDocs = documents?.filter(d => d.status === 'completed').length || 0;
+        const delayedDocs = documents?.filter(d => {
+          if (d.deadline && d.completed_at) {
+            return new Date(d.completed_at) > new Date(d.deadline);
+          }
+          return false;
+        }).length || 0;
+
+        // Count documents with errors (assuming errors are tracked somewhere)
+        const errorDocs = 0; // This would need to be calculated based on your error tracking
+
+        const delayPercentage = totalDocs > 0 ? (delayedDocs / totalDocs) * 100 : 0;
+        const errorPercentage = totalDocs > 0 ? (errorDocs / totalDocs) * 100 : 0;
+
+        setKpiData({
+          delays: { 
+            count: delayedDocs, 
+            percentage: delayPercentage, 
+            goal: 5 
+          },
+          errors: { 
+            count: errorDocs, 
+            percentage: errorPercentage, 
+            goal: 5 
+          },
+          documentsCompleted: { 
+            count: completedDocs, 
+            goal: totalDocs > 0 ? Math.ceil(totalDocs * 1.1) : 500 
+          }
+        });
+
+      } catch (error) {
+        console.error('Error fetching KPI data:', error);
+        // Keep existing data on error
+      }
+    };
+
+    fetchKPIData();
+  }, [selectedCollaborator, selectedPeriod, filters, customDateRange]);
 
   const pieChartData = [
     { name: 'No Prazo', value: 100 - kpiData.delays.percentage, color: 'hsl(var(--chart-1))' },
@@ -395,9 +500,11 @@ export default function CollaboratorsKPI() {
                       >
                         Limpar Filtros
                       </Button>
-                      <Button className="flex-1">
-                        Aplicar Filtros
-                      </Button>
+                      <SheetTrigger asChild>
+                        <Button className="flex-1">
+                          Aplicar Filtros
+                        </Button>
+                      </SheetTrigger>
                     </div>
                   </div>
                 </SheetContent>
