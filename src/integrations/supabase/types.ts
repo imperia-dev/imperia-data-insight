@@ -689,6 +689,72 @@ export type Database = {
         }
         Relationships: []
       }
+      consolidated_protocols: {
+        Row: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          competence_month: string
+          created_at: string
+          created_by: string | null
+          expense_count: number
+          id: string
+          metadata: Json | null
+          paid_at: string | null
+          payment_batch_id: string | null
+          payment_reference: string | null
+          protocol_number: string
+          provider_count: number
+          service_provider_protocol_ids: string[]
+          status: string
+          summary_data: Json | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          competence_month: string
+          created_at?: string
+          created_by?: string | null
+          expense_count?: number
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_batch_id?: string | null
+          payment_reference?: string | null
+          protocol_number: string
+          provider_count?: number
+          service_provider_protocol_ids?: string[]
+          status?: string
+          summary_data?: Json | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          competence_month?: string
+          created_at?: string
+          created_by?: string | null
+          expense_count?: number
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_batch_id?: string | null
+          payment_reference?: string | null
+          protocol_number?: string
+          provider_count?: number
+          service_provider_protocol_ids?: string[]
+          status?: string
+          summary_data?: Json | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cost_centers: {
         Row: {
           code: string | null
@@ -960,6 +1026,7 @@ export type Database = {
           phone: string | null
           pix_key: string | null
           projeto_cliente_id: string | null
+          service_provider_protocol_id: string | null
           status: Database["public"]["Enums"]["expense_status"]
           sub_category: string | null
           tipo_despesa: string | null
@@ -1003,6 +1070,7 @@ export type Database = {
           phone?: string | null
           pix_key?: string | null
           projeto_cliente_id?: string | null
+          service_provider_protocol_id?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
           sub_category?: string | null
           tipo_despesa?: string | null
@@ -1046,6 +1114,7 @@ export type Database = {
           phone?: string | null
           pix_key?: string | null
           projeto_cliente_id?: string | null
+          service_provider_protocol_id?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
           sub_category?: string | null
           tipo_despesa?: string | null
@@ -1087,6 +1156,13 @@ export type Database = {
             columns: ["projeto_cliente_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_service_provider_protocol_id_fkey"
+            columns: ["service_provider_protocol_id"]
+            isOneToOne: false
+            referencedRelation: "service_provider_protocols"
             referencedColumns: ["id"]
           },
         ]
@@ -2682,6 +2758,60 @@ export type Database = {
           },
         ]
       }
+      protocol_workflow_steps: {
+        Row: {
+          assigned_to: string | null
+          assigned_to_email: string | null
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          protocol_id: string
+          protocol_type: string
+          started_at: string | null
+          status: string
+          step_name: string
+          step_order: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          assigned_to_email?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          protocol_id: string
+          protocol_type: string
+          started_at?: string | null
+          status?: string
+          step_name: string
+          step_order: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          assigned_to_email?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          protocol_id?: string
+          protocol_type?: string
+          started_at?: string | null
+          status?: string
+          step_name?: string
+          step_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       registration_requests: {
         Row: {
           created_at: string | null
@@ -2829,6 +2959,122 @@ export type Database = {
         }
         Relationships: []
       }
+      service_provider_protocols: {
+        Row: {
+          competence_month: string
+          created_at: string
+          created_by: string | null
+          expense_count: number
+          expenses_data: Json
+          final_approval_notes: string | null
+          final_approved_at: string | null
+          final_approved_by: string | null
+          id: string
+          metadata: Json | null
+          paid_at: string | null
+          payment_batch_id: string | null
+          payment_reference: string | null
+          protocol_number: string
+          provider_agencia: string | null
+          provider_approval_ip: unknown | null
+          provider_approval_notes: string | null
+          provider_approved_at: string | null
+          provider_banco: string | null
+          provider_cnpj: string | null
+          provider_conta: string | null
+          provider_cpf: string | null
+          provider_email: string
+          provider_name: string
+          provider_phone: string | null
+          provider_pix_key: string | null
+          provider_tipo_conta: string | null
+          provider_token: string | null
+          provider_token_expires_at: string | null
+          status: string
+          supplier_id: string | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          competence_month: string
+          created_at?: string
+          created_by?: string | null
+          expense_count?: number
+          expenses_data?: Json
+          final_approval_notes?: string | null
+          final_approved_at?: string | null
+          final_approved_by?: string | null
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_batch_id?: string | null
+          payment_reference?: string | null
+          protocol_number: string
+          provider_agencia?: string | null
+          provider_approval_ip?: unknown | null
+          provider_approval_notes?: string | null
+          provider_approved_at?: string | null
+          provider_banco?: string | null
+          provider_cnpj?: string | null
+          provider_conta?: string | null
+          provider_cpf?: string | null
+          provider_email: string
+          provider_name: string
+          provider_phone?: string | null
+          provider_pix_key?: string | null
+          provider_tipo_conta?: string | null
+          provider_token?: string | null
+          provider_token_expires_at?: string | null
+          status?: string
+          supplier_id?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          competence_month?: string
+          created_at?: string
+          created_by?: string | null
+          expense_count?: number
+          expenses_data?: Json
+          final_approval_notes?: string | null
+          final_approved_at?: string | null
+          final_approved_by?: string | null
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_batch_id?: string | null
+          payment_reference?: string | null
+          protocol_number?: string
+          provider_agencia?: string | null
+          provider_approval_ip?: unknown | null
+          provider_approval_notes?: string | null
+          provider_approved_at?: string | null
+          provider_banco?: string | null
+          provider_cnpj?: string | null
+          provider_conta?: string | null
+          provider_cpf?: string | null
+          provider_email?: string
+          provider_name?: string
+          provider_phone?: string | null
+          provider_pix_key?: string | null
+          provider_tipo_conta?: string | null
+          provider_token?: string | null
+          provider_token_expires_at?: string | null
+          status?: string
+          supplier_id?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_provider_protocols_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sms_verification_logs: {
         Row: {
           attempts: number | null
@@ -2869,8 +3115,11 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          agencia: string | null
+          banco: string | null
           bank_info: Json | null
           cnpj: string | null
+          conta: string | null
           cpf: string | null
           created_at: string | null
           email: string | null
@@ -2880,12 +3129,16 @@ export type Database = {
           org_id: string | null
           phone: string | null
           pix_key: string | null
+          tipo_conta: string | null
           tipo_fornecedor: string | null
           updated_at: string | null
         }
         Insert: {
+          agencia?: string | null
+          banco?: string | null
           bank_info?: Json | null
           cnpj?: string | null
+          conta?: string | null
           cpf?: string | null
           created_at?: string | null
           email?: string | null
@@ -2895,12 +3148,16 @@ export type Database = {
           org_id?: string | null
           phone?: string | null
           pix_key?: string | null
+          tipo_conta?: string | null
           tipo_fornecedor?: string | null
           updated_at?: string | null
         }
         Update: {
+          agencia?: string | null
+          banco?: string | null
           bank_info?: Json | null
           cnpj?: string | null
+          conta?: string | null
           cpf?: string | null
           created_at?: string | null
           email?: string | null
@@ -2910,6 +3167,7 @@ export type Database = {
           org_id?: string | null
           phone?: string | null
           pix_key?: string | null
+          tipo_conta?: string | null
           tipo_fornecedor?: string | null
           updated_at?: string | null
         }
@@ -3304,6 +3562,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string[]
       }
+      generate_protocol_number: {
+        Args: {
+          p_competence_month: string
+          p_supplier_name?: string
+          p_type: string
+        }
+        Returns: string
+      }
       generate_sms_code: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -3319,6 +3585,10 @@ export type Database = {
           total_backups: number
           total_size_gb: number
         }[]
+      }
+      get_business_days_between: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: number
       }
       get_company_costs_view: {
         Args: Record<PropertyKey, never>
@@ -3351,6 +3621,10 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      is_protocol_delayed: {
+        Args: { p_current_step?: string; p_protocol_id: string }
+        Returns: boolean
       }
       log_mfa_event: {
         Args: { p_event_type: string; p_metadata?: Json }
