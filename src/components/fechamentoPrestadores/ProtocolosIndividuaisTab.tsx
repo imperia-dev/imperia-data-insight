@@ -1,0 +1,290 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ProtocolStatusBadge } from "./ProtocolStatusBadge";
+import { ProtocolActionsDropdown } from "./ProtocolActionsDropdown";
+import { ProtocolFilters } from "./ProtocolFilters";
+import { ProtocolDetailsDialog } from "./ProtocolDetailsDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { formatCurrency } from "@/lib/currency";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Plus, Download, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+
+export function ProtocolosIndividuaisTab() {
+  const [protocols, setProtocols] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [selectedProtocol, setSelectedProtocol] = useState<any>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [actionDialog, setActionDialog] = useState<{ open: boolean; action: string; protocol: any | null }>({
+    open: false,
+    action: "",
+    protocol: null
+  });
+
+  useEffect(() => {
+    fetchProtocols();
+    fetchSuppliers();
+  }, []);
+
+  const fetchProtocols = async (filters: any = {}) => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('service_provider_protocols')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (filters.competence) {
+        query = query.gte('competence_month', `${filters.competence}-01`)
+          .lte('competence_month', `${filters.competence}-31`);
+      }
+
+      if (filters.supplierId && filters.supplierId !== 'all') {
+        query = query.eq('supplier_id', filters.supplierId);
+      }
+
+      if (filters.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status);
+      }
+
+      if (filters.protocolNumber) {
+        query = query.ilike('protocol_number', `%${filters.protocolNumber}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setProtocols(data || []);
+    } catch (error: any) {
+      console.error('Error fetching protocols:', error);
+      toast.error("Erro ao carregar protocolos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      // Get all protocols and extract unique suppliers
+      const { data, error } = await supabase
+        .from('service_provider_protocols')
+        .select('*');
+
+      if (error) throw error;
+      
+      // Extract unique suppliers
+      const suppliersMap = new Map();
+      (data || []).forEach((protocol: any) => {
+        if (protocol.supplier_id && !suppliersMap.has(protocol.supplier_id)) {
+          suppliersMap.set(protocol.supplier_id, {
+            id: protocol.supplier_id,
+            name: protocol.expenses_data?.[0]?.fornecedor_name || 'Prestador'
+          });
+        }
+      });
+      
+      setSuppliers(Array.from(suppliersMap.values()));
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
+  const handleAction = async (action: string, protocol: any) => {
+    if (action === "details") {
+      setSelectedProtocol(protocol);
+      setDetailsDialogOpen(true);
+      return;
+    }
+
+    setActionDialog({ open: true, action, protocol });
+  };
+
+  const confirmAction = async () => {
+    const { action, protocol } = actionDialog;
+
+    try {
+      switch (action) {
+        case "send_approval":
+          await sendForApproval(protocol);
+          break;
+        case "approve_manual":
+        case "approve_final":
+          await approveProtocol(protocol);
+          break;
+        case "mark_paid":
+          await markAsPaid(protocol);
+          break;
+        case "cancel":
+          await cancelProtocol(protocol);
+          break;
+        case "resend_link":
+          await resendLink(protocol);
+          break;
+      }
+
+      fetchProtocols();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao executar ação");
+    } finally {
+      setActionDialog({ open: false, action: "", protocol: null });
+    }
+  };
+
+  const sendForApproval = async (protocol: any) => {
+    const { error } = await supabase
+      .from('service_provider_protocols')
+      .update({ status: 'awaiting_provider' })
+      .eq('id', protocol.id);
+
+    if (error) throw error;
+    toast.success("Protocolo enviado para aprovação do prestador");
+  };
+
+  const approveProtocol = async (protocol: any) => {
+    const { error } = await supabase
+      .from('service_provider_protocols')
+      .update({ status: 'approved', approved_at: new Date().toISOString() })
+      .eq('id', protocol.id);
+
+    if (error) throw error;
+    toast.success("Protocolo aprovado com sucesso");
+  };
+
+  const markAsPaid = async (protocol: any) => {
+    const { error } = await supabase
+      .from('service_provider_protocols')
+      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .eq('id', protocol.id);
+
+    if (error) throw error;
+    toast.success("Protocolo marcado como pago");
+  };
+
+  const cancelProtocol = async (protocol: any) => {
+    const { error } = await supabase
+      .from('service_provider_protocols')
+      .update({ status: 'cancelled' })
+      .eq('id', protocol.id);
+
+    if (error) throw error;
+    toast.success("Protocolo cancelado");
+  };
+
+  const resendLink = async (protocol: any) => {
+    // TODO: Implement email sending logic
+    toast.success("Link reenviado para o prestador");
+  };
+
+  return (
+    <div className="space-y-4">
+      <ProtocolFilters onFilterChange={fetchProtocols} suppliers={suppliers} />
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Protocolos Individuais</CardTitle>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+          ) : protocols.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum protocolo encontrado
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Protocolo</TableHead>
+                  <TableHead>Prestador</TableHead>
+                  <TableHead>Competência</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Qtd Despesas</TableHead>
+                  <TableHead className="text-center">Aprovado?</TableHead>
+                  <TableHead className="text-center">Pago?</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {protocols.map((protocol) => (
+                  <TableRow key={protocol.id}>
+                    <TableCell className="font-mono text-sm">{protocol.protocol_number}</TableCell>
+                    <TableCell>{protocol.supplier_name}</TableCell>
+                    <TableCell>{format(new Date(protocol.competence_month), "MMM/yyyy", { locale: ptBR })}</TableCell>
+                    <TableCell>
+                      <ProtocolStatusBadge status={protocol.status} />
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {formatCurrency(protocol.total_amount || 0)}
+                    </TableCell>
+                    <TableCell>{protocol.expense_count || 0}</TableCell>
+                    <TableCell className="text-center">
+                      {protocol.provider_approved_at ? (
+                        <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {protocol.paid_at ? (
+                        <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ProtocolActionsDropdown 
+                        protocol={protocol}
+                        onAction={handleAction}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <ProtocolDetailsDialog
+        protocol={selectedProtocol}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
+
+      <AlertDialog open={actionDialog.open} onOpenChange={(open) => !open && setActionDialog({ open: false, action: "", protocol: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Ação</AlertDialogTitle>
+            <AlertDialogDescription>
+              {actionDialog.action === "send_approval" && "Deseja enviar este protocolo para aprovação do prestador?"}
+              {actionDialog.action === "approve_manual" && "Deseja aprovar manualmente este protocolo?"}
+              {actionDialog.action === "approve_final" && "Deseja realizar a aprovação final deste protocolo?"}
+              {actionDialog.action === "mark_paid" && "Deseja marcar este protocolo como pago?"}
+              {actionDialog.action === "cancel" && "Deseja cancelar este protocolo? Esta ação não pode ser desfeita."}
+              {actionDialog.action === "resend_link" && "Deseja reenviar o link de aprovação para o prestador?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmAction}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

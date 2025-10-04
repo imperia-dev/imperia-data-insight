@@ -24,6 +24,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/dashboard-financeiro',
     '/fechamento',
     '/fechamento-despesas',
+    '/fechamento-prestadores',
     '/payment-request',
     '/payment-receipts',
     '/btg-integration',

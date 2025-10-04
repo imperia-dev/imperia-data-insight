@@ -100,6 +100,12 @@ const navigationGroups: NavigationGroup[] = [
         roles: ["owner"],
       },
       {
+        title: "Fechamento Prestadores",
+        icon: Users,
+        href: "/fechamento-prestadores",
+        roles: ["owner"],
+      },
+      {
         title: "Solicitação de Pagamento",
         icon: Send,
         href: "/payment-request",

@@ -47,6 +47,7 @@ import Leads from "./pages/Leads";
 import CollaboratorsKPI from "./pages/CollaboratorsKPI";
 import Chat from "./pages/Chat";
 import TranslationOrders from "./pages/TranslationOrders";
+import FechamentoPrestadores from "./pages/FechamentoPrestadores";
 
 const queryClient = new QueryClient();
 
@@ -232,6 +233,11 @@ const App = () => (
             <Route path="/translation-orders" element={
               <ProtectedRouteWithApproval>
                 <TranslationOrders />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/fechamento-prestadores" element={
+              <ProtectedRouteWithApproval>
+                <FechamentoPrestadores />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
