@@ -23,6 +23,21 @@ export function ProtocolStatusBadge({ status, className }: ProtocolStatusBadgePr
       variant: "default" as const,
       className: "bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/50"
     },
+    awaiting_master_initial: {
+      label: "Aguard. Master Inicial",
+      variant: "default" as const,
+      className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/50"
+    },
+    awaiting_master_final: {
+      label: "Aguard. Master Final",
+      variant: "default" as const,
+      className: "bg-orange-500/20 text-orange-700 dark:text-orange-400 border-orange-500/50"
+    },
+    awaiting_owner_approval: {
+      label: "Aguard. Owner",
+      variant: "default" as const,
+      className: "bg-purple-500/20 text-purple-700 dark:text-purple-400 border-purple-500/50"
+    },
     awaiting_final: {
       label: "Aguard. Aprovação Final",
       variant: "default" as const,
