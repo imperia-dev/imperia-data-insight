@@ -173,12 +173,11 @@ Alex - Admin.`);
   const fetchProtocols = async () => {
     setLoading(true);
     try {
-      // Fetch production protocols - exclude already requested
+      // Fetch production protocols - show all pending (requested or not)
       const { data: productionData, error: prodError } = await supabase
         .from('closing_protocols')
         .select('*')
         .eq('payment_status', 'pending')
-        .is('payment_requested_at', null)
         .order('created_at', { ascending: false });
 
       // Fetch expense protocols
