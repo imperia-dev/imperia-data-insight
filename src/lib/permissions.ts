@@ -39,7 +39,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/collaborators-kpi',
     '/chat',
     '/leads',
-    '/translation-orders'
+    '/translation-orders',
+    '/owner-final-approval'
   ],
   master: [
     '/',
