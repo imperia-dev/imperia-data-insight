@@ -23,6 +23,15 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
   const expensesData = protocol.expenses_data || [];
   const workflowSteps = protocol.workflow_steps || [];
 
+  const formatDate = (date: string | null | undefined, formatString: string = "dd/MM/yyyy 'às' HH:mm") => {
+    if (!date) return "N/A";
+    try {
+      return format(new Date(date), formatString, { locale: ptBR });
+    } catch {
+      return "Data inválida";
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -31,7 +40,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
             <div>
               <DialogTitle className="text-2xl">{protocol.protocol_number}</DialogTitle>
               <DialogDescription>
-                Competência: {format(new Date(protocol.competence_month), "MMMM 'de' yyyy", { locale: ptBR })}
+                Competência: {formatDate(protocol.competence_month, "MMMM 'de' yyyy")}
               </DialogDescription>
             </div>
             <ProtocolStatusBadge status={protocol.status} />
@@ -139,7 +148,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
                       expensesData.map((expense: any, index: number) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{expense.description}</TableCell>
-                          <TableCell>{format(new Date(expense.data_competencia), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                          <TableCell>{formatDate(expense.data_competencia, "dd/MM/yyyy")}</TableCell>
                           <TableCell>{expense.tipo_fornecedor}</TableCell>
                           <TableCell className="text-right">{formatCurrency(expense.amount_base || expense.amount_original || 0)}</TableCell>
                           <TableCell>
@@ -185,7 +194,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
                     <div>
                       <p className="text-sm font-medium">Protocolo criado</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(protocol.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {formatDate(protocol.created_at)}
                       </p>
                     </div>
                   </div>
@@ -196,7 +205,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
                       <div>
                         <p className="text-sm font-medium">Protocolo aprovado</p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(protocol.approved_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          {formatDate(protocol.approved_at)}
                         </p>
                       </div>
                     </div>
@@ -208,7 +217,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
                       <div>
                         <p className="text-sm font-medium">Pagamento realizado</p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(protocol.paid_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          {formatDate(protocol.paid_at)}
                         </p>
                       </div>
                     </div>
@@ -220,7 +229,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
                       <div>
                         <p className="text-sm font-medium">Protocolo cancelado</p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(protocol.cancelled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          {formatDate(protocol.cancelled_at)}
                         </p>
                       </div>
                     </div>
