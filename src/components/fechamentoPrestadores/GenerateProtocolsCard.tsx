@@ -88,8 +88,8 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
       
       const providers = data.providers || [];
       setPreview(providers);
-      // Auto-select all providers
-      setSelectedProviders(new Set(providers.map((p: ProviderPreview) => p.supplier_id)));
+      // Start with no providers selected - user must select manually
+      setSelectedProviders(new Set());
       setPreviewDialogOpen(true);
     } catch (error: any) {
       console.error('Error fetching preview:', error);
