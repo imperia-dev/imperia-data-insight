@@ -112,6 +112,12 @@ const navigationGroups: NavigationGroup[] = [
         roles: ["master"],
       },
       {
+        title: "Aprovação Final Owner",
+        icon: CheckCircle,
+        href: "/owner-final-approval",
+        roles: ["owner"],
+      },
+      {
         title: "Solicitação de Pagamento",
         icon: Send,
         href: "/payment-request",

@@ -49,6 +49,7 @@ import Chat from "./pages/Chat";
 import TranslationOrders from "./pages/TranslationOrders";
 import FechamentoPrestadores from "./pages/FechamentoPrestadores";
 import MasterProtocolApprovals from "./pages/MasterProtocolApprovals";
+import OwnerFinalApproval from "./pages/OwnerFinalApproval";
 
 const queryClient = new QueryClient();
 
@@ -244,6 +245,11 @@ const App = () => (
             <Route path="/master-protocol-approvals" element={
               <ProtectedRouteWithApproval>
                 <MasterProtocolApprovals />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/owner-final-approval" element={
+              <ProtectedRouteWithApproval>
+                <OwnerFinalApproval />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
