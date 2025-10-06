@@ -36,8 +36,8 @@ export function WorkflowAtrasoTab() {
         .from('protocol_workflow_steps')
         .select(`
           *,
-          protocol:service_provider_protocols(protocol_number),
-          assigned:profiles!protocol_workflow_steps_assigned_to_fkey(full_name)
+          service_provider_protocols!protocol_workflow_steps_protocol_id_fkey(protocol_number),
+          profiles(full_name)
         `)
         .order('started_at', { ascending: false });
 
@@ -129,14 +129,14 @@ export function WorkflowAtrasoTab() {
   };
 
   const getAssignedName = (step: any) => {
-    if (step.assigned?.full_name) {
-      return step.assigned.full_name;
+    if (step.profiles?.full_name) {
+      return step.profiles.full_name;
     }
     return step.assigned_to ? 'Não atribuído' : '-';
   };
 
   const getProtocolNumber = (step: any) => {
-    return step.protocol?.protocol_number || step.protocol_id?.substring(0, 8) || '-';
+    return step.service_provider_protocols?.protocol_number || step.protocol_id?.substring(0, 8) || '-';
   };
 
   return (
