@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
@@ -28,6 +29,7 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [monthOptions, setMonthOptions] = useState<{ value: string; label: string }[]>([]);
   const [providers, setProviders] = useState<{ id: string; name: string }[]>([]);
+  const [selectedProviders, setSelectedProviders] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Generate last 12 months options
@@ -84,7 +86,10 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
 
       if (error) throw error;
       
-      setPreview(data.providers || []);
+      const providers = data.providers || [];
+      setPreview(providers);
+      // Auto-select all providers
+      setSelectedProviders(new Set(providers.map((p: ProviderPreview) => p.supplier_id)));
       setPreviewDialogOpen(true);
     } catch (error: any) {
       console.error('Error fetching preview:', error);
@@ -100,19 +105,30 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
       return;
     }
 
+    if (selectedProviders.size === 0) {
+      toast.error("Selecione pelo menos um prestador");
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-provider-protocols', {
-        body: { 
-          competence: selectedMonth,
-          preview: false,
-          provider_id: selectedProvider === 'all' ? null : selectedProvider
-        }
-      });
+      // Generate protocols only for selected providers
+      const results = await Promise.all(
+        Array.from(selectedProviders).map(async (providerId) => {
+          const { data, error } = await supabase.functions.invoke('generate-provider-protocols', {
+            body: { 
+              competence: selectedMonth,
+              preview: false,
+              provider_id: providerId
+            }
+          });
+          if (error) throw error;
+          return data;
+        })
+      );
 
-      if (error) throw error;
-      
-      const { created, skipped } = data;
+      const created = results.reduce((sum, r) => sum + (r.created || 0), 0);
+      const skipped = results.reduce((sum, r) => sum + (r.skipped || 0), 0);
       
       if (created > 0) {
         toast.success(`${created} protocolo(s) gerado(s) com sucesso!`);
@@ -127,6 +143,7 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
       }
       
       setPreviewDialogOpen(false);
+      setSelectedProviders(new Set());
       onProtocolsGenerated?.();
     } catch (error: any) {
       console.error('Error generating protocols:', error);
@@ -136,9 +153,30 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
     }
   };
 
-  const totalProviders = preview.length;
-  const totalAmount = preview.reduce((sum, p) => sum + p.total_amount, 0);
-  const totalDocs = preview.reduce((sum, p) => sum + p.expense_count, 0);
+  const toggleProviderSelection = (supplierId: string) => {
+    setSelectedProviders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(supplierId)) {
+        newSet.delete(supplierId);
+      } else {
+        newSet.add(supplierId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProviders.size === preview.length) {
+      setSelectedProviders(new Set());
+    } else {
+      setSelectedProviders(new Set(preview.map(p => p.supplier_id)));
+    }
+  };
+
+  const selectedPreview = preview.filter(p => selectedProviders.has(p.supplier_id));
+  const totalProviders = selectedPreview.length;
+  const totalAmount = selectedPreview.reduce((sum, p) => sum + p.total_amount, 0);
+  const totalDocs = selectedPreview.reduce((sum, p) => sum + p.expense_count, 0);
 
   return (
     <>
@@ -282,6 +320,12 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedProviders.size === preview.length && preview.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Prestador</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead className="text-center">Documentos</TableHead>
@@ -291,6 +335,12 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
                 <TableBody>
                   {preview.map((provider, index) => (
                     <TableRow key={index}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedProviders.has(provider.supplier_id)}
+                          onCheckedChange={() => toggleProviderSelection(provider.supplier_id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{provider.provider_name}</TableCell>
                       <TableCell className="text-muted-foreground">{provider.provider_email}</TableCell>
                       <TableCell className="text-center">{provider.expense_count}</TableCell>
@@ -310,7 +360,7 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
             </Button>
             <Button 
               onClick={generateProtocols}
-              disabled={preview.length === 0 || loading}
+              disabled={selectedProviders.size === 0 || loading}
             >
               {loading ? (
                 <>
@@ -318,7 +368,7 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
                   Gerando...
                 </>
               ) : (
-                `Gerar ${totalProviders} Protocolo(s)`
+                `Gerar ${selectedProviders.size} Protocolo(s) Selecionado(s)`
               )}
             </Button>
           </DialogFooter>
