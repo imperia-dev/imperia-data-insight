@@ -620,37 +620,54 @@ Alex - Admin.`);
         .from('payment-receipts')
         .getPublicUrl(filePath);
 
-      // 2. Insert payment receipt record
-      const { error: receiptError } = await supabase
-        .from('payment_receipts')
-        .insert({
-          protocol_id: selectedProtocolForPayment.id,
-          receipt_number: receiptNumber || null,
-          receipt_date: paymentDate,
-          amount: parseFloat(paymentAmount),
-          payment_method: paymentMethod,
-          bank_reference: bankReference || null,
-          file_url: publicUrl,
-          validated: true,
-          validated_at: new Date().toISOString(),
-          validated_by: user?.id,
-          created_by: user?.id
-        });
+      // 2. Insert payment receipt record (only for production/closing_protocols type)
+      if (selectedProtocolForPayment.type === 'production') {
+        const { error: receiptError } = await supabase
+          .from('payment_receipts')
+          .insert({
+            protocol_id: selectedProtocolForPayment.id,
+            receipt_number: receiptNumber || null,
+            receipt_date: paymentDate,
+            amount: parseFloat(paymentAmount),
+            payment_method: paymentMethod,
+            bank_reference: bankReference || null,
+            file_url: publicUrl,
+            validated: true,
+            validated_at: new Date().toISOString(),
+            validated_by: user?.id,
+            created_by: user?.id
+          });
 
-      if (receiptError) throw receiptError;
+        if (receiptError) throw receiptError;
+      }
 
-      // 3. Update protocol status
-      const { error: updateError } = await supabase
-        .from('closing_protocols')
-        .update({
-          payment_status: 'paid',
-          payment_received_at: new Date().toISOString(),
-          payment_amount: parseFloat(paymentAmount),
-          receipt_url: publicUrl
-        })
-        .eq('id', selectedProtocolForPayment.id);
+      // 3. Update protocol status based on type
+      const updateData = {
+        payment_status: 'paid',
+        payment_received_at: new Date().toISOString(),
+        payment_amount: parseFloat(paymentAmount),
+        receipt_url: publicUrl
+      };
 
-      if (updateError) throw updateError;
+      if (selectedProtocolForPayment.type === 'production') {
+        const { error: updateError } = await supabase
+          .from('closing_protocols')
+          .update(updateData)
+          .eq('id', selectedProtocolForPayment.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // For expense protocols, update status to 'closed'
+        const { error: updateError } = await supabase
+          .from('expense_closing_protocols')
+          .update({
+            status: 'closed',
+            ...updateData
+          })
+          .eq('id', selectedProtocolForPayment.id);
+
+        if (updateError) throw updateError;
+      }
 
       toast({
         title: "Sucesso!",
