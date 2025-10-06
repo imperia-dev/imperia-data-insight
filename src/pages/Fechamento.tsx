@@ -258,13 +258,17 @@ export default function Fechamento() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-primary">Fechamento de Receitas</h2>
-          <p className="text-muted-foreground">Análise de dados pré-fechamento</p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole} />
+      <div className={mainContainerClass}>
+        <Header userName={userName} userRole={userRole} />
+        <main className="container mx-auto p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-primary">Fechamento de Receitas</h2>
+              <p className="text-muted-foreground">Análise de dados pré-fechamento</p>
+            </div>
+          </div>
 
       {currentStep === "upload" && (
               <Card>
@@ -555,6 +559,8 @@ export default function Fechamento() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </main>
       </div>
+    </div>
   );
 }

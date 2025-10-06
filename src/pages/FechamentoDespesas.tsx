@@ -607,25 +607,31 @@ function FechamentoDespesasContent() {
       .reduce((sum, e) => sum + Number(e.amount_base || e.amount_original || 0), 0);
   };
 
+  const { mainContainerClass } = useSidebarOffset();
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Fechamento de Despesas</h2>
-          <p className="text-muted-foreground mt-2">
-            Consolidação e fechamento mensal de despesas
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setHistoryOpen(!historyOpen)}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Histórico
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole} />
+      <div className={mainContainerClass}>
+        <Header userName={userName} userRole={userRole} />
+        <main className="container mx-auto p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Fechamento de Despesas</h2>
+              <p className="text-muted-foreground mt-2">
+                Consolidação e fechamento mensal de despesas
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setHistoryOpen(!historyOpen)}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Histórico
+              </Button>
+            </div>
+          </div>
 
       <Tabs value={currentStep} onValueChange={(v) => setCurrentStep(v as any)} className="w-full">
         <TabsList className="grid w-full grid-cols-4 mb-6">
@@ -1522,6 +1528,8 @@ function FechamentoDespesasContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </main>
+      </div>
     </div>
   );
 }
