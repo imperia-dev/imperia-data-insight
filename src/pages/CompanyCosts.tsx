@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown, Upload, Paperclip, Download, X, Calendar, FolderOpen, List, MessageSquare, DollarSign, Settings, Eye, CircleCheck, Clock, AlertCircle, Receipt } from "lucide-react";
+import { Plus, Edit, Trash2, FileSpreadsheet, FileText, ArrowUpDown, Upload, Paperclip, Download, X, Calendar, FolderOpen, List, MessageSquare, DollarSign, Settings, Eye, CircleCheck, Clock, AlertCircle, Receipt, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,6 +79,14 @@ export default function CompanyCosts() {
   const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]);
   const [costCenters, setCostCenters] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  
+  // Payment dialog states
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedCostForPayment, setSelectedCostForPayment] = useState<CompanyCost | null>(null);
+  const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [paymentObservations, setPaymentObservations] = useState("");
+  
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     category: "",
@@ -341,6 +349,34 @@ export default function CompanyCosts() {
     } catch (error) {
       console.error('Error deleting cost:', error);
       toast.error("Erro ao excluir custo");
+    }
+  };
+
+  const handleMarkAsPaid = async () => {
+    if (!selectedCostForPayment) return;
+
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          status: 'pago',
+          data_pagamento: paymentDate,
+          payment_method: paymentMethod,
+          observations: paymentObservations 
+            ? `${selectedCostForPayment.observations || ''}\n\nPagamento: ${paymentObservations}`.trim()
+            : selectedCostForPayment.observations
+        })
+        .eq('id', selectedCostForPayment.id);
+
+      if (error) throw error;
+
+      toast.success("Custo marcado como pago!");
+      setPaymentDialogOpen(false);
+      setSelectedCostForPayment(null);
+      fetchCosts();
+    } catch (error) {
+      console.error('Error marking as paid:', error);
+      toast.error("Erro ao marcar custo como pago");
     }
   };
 
@@ -1241,6 +1277,24 @@ export default function CompanyCosts() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
+                          {/* Marcar como Pago button - only show for open expenses */}
+                          {(!cost.status || cost.status === 'lancado') && !cost.closing_protocol_id && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedCostForPayment(cost);
+                                setPaymentDate(format(new Date(), 'yyyy-MM-dd'));
+                                setPaymentMethod('pix');
+                                setPaymentObservations('');
+                                setPaymentDialogOpen(true);
+                              }}
+                              title="Marcar como Pago"
+                              className="hover:bg-green-100 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400 transition-colors h-8 w-8 p-0"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1357,6 +1411,97 @@ export default function CompanyCosts() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Payment Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Marcar como Pago</DialogTitle>
+          </DialogHeader>
+          {selectedCostForPayment && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Descrição:</span>
+                  <span className="font-medium">{selectedCostForPayment.description}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Valor:</span>
+                  <span className="font-bold text-lg">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL'
+                    }).format(selectedCostForPayment.amount)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="payment_date">Data do Pagamento *</Label>
+                  <Input
+                    id="payment_date"
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="payment_method">Forma de Pagamento *</Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pix">PIX</SelectItem>
+                      <SelectItem value="ted">TED</SelectItem>
+                      <SelectItem value="doc">DOC</SelectItem>
+                      <SelectItem value="boleto">Boleto</SelectItem>
+                      <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                      <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                      <SelectItem value="outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="payment_observations">Observações</Label>
+                  <Textarea
+                    id="payment_observations"
+                    value={paymentObservations}
+                    onChange={(e) => setPaymentObservations(e.target.value)}
+                    placeholder="Informações adicionais sobre o pagamento (opcional)"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPaymentDialogOpen(false);
+                    setSelectedCostForPayment(null);
+                  }}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleMarkAsPaid}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Marcar como Pago
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
