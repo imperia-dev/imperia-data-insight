@@ -71,8 +71,8 @@ export default function OwnerFinalApproval() {
         .from("service_provider_protocols")
         .update({
           status: "approved",
-          owner_final_approved_by: (await supabase.auth.getUser()).data.user?.id,
-          owner_final_approved_at: new Date().toISOString(),
+          approved_by: (await supabase.auth.getUser()).data.user?.id,
+          approved_at: new Date().toISOString(),
         })
         .eq("id", protocolId);
 
