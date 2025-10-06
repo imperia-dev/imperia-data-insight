@@ -9,7 +9,9 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useLocation, Navigate } from "react-router-dom";
-import { Send, Eye, CheckCircle2 } from "lucide-react";
+import { Send, Eye, CheckCircle2, Upload, FileCheck, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { ProtocolDetailsDialog } from "@/components/fechamentoPrestadores/ProtocolDetailsDialog";
@@ -44,6 +46,8 @@ export default function PaymentProcessing() {
   const [selectedProtocol, setSelectedProtocol] = useState<Protocol | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
+  const [protocolReceipts, setProtocolReceipts] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     fetchProtocols();
@@ -59,7 +63,17 @@ export default function PaymentProcessing() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
       setProtocols(data || []);
+      
+      // Initialize receipt map with existing receipt URLs  
+      const receiptsMap = new Map<string, string>();
+      (data || []).forEach((protocol: any) => {
+        if (protocol.payment_receipt_url) {
+          receiptsMap.set(protocol.id, protocol.payment_receipt_url);
+        }
+      });
+      setProtocolReceipts(receiptsMap);
     } catch (error: any) {
       toast.error("Erro ao carregar protocolos", {
         description: error.message,
@@ -120,12 +134,20 @@ export default function PaymentProcessing() {
   };
 
   const handleMarkAsPaid = async (protocolId: string) => {
+    const receiptUrl = protocolReceipts.get(protocolId);
+    
+    if (!receiptUrl) {
+      toast.error("Por favor, envie o comprovante antes de marcar como pago");
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from("service_provider_protocols")
         .update({ 
           status: "paid",
-          paid_at: new Date().toISOString()
+          paid_at: new Date().toISOString(),
+          payment_receipt_url: receiptUrl
         })
         .eq("id", protocolId);
 
@@ -136,6 +158,61 @@ export default function PaymentProcessing() {
     } catch (error: any) {
       toast.error("Erro ao marcar como pago", {
         description: error.message,
+      });
+    }
+  };
+
+  const handleFileUpload = async (protocolId: string, file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Apenas arquivos PDF, JPG ou PNG são permitidos");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("O arquivo deve ter no máximo 5MB");
+      return;
+    }
+
+    setUploadingFiles(prev => new Set(prev).add(protocolId));
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${protocolId}-${Date.now()}.${fileExt}`;
+      const filePath = `receipts/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('payment-receipts')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-receipts')
+        .getPublicUrl(filePath);
+
+      // Update protocol with receipt URL
+      const { error: updateError } = await supabase
+        .from("service_provider_protocols")
+        .update({ payment_receipt_url: publicUrl })
+        .eq("id", protocolId);
+
+      if (updateError) throw updateError;
+
+      setProtocolReceipts(prev => new Map(prev).set(protocolId, publicUrl));
+      toast.success("Comprovante enviado com sucesso");
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      toast.error(error.message || "Erro ao enviar comprovante");
+    } finally {
+      setUploadingFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(protocolId);
+        return newSet;
       });
     }
   };
@@ -230,6 +307,7 @@ export default function PaymentProcessing() {
                         <TableHead>Fornecedor</TableHead>
                         <TableHead>Competência</TableHead>
                         <TableHead>Valor Total</TableHead>
+                        <TableHead>Comprovante</TableHead>
                         <TableHead>Dados Bancários</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -262,6 +340,53 @@ export default function PaymentProcessing() {
                             }).format(protocol.total_amount)}
                           </TableCell>
                           <TableCell>
+                            <div className="flex flex-col gap-2">
+                              {protocolReceipts.has(protocol.id) ? (
+                                <div className="flex items-center gap-2 text-sm text-green-600">
+                                  <FileCheck className="h-4 w-4" />
+                                  <span>Enviado</span>
+                                  <a 
+                                    href={protocolReceipts.get(protocol.id)} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-primary underline"
+                                  >
+                                    Ver
+                                  </a>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <Label htmlFor={`file-${protocol.id}`} className="cursor-pointer">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                                      {uploadingFiles.has(protocol.id) ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                          <span>Enviando...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Upload className="h-4 w-4" />
+                                          <span>Enviar</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </Label>
+                                  <Input
+                                    id={`file-${protocol.id}`}
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    className="hidden"
+                                    disabled={uploadingFiles.has(protocol.id)}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleFileUpload(protocol.id, file);
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
                             <div className="text-sm space-y-1">
                               {protocol.bank_name && (
                                 <p><span className="font-medium">Banco:</span> {protocol.bank_name}</p>
@@ -290,6 +415,7 @@ export default function PaymentProcessing() {
                               variant="default"
                               size="sm"
                               onClick={() => handleMarkAsPaid(protocol.id)}
+                              disabled={!protocolReceipts.has(protocol.id)}
                             >
                               <CheckCircle2 className="h-4 w-4 mr-1" />
                               Marcar como Pago
