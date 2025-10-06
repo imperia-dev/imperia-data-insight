@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
-import { format, startOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { GitMerge, AlertTriangle, CheckCircle, DollarSign, FileDown, Building2 } from "lucide-react";
 import { ProtocolStatusBadge } from "./ProtocolStatusBadge";
@@ -28,12 +28,15 @@ export function ProtocoloConsolidadoTab() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const monthStart = `${selectedMonth}-01`;
+      const monthEnd = format(endOfMonth(new Date(monthStart)), 'yyyy-MM-dd');
+      
       // Fetch consolidated protocol for the month
       const { data: consolidated, error: consError } = await supabase
         .from('consolidated_protocols')
         .select('*')
-        .gte('competence_month', `${selectedMonth}-01`)
-        .lte('competence_month', `${selectedMonth}-31`)
+        .gte('competence_month', monthStart)
+        .lte('competence_month', monthEnd)
         .maybeSingle();
 
       if (consError) throw consError;
@@ -44,8 +47,8 @@ export function ProtocoloConsolidadoTab() {
       const { data: individual, error: indError } = await supabase
         .from('service_provider_protocols')
         .select('*')
-        .gte('competence_month', `${selectedMonth}-01`)
-        .lte('competence_month', `${selectedMonth}-31`)
+        .gte('competence_month', monthStart)
+        .lte('competence_month', monthEnd)
         .order('provider_name');
 
       if (indError) throw indError;
