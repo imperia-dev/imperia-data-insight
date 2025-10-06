@@ -465,7 +465,7 @@ export default function Wallet() {
                 <CardContent className="space-y-3 text-sm text-blue-900 dark:text-blue-100">
                   <div className="flex items-start gap-2">
                     <div className="rounded-full bg-blue-200 dark:bg-blue-900 w-6 h-6 flex items-center justify-center flex-shrink-0 font-bold">1</div>
-                    <p><strong>Geração:</strong> A administração gera os protocolos mensalmente com base nas suas despesas.</p>
+                    <p><strong>Geração:</strong> A administração gera os protocolos mensalmente com base nas suas entregas.</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="rounded-full bg-blue-200 dark:bg-blue-900 w-6 h-6 flex items-center justify-center flex-shrink-0 font-bold">2</div>
