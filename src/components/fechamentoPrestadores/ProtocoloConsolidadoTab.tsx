@@ -28,8 +28,10 @@ export function ProtocoloConsolidadoTab() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const [year, month] = selectedMonth.split('-');
       const monthStart = `${selectedMonth}-01`;
-      const monthEnd = format(endOfMonth(new Date(monthStart)), 'yyyy-MM-dd');
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const monthEnd = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
       
       // Fetch consolidated protocol for the month
       const { data: consolidated, error: consError } = await supabase
