@@ -23,6 +23,7 @@ import { Send, FileText, AlertCircle, Loader2, DollarSign, Calendar, Hash, Check
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ManageRecipientsDialog } from "@/components/payment/ManageRecipientsDialog";
+import { ManageMessageTemplatesDialog } from "@/components/payment/ManageMessageTemplatesDialog";
 
 interface Protocol {
   id: string;
@@ -82,11 +83,21 @@ export default function PaymentRequest() {
   const [bankReference, setBankReference] = useState("");
   const [paymentObservations, setPaymentObservations] = useState("");
 
+  // Custom templates state
+  const [customTemplates, setCustomTemplates] = useState<Array<{
+    id: string;
+    name: string;
+    subject: string;
+    message: string;
+    is_default: boolean;
+  }>>([]);
+
   useEffect(() => {
     fetchProtocols();
     fetchUserInfo();
     fetchUserRole();
     fetchRecipientEmails();
+    fetchCustomTemplates();
   }, [user]);
 
   // Update subject and message when protocols are selected
@@ -153,6 +164,22 @@ Alex - Admin.`);
       }
     } catch (error) {
       console.error('Error fetching recipient emails:', error);
+    }
+  };
+
+  const fetchCustomTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('payment_message_templates')
+        .select('id, name, subject, message, is_default')
+        .order('is_default', { ascending: false })
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      
+      setCustomTemplates(data || []);
+    } catch (error) {
+      console.error('Error fetching custom templates:', error);
     }
   };
 
@@ -893,9 +920,13 @@ Alex - Admin.`);
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="template">Modelo de Mensagem</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="template">Modelo de Mensagem</Label>
+                <ManageMessageTemplatesDialog />
+              </div>
               <Select 
                 onValueChange={(value) => {
+                  // Check if it's a predefined template
                   if (value === 'formal') {
                     setMessage(`Prezados,
 
@@ -942,6 +973,13 @@ Por favor, confirmem o recebimento e o prazo para conclusão do processo.
 
 Atenciosamente,
 ${userEmail || 'Equipe Imperia'}`);
+                  } else {
+                    // Check if it's a custom template
+                    const customTemplate = customTemplates.find(t => t.id === value);
+                    if (customTemplate) {
+                      setSubject(customTemplate.subject);
+                      setMessage(customTemplate.message);
+                    }
                   }
                 }}
               >
@@ -949,10 +987,23 @@ ${userEmail || 'Equipe Imperia'}`);
                   <SelectValue placeholder="Escolha um modelo (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="formal">Formal</SelectItem>
-                  <SelectItem value="friendly">Amigável</SelectItem>
-                  <SelectItem value="urgent">Urgente</SelectItem>
-                  <SelectItem value="reminder">Lembrete</SelectItem>
+                  <SelectItem value="formal">📝 Formal</SelectItem>
+                  <SelectItem value="friendly">😊 Amigável</SelectItem>
+                  <SelectItem value="urgent">⚡ Urgente</SelectItem>
+                  <SelectItem value="reminder">🔔 Lembrete</SelectItem>
+                  {customTemplates.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">
+                        Meus Modelos
+                      </div>
+                      {customTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.is_default && "⭐ "}
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
