@@ -3692,6 +3692,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      sync_protocol_workflow_steps: {
+        Args: { p_protocol_id: string }
+        Returns: undefined
+      }
       test_backup: {
         Args: Record<PropertyKey, never>
         Returns: undefined

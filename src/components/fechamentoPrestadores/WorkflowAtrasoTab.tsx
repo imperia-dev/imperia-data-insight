@@ -34,7 +34,11 @@ export function WorkflowAtrasoTab() {
     try {
       let query = supabase
         .from('protocol_workflow_steps')
-        .select('*')
+        .select(`
+          *,
+          protocol:service_provider_protocols(protocol_number),
+          assigned:profiles!protocol_workflow_steps_assigned_to_fkey(full_name)
+        `)
         .order('started_at', { ascending: false });
 
       if (filters.protocolType !== 'all') {
@@ -111,6 +115,28 @@ export function WorkflowAtrasoTab() {
     const endDate = step.completed_at ? new Date(step.completed_at) : new Date();
     const startDate = new Date(step.started_at);
     return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const getStepLabel = (stepName: string) => {
+    const labels: Record<string, string> = {
+      provider_validation: 'Validação do Prestador',
+      master_initial_approval: 'Aprovação Master Inicial',
+      master_final_approval: 'Aprovação Master Final',
+      owner_approval: 'Aprovação Owner',
+      payment: 'Pagamento',
+    };
+    return labels[stepName] || stepName;
+  };
+
+  const getAssignedName = (step: any) => {
+    if (step.assigned?.full_name) {
+      return step.assigned.full_name;
+    }
+    return step.assigned_to ? 'Não atribuído' : '-';
+  };
+
+  const getProtocolNumber = (step: any) => {
+    return step.protocol?.protocol_number || step.protocol_id?.substring(0, 8) || '-';
   };
 
   return (
@@ -246,18 +272,20 @@ export function WorkflowAtrasoTab() {
               <TableBody>
                 {steps.map((step) => (
                   <TableRow key={step.id}>
-                    <TableCell className="font-mono text-sm">{step.protocol_id}</TableCell>
-                    <TableCell>{step.step_name}</TableCell>
+                    <TableCell className="font-medium">
+                      {getProtocolNumber(step)}
+                    </TableCell>
+                    <TableCell>{getStepLabel(step.step_name)}</TableCell>
                     <TableCell>
                       <Badge variant={
                         step.status === 'completed' ? 'default' :
                         step.status === 'in_progress' ? 'secondary' :
                         'outline'
                       }>
-                        {step.status}
+                        {step.status === 'completed' ? 'Concluído' : step.status === 'pending' ? 'Pendente' : step.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{step.assigned_to || '-'}</TableCell>
+                    <TableCell>{getAssignedName(step)}</TableCell>
                     <TableCell>{format(new Date(step.started_at), "dd/MM HH:mm", { locale: ptBR })}</TableCell>
                     <TableCell>
                       {step.completed_at ? format(new Date(step.completed_at), "dd/MM HH:mm", { locale: ptBR }) : '-'}
