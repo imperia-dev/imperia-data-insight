@@ -11,6 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { CheckCircle, XCircle, Eye } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { usePageLayout } from "@/hooks/usePageLayout";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 interface Protocol {
   id: string;
@@ -249,12 +253,20 @@ export default function MasterProtocolApprovals() {
     </Table>
   );
 
+  const { mainContainerClass } = usePageLayout();
+  const { userRole } = useRoleAccess('/master-protocol-approvals');
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Aprovações Master</h1>
-        <p className="text-muted-foreground">Gerencie as aprovações de protocolos de prestadores</p>
-      </div>
+    <div className="flex min-h-screen w-full bg-background">
+      <Sidebar userRole={userRole} />
+      <div className={mainContainerClass}>
+        <Header userName="" userRole={userRole} />
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
+          <div className="max-w-[1600px] mx-auto space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Aprovações Master</h1>
+              <p className="text-muted-foreground mt-2">Gerencie as aprovações de protocolos de prestadores</p>
+            </div>
 
       <Tabs defaultValue="initial" className="w-full">
         <TabsList>
@@ -367,6 +379,9 @@ export default function MasterProtocolApprovals() {
           )}
         </DialogContent>
       </Dialog>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
