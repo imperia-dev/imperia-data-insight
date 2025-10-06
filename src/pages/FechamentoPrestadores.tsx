@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProtocolosIndividuaisTab } from "@/components/fechamentoPrestadores/ProtocolosIndividuaisTab";
@@ -18,7 +19,7 @@ export default function FechamentoPrestadores() {
   return (
     <div className="flex min-h-screen w-full bg-background">
       <Sidebar userRole={userRole} />
-      <div className={mainContainerClass}>
+      <div className={cn("flex-1 w-full flex flex-col", mainContainerClass)}>
         <Header userName="" userRole={userRole} />
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           <div className="max-w-[1600px] mx-auto space-y-6">
