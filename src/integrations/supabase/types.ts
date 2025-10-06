@@ -2810,7 +2810,22 @@ export type Database = {
           step_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "protocol_workflow_steps_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_workflow_steps_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "service_provider_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       registration_requests: {
         Row: {
