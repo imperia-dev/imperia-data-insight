@@ -40,48 +40,47 @@ serve(async (req) => {
     const lastDay = new Date(year, month, 0).getDate();
     const endDate = `${competence}-${lastDay}`;
 
-    // Query documents completed in this competence month, grouped by provider
-    const { data: documents, error: docsError } = await supabase
-      .from('documents')
+    // Query expenses from service providers in this competence month
+    const { data: expenses, error: expensesError } = await supabase
+      .from('expenses')
       .select(`
         id,
-        document_name,
-        client_name,
-        project_name,
-        payment_amount,
-        pages,
-        word_count,
-        completed_at,
-        assigned_to,
-        profiles!documents_assigned_to_fkey (
+        description,
+        amount_base,
+        data_competencia,
+        fornecedor_id,
+        document_ref,
+        invoice_number,
+        status,
+        profiles!expenses_fornecedor_id_fkey (
           id,
           full_name,
           email
         )
       `)
-      .eq('status', 'completed')
-      .gte('completed_at', startDate)
-      .lte('completed_at', `${endDate}T23:59:59`)
-      .not('assigned_to', 'is', null)
-      .not('payment_amount', 'is', null)
-      .gt('payment_amount', 0);
+      .eq('tipo_despesa', 'prestador')
+      .gte('data_competencia', startDate)
+      .lte('data_competencia', endDate)
+      .not('fornecedor_id', 'is', null)
+      .not('amount_base', 'is', null)
+      .gt('amount_base', 0);
 
-    if (docsError) {
-      console.error('Error fetching documents:', docsError);
-      throw docsError;
+    if (expensesError) {
+      console.error('Error fetching expenses:', expensesError);
+      throw expensesError;
     }
 
-    console.log(`Found ${documents?.length || 0} completed documents`);
+    console.log(`Found ${expenses?.length || 0} service provider expenses`);
 
-    // Group documents by provider
+    // Group expenses by provider
     const providersMap = new Map<string, ProviderData>();
     
-    documents?.forEach((doc: any) => {
-      const supplierId = doc.assigned_to;
-      const profile = doc.profiles;
+    expenses?.forEach((expense: any) => {
+      const supplierId = expense.fornecedor_id;
+      const profile = expense.profiles;
       
       if (!profile) {
-        console.warn(`No profile found for document ${doc.id}, assigned_to: ${supplierId}`);
+        console.warn(`No profile found for expense ${expense.id}, fornecedor_id: ${supplierId}`);
         return;
       }
 
@@ -98,16 +97,15 @@ serve(async (req) => {
 
       const provider = providersMap.get(supplierId)!;
       provider.expense_count += 1;
-      provider.total_amount += parseFloat(doc.payment_amount || 0);
+      provider.total_amount += parseFloat(expense.amount_base || 0);
       provider.expenses_data.push({
-        document_id: doc.id,
-        document_name: doc.document_name,
-        client_name: doc.client_name,
-        project_name: doc.project_name,
-        amount: doc.payment_amount,
-        pages: doc.pages,
-        word_count: doc.word_count,
-        completed_at: doc.completed_at,
+        expense_id: expense.id,
+        description: expense.description,
+        amount: expense.amount_base,
+        data_competencia: expense.data_competencia,
+        document_ref: expense.document_ref,
+        invoice_number: expense.invoice_number,
+        status: expense.status,
       });
     });
 
