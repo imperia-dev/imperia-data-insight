@@ -110,26 +110,42 @@ export default function PaymentRequest() {
       // Update subject with protocol names
       setSubject(`Solicitação de Pagamento - ${protocolNumbers}`);
       
-      // Update message with the new template
+      // Build protocol details table for message
+      const protocolDetailsTable = selected.map(p => {
+        const competenceMonth = format(new Date(p.competence_month), 'MM/yyyy');
+        const produto1 = p.type === 'production' ? (p.product_1_count || 0) : '-';
+        const produto2 = p.type === 'production' ? (p.product_2_count || 0) : '-';
+        
+        return `${p.protocol_number} | ${competenceMonth} | ${formatCurrency(p.total_value)} | ${produto1} | ${produto2}`;
+      }).join('\n');
+      
+      // Update message with protocol details included
       setMessage(`Prezados,
 
 Segue em anexo informações para pagamento:
 
-Protocolos: ${protocolNumbers}
-Valor Total: ${formatCurrency(totalAmount)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DETALHAMENTO DOS PROTOCOLOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Protocolo | Competência | Valor | Produto 1 | Produto 2
+${protocolDetailsTable}
+
+TOTAL GERAL: ${formatCurrency(totalAmount)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Os itens já estão lançados no BTG para aprovação de pagamento.
 
 Por favor, confirmar o recebimento e informar a previsão de pagamento.
 
 Atenciosamente,
-Alex - Admin.`);
+${userFullName || 'Equipe Imperia'}`);
     } else {
       // Reset to default when no protocols are selected
       setSubject("Solicitação de Pagamento");
       setMessage("");
     }
-  }, [selectedProtocols, protocols]);
+  }, [selectedProtocols, protocols, userFullName]);
 
   const fetchUserRole = async () => {
     if (user) {
@@ -926,12 +942,38 @@ Alex - Admin.`);
               </div>
               <Select 
                 onValueChange={(value) => {
+                  // Get selected protocols info
+                  const selected = protocols.filter(p => selectedProtocols.includes(p.id));
+                  const totalAmount = selected.reduce((sum, p) => sum + p.total_value, 0);
+                  
+                  // Build protocol details table
+                  const protocolDetailsTable = selected.map(p => {
+                    const competenceMonth = format(new Date(p.competence_month), 'MM/yyyy');
+                    const produto1 = p.type === 'production' ? (p.product_1_count || 0) : '-';
+                    const produto2 = p.type === 'production' ? (p.product_2_count || 0) : '-';
+                    
+                    return `${p.protocol_number} | ${competenceMonth} | ${formatCurrency(p.total_value)} | ${produto1} | ${produto2}`;
+                  }).join('\n');
+                  
+                  const protocolDetails = selected.length > 0 ? `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DETALHAMENTO DOS PROTOCOLOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Protocolo | Competência | Valor | Produto 1 | Produto 2
+${protocolDetailsTable}
+
+TOTAL GERAL: ${formatCurrency(totalAmount)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+` : '';
+                  
                   // Check if it's a predefined template
                   if (value === 'formal') {
                     setMessage(`Prezados,
 
 Segue em anexo o protocolo de pagamento para sua análise e aprovação.
-
+${protocolDetails}
 Solicitamos a gentileza de revisar os documentos e realizar o pagamento conforme os termos acordados.
 
 Ficamos à disposição para quaisquer esclarecimentos.
@@ -942,7 +984,7 @@ ${userEmail || 'Equipe Imperia'}`);
                     setMessage(`Olá!
 
 Tudo bem? Segue o protocolo de pagamento referente ao período.
-
+${protocolDetails}
 Por favor, revise e confirme quando puder realizar o pagamento.
 
 Qualquer dúvida, é só chamar!
@@ -955,7 +997,7 @@ ${userEmail || 'Equipe Imperia'}`);
 Prezados,
 
 Encaminhamos o protocolo de pagamento que requer atenção prioritária.
-
+${protocolDetails}
 Pedimos a gentileza de analisar com urgência e nos retornar o mais breve possível.
 
 Agradecemos a compreensão.
@@ -968,7 +1010,7 @@ ${userEmail || 'Equipe Imperia'}`);
 Prezados,
 
 Gostaríamos de lembrá-los sobre o protocolo de pagamento em anexo que ainda aguarda aprovação.
-
+${protocolDetails}
 Por favor, confirmem o recebimento e o prazo para conclusão do processo.
 
 Atenciosamente,
@@ -978,7 +1020,7 @@ ${userEmail || 'Equipe Imperia'}`);
                     const customTemplate = customTemplates.find(t => t.id === value);
                     if (customTemplate) {
                       setSubject(customTemplate.subject);
-                      setMessage(customTemplate.message);
+                      setMessage(customTemplate.message + protocolDetails);
                     }
                   }
                 }}
@@ -1009,12 +1051,17 @@ ${userEmail || 'Equipe Imperia'}`);
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message">Mensagem *</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="message">Mensagem *</Label>
+                <span className="text-xs text-muted-foreground">
+                  ℹ️ Detalhes dos protocolos inclusos automaticamente
+                </span>
+              </div>
               <Textarea
                 id="message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                rows={8}
+                rows={12}
                 required
               />
             </div>
