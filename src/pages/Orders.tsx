@@ -97,10 +97,17 @@ export function Orders() {
     hasAttention: "all",
     hasDelay: "all",
   });
+  // Set default deadline to current time + 1 day
+  const getDefaultDeadline = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return format(tomorrow, "yyyy-MM-dd'T'HH:mm");
+  };
+
   const [formData, setFormData] = useState({
     order_number: "",
     document_count: "",
-    deadline: "",
+    deadline: getDefaultDeadline(),
     attribution_date: "",
   });
   
@@ -281,7 +288,7 @@ export function Orders() {
       setFormData({
         order_number: "",
         document_count: "",
-        deadline: "",
+        deadline: getDefaultDeadline(),
         attribution_date: "",
       });
     },
@@ -731,19 +738,6 @@ export function Orders() {
                     </div>
                     
                     <div>
-                      <Label htmlFor="deadline">Deadline *</Label>
-                      <Input
-                        id="deadline"
-                        type="datetime-local"
-                        value={formData.deadline}
-                        onChange={(e) =>
-                          setFormData({ ...formData, deadline: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    
-                    <div>
                       <Label htmlFor="attribution_date">Data de Atribuição</Label>
                       <Input
                         id="attribution_date"
@@ -756,6 +750,19 @@ export function Orders() {
                       <p className="text-xs text-muted-foreground mt-1">
                         Opcional - Data quando o pedido foi atribuído
                       </p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="deadline">Deadline *</Label>
+                      <Input
+                        id="deadline"
+                        type="datetime-local"
+                        value={formData.deadline}
+                        onChange={(e) =>
+                          setFormData({ ...formData, deadline: e.target.value })
+                        }
+                        required
+                      />
                     </div>
                     
                     <Button type="submit" className="w-full" disabled={createOrderMutation.isPending}>
@@ -1323,18 +1330,6 @@ export function Orders() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-attribution-date">Data de Atribuição</Label>
-                  <Input
-                    id="edit-attribution-date"
-                    type="datetime-local"
-                    value={editFormData.attribution_date}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, attribution_date: e.target.value })
-                    }
-                  />
-                </div>
-                
-                <div className="space-y-2">
                   <Label htmlFor="edit-deadline">Prazo *</Label>
                   <Input
                     id="edit-deadline"
@@ -1344,6 +1339,18 @@ export function Orders() {
                       setEditFormData({ ...editFormData, deadline: e.target.value })
                     }
                     required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-attribution-date">Data de Atribuição</Label>
+                  <Input
+                    id="edit-attribution-date"
+                    type="datetime-local"
+                    value={editFormData.attribution_date}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, attribution_date: e.target.value })
+                    }
                   />
                 </div>
                 
