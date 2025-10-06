@@ -3,7 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Wallet as WalletIcon, TrendingUp, FileText, Clock, CheckCircle, AlertCircle, Info } from "lucide-react";
+import { Wallet as WalletIcon, TrendingUp, FileText, Clock, CheckCircle, AlertCircle, Info, FileEdit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,11 +11,9 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
+import { ProviderDataFormDialog } from "@/components/fechamentoPrestadores/ProviderDataFormDialog";
 
 interface OrderPayment {
   id: string;
@@ -47,19 +45,8 @@ export default function Wallet() {
   const [protocols, setProtocols] = useState<ServiceProviderProtocol[]>([]);
   const [loading, setLoading] = useState(true);
   const [protocolsLoading, setProtocolsLoading] = useState(true);
-  
-  // Payment info state
-  const [paymentInfo, setPaymentInfo] = useState({
-    cpf: "",
-    cnpj: "",
-    pix_key: "",
-    phone: "",
-    banco: "",
-    agencia: "",
-    conta: "",
-    tipo_conta: "corrente"
-  });
-  const [savingPaymentInfo, setSavingPaymentInfo] = useState(false);
+  const [selectedProtocolId, setSelectedProtocolId] = useState<string | null>(null);
+  const [showDataFormDialog, setShowDataFormDialog] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -134,21 +121,6 @@ export default function Wallet() {
       if (error) throw error;
 
       setProtocols(data || []);
-      
-      // Load payment info from the most recent protocol if exists
-      if (data && data.length > 0) {
-        const latest = data[0];
-        setPaymentInfo({
-          cpf: latest.provider_cpf || "",
-          cnpj: latest.provider_cnpj || "",
-          pix_key: latest.provider_pix_key || "",
-          phone: latest.provider_phone || "",
-          banco: latest.provider_banco || "",
-          agencia: latest.provider_agencia || "",
-          conta: latest.provider_conta || "",
-          tipo_conta: latest.provider_tipo_conta || "corrente"
-        });
-      }
     } catch (error) {
       console.error('Error fetching protocols:', error);
       toast.error("Erro ao carregar protocolos");
@@ -157,61 +129,6 @@ export default function Wallet() {
     }
   };
 
-  const handleSavePaymentInfo = async () => {
-    if (!userEmail) {
-      toast.error("Email do usuário não encontrado");
-      return;
-    }
-
-    setSavingPaymentInfo(true);
-    try {
-      // Update all protocols with the new payment information
-      const { error } = await supabase
-        .from('service_provider_protocols')
-        .update({
-          provider_cpf: paymentInfo.cpf || null,
-          provider_cnpj: paymentInfo.cnpj || null,
-          provider_pix_key: paymentInfo.pix_key || null,
-          provider_phone: paymentInfo.phone || null,
-          provider_banco: paymentInfo.banco || null,
-          provider_agencia: paymentInfo.agencia || null,
-          provider_conta: paymentInfo.conta || null,
-          provider_tipo_conta: paymentInfo.tipo_conta || null,
-        })
-        .eq('provider_email', userEmail);
-
-      if (error) throw error;
-
-      toast.success("Informações de pagamento salvas com sucesso");
-      fetchProtocols();
-    } catch (error: any) {
-      console.error('Error saving payment info:', error);
-      toast.error(error.message || "Erro ao salvar informações de pagamento");
-    } finally {
-      setSavingPaymentInfo(false);
-    }
-  };
-
-  const handleApproveProtocol = async (protocolId: string) => {
-    try {
-      const { error } = await supabase
-        .from('service_provider_protocols')
-        .update({
-          status: 'approved',
-          provider_approved_at: new Date().toISOString(),
-        })
-        .eq('id', protocolId)
-        .eq('provider_email', userEmail);
-
-      if (error) throw error;
-
-      toast.success("Protocolo aprovado com sucesso");
-      fetchProtocols();
-    } catch (error: any) {
-      console.error('Error approving protocol:', error);
-      toast.error(error.message || "Erro ao aprovar protocolo");
-    }
-  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -223,7 +140,11 @@ export default function Wallet() {
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       draft: { label: "Rascunho", variant: "secondary" },
-      awaiting_provider: { label: "Aguardando Aprovação", variant: "outline" },
+      awaiting_master_initial: { label: "Em Aprovação", variant: "outline" },
+      awaiting_provider_data: { label: "Aguardando Dados", variant: "outline" },
+      awaiting_master_final: { label: "Em Validação", variant: "outline" },
+      awaiting_owner_approval: { label: "Aprovação Final", variant: "outline" },
+      returned_for_adjustment: { label: "Retornado", variant: "destructive" },
       approved: { label: "Aprovado", variant: "default" },
       paid: { label: "Pago", variant: "default" },
       cancelled: { label: "Cancelado", variant: "destructive" }
@@ -255,10 +176,9 @@ export default function Wallet() {
           </div>
 
           <Tabs defaultValue="earnings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="earnings">Ganhos</TabsTrigger>
               <TabsTrigger value="protocols">Protocolos</TabsTrigger>
-              <TabsTrigger value="payment-info">Dados de Pagamento</TabsTrigger>
             </TabsList>
 
             <TabsContent value="earnings" className="space-y-6">
@@ -425,14 +345,38 @@ export default function Wallet() {
                             </TableCell>
                             <TableCell>{getStatusBadge(protocol.status)}</TableCell>
                             <TableCell>
-                              {protocol.status === 'awaiting_provider' && (
+                              {protocol.status === 'awaiting_provider_data' && (
                                 <Button
                                   size="sm"
-                                  onClick={() => handleApproveProtocol(protocol.id)}
+                                  onClick={() => {
+                                    setSelectedProtocolId(protocol.id);
+                                    setShowDataFormDialog(true);
+                                  }}
                                 >
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Aprovar
+                                  <FileEdit className="h-4 w-4 mr-1" />
+                                  Detalhes
                                 </Button>
+                              )}
+                              {protocol.status === 'returned_for_adjustment' && (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => {
+                                    setSelectedProtocolId(protocol.id);
+                                    setShowDataFormDialog(true);
+                                  }}
+                                >
+                                  <FileEdit className="h-4 w-4 mr-1" />
+                                  Corrigir
+                                </Button>
+                              )}
+                              {(protocol.status === 'awaiting_master_initial' || 
+                                protocol.status === 'awaiting_master_final' || 
+                                protocol.status === 'awaiting_owner_approval') && (
+                                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-4 w-4" />
+                                  Em aprovação
+                                </span>
                               )}
                               {protocol.status === 'approved' && (
                                 <span className="text-sm text-muted-foreground flex items-center gap-1">
@@ -482,130 +426,17 @@ export default function Wallet() {
                 </CardContent>
               </Card>
             </TabsContent>
-
-            <TabsContent value="payment-info" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informações de Pagamento</CardTitle>
-                  <CardDescription>
-                    Mantenha seus dados bancários atualizados para receber seus pagamentos
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="cpf">CPF</Label>
-                      <Input
-                        id="cpf"
-                        placeholder="000.000.000-00"
-                        value={paymentInfo.cpf}
-                        onChange={(e) => setPaymentInfo({ ...paymentInfo, cpf: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cnpj">CNPJ (se aplicável)</Label>
-                      <Input
-                        id="cnpj"
-                        placeholder="00.000.000/0000-00"
-                        value={paymentInfo.cnpj}
-                        onChange={(e) => setPaymentInfo({ ...paymentInfo, cnpj: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefone</Label>
-                      <Input
-                        id="phone"
-                        placeholder="(00) 00000-0000"
-                        value={paymentInfo.phone}
-                        onChange={(e) => setPaymentInfo({ ...paymentInfo, phone: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="pix_key">Chave PIX</Label>
-                      <Input
-                        id="pix_key"
-                        placeholder="CPF, CNPJ, Email ou Telefone"
-                        value={paymentInfo.pix_key}
-                        onChange={(e) => setPaymentInfo({ ...paymentInfo, pix_key: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Dados Bancários</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="banco">Banco</Label>
-                        <Input
-                          id="banco"
-                          placeholder="Nome do banco"
-                          value={paymentInfo.banco}
-                          onChange={(e) => setPaymentInfo({ ...paymentInfo, banco: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="agencia">Agência</Label>
-                        <Input
-                          id="agencia"
-                          placeholder="0000"
-                          value={paymentInfo.agencia}
-                          onChange={(e) => setPaymentInfo({ ...paymentInfo, agencia: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="conta">Conta</Label>
-                        <Input
-                          id="conta"
-                          placeholder="00000-0"
-                          value={paymentInfo.conta}
-                          onChange={(e) => setPaymentInfo({ ...paymentInfo, conta: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tipo_conta">Tipo de Conta</Label>
-                      <select
-                        id="tipo_conta"
-                        className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                        value={paymentInfo.tipo_conta}
-                        onChange={(e) => setPaymentInfo({ ...paymentInfo, tipo_conta: e.target.value })}
-                      >
-                        <option value="corrente">Conta Corrente</option>
-                        <option value="poupanca">Conta Poupança</option>
-                        <option value="pagamento">Conta Pagamento</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2 p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                        Informações Importantes
-                      </p>
-                      <p className="text-sm text-amber-800 dark:text-amber-200">
-                        Certifique-se de que todos os dados estão corretos antes de salvar. 
-                        Essas informações serão usadas para processar seus pagamentos.
-                      </p>
-                    </div>
-                  </div>
-
-                  <Button 
-                    onClick={handleSavePaymentInfo} 
-                    disabled={savingPaymentInfo}
-                    className="w-full md:w-auto"
-                  >
-                    {savingPaymentInfo ? "Salvando..." : "Salvar Informações"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
+
+          <ProviderDataFormDialog
+            open={showDataFormDialog}
+            onOpenChange={setShowDataFormDialog}
+            protocolId={selectedProtocolId || ""}
+            onSuccess={() => {
+              fetchProtocols();
+              toast.success("Dados enviados com sucesso!");
+            }}
+          />
         </main>
       </div>
     </div>

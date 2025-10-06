@@ -140,11 +140,11 @@ export function ProtocolosIndividuaisTab() {
   const sendForApproval = async (protocol: any) => {
     const { error } = await supabase
       .from('service_provider_protocols')
-      .update({ status: 'awaiting_provider' })
+      .update({ status: 'awaiting_master_initial' })
       .eq('id', protocol.id);
 
     if (error) throw error;
-    toast.success("Protocolo enviado para aprovação do prestador");
+    toast.success("Protocolo enviado para aprovação inicial do master");
   };
 
   const approveProtocol = async (protocol: any) => {

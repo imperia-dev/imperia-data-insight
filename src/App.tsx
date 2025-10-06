@@ -48,6 +48,7 @@ import CollaboratorsKPI from "./pages/CollaboratorsKPI";
 import Chat from "./pages/Chat";
 import TranslationOrders from "./pages/TranslationOrders";
 import FechamentoPrestadores from "./pages/FechamentoPrestadores";
+import MasterProtocolApprovals from "./pages/MasterProtocolApprovals";
 
 const queryClient = new QueryClient();
 
@@ -238,6 +239,11 @@ const App = () => (
             <Route path="/fechamento-prestadores" element={
               <ProtectedRouteWithApproval>
                 <FechamentoPrestadores />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/master-protocol-approvals" element={
+              <ProtectedRouteWithApproval>
+                <MasterProtocolApprovals />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

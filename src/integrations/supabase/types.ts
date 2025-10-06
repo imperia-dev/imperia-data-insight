@@ -2970,7 +2970,15 @@ export type Database = {
           final_approved_at: string | null
           final_approved_by: string | null
           id: string
+          invoice_amount: number | null
+          invoice_file_url: string | null
+          master_final_approved_at: string | null
+          master_final_approved_by: string | null
+          master_initial_approved_at: string | null
+          master_initial_approved_by: string | null
           metadata: Json | null
+          owner_approved_at: string | null
+          owner_approved_by: string | null
           paid_at: string | null
           payment_batch_id: string | null
           payment_reference: string | null
@@ -2990,6 +2998,8 @@ export type Database = {
           provider_tipo_conta: string | null
           provider_token: string | null
           provider_token_expires_at: string | null
+          return_reason: string | null
+          returned_to_provider_at: string | null
           status: string
           supplier_id: string | null
           total_amount: number
@@ -3005,7 +3015,15 @@ export type Database = {
           final_approved_at?: string | null
           final_approved_by?: string | null
           id?: string
+          invoice_amount?: number | null
+          invoice_file_url?: string | null
+          master_final_approved_at?: string | null
+          master_final_approved_by?: string | null
+          master_initial_approved_at?: string | null
+          master_initial_approved_by?: string | null
           metadata?: Json | null
+          owner_approved_at?: string | null
+          owner_approved_by?: string | null
           paid_at?: string | null
           payment_batch_id?: string | null
           payment_reference?: string | null
@@ -3025,6 +3043,8 @@ export type Database = {
           provider_tipo_conta?: string | null
           provider_token?: string | null
           provider_token_expires_at?: string | null
+          return_reason?: string | null
+          returned_to_provider_at?: string | null
           status?: string
           supplier_id?: string | null
           total_amount?: number
@@ -3040,7 +3060,15 @@ export type Database = {
           final_approved_at?: string | null
           final_approved_by?: string | null
           id?: string
+          invoice_amount?: number | null
+          invoice_file_url?: string | null
+          master_final_approved_at?: string | null
+          master_final_approved_by?: string | null
+          master_initial_approved_at?: string | null
+          master_initial_approved_by?: string | null
           metadata?: Json | null
+          owner_approved_at?: string | null
+          owner_approved_by?: string | null
           paid_at?: string | null
           payment_batch_id?: string | null
           payment_reference?: string | null
@@ -3060,6 +3088,8 @@ export type Database = {
           provider_tipo_conta?: string | null
           provider_token?: string | null
           provider_token_expires_at?: string | null
+          return_reason?: string | null
+          returned_to_provider_at?: string | null
           status?: string
           supplier_id?: string | null
           total_amount?: number
