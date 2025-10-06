@@ -630,7 +630,6 @@ Alex - Admin.`);
           amount: parseFloat(paymentAmount),
           payment_method: paymentMethod,
           bank_reference: bankReference || null,
-          observations: paymentObservations || null,
           file_url: publicUrl,
           validated: true,
           validated_at: new Date().toISOString(),
