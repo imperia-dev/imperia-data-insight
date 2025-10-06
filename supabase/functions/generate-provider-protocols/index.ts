@@ -138,10 +138,12 @@ serve(async (req) => {
       }
 
       // Generate protocol number using database function
+      // Use only the date part (YYYY-MM-DD) for the protocol number generation
+      const competenceDate = `${competence}-01`;
       const { data: protocolNumber, error: numberError } = await supabase
         .rpc('generate_protocol_number', {
           p_type: 'service_provider',
-          p_competence_month: startDate,
+          p_competence_month: competenceDate,
           p_supplier_name: provider.provider_name,
         });
 
@@ -155,7 +157,7 @@ serve(async (req) => {
         .from('service_provider_protocols')
         .insert({
           protocol_number: protocolNumber,
-          competence_month: startDate,
+          competence_month: competenceDate,
           supplier_id: provider.supplier_id,
           provider_name: provider.provider_name,
           provider_email: provider.provider_email,
