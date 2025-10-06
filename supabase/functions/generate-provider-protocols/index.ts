@@ -33,12 +33,12 @@ serve(async (req) => {
 
     console.log(`Processing protocols for competence: ${competence}, preview: ${preview}`);
 
-    // Calculate date range for the competence month
-    const startDate = `${competence}-01`;
+    // Calculate date range for the competence month (00:00:00 to 23:59:59)
     const year = parseInt(competence.split('-')[0]);
     const month = parseInt(competence.split('-')[1]);
     const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${competence}-${lastDay}`;
+    const startDate = `${competence}-01T00:00:00`;
+    const endDate = `${competence}-${String(lastDay).padStart(2, '0')}T23:59:59`;
 
     // Query delivered orders from service providers in this competence month
     const { data: orders, error: ordersError } = await supabase
