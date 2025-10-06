@@ -368,8 +368,8 @@ export default function MasterProtocolApprovals() {
                   <div className="col-span-2">
                     <p className="text-sm font-medium mb-2">Nota Fiscal</p>
                     <Button asChild variant="outline">
-                      <a href={selectedProtocol.invoice_file_url} target="_blank" rel="noopener noreferrer">
-                        Visualizar Nota Fiscal
+                      <a href={selectedProtocol.invoice_file_url} download>
+                        Baixar Nota Fiscal
                       </a>
                     </Button>
                   </div>
