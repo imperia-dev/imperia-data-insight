@@ -21,11 +21,13 @@ interface ProviderPreview {
 
 export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGenerated?: () => void }) {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedProvider, setSelectedProvider] = useState<string>("all");
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [preview, setPreview] = useState<ProviderPreview[]>([]);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [monthOptions, setMonthOptions] = useState<{ value: string; label: string }[]>([]);
+  const [providers, setProviders] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     // Generate last 12 months options
@@ -38,7 +40,31 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
     }
     setMonthOptions(months);
     setSelectedMonth(months[1].value); // Previous month by default
+
+    // Fetch service providers
+    fetchProviders();
   }, []);
+
+  const fetchProviders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('role', 'operation')
+        .order('full_name');
+
+      if (error) throw error;
+      
+      const formattedProviders = (data || []).map(p => ({
+        id: p.id,
+        name: p.full_name
+      }));
+      
+      setProviders(formattedProviders);
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+    }
+  };
 
   const fetchPreview = async () => {
     if (!selectedMonth) {
@@ -51,7 +77,8 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
       const { data, error } = await supabase.functions.invoke('generate-provider-protocols', {
         body: { 
           competence: selectedMonth,
-          preview: true 
+          preview: true,
+          provider_id: selectedProvider === 'all' ? null : selectedProvider
         }
       });
 
@@ -78,7 +105,8 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
       const { data, error } = await supabase.functions.invoke('generate-provider-protocols', {
         body: { 
           competence: selectedMonth,
-          preview: false 
+          preview: false,
+          provider_id: selectedProvider === 'all' ? null : selectedProvider
         }
       });
 
@@ -132,10 +160,27 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o mês" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background z-50">
                   {monthOptions.map((month) => (
                     <SelectItem key={month.value} value={month.value}>
                       {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Prestador</label>
+              <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o prestador" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="all">Todos os Prestadores</SelectItem>
+                  {providers.map((provider) => (
+                    <SelectItem key={provider.id} value={provider.id}>
+                      {provider.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
