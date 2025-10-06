@@ -57,13 +57,13 @@ export const rolePermissions: Record<Role, string[]> = {
     '/demand-control',
     '/notifications',
     '/master-protocol-approvals',
-    '/fechamento-prestadores',
     '/chat',
     '/translation-orders'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
     // Removed: '/team'
     // Removed: '/ai-analytics'
+    // Removed: '/fechamento-prestadores'
   ],
   admin: [
     '/',

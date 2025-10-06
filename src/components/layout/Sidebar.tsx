@@ -103,7 +103,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Fechamento Prestadores",
         icon: Users,
         href: "/fechamento-prestadores",
-        roles: ["owner", "master"],
+        roles: ["owner"],
       },
       {
         title: "Aprovações Master",
