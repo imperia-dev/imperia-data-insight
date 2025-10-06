@@ -221,7 +221,7 @@ export function ProtocolosIndividuaisTab() {
                 {protocols.map((protocol) => (
                   <TableRow key={protocol.id}>
                     <TableCell className="font-mono text-sm">{protocol.protocol_number}</TableCell>
-                    <TableCell>{protocol.supplier_name}</TableCell>
+                    <TableCell>{protocol.provider_name}</TableCell>
                     <TableCell>{format(new Date(protocol.competence_month), "MMM/yyyy", { locale: ptBR })}</TableCell>
                     <TableCell>
                       <ProtocolStatusBadge status={protocol.status} />
