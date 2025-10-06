@@ -14,6 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { ProviderDataFormDialog } from "@/components/fechamentoPrestadores/ProviderDataFormDialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, X } from "lucide-react";
 
 interface OrderPayment {
   id: string;
@@ -47,6 +51,9 @@ export default function Wallet() {
   const [protocolsLoading, setProtocolsLoading] = useState(true);
   const [selectedProtocolId, setSelectedProtocolId] = useState<string | null>(null);
   const [showDataFormDialog, setShowDataFormDialog] = useState(false);
+  const [filterCompetence, setFilterCompetence] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterProtocolNumber, setFilterProtocolNumber] = useState("");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -73,7 +80,7 @@ export default function Wallet() {
     if (userEmail) {
       fetchProtocols();
     }
-  }, [user, userEmail]);
+  }, [user, userEmail, filterCompetence, filterStatus, filterProtocolNumber]);
 
   const fetchOrders = async () => {
     if (!user) return;
@@ -112,11 +119,29 @@ export default function Wallet() {
     
     setProtocolsLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('service_provider_protocols')
         .select('*')
-        .eq('provider_email', userEmail)
-        .order('created_at', { ascending: false });
+        .eq('provider_email', userEmail);
+
+      // Apply filters
+      if (filterCompetence) {
+        const [year, month] = filterCompetence.split('-');
+        const competenceDate = `${year}-${month}-01`;
+        query = query.eq('competence_month', competenceDate);
+      }
+
+      if (filterStatus && filterStatus !== 'all') {
+        query = query.eq('status', filterStatus);
+      }
+
+      if (filterProtocolNumber) {
+        query = query.ilike('protocol_number', `%${filterProtocolNumber}%`);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -127,6 +152,12 @@ export default function Wallet() {
     } finally {
       setProtocolsLoading(false);
     }
+  };
+
+  const handleClearFilters = () => {
+    setFilterCompetence("");
+    setFilterStatus("");
+    setFilterProtocolNumber("");
   };
 
 
@@ -302,6 +333,66 @@ export default function Wallet() {
             </TabsContent>
 
             <TabsContent value="protocols" className="space-y-6">
+              {/* Filters */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="competence">Competência</Label>
+                      <Input
+                        id="competence"
+                        type="month"
+                        value={filterCompetence}
+                        onChange={(e) => setFilterCompetence(e.target.value)}
+                        placeholder="Selecione o mês"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger id="status">
+                          <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="draft">Rascunho</SelectItem>
+                          <SelectItem value="awaiting_master_initial">Em Aprovação</SelectItem>
+                          <SelectItem value="awaiting_provider_data">Aguardando Dados</SelectItem>
+                          <SelectItem value="awaiting_master_final">Em Validação</SelectItem>
+                          <SelectItem value="awaiting_owner_approval">Aprovação Final</SelectItem>
+                          <SelectItem value="returned_for_adjustment">Retornado</SelectItem>
+                          <SelectItem value="approved">Aprovado</SelectItem>
+                          <SelectItem value="paid">Pago</SelectItem>
+                          <SelectItem value="cancelled">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="protocolNumber">Nº Protocolo</Label>
+                      <Input
+                        id="protocolNumber"
+                        value={filterProtocolNumber}
+                        onChange={(e) => setFilterProtocolNumber(e.target.value)}
+                        placeholder="PREST-202501-001"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={fetchProtocols} className="flex-1">
+                      <Search className="h-4 w-4 mr-2" />
+                      Filtrar
+                    </Button>
+                    <Button onClick={handleClearFilters} variant="outline">
+                      <X className="h-4 w-4 mr-2" />
+                      Limpar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Meus Protocolos de Pagamento</CardTitle>
