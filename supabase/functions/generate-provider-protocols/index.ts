@@ -40,83 +40,69 @@ serve(async (req) => {
     const lastDay = new Date(year, month, 0).getDate();
     const endDate = `${competence}-${lastDay}`;
 
-    // Query expenses from service providers in this competence month
-    const { data: expenses, error: expensesError } = await supabase
-      .from('expenses')
+    // Query delivered orders from service providers in this competence month
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
       .select(`
         id,
-        description,
-        amount_base,
-        data_competencia,
-        fornecedor_id,
-        document_ref,
-        invoice_number,
-        status
+        assigned_to,
+        document_count,
+        delivered_at,
+        profiles!orders_assigned_to_fkey (
+          id,
+          full_name,
+          email
+        )
       `)
-      .eq('tipo_despesa', 'prestador')
-      .gte('data_competencia', startDate)
-      .lte('data_competencia', endDate)
-      .not('fornecedor_id', 'is', null)
-      .not('amount_base', 'is', null)
-      .gt('amount_base', 0);
+      .eq('status_order', 'delivered')
+      .gte('delivered_at', startDate)
+      .lte('delivered_at', endDate)
+      .not('assigned_to', 'is', null)
+      .not('document_count', 'is', null)
+      .gt('document_count', 0);
 
-    if (expensesError) {
-      console.error('Error fetching expenses:', expensesError);
-      throw expensesError;
+    if (ordersError) {
+      console.error('Error fetching orders:', ordersError);
+      throw ordersError;
     }
 
-    console.log(`Found ${expenses?.length || 0} service provider expenses`);
+    console.log(`Found ${orders?.length || 0} delivered orders from service providers`);
 
-    // Get unique supplier IDs to fetch their profiles
-    const supplierIds = [...new Set(expenses?.map(e => e.fornecedor_id).filter(Boolean))];
-    
-    // Fetch profiles for all suppliers
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email')
-      .in('id', supplierIds);
-
-    if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
-      throw profilesError;
-    }
-
-    const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-
-    // Group expenses by provider
+    // Group orders by provider
     const providersMap = new Map<string, ProviderData>();
+    const VALUE_PER_DOCUMENT = 1.30; // R$ 1,30 por documento (mesmo valor da página Produtividade)
     
-    expenses?.forEach((expense: any) => {
-      const supplierId = expense.fornecedor_id;
-      const profile = profilesMap.get(supplierId);
+    orders?.forEach((order: any) => {
+      const supplierId = order.assigned_to;
+      const profile = order.profiles;
       
       if (!profile) {
-        console.warn(`No profile found for expense ${expense.id}, fornecedor_id: ${supplierId}`);
+        console.warn(`No profile found for order ${order.id}, assigned_to: ${supplierId}`);
         return;
       }
+
+      const orderValue = (order.document_count || 0) * VALUE_PER_DOCUMENT;
 
       if (!providersMap.has(supplierId)) {
         providersMap.set(supplierId, {
           supplier_id: supplierId,
           provider_name: profile.full_name || 'Prestador',
           provider_email: profile.email || '',
-          expense_count: 0,
+          expense_count: 0, // número de pedidos
           total_amount: 0,
           expenses_data: [],
         });
       }
 
       const provider = providersMap.get(supplierId)!;
-      provider.expense_count += 1;
-      provider.total_amount += parseFloat(expense.amount_base || 0);
+      provider.expense_count += 1; // conta o pedido
+      provider.total_amount += orderValue;
       provider.expenses_data.push({
-        expense_id: expense.id,
-        description: expense.description,
-        amount: expense.amount_base,
-        data_competencia: expense.data_competencia,
-        document_ref: expense.document_ref,
-        invoice_number: expense.invoice_number,
-        status: expense.status,
+        expense_id: order.id,
+        description: `Pedido ${order.id}`,
+        amount: orderValue,
+        document_count: order.document_count,
+        delivered_at: order.delivered_at,
       });
     });
 
