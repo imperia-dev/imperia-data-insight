@@ -108,6 +108,9 @@ export function ProtocolosIndividuaisTab() {
 
   const confirmAction = async () => {
     const { action, protocol } = actionDialog;
+    
+    // Close dialog first
+    setActionDialog({ open: false, action: "", protocol: null });
 
     // Optimistically update the UI
     const getNewStatus = (action: string) => {
@@ -126,11 +129,18 @@ export function ProtocolosIndividuaisTab() {
     // Update local state immediately
     setProtocols(prev => prev.map(p => 
       p.id === protocol.id 
-        ? { ...p, status: newStatus, approved_at: action.includes("approve") ? new Date().toISOString() : p.approved_at, paid_at: action === "mark_paid" ? new Date().toISOString() : p.paid_at }
+        ? { 
+            ...p, 
+            status: newStatus, 
+            approved_at: action.includes("approve") ? new Date().toISOString() : p.approved_at, 
+            paid_at: action === "mark_paid" ? new Date().toISOString() : p.paid_at 
+          }
         : p
     ));
 
     try {
+      console.log('Executing action:', action, 'for protocol:', protocol.id);
+      
       switch (action) {
         case "send_approval":
           await sendForApproval(protocol);
@@ -150,14 +160,14 @@ export function ProtocolosIndividuaisTab() {
           break;
       }
 
+      console.log('Action completed, refetching protocols');
       // Refetch to ensure data consistency
-      fetchProtocols();
+      await fetchProtocols();
     } catch (error: any) {
+      console.error('Action failed:', error);
       // Revert optimistic update on error
-      fetchProtocols();
+      await fetchProtocols();
       toast.error(error.message || "Erro ao executar ação");
-    } finally {
-      setActionDialog({ open: false, action: "", protocol: null });
     }
   };
 
