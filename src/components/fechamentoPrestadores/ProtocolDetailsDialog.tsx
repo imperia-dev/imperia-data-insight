@@ -68,32 +68,44 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
               <CardContent className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Nome</p>
-                  <p className="text-base">{protocol.supplier_name || "N/A"}</p>
+                  <p className="text-base">{protocol.provider_name || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Email</p>
                   <p className="text-base flex items-center gap-2">
                     <Mail className="h-4 w-4" />
-                    {protocol.supplier_email || "N/A"}
+                    {protocol.email || "N/A"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Telefone</p>
                   <p className="text-base flex items-center gap-2">
                     <Phone className="h-4 w-4" />
-                    {protocol.supplier_phone || "N/A"}
+                    {protocol.phone || "N/A"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">CPF/CNPJ</p>
-                  <p className="text-base">{protocol.supplier_cpf || protocol.supplier_cnpj || "N/A"}</p>
+                  <p className="text-base">{protocol.cpf || protocol.cnpj || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Chave PIX</p>
                   <p className="text-base flex items-center gap-2">
                     <CreditCard className="h-4 w-4" />
-                    {protocol.supplier_pix_key || "N/A"}
+                    {protocol.pix_key || "N/A"}
                   </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Banco</p>
+                  <p className="text-base">{protocol.bank_name || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Agência</p>
+                  <p className="text-base">{protocol.bank_agency || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Conta</p>
+                  <p className="text-base">{protocol.bank_account || "N/A"} {protocol.account_type ? `(${protocol.account_type})` : ""}</p>
                 </div>
               </CardContent>
             </Card>
