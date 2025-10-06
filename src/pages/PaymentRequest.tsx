@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
@@ -18,7 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Send, FileText, AlertCircle, Loader2, DollarSign, Calendar, Hash } from "lucide-react";
+import { Send, FileText, AlertCircle, Loader2, DollarSign, Calendar, Hash, CheckCircle, Upload } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ManageRecipientsDialog } from "@/components/payment/ManageRecipientsDialog";
@@ -67,6 +68,18 @@ export default function PaymentRequest() {
     phone: "(XX) XXXX-XXXX",
     email: "contato@imperiotraducoes.com.br"
   });
+
+  // Payment receipt dialog states
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedProtocolForPayment, setSelectedProtocolForPayment] = useState<Protocol | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptNumber, setReceiptNumber] = useState("");
+  const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [bankReference, setBankReference] = useState("");
+  const [paymentObservations, setPaymentObservations] = useState("");
 
   useEffect(() => {
     fetchProtocols();
@@ -160,11 +173,12 @@ Alex - Admin.`);
   const fetchProtocols = async () => {
     setLoading(true);
     try {
-      // Fetch production protocols
+      // Fetch production protocols - exclude already requested
       const { data: productionData, error: prodError } = await supabase
         .from('closing_protocols')
         .select('*')
         .eq('payment_status', 'pending')
+        .is('payment_requested_at', null)
         .order('created_at', { ascending: false });
 
       // Fetch expense protocols
@@ -555,6 +569,113 @@ Alex - Admin.`);
     }
   };
 
+  const handleOpenPaymentDialog = (protocol: Protocol) => {
+    setSelectedProtocolForPayment(protocol);
+    setPaymentAmount(protocol.total_value.toString());
+    setReceiptNumber("");
+    setPaymentDate(format(new Date(), 'yyyy-MM-dd'));
+    setPaymentMethod("pix");
+    setBankReference("");
+    setPaymentObservations("");
+    setReceiptFile(null);
+    setPaymentDialogOpen(true);
+  };
+
+  const handleMarkAsPaid = async () => {
+    if (!selectedProtocolForPayment) return;
+    
+    if (!receiptFile) {
+      toast({
+        title: "Atenção",
+        description: "Selecione o arquivo do comprovante",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+      toast({
+        title: "Atenção",
+        description: "Informe o valor do pagamento",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingReceipt(true);
+
+    try {
+      // 1. Upload receipt file to storage
+      const fileExt = receiptFile.name.split('.').pop();
+      const fileName = `${selectedProtocolForPayment.protocol_number}_${Date.now()}.${fileExt}`;
+      const filePath = `${selectedProtocolForPayment.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('payment-receipts')
+        .upload(filePath, receiptFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-receipts')
+        .getPublicUrl(filePath);
+
+      // 2. Insert payment receipt record
+      const { error: receiptError } = await supabase
+        .from('payment_receipts')
+        .insert({
+          protocol_id: selectedProtocolForPayment.id,
+          receipt_number: receiptNumber || null,
+          receipt_date: paymentDate,
+          amount: parseFloat(paymentAmount),
+          payment_method: paymentMethod,
+          bank_reference: bankReference || null,
+          observations: paymentObservations || null,
+          file_url: publicUrl,
+          validated: true,
+          validated_at: new Date().toISOString(),
+          validated_by: user?.id,
+          created_by: user?.id
+        });
+
+      if (receiptError) throw receiptError;
+
+      // 3. Update protocol status
+      const { error: updateError } = await supabase
+        .from('closing_protocols')
+        .update({
+          payment_status: 'paid',
+          payment_received_at: new Date().toISOString(),
+          payment_amount: parseFloat(paymentAmount),
+          receipt_url: publicUrl
+        })
+        .eq('id', selectedProtocolForPayment.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Sucesso!",
+        description: "Protocolo marcado como pago",
+      });
+
+      // Close dialog and refresh
+      setPaymentDialogOpen(false);
+      setSelectedProtocolForPayment(null);
+      fetchProtocols();
+
+    } catch (error) {
+      console.error('Error marking as paid:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao marcar protocolo como pago",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
   const totals = calculateTotals();
 
   return (
@@ -670,6 +791,17 @@ Alex - Admin.`);
                         )}
                       </div>
                     </label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleOpenPaymentDialog(protocol);
+                      }}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Marcar como Pago
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -776,6 +908,145 @@ Alex - Admin.`);
           </CardContent>
         </Card>
       )}
+
+      {/* Payment Receipt Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Marcar Protocolo como Pago</DialogTitle>
+            <DialogDescription>
+              Faça upload do comprovante de pagamento para o protocolo {selectedProtocolForPayment?.protocol_number}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Protocolo</Label>
+                <Input value={selectedProtocolForPayment?.protocol_number || ""} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label>Número do Comprovante</Label>
+                <Input
+                  value={receiptNumber}
+                  onChange={(e) => setReceiptNumber(e.target.value)}
+                  placeholder="Opcional"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="payment-date">Data do Pagamento *</Label>
+                <Input
+                  id="payment-date"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment-amount">Valor Pago *</Label>
+                <Input
+                  id="payment-amount"
+                  type="number"
+                  step="0.01"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="payment-method">Forma de Pagamento *</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger id="payment-method">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="ted">TED</SelectItem>
+                    <SelectItem value="doc">DOC</SelectItem>
+                    <SelectItem value="boleto">Boleto</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank-reference">Referência Bancária</Label>
+                <Input
+                  id="bank-reference"
+                  value={bankReference}
+                  onChange={(e) => setBankReference(e.target.value)}
+                  placeholder="Nº do documento, código, etc"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="observations">Observações</Label>
+              <Textarea
+                id="observations"
+                value={paymentObservations}
+                onChange={(e) => setPaymentObservations(e.target.value)}
+                rows={3}
+                placeholder="Informações adicionais sobre o pagamento"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="receipt-file">Comprovante *</Label>
+              <Input
+                id="receipt-file"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setReceiptFile(file);
+                  }
+                }}
+                required
+              />
+              {receiptFile && (
+                <p className="text-sm text-muted-foreground">
+                  Arquivo selecionado: {receiptFile.name}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPaymentDialogOpen(false)}
+              disabled={uploadingReceipt}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleMarkAsPaid}
+              disabled={uploadingReceipt || !receiptFile}
+            >
+              {uploadingReceipt ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Marcar como Pago
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
         </div>
       </div>
     </div>
