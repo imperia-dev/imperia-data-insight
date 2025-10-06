@@ -61,6 +61,7 @@ export default function PaymentRequest() {
   const [subject, setSubject] = useState("Solicitação de Pagamento");
   const [message, setMessage] = useState("");
   const [userFullName, setUserFullName] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
   const [companyInfo, setCompanyInfo] = useState({
     name: "Império Traduções",
     cnpj: "XX.XXX.XXX/XXXX-XX",
@@ -158,6 +159,7 @@ Alex - Admin.`);
   const fetchUserInfo = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      setUserEmail(user.email || '');
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name')
@@ -888,6 +890,71 @@ Alex - Admin.`);
                 onChange={(e) => setSubject(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="template">Modelo de Mensagem</Label>
+              <Select 
+                onValueChange={(value) => {
+                  if (value === 'formal') {
+                    setMessage(`Prezados,
+
+Segue em anexo o protocolo de pagamento para sua análise e aprovação.
+
+Solicitamos a gentileza de revisar os documentos e realizar o pagamento conforme os termos acordados.
+
+Ficamos à disposição para quaisquer esclarecimentos.
+
+Atenciosamente,
+${userEmail || 'Equipe Imperia'}`);
+                  } else if (value === 'friendly') {
+                    setMessage(`Olá!
+
+Tudo bem? Segue o protocolo de pagamento referente ao período.
+
+Por favor, revise e confirme quando puder realizar o pagamento.
+
+Qualquer dúvida, é só chamar!
+
+Abraços,
+${userEmail || 'Equipe Imperia'}`);
+                  } else if (value === 'urgent') {
+                    setMessage(`URGENTE - Protocolo de Pagamento
+
+Prezados,
+
+Encaminhamos o protocolo de pagamento que requer atenção prioritária.
+
+Pedimos a gentileza de analisar com urgência e nos retornar o mais breve possível.
+
+Agradecemos a compreensão.
+
+Atenciosamente,
+${userEmail || 'Equipe Imperia'}`);
+                  } else if (value === 'reminder') {
+                    setMessage(`Lembrete - Protocolo de Pagamento Pendente
+
+Prezados,
+
+Gostaríamos de lembrá-los sobre o protocolo de pagamento em anexo que ainda aguarda aprovação.
+
+Por favor, confirmem o recebimento e o prazo para conclusão do processo.
+
+Atenciosamente,
+${userEmail || 'Equipe Imperia'}`);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um modelo (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="formal">Formal</SelectItem>
+                  <SelectItem value="friendly">Amigável</SelectItem>
+                  <SelectItem value="urgent">Urgente</SelectItem>
+                  <SelectItem value="reminder">Lembrete</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
