@@ -55,7 +55,11 @@ export const rolePermissions: Record<Role, string[]> = {
     '/settings',
     '/pendencies',
     '/demand-control',
-    '/notifications'
+    '/notifications',
+    '/master-protocol-approvals',
+    '/fechamento-prestadores',
+    '/chat',
+    '/translation-orders'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
     // Removed: '/team'
