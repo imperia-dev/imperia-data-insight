@@ -50,6 +50,7 @@ import TranslationOrders from "./pages/TranslationOrders";
 import FechamentoPrestadores from "./pages/FechamentoPrestadores";
 import MasterProtocolApprovals from "./pages/MasterProtocolApprovals";
 import OwnerFinalApproval from "./pages/OwnerFinalApproval";
+import PaymentProcessing from "./pages/PaymentProcessing";
 
 const queryClient = new QueryClient();
 
@@ -250,6 +251,11 @@ const App = () => (
             <Route path="/owner-final-approval" element={
               <ProtectedRouteWithApproval>
                 <OwnerFinalApproval />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/payment-processing" element={
+              <ProtectedRouteWithApproval>
+                <PaymentProcessing />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -118,6 +118,12 @@ const navigationGroups: NavigationGroup[] = [
         roles: ["owner"],
       },
       {
+        title: "Processamento de Pagamentos",
+        icon: DollarSign,
+        href: "/payment-processing",
+        roles: ["owner", "master"],
+      },
+      {
         title: "Solicitação de Pagamento",
         icon: Send,
         href: "/payment-request",

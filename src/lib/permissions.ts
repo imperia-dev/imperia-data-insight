@@ -40,7 +40,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/chat',
     '/leads',
     '/translation-orders',
-    '/owner-final-approval'
+    '/owner-final-approval',
+    '/payment-processing'
   ],
   master: [
     '/',
@@ -58,6 +59,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/demand-control',
     '/notifications',
     '/master-protocol-approvals',
+    '/payment-processing',
     '/chat',
     '/translation-orders'
     // Removed: '/company-costs',
