@@ -2981,6 +2981,7 @@ export type Database = {
           owner_approved_by: string | null
           paid_at: string | null
           payment_batch_id: string | null
+          payment_receipt_url: string | null
           payment_reference: string | null
           protocol_number: string
           provider_agencia: string | null
@@ -3026,6 +3027,7 @@ export type Database = {
           owner_approved_by?: string | null
           paid_at?: string | null
           payment_batch_id?: string | null
+          payment_receipt_url?: string | null
           payment_reference?: string | null
           protocol_number: string
           provider_agencia?: string | null
@@ -3071,6 +3073,7 @@ export type Database = {
           owner_approved_by?: string | null
           paid_at?: string | null
           payment_batch_id?: string | null
+          payment_receipt_url?: string | null
           payment_reference?: string | null
           protocol_number?: string
           provider_agencia?: string | null
