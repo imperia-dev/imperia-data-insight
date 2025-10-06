@@ -642,27 +642,26 @@ Alex - Admin.`);
       }
 
       // 3. Update protocol status based on type
-      const updateData = {
-        payment_status: 'paid',
-        payment_received_at: new Date().toISOString(),
-        payment_amount: parseFloat(paymentAmount),
-        receipt_url: publicUrl
-      };
-
       if (selectedProtocolForPayment.type === 'production') {
         const { error: updateError } = await supabase
           .from('closing_protocols')
-          .update(updateData)
+          .update({
+            payment_status: 'paid',
+            payment_received_at: new Date().toISOString(),
+            payment_amount: parseFloat(paymentAmount),
+            receipt_url: publicUrl
+          })
           .eq('id', selectedProtocolForPayment.id);
 
         if (updateError) throw updateError;
       } else {
-        // For expense protocols, update status to 'closed'
+        // For expense protocols, update status to 'closed' and add payment info to notes
+        const paymentInfo = `\n\n--- Pagamento Realizado ---\nData: ${paymentDate}\nValor: ${formatCurrency(parseFloat(paymentAmount))}\nMétodo: ${paymentMethod}\nComprovante: ${publicUrl}`;
+        
         const { error: updateError } = await supabase
           .from('expense_closing_protocols')
           .update({
-            status: 'closed',
-            ...updateData
+            status: 'closed'
           })
           .eq('id', selectedProtocolForPayment.id);
 
