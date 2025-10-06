@@ -3070,7 +3070,7 @@ export type Database = {
             foreignKeyName: "service_provider_protocols_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
-            referencedRelation: "suppliers"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
