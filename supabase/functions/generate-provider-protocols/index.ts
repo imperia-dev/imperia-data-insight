@@ -51,12 +51,7 @@ serve(async (req) => {
         fornecedor_id,
         document_ref,
         invoice_number,
-        status,
-        profiles!expenses_fornecedor_id_fkey (
-          id,
-          full_name,
-          email
-        )
+        status
       `)
       .eq('tipo_despesa', 'prestador')
       .gte('data_competencia', startDate)
@@ -72,12 +67,28 @@ serve(async (req) => {
 
     console.log(`Found ${expenses?.length || 0} service provider expenses`);
 
+    // Get unique supplier IDs to fetch their profiles
+    const supplierIds = [...new Set(expenses?.map(e => e.fornecedor_id).filter(Boolean))];
+    
+    // Fetch profiles for all suppliers
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', supplierIds);
+
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      throw profilesError;
+    }
+
+    const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
     // Group expenses by provider
     const providersMap = new Map<string, ProviderData>();
     
     expenses?.forEach((expense: any) => {
       const supplierId = expense.fornecedor_id;
-      const profile = expense.profiles;
+      const profile = profilesMap.get(supplierId);
       
       if (!profile) {
         console.warn(`No profile found for expense ${expense.id}, fornecedor_id: ${supplierId}`);

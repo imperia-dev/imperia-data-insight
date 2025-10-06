@@ -46,7 +46,7 @@ export function ProtocoloConsolidadoTab() {
         .select('*')
         .gte('competence_month', `${selectedMonth}-01`)
         .lte('competence_month', `${selectedMonth}-31`)
-        .order('supplier_name');
+        .order('provider_name');
 
       if (indError) throw indError;
 
@@ -255,7 +255,7 @@ export function ProtocoloConsolidadoTab() {
                   {individualProtocols.map((protocol) => (
                     <TableRow key={protocol.id}>
                       <TableCell className="font-mono text-sm">{protocol.protocol_number}</TableCell>
-                      <TableCell>{protocol.supplier_name}</TableCell>
+                      <TableCell>{protocol.provider_name}</TableCell>
                       <TableCell className="text-right">{formatCurrency(protocol.total_amount || 0)}</TableCell>
                       <TableCell>
                         <ProtocolStatusBadge status={protocol.status} />
