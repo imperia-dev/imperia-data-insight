@@ -8,6 +8,7 @@ import { ProtocolStatusBadge } from "./ProtocolStatusBadge";
 import { ProtocolActionsDropdown } from "./ProtocolActionsDropdown";
 import { ProtocolFilters } from "./ProtocolFilters";
 import { ProtocolDetailsDialog } from "./ProtocolDetailsDialog";
+import { GenerateProtocolsCard } from "./GenerateProtocolsCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
@@ -183,6 +184,8 @@ export function ProtocolosIndividuaisTab() {
 
   return (
     <div className="space-y-4">
+      <GenerateProtocolsCard onProtocolsGenerated={fetchProtocols} />
+      
       <ProtocolFilters onFilterChange={fetchProtocols} suppliers={suppliers} />
 
       <Card>
