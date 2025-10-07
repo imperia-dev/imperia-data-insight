@@ -41,6 +41,7 @@ serve(async (req) => {
     const endDate = `${competence}-${String(lastDay).padStart(2, '0')}T23:59:59`;
 
     // Query delivered orders from service providers in this competence month
+    // Only include orders that haven't been assigned to a protocol yet
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select(`
@@ -59,7 +60,8 @@ serve(async (req) => {
       .lte('delivered_at', endDate)
       .not('assigned_to', 'is', null)
       .not('document_count', 'is', null)
-      .gt('document_count', 0);
+      .gt('document_count', 0)
+      .is('service_provider_protocol_id', null);
 
     if (ordersError) {
       console.error('Error fetching orders:', ordersError);
@@ -153,7 +155,7 @@ serve(async (req) => {
       }
 
       // Create protocol
-      const { error: insertError } = await supabase
+      const { data: newProtocol, error: insertError } = await supabase
         .from('service_provider_protocols')
         .insert({
           protocol_number: protocolNumber,
@@ -165,14 +167,28 @@ serve(async (req) => {
           expense_count: provider.expense_count,
           expenses_data: provider.expenses_data,
           status: 'draft',
-        });
+        })
+        .select()
+        .single();
 
       if (insertError) {
         console.error('Error inserting protocol:', insertError);
         throw insertError;
       }
 
-      console.log(`Created protocol ${protocolNumber} for ${provider.provider_name}`);
+      // Update all orders in this protocol to link them
+      const orderIds = provider.expenses_data.map((exp: any) => exp.expense_id);
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ service_provider_protocol_id: newProtocol.id })
+        .in('id', orderIds);
+
+      if (updateError) {
+        console.error('Error updating orders with protocol:', updateError);
+        // Don't throw - protocol was created successfully
+      }
+
+      console.log(`Created protocol ${protocolNumber} for ${provider.provider_name} with ${orderIds.length} orders`);
       created += 1;
     }
 

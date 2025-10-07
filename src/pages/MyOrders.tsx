@@ -50,7 +50,10 @@ export function MyOrders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*")
+        .select(`
+          *,
+          service_provider_protocols(protocol_number, status)
+        `)
         .eq("assigned_to", user?.id)
         .eq("status_order", "in_progress")
         .order("assigned_at", { ascending: false });

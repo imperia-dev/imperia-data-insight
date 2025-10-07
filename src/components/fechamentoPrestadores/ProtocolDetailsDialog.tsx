@@ -290,7 +290,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-muted-foreground">Total de Despesas:</span>
+                  <span className="text-muted-foreground">Total de Pedidos:</span>
                   <span className="font-semibold">{protocol.expense_count || 0}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
@@ -313,32 +313,28 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>ID Pedido</TableHead>
                       <TableHead>Descrição</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Tipo</TableHead>
+                      <TableHead>Documentos</TableHead>
+                      <TableHead>Data Entrega</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {expensesData.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground">
-                          Nenhuma despesa registrada
+                          Nenhum pedido registrado
                         </TableCell>
                       </TableRow>
                     ) : (
                       expensesData.map((expense: any, index: number) => (
                         <TableRow key={index}>
-                          <TableCell className="font-medium">{expense.description}</TableCell>
-                          <TableCell>{formatDate(expense.data_competencia, "dd/MM/yyyy")}</TableCell>
-                          <TableCell>{expense.tipo_fornecedor}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(expense.amount_base || expense.amount_original || 0)}</TableCell>
-                          <TableCell>
-                            <Badge variant={expense.status === "pago" ? "default" : "secondary"}>
-                              {expense.status}
-                            </Badge>
-                          </TableCell>
+                          <TableCell className="font-medium">{expense.expense_id}</TableCell>
+                          <TableCell>{expense.description}</TableCell>
+                          <TableCell>{expense.document_count || 0} docs</TableCell>
+                          <TableCell>{formatDate(expense.delivered_at, "dd/MM/yyyy HH:mm")}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(expense.amount || 0)}</TableCell>
                         </TableRow>
                       ))
                     )}

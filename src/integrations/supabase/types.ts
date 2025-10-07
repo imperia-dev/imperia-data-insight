@@ -2151,6 +2151,7 @@ export type Database = {
           is_urgent: boolean | null
           order_number: string
           service_order_link: string | null
+          service_provider_protocol_id: string | null
           status_order: string
           updated_at: string
           urgent_document_count: number | null
@@ -2171,6 +2172,7 @@ export type Database = {
           is_urgent?: boolean | null
           order_number: string
           service_order_link?: string | null
+          service_provider_protocol_id?: string | null
           status_order?: string
           updated_at?: string
           urgent_document_count?: number | null
@@ -2191,6 +2193,7 @@ export type Database = {
           is_urgent?: boolean | null
           order_number?: string
           service_order_link?: string | null
+          service_provider_protocol_id?: string | null
           status_order?: string
           updated_at?: string
           urgent_document_count?: number | null
@@ -2208,6 +2211,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_service_provider_protocol_id_fkey"
+            columns: ["service_provider_protocol_id"]
+            isOneToOne: false
+            referencedRelation: "service_provider_protocols"
             referencedColumns: ["id"]
           },
         ]

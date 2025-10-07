@@ -71,7 +71,11 @@ export function DeliveredOrders() {
     queryFn: async () => {
       let query = supabase
         .from("orders")
-        .select("*, profiles!orders_assigned_to_fkey(full_name, email)")
+        .select(`
+          *, 
+          profiles!orders_assigned_to_fkey(full_name, email),
+          service_provider_protocols(protocol_number, status)
+        `)
         .eq("status_order", "delivered")
         .order("delivered_at", { ascending: false });
       
@@ -419,7 +423,8 @@ export function DeliveredOrders() {
                         <TableHead>Prazo Original</TableHead>
                         <TableHead>Data de Entrega</TableHead>
                         {isAdminOrMaster && <TableHead>Responsável</TableHead>}
-                        <TableHead>Status</TableHead>
+                        <TableHead>Status Entrega</TableHead>
+                        <TableHead>Protocolo</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -473,6 +478,16 @@ export function DeliveredOrders() {
                               )}>
                                 {isOnTime ? "No prazo" : "Atrasado"}
                               </span>
+                            </TableCell>
+                            <TableCell>
+                              {order.service_provider_protocols ? (
+                                <Badge variant="secondary" className="gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  {order.service_provider_protocols.protocol_number}
+                                </Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">Pendente</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
