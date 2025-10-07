@@ -357,7 +357,7 @@ export default function MasterProtocolApprovals() {
               <p className="text-muted-foreground mt-2">Gerencie as aprovações de protocolos de prestadores</p>
             </div>
 
-      <Tabs defaultValue="initial" className="w-full">
+            <Tabs defaultValue="initial" className="w-full">
         <TabsList>
           <TabsTrigger value="initial">
             Aprovação Inicial ({initialProtocols.length})
@@ -432,9 +432,9 @@ export default function MasterProtocolApprovals() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+            </Tabs>
 
-      <Dialog open={showReturnDialog} onOpenChange={setShowReturnDialog}>
+            <Dialog open={showReturnDialog} onOpenChange={setShowReturnDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Retornar para Ajustes</DialogTitle>
@@ -505,12 +505,12 @@ export default function MasterProtocolApprovals() {
         </DialogContent>
       </Dialog>
 
-      <AssignOperationUserDialog
-        open={showAssignDialog}
-        onOpenChange={setShowAssignDialog}
-        protocolId={selectedReviewerProtocolId}
-        onSuccess={fetchProtocols}
-      />
+            <AssignOperationUserDialog
+              open={showAssignDialog}
+              onOpenChange={setShowAssignDialog}
+              protocolId={selectedReviewerProtocolId}
+              onSuccess={fetchProtocols}
+            />
           </div>
         </main>
       </div>
