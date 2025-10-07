@@ -264,7 +264,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     title: "Administração",
     icon: Briefcase,
-    roles: ["owner", "master", "admin", "operation"],
+    roles: ["owner", "master", "admin", "operation", "translator"],
     items: [
       {
         title: "Documentos",
