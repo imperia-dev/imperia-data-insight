@@ -200,7 +200,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Translation Orders",
         icon: FileText,
         href: "/translation-orders",
-        roles: ["owner", "master", "admin"],
+        roles: ["owner", "admin"],
       },
     ],
   },
