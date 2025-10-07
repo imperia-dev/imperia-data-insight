@@ -16,7 +16,7 @@ export const ReviewerProtocolStatusBadge = ({ status }: ReviewerProtocolStatusBa
       case 'data_inserted':
         return { label: 'Dados Inseridos', variant: 'outline' as const };
       case 'master_final':
-        return { label: 'Aprovação Master Final', variant: 'outline' as const };
+        return { label: 'Aguard. Owner', variant: 'default' as const };
       case 'owner_approval':
         return { label: 'Aprovado Owner', variant: 'default' as const };
       case 'paid':

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProtocolStatusBadge } from "@/components/fechamentoPrestadores/ProtocolStatusBadge";
+import { ReviewerProtocolStatusBadge } from "@/components/reviewerProtocols/ReviewerProtocolStatusBadge";
 import { ProtocolDetailsDialog } from "@/components/fechamentoPrestadores/ProtocolDetailsDialog";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -246,7 +247,11 @@ export default function OwnerFinalApproval() {
                             }).format(protocol.total_amount)}
                           </TableCell>
                           <TableCell>
-                            <ProtocolStatusBadge status={protocol.status} />
+                            {protocol.table_type === 'reviewer' ? (
+                              <ReviewerProtocolStatusBadge status={protocol.status} />
+                            ) : (
+                              <ProtocolStatusBadge status={protocol.status} />
+                            )}
                           </TableCell>
                           <TableCell>
                             {protocol.invoice_file_url && (
