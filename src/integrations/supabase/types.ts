@@ -3899,6 +3899,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      is_channel_member: {
+        Args: { p_channel_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_protocol_delayed: {
         Args: { p_current_step?: string; p_protocol_id: string }
         Returns: boolean
