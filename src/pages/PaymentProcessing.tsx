@@ -32,6 +32,7 @@ interface Protocol {
   bank_agency?: string;
   bank_account?: string;
   account_type?: string;
+  protocol_type?: 'service_provider' | 'reviewer'; // Identificar tipo de protocolo
 }
 
 export default function PaymentProcessing() {
@@ -56,19 +57,44 @@ export default function PaymentProcessing() {
   const fetchProtocols = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Buscar protocolos de prestadores com status "approved"
+      const { data: serviceProviderData, error: spError } = await supabase
         .from("service_provider_protocols")
         .select("*")
         .eq("status", "approved")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (spError) throw spError;
+
+      // Buscar protocolos de revisores com status "owner_approval"
+      const { data: reviewerData, error: revError } = await supabase
+        .from("reviewer_protocols")
+        .select("*")
+        .eq("status", "owner_approval")
+        .order("created_at", { ascending: false });
+
+      if (revError) throw revError;
+
+      // Combinar e marcar tipo de protocolo
+      const allProtocols = [
+        ...(serviceProviderData || []).map((p: any) => ({ 
+          ...p, 
+          protocol_type: 'service_provider' as const,
+          provider_name: p.provider_name || 'N/A'
+        })),
+        ...(reviewerData || []).map((p: any) => ({ 
+          ...p, 
+          protocol_type: 'reviewer' as const,
+          provider_name: p.reviewer_name || 'N/A'
+        }))
+      ];
       
-      setProtocols(data || []);
+      setProtocols(allProtocols as Protocol[]);
       
       // Initialize receipt map with existing receipt URLs  
       const receiptsMap = new Map<string, string>();
-      (data || []).forEach((protocol: any) => {
+      allProtocols.forEach((protocol: any) => {
         if (protocol.payment_receipt_url) {
           receiptsMap.set(protocol.id, protocol.payment_receipt_url);
         }
@@ -110,16 +136,36 @@ export default function PaymentProcessing() {
     try {
       setProcessing(true);
       
-      // Update selected protocols to "payment_processing" status
-      const { error } = await supabase
-        .from("service_provider_protocols")
-        .update({ 
-          status: "payment_processing",
-          payment_requested_at: new Date().toISOString()
-        })
-        .in("id", Array.from(selectedProtocols));
+      // Separar protocolos por tipo
+      const selectedIds = Array.from(selectedProtocols);
+      const spIds = protocols.filter(p => selectedIds.includes(p.id) && p.protocol_type === 'service_provider').map(p => p.id);
+      const revIds = protocols.filter(p => selectedIds.includes(p.id) && p.protocol_type === 'reviewer').map(p => p.id);
+      
+      // Atualizar protocolos de prestadores
+      if (spIds.length > 0) {
+        const { error: spError } = await supabase
+          .from("service_provider_protocols")
+          .update({ 
+            status: "payment_processing",
+            payment_requested_at: new Date().toISOString()
+          })
+          .in("id", spIds);
 
-      if (error) throw error;
+        if (spError) throw spError;
+      }
+
+      // Atualizar protocolos de revisores
+      if (revIds.length > 0) {
+        const { error: revError } = await supabase
+          .from("reviewer_protocols")
+          .update({ 
+            status: "payment_processing",
+            payment_requested_at: new Date().toISOString()
+          })
+          .in("id", revIds);
+
+        if (revError) throw revError;
+      }
 
       toast.success(`${selectedProtocols.size} protocolo(s) enviado(s) para processamento de pagamento!`);
       setSelectedProtocols(new Set());
@@ -142,8 +188,19 @@ export default function PaymentProcessing() {
     }
 
     try {
+      // Identificar o tipo do protocolo
+      const protocol = protocols.find(p => p.id === protocolId);
+      if (!protocol) {
+        toast.error("Protocolo não encontrado");
+        return;
+      }
+
+      const tableName = protocol.protocol_type === 'service_provider' 
+        ? 'service_provider_protocols' 
+        : 'reviewer_protocols';
+
       const { error } = await supabase
-        .from("service_provider_protocols")
+        .from(tableName)
         .update({ 
           status: "paid",
           paid_at: new Date().toISOString(),
@@ -195,9 +252,19 @@ export default function PaymentProcessing() {
         .from('payment-receipts')
         .getPublicUrl(filePath);
 
+      // Identificar o tipo do protocolo
+      const protocol = protocols.find(p => p.id === protocolId);
+      if (!protocol) {
+        throw new Error("Protocolo não encontrado");
+      }
+
+      const tableName = protocol.protocol_type === 'service_provider' 
+        ? 'service_provider_protocols' 
+        : 'reviewer_protocols';
+
       // Update protocol with receipt URL
       const { error: updateError } = await supabase
-        .from("service_provider_protocols")
+        .from(tableName)
         .update({ payment_receipt_url: publicUrl })
         .eq("id", protocolId);
 
@@ -324,7 +391,12 @@ export default function PaymentProcessing() {
                             />
                           </TableCell>
                           <TableCell className="font-medium">
-                            {protocol.protocol_number}
+                            <div className="flex flex-col gap-1">
+                              <span>{protocol.protocol_number}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {protocol.protocol_type === 'reviewer' ? 'Revisor' : 'Prestador'}
+                              </span>
+                            </div>
                           </TableCell>
                           <TableCell>{protocol.provider_name}</TableCell>
                           <TableCell>
