@@ -229,13 +229,16 @@ serve(async (req) => {
         throw rpcError;
       }
 
-      console.log(`Generated protocol number: ${protocolNumber} for ${provider.reviewer_name}`);
+      // Add RAS- prefix for draft protocols
+      const finalProtocolNumber = `RAS-${protocolNumber}`;
+
+      console.log(`Generated protocol number: ${finalProtocolNumber} for ${provider.reviewer_name}`);
 
       // Create protocol
       const { data: newProtocol, error: insertError } = await supabase
         .from('reviewer_protocols')
         .insert({
-          protocol_number: protocolNumber,
+          protocol_number: finalProtocolNumber,
           competence_month: protocolCompetence,
           reviewer_id: provider.reviewer_id,
           reviewer_name: provider.reviewer_name,
