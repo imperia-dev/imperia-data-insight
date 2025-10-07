@@ -26,7 +26,6 @@ interface Protocol {
   status: string;
   invoice_file_url?: string;
   payment_reference?: string;
-  table_type: 'service_provider' | 'reviewer';
 }
 
 export default function OwnerFinalApproval() {
@@ -49,44 +48,14 @@ export default function OwnerFinalApproval() {
   const fetchProtocols = async () => {
     try {
       setLoading(true);
-      
-      // Buscar protocolos de service providers
-      const { data: serviceProviderData, error: spError } = await supabase
+      const { data, error } = await supabase
         .from("service_provider_protocols")
         .select("id, protocol_number, provider_name, competence_month, total_amount, status, invoice_file_url, payment_reference")
         .eq("status", "awaiting_owner_approval")
         .order("created_at", { ascending: false });
 
-      if (spError) throw spError;
-
-      // Buscar protocolos de revisores com status master_final
-      const { data: reviewerData, error: revError } = await supabase
-        .from("reviewer_protocols")
-        .select("id, protocol_number, reviewer_name, competence_month, total_amount, status, invoice_url, payment_reference")
-        .eq("status", "master_final")
-        .order("created_at", { ascending: false });
-
-      if (revError) throw revError;
-
-      // Combinar ambos os tipos de protocolos
-      const serviceProviderProtocols = (serviceProviderData || []).map(p => ({
-        ...p,
-        table_type: 'service_provider' as const
-      }));
-
-      const reviewerProtocols = (reviewerData || []).map(p => ({
-        id: p.id,
-        protocol_number: p.protocol_number,
-        provider_name: p.reviewer_name,
-        competence_month: p.competence_month,
-        total_amount: p.total_amount,
-        status: p.status,
-        invoice_file_url: p.invoice_url,
-        payment_reference: p.payment_reference,
-        table_type: 'reviewer' as const
-      }));
-
-      setProtocols([...serviceProviderProtocols, ...reviewerProtocols]);
+      if (error) throw error;
+      setProtocols(data || []);
     } catch (error: any) {
       toast.error("Erro ao carregar protocolos", {
         description: error.message,
@@ -96,30 +65,16 @@ export default function OwnerFinalApproval() {
     }
   };
 
-  const handleApproval = async (protocol: Protocol) => {
+  const handleApproval = async (protocolId: string) => {
     try {
-      if (protocol.table_type === 'service_provider') {
-        const { error } = await supabase
-          .from("service_provider_protocols")
-          .update({
-            status: "approved",
-          })
-          .eq("id", protocol.id);
+      const { error } = await supabase
+        .from("service_provider_protocols")
+        .update({
+          status: "approved",
+        })
+        .eq("id", protocolId);
 
-        if (error) throw error;
-      } else {
-        // Reviewer protocol
-        const { error } = await supabase
-          .from("reviewer_protocols")
-          .update({
-            status: "owner_approval",
-            owner_approved_at: new Date().toISOString(),
-            owner_approved_by: user?.id,
-          })
-          .eq("id", protocol.id);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       toast.success("Protocolo aprovado com sucesso!");
       fetchProtocols();
@@ -137,28 +92,15 @@ export default function OwnerFinalApproval() {
     }
 
     try {
-      if (selectedProtocol.table_type === 'service_provider') {
-        const { error } = await supabase
-          .from("service_provider_protocols")
-          .update({
-            status: "returned_for_adjustment",
-            return_reason: returnReason,
-          })
-          .eq("id", selectedProtocol.id);
+      const { error } = await supabase
+        .from("service_provider_protocols")
+        .update({
+          status: "returned_for_adjustment",
+          return_reason: returnReason,
+        })
+        .eq("id", selectedProtocol.id);
 
-        if (error) throw error;
-      } else {
-        // Reviewer protocol - devolver para master_initial para reiniciar o processo
-        const { error } = await supabase
-          .from("reviewer_protocols")
-          .update({
-            status: "master_initial",
-            return_reason: returnReason,
-          })
-          .eq("id", selectedProtocol.id);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       toast.success("Protocolo devolvido para ajustes");
       setShowReturnDialog(false);
@@ -272,7 +214,7 @@ export default function OwnerFinalApproval() {
                             <Button
                               variant="default"
                               size="sm"
-                              onClick={() => handleApproval(protocol)}
+                              onClick={() => handleApproval(protocol.id)}
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Aprovar
