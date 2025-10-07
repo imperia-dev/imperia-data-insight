@@ -67,11 +67,11 @@ export default function PaymentProcessing() {
 
       if (spError) throw spError;
 
-      // Buscar protocolos de revisores com status "owner_approval"
+      // Buscar protocolos de revisores com status "approved"
       const { data: reviewerData, error: revError } = await supabase
         .from("reviewer_protocols")
         .select("*")
-        .eq("status", "owner_approval")
+        .eq("status", "approved")
         .order("created_at", { ascending: false });
 
       if (revError) throw revError;
