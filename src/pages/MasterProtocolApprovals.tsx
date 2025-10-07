@@ -15,6 +15,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { AssignOperationUserDialog } from "@/components/reviewerProtocols/AssignOperationUserDialog";
 
 interface Protocol {
   id: string;
@@ -41,6 +42,8 @@ export default function MasterProtocolApprovals() {
   const [returnReason, setReturnReason] = useState("");
   const [showReturnDialog, setShowReturnDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [selectedReviewerProtocolId, setSelectedReviewerProtocolId] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -94,33 +97,10 @@ export default function MasterProtocolApprovals() {
     }
   };
 
-  const handleReviewerApproval = async (protocolId: string) => {
-    try {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      const { error } = await supabase
-        .from("reviewer_protocols")
-        .update({
-          status: "master_initial",
-          master_initial_approved_by: userId,
-          master_initial_approved_at: new Date().toISOString(),
-        })
-        .eq("id", protocolId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Protocolo aprovado",
-        description: "Protocolo aprovado - Aprovação Master Inicial",
-      });
-
-      fetchProtocols();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao aprovar",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+  const handleReviewerApproval = (protocolId: string) => {
+    // Abrir dialog para vincular usuário operation
+    setSelectedReviewerProtocolId(protocolId);
+    setShowAssignDialog(true);
   };
 
   const handleInitialApproval = async (protocolId: string) => {
@@ -451,6 +431,13 @@ export default function MasterProtocolApprovals() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AssignOperationUserDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        protocolId={selectedReviewerProtocolId}
+        onSuccess={fetchProtocols}
+      />
           </div>
         </main>
       </div>
