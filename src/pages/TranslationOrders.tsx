@@ -398,13 +398,6 @@ const TranslationOrders = () => {
       return;
     }
 
-    // Check if all filtered orders are completed (entregue)
-    const allCompleted = orders.every(order => order.pedido_status === 'entregue');
-    if (!allCompleted) {
-      toast.error("Todos os pedidos devem estar com status 'entregue' para gerar protocolo");
-      return;
-    }
-
     // Check if orders have reviewers
     const hasReviewers = orders.every(order => order.review_id);
     if (!hasReviewers) {
@@ -444,13 +437,12 @@ const TranslationOrders = () => {
       }
 
       const { data: allFilteredOrders, error } = await query
-        .eq('pedido_status', 'entregue')
         .is('reviewer_protocol_id', null);
 
       if (error) throw error;
 
       if (!allFilteredOrders || allFilteredOrders.length === 0) {
-        toast.error("Nenhum pedido entregue sem protocolo encontrado nos filtros aplicados");
+        toast.error("Nenhum pedido sem protocolo encontrado nos filtros aplicados");
         return;
       }
 
