@@ -10,11 +10,9 @@ export const ReviewerProtocolStatusBadge = ({ status }: ReviewerProtocolStatusBa
       case 'draft':
         return { label: 'Rascunho', variant: 'secondary' as const };
       case 'pending_approval':
-        return { label: 'Aguardando Aprovação', variant: 'default' as const };
-      case 'reviewer_approved':
-        return { label: 'Aprovado pelo Revisor', variant: 'default' as const };
+        return { label: 'Aguardando Master Inicial', variant: 'default' as const };
       case 'master_initial':
-        return { label: 'Master Inicial - Aguardando Dados', variant: 'outline' as const };
+        return { label: 'Aguardando Dados - Operation', variant: 'outline' as const };
       case 'data_inserted':
         return { label: 'Dados Inseridos', variant: 'outline' as const };
       case 'master_final':

@@ -91,16 +91,16 @@ export const ReviewerProtocolDetailsDialog = ({
                 completed={true}
               />
               <TimelineStep
-                title="Aprovação do Revisor"
-                date={protocol.reviewer_approved_at}
-                completed={!!protocol.reviewer_approved_at}
-                notes={protocol.reviewer_approval_notes}
-              />
-              <TimelineStep
                 title="Aprovação Master - Inicial"
                 date={protocol.master_initial_approved_at}
                 completed={!!protocol.master_initial_approved_at}
                 notes={protocol.master_initial_notes}
+              />
+              <TimelineStep
+                title="Inserção de Dados e Nota Fiscal"
+                date={protocol.data_inserted_at}
+                completed={!!protocol.data_inserted_at}
+                notes={protocol.assigned_operation_user_id ? `Responsável: ${protocol.assigned_operation_user_id}` : undefined}
               />
               <TimelineStep
                 title="Aprovação Master - Final"
