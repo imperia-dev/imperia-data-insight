@@ -38,7 +38,8 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get OAuth token from BTG
-    const tokenResponse = await fetch('https://api.btgpactual.com/oauth/token', {
+    // Using sandbox environment - change to id.btgpactual.com for production
+    const tokenResponse = await fetch('https://id.sandbox.btgpactual.com/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -47,7 +48,6 @@ serve(async (req) => {
         grant_type: 'client_credentials',
         client_id: btgClientId,
         client_secret: btgClientSecret,
-        scope: 'read:suppliers write:suppliers'
       })
     });
 
