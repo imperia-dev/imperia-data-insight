@@ -20,6 +20,7 @@ interface Protocol {
   id: string;
   protocol_number: string;
   provider_name: string;
+  reviewer_name?: string;
   competence_month: string;
   total_amount: number;
   expense_count: number;
@@ -28,11 +29,13 @@ interface Protocol {
   invoice_file_url?: string;
   invoice_amount?: number;
   return_reason?: string;
+  table_type?: 'service_provider' | 'reviewer';
 }
 
 export default function MasterProtocolApprovals() {
   const [initialProtocols, setInitialProtocols] = useState<Protocol[]>([]);
   const [finalProtocols, setFinalProtocols] = useState<Protocol[]>([]);
+  const [reviewerProtocols, setReviewerProtocols] = useState<Protocol[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProtocol, setSelectedProtocol] = useState<Protocol | null>(null);
   const [returnReason, setReturnReason] = useState("");
@@ -64,8 +67,22 @@ export default function MasterProtocolApprovals() {
 
       if (finalError) throw finalError;
 
-      setInitialProtocols(initial || []);
-      setFinalProtocols(final || []);
+      const { data: reviewer, error: reviewerError } = await supabase
+        .from("reviewer_protocols")
+        .select("*")
+        .eq("status", "pending_approval")
+        .order("created_at", { ascending: false });
+
+      if (reviewerError) throw reviewerError;
+
+      setInitialProtocols((initial || []).map(p => ({ ...p, table_type: 'service_provider' as const })));
+      setFinalProtocols((final || []).map(p => ({ ...p, table_type: 'service_provider' as const })));
+      setReviewerProtocols((reviewer || []).map(p => ({ 
+        ...p, 
+        table_type: 'reviewer' as const,
+        provider_name: p.reviewer_name,
+        expense_count: p.document_count || 0
+      })));
     } catch (error: any) {
       toast({
         title: "Erro ao carregar protocolos",
@@ -74,6 +91,35 @@ export default function MasterProtocolApprovals() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReviewerApproval = async (protocolId: string) => {
+    try {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const { error } = await supabase
+        .from("reviewer_protocols")
+        .update({
+          status: "master_initial",
+          master_initial_approved_by: userId,
+          master_initial_approved_at: new Date().toISOString(),
+        })
+        .eq("id", protocolId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Protocolo aprovado",
+        description: "Protocolo aprovado - Aprovação Master Inicial",
+      });
+
+      fetchProtocols();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao aprovar",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -173,7 +219,7 @@ export default function MasterProtocolApprovals() {
     }
   };
 
-  const ProtocolTable = ({ protocols, isInitial }: { protocols: Protocol[]; isInitial: boolean }) => (
+  const ProtocolTable = ({ protocols, isInitial, isReviewer }: { protocols: Protocol[]; isInitial: boolean; isReviewer?: boolean }) => (
     <Table>
       <TableHeader>
         <TableRow>
@@ -226,7 +272,15 @@ export default function MasterProtocolApprovals() {
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => isInitial ? handleInitialApproval(protocol.id) : handleFinalApproval(protocol.id)}
+                    onClick={() => {
+                      if (isReviewer) {
+                        handleReviewerApproval(protocol.id);
+                      } else if (isInitial) {
+                        handleInitialApproval(protocol.id);
+                      } else {
+                        handleFinalApproval(protocol.id);
+                      }
+                    }}
                   >
                     <CheckCircle className="h-4 w-4 mr-1" />
                     Aprovar
@@ -276,6 +330,9 @@ export default function MasterProtocolApprovals() {
           <TabsTrigger value="final">
             Validação Final ({finalProtocols.length})
           </TabsTrigger>
+          <TabsTrigger value="reviewer">
+            Protocolos Revisores ({reviewerProtocols.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="initial">
@@ -303,6 +360,21 @@ export default function MasterProtocolApprovals() {
                 <div className="text-center py-8">Carregando...</div>
               ) : (
                 <ProtocolTable protocols={finalProtocols} isInitial={false} />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reviewer">
+          <Card>
+            <CardHeader>
+              <CardTitle>Protocolos de Revisores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8">Carregando...</div>
+              ) : (
+                <ProtocolTable protocols={reviewerProtocols} isInitial={true} isReviewer={true} />
               )}
             </CardContent>
           </Card>
