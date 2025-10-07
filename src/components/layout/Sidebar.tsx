@@ -282,7 +282,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Carteira",
         icon: Wallet,
         href: "/wallet",
-        roles: ["owner", "master", "operation"],
+        roles: ["owner", "master", "operation", "translator"],
       },
       {
         title: "Meus Protocolos",
