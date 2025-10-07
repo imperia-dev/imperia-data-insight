@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown, Trash2, Save, ChevronDown, X } from "lucide-react";
+import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown, Trash2, Save, ChevronDown, X, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReviewerProtocolsTab } from "@/components/reviewerProtocols/ReviewerProtocolsTab";
@@ -72,6 +73,7 @@ const TranslationOrders = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [savingProgress, setSavingProgress] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -406,7 +408,12 @@ const TranslationOrders = () => {
     }
 
     setSavingDraft(true);
+    setSavingProgress(0);
+    
     try {
+      // Simulate initial progress
+      setSavingProgress(10);
+      
       // Fetch ALL filtered orders (not just current page)
       let query = supabase
         .from('translation_orders')
@@ -436,6 +443,8 @@ const TranslationOrders = () => {
         query = query.ilike('review_name', `%${reviewerFilter}%`);
       }
 
+      setSavingProgress(25);
+
       const { data: allFilteredOrders, error } = await query
         .is('reviewer_protocol_id', null);
 
@@ -446,8 +455,12 @@ const TranslationOrders = () => {
         return;
       }
 
+      setSavingProgress(40);
+
       // Get order IDs
       const orderIds = allFilteredOrders.map(o => o.id);
+
+      setSavingProgress(50);
 
       // Call edge function with filtered order IDs
       const { data, error: fnError } = await supabase.functions.invoke('generate-reviewer-protocols', {
@@ -457,12 +470,18 @@ const TranslationOrders = () => {
         },
       });
 
+      setSavingProgress(80);
+
       if (fnError) throw fnError;
+
+      setSavingProgress(90);
 
       toast.success(
         `${data.protocolsCreated} protocolo(s) rascunho criado(s)!` +
         (data.protocolsSkipped > 0 ? ` (${data.protocolsSkipped} já existiam)` : '')
       );
+
+      setSavingProgress(100);
 
       // Refresh orders to show updated protocol_id
       fetchOrders();
@@ -471,6 +490,7 @@ const TranslationOrders = () => {
       toast.error("Erro ao salvar rascunho: " + error.message);
     } finally {
       setSavingDraft(false);
+      setSavingProgress(0);
     }
   };
 
@@ -941,14 +961,30 @@ const TranslationOrders = () => {
                       <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                       Atualizar
                     </Button>
-                    <Button 
-                      onClick={handleSaveDraftProtocol} 
-                      disabled={savingDraft || orders.length === 0}
-                      variant="default"
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      {savingDraft ? 'Salvando...' : 'Salvar Rascunho de Protocolo'}
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button 
+                        onClick={handleSaveDraftProtocol} 
+                        disabled={savingDraft || orders.length === 0}
+                        variant="default"
+                      >
+                        {savingDraft ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Salvando... {savingProgress}%
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Salvar Rascunho de Protocolo
+                          </>
+                        )}
+                      </Button>
+                      {savingDraft && (
+                        <div className="w-full">
+                          <Progress value={savingProgress} className="h-2" />
+                        </div>
+                      )}
+                    </div>
                     <Button onClick={exportToExcel} variant="outline">
                       <Download className="h-4 w-4 mr-2" />
                       Exportar Excel
