@@ -98,8 +98,8 @@ export const ReviewerProtocolDetailsDialog = ({
               />
               <TimelineStep
                 title="Inserção de Dados e Nota Fiscal"
-                date={protocol.data_inserted_at}
-                completed={!!protocol.data_inserted_at}
+                date={protocol.operation_data_filled_at}
+                completed={!!protocol.operation_data_filled_at}
                 notes={protocol.assigned_operation_user_id ? `Responsável: ${protocol.assigned_operation_user_id}` : undefined}
               />
               <TimelineStep
