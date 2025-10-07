@@ -375,8 +375,8 @@ export default function MasterProtocolApprovals() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="initial">
-          <Card>
+        <TabsContent value="initial" className="w-full">
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Aprovação Inicial</CardTitle>
             </CardHeader>
@@ -390,8 +390,8 @@ export default function MasterProtocolApprovals() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="final">
-          <Card>
+        <TabsContent value="final" className="w-full">
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Validação Final</CardTitle>
             </CardHeader>
@@ -405,8 +405,8 @@ export default function MasterProtocolApprovals() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="reviewer">
-          <Card>
+        <TabsContent value="reviewer" className="w-full">
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Protocolos de Revisores - Aprovação Inicial</CardTitle>
             </CardHeader>
@@ -420,8 +420,8 @@ export default function MasterProtocolApprovals() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="reviewer-final">
-          <Card>
+        <TabsContent value="reviewer-final" className="w-full">
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Protocolos de Revisores - Aprovação Final</CardTitle>
             </CardHeader>
