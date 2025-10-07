@@ -146,7 +146,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     title: "Operação",
     icon: Activity,
-    roles: ["owner", "master", "admin", "operation"],
+    roles: ["owner", "master", "admin", "operation", "translator"],
     items: [
       {
         title: "Dashboard Operação",
@@ -158,7 +158,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Meus Pedidos",
         icon: Package,
         href: "/my-orders",
-        roles: ["owner", "master", "operation"],
+        roles: ["owner", "master", "operation", "translator"],
       },
       {
         title: "Pedidos",
@@ -350,7 +350,7 @@ const standaloneItems: NavigationItem[] = [
     title: "Configurações",
     icon: Settings,
     href: "/settings",
-    roles: ["owner", "master", "admin", "operation"],
+    roles: ["owner", "master", "admin", "operation", "translator"],
   },
 ];
 
