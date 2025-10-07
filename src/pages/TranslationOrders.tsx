@@ -11,10 +11,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown, Trash2, Save } from "lucide-react";
+import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown, Trash2, Save, ChevronDown, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReviewerProtocolsTab } from "@/components/reviewerProtocols/ReviewerProtocolsTab";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from 'xlsx';
 import { exportToPDF } from "@/utils/exportUtils";
 import {
@@ -78,7 +80,7 @@ const TranslationOrders = () => {
 
   // Temporary filter states (for user input)
   const [tempSearchTerm, setTempSearchTerm] = useState("");
-  const [tempStatusFilter, setTempStatusFilter] = useState("all");
+  const [tempStatusFilter, setTempStatusFilter] = useState<string[]>([]);
   const [tempPaymentStatusFilter, setTempPaymentStatusFilter] = useState("all");
   const [tempDateFrom, setTempDateFrom] = useState("");
   const [tempDateTo, setTempDateTo] = useState("");
@@ -88,7 +90,7 @@ const TranslationOrders = () => {
 
   // Applied filter states (for actual filtering)
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -108,9 +110,12 @@ const TranslationOrders = () => {
   // User data
   const [userProfile, setUserProfile] = useState<{ name: string; role: string } | null>(null);
   
+  // Available status options from database
+  const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
+  
   const { mainContainerClass } = useSidebarOffset();
   
-  // Fetch total counts without filters
+  // Fetch total counts without filters and available statuses
   useEffect(() => {
     const fetchTotalCounts = async () => {
       // Get total orders without filters
@@ -130,6 +135,16 @@ const TranslationOrders = () => {
       if (allDocs) {
         const totalDocs = allDocs.reduce((sum, order) => sum + (order.quantidade_documentos || 0), 0);
         // Store this in a new state for total documents without filters
+      }
+      
+      // Fetch unique status values
+      const { data: statusData } = await supabase
+        .from('translation_orders')
+        .select('pedido_status');
+      
+      if (statusData) {
+        const uniqueStatuses = [...new Set(statusData.map(item => item.pedido_status))].filter(Boolean);
+        setAvailableStatuses(uniqueStatuses);
       }
     };
     fetchTotalCounts();
@@ -173,8 +188,8 @@ const TranslationOrders = () => {
         query = query.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
       }
 
-      if (statusFilter !== "all") {
-        query = query.eq('pedido_status', statusFilter);
+      if (statusFilter.length > 0) {
+        query = query.in('pedido_status', statusFilter);
       }
 
       if (paymentStatusFilter !== "all") {
@@ -224,8 +239,8 @@ const TranslationOrders = () => {
         metricsQuery = metricsQuery.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
       }
 
-      if (statusFilter !== "all") {
-        metricsQuery = metricsQuery.eq('pedido_status', statusFilter);
+      if (statusFilter.length > 0) {
+        metricsQuery = metricsQuery.in('pedido_status', statusFilter);
       }
 
       if (paymentStatusFilter !== "all") {
@@ -323,7 +338,7 @@ const TranslationOrders = () => {
   const handleClearFilters = () => {
     // Clear both temporary and applied filters
     setTempSearchTerm("");
-    setTempStatusFilter("all");
+    setTempStatusFilter([]);
     setTempPaymentStatusFilter("all");
     setTempDateFrom("");
     setTempDateTo("");
@@ -332,7 +347,7 @@ const TranslationOrders = () => {
     setTempSortOrder("desc");
     
     setSearchTerm("");
-    setStatusFilter("all");
+    setStatusFilter([]);
     setPaymentStatusFilter("all");
     setDateFrom("");
     setDateTo("");
@@ -408,8 +423,8 @@ const TranslationOrders = () => {
       if (searchTerm) {
         query = query.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
       }
-      if (statusFilter !== "all") {
-        query = query.eq('pedido_status', statusFilter);
+      if (statusFilter.length > 0) {
+        query = query.in('pedido_status', statusFilter);
       }
       if (paymentStatusFilter !== "all") {
         query = query.eq('status_pagamento', paymentStatusFilter);
@@ -479,8 +494,8 @@ const TranslationOrders = () => {
         query = query.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
       }
 
-      if (statusFilter !== "all") {
-        query = query.eq('pedido_status', statusFilter);
+      if (statusFilter.length > 0) {
+        query = query.in('pedido_status', statusFilter);
       }
 
       if (paymentStatusFilter !== "all") {
@@ -546,8 +561,8 @@ const TranslationOrders = () => {
         query = query.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
       }
 
-      if (statusFilter !== "all") {
-        query = query.eq('pedido_status', statusFilter);
+      if (statusFilter.length > 0) {
+        query = query.in('pedido_status', statusFilter);
       }
 
       if (paymentStatusFilter !== "all") {
@@ -709,7 +724,7 @@ const TranslationOrders = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{metrics.totalOrders}</div>
-                    {(searchTerm || statusFilter !== "all" || paymentStatusFilter !== "all" || dateFrom || dateTo || reviewerFilter) && (
+                    {(searchTerm || statusFilter.length > 0 || paymentStatusFilter !== "all" || dateFrom || dateTo || reviewerFilter) && (
                       <p className="text-xs text-muted-foreground mt-1">
                         Total sem filtros: {totalOrdersWithoutFilters}
                       </p>
@@ -744,7 +759,7 @@ const TranslationOrders = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{metrics.totalDocuments}</div>
-                    {(searchTerm || statusFilter !== "all" || paymentStatusFilter !== "all" || dateFrom || dateTo || reviewerFilter) && (
+                    {(searchTerm || statusFilter.length > 0 || paymentStatusFilter !== "all" || dateFrom || dateTo || reviewerFilter) && (
                       <p className="text-xs text-muted-foreground mt-1">
                         Total: {totalOrdersWithoutFilters} pedidos
                       </p>
@@ -776,18 +791,70 @@ const TranslationOrders = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="status">Status do Pedido</Label>
-                      <Select value={tempStatusFilter} onValueChange={setTempStatusFilter}>
-                        <SelectTrigger id="status">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos</SelectItem>
-                          <SelectItem value="pending">Pendente</SelectItem>
-                          <SelectItem value="processing">Processando</SelectItem>
-                          <SelectItem value="completed">Concluído</SelectItem>
-                          <SelectItem value="cancelled">Cancelado</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="status"
+                            variant="outline"
+                            className="w-full justify-between"
+                          >
+                            <span className="truncate">
+                              {tempStatusFilter.length === 0
+                                ? "Todos"
+                                : tempStatusFilter.length === 1
+                                ? tempStatusFilter[0]
+                                : `${tempStatusFilter.length} selecionados`}
+                            </span>
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                          <div className="p-2 space-y-2">
+                            {tempStatusFilter.length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full justify-start"
+                                onClick={() => setTempStatusFilter([])}
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Limpar seleção
+                              </Button>
+                            )}
+                            {availableStatuses.map((status) => (
+                              <div
+                                key={status}
+                                className="flex items-center space-x-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded"
+                                onClick={() => {
+                                  setTempStatusFilter((prev) =>
+                                    prev.includes(status)
+                                      ? prev.filter((s) => s !== status)
+                                      : [...prev, status]
+                                  );
+                                }}
+                              >
+                                <Checkbox
+                                  id={`status-${status}`}
+                                  checked={tempStatusFilter.includes(status)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setTempStatusFilter((prev) => [...prev, status]);
+                                    } else {
+                                      setTempStatusFilter((prev) => prev.filter((s) => s !== status));
+                                    }
+                                  }}
+                                />
+                                <label
+                                  htmlFor={`status-${status}`}
+                                  className="text-sm cursor-pointer flex-1"
+                                >
+                                  {status}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     <div className="space-y-2">
