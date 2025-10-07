@@ -173,7 +173,7 @@ export default function Team() {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'operation')
+        .in('role', ['operation', 'translator'])
         .order('full_name', { ascending: true });
 
       if (error) throw error;
