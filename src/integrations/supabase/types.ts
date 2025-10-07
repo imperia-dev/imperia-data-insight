@@ -2959,6 +2959,7 @@ export type Database = {
       }
       reviewer_protocols: {
         Row: {
+          assigned_operation_user_id: string | null
           competence_month: string
           created_at: string
           created_by: string | null
@@ -2991,6 +2992,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_operation_user_id?: string | null
           competence_month: string
           created_at?: string
           created_by?: string | null
@@ -3023,6 +3025,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_operation_user_id?: string | null
           competence_month?: string
           created_at?: string
           created_by?: string | null

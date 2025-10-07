@@ -9,14 +9,18 @@ export const ReviewerProtocolStatusBadge = ({ status }: ReviewerProtocolStatusBa
     switch (status) {
       case 'draft':
         return { label: 'Rascunho', variant: 'secondary' as const };
-      case 'awaiting_reviewer':
-        return { label: 'Aguardando Revisor', variant: 'default' as const };
+      case 'pending_approval':
+        return { label: 'Aguardando Aprovação', variant: 'default' as const };
+      case 'reviewer_approved':
+        return { label: 'Aprovado pelo Revisor', variant: 'default' as const };
       case 'master_initial':
-        return { label: 'Master - Inicial', variant: 'outline' as const };
+        return { label: 'Master Inicial - Aguardando Dados', variant: 'outline' as const };
+      case 'data_inserted':
+        return { label: 'Dados Inseridos', variant: 'outline' as const };
       case 'master_final':
-        return { label: 'Master - Final', variant: 'outline' as const };
+        return { label: 'Aprovação Master Final', variant: 'outline' as const };
       case 'owner_approval':
-        return { label: 'Aguardando Owner', variant: 'outline' as const };
+        return { label: 'Aprovado Owner', variant: 'default' as const };
       case 'paid':
         return { label: 'Pago', variant: 'default' as const };
       case 'cancelled':

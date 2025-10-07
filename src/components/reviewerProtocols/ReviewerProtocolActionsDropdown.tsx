@@ -28,9 +28,12 @@ export const ReviewerProtocolActionsDropdown = ({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [actionType, setActionType] = useState<string>("");
 
+  // Nova sequência de aprovações
   const canGenerateProtocol = protocol.status === 'draft' && userRole === 'owner';
-  const canApproveMasterInitial = protocol.status === 'pending_approval' && ['master', 'owner'].includes(userRole);
-  const canApproveMasterFinal = protocol.status === 'master_initial' && ['master', 'owner'].includes(userRole);
+  const canApproveReviewer = protocol.status === 'pending_approval' && ['master', 'owner'].includes(userRole);
+  const canApproveMasterInitial = protocol.status === 'reviewer_approved' && ['master', 'owner'].includes(userRole);
+  const canInsertData = protocol.status === 'master_initial' && protocol.assigned_operation_user_id === user?.id && userRole === 'operation';
+  const canApproveMasterFinal = protocol.status === 'data_inserted' && ['master', 'owner'].includes(userRole);
   const canApproveOwner = protocol.status === 'master_final' && userRole === 'owner';
   const canMarkAsPaid = protocol.status === 'owner_approval' && userRole === 'owner';
   const canCancel = protocol.status === 'draft' && userRole === 'owner';
@@ -50,11 +53,23 @@ export const ReviewerProtocolActionsDropdown = ({
             status: 'pending_approval',
           };
           break;
+        case 'approve_reviewer':
+          updateData = {
+            status: 'reviewer_approved',
+            reviewer_approved_at: new Date().toISOString(),
+          };
+          break;
         case 'approve_master_initial':
+          // Este step deve incluir um dialog para selecionar o usuário operation
           updateData = {
             status: 'master_initial',
             master_initial_approved_at: new Date().toISOString(),
             master_initial_approved_by: user?.id,
+          };
+          break;
+        case 'insert_data':
+          updateData = {
+            status: 'data_inserted',
           };
           break;
         case 'approve_master_final':
@@ -105,8 +120,12 @@ export const ReviewerProtocolActionsDropdown = ({
     switch (actionType) {
       case 'generate_protocol':
         return 'Gerar Protocolo';
+      case 'approve_reviewer':
+        return 'Aprovação do Revisor';
       case 'approve_master_initial':
         return 'Aprovação Master - Inicial';
+      case 'insert_data':
+        return 'Confirmar Inserção de Dados';
       case 'approve_master_final':
         return 'Aprovação Master - Final';
       case 'approve_owner':
@@ -135,10 +154,22 @@ export const ReviewerProtocolActionsDropdown = ({
               Gerar Protocolo
             </DropdownMenuItem>
           )}
+          {canApproveReviewer && (
+            <DropdownMenuItem onClick={() => handleAction('approve_reviewer')}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Aprovação do Revisor
+            </DropdownMenuItem>
+          )}
           {canApproveMasterInitial && (
             <DropdownMenuItem onClick={() => handleAction('approve_master_initial')}>
               <CheckCircle className="mr-2 h-4 w-4" />
               Aprovação Master - Inicial
+            </DropdownMenuItem>
+          )}
+          {canInsertData && (
+            <DropdownMenuItem onClick={() => handleAction('insert_data')}>
+              <FileText className="mr-2 h-4 w-4" />
+              Confirmar Inserção de Dados
             </DropdownMenuItem>
           )}
           {canApproveMasterFinal && (
