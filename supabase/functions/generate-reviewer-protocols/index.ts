@@ -39,22 +39,30 @@ serve(async (req) => {
     let orders: any[] = [];
 
     if (orderIds && orderIds.length > 0) {
-      // Fetch specific orders by IDs
-      console.log(`Fetching ${orderIds.length} specific orders`);
+      // Fetch specific orders by IDs in batches to avoid URL length issues
+      console.log(`Fetching ${orderIds.length} specific orders in batches`);
       
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('translation_orders')
-        .select('*')
-        .in('id', orderIds)
-        .eq('pedido_status', 'entregue')
-        .is('reviewer_protocol_id', null);
-
-      if (ordersError) {
-        console.error('Error fetching orders by IDs:', ordersError);
-        throw ordersError;
+      const batchSize = 100;
+      for (let i = 0; i < orderIds.length; i += batchSize) {
+        const batchIds = orderIds.slice(i, i + batchSize);
+        console.log(`Fetching batch ${Math.floor(i / batchSize) + 1}, size: ${batchIds.length}`);
+        
+        const { data: batchOrders, error: batchError } = await supabase
+          .from('translation_orders')
+          .select('*')
+          .in('id', batchIds);
+        
+        if (batchError) {
+          console.error(`Error fetching batch ${Math.floor(i / batchSize) + 1}:`, batchError);
+          throw batchError;
+        }
+        
+        if (batchOrders) {
+          orders.push(...batchOrders);
+        }
       }
-
-      orders = ordersData || [];
+      
+      console.log(`Successfully fetched ${orders.length} orders`);
     } else if (competence) {
       // Fetch by competence month (original logic)
       const competenceDate = new Date(competence);
