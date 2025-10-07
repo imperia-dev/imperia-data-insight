@@ -31,6 +31,7 @@ interface ReviewerProtocol {
   account_type: string | null;
   invoice_amount: number | null;
   invoice_url: string | null;
+  operation_data_filled_at: string | null;
 }
 
 export default function OperationProtocolData() {
@@ -105,7 +106,8 @@ export default function OperationProtocolData() {
           bank_account,
           account_type,
           invoice_amount,
-          invoice_url
+          invoice_url,
+          operation_data_filled_at
         `)
         .eq("assigned_operation_user_id", user.id)
         .in("status", ["master_initial", "operation_data_filled"])
@@ -372,7 +374,116 @@ export default function OperationProtocolData() {
                   <p className="text-sm text-muted-foreground text-center py-8">
                     Selecione um protocolo para preencher os dados
                   </p>
+                ) : selectedProtocol.operation_data_filled_at ? (
+                  // Dados já enviados - modo visualização
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <div className="text-sm">
+                        <p className="font-medium text-green-900 dark:text-green-100">Dados Enviados com Sucesso</p>
+                        <p className="text-green-700 dark:text-green-300">
+                          Enviado em {new Date(selectedProtocol.operation_data_filled_at).toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 text-sm">
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedProtocol.cpf && (
+                          <div>
+                            <Label className="text-muted-foreground">CPF</Label>
+                            <p className="font-medium">{selectedProtocol.cpf}</p>
+                          </div>
+                        )}
+                        {selectedProtocol.cnpj && (
+                          <div>
+                            <Label className="text-muted-foreground">CNPJ</Label>
+                            <p className="font-medium">{selectedProtocol.cnpj}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-muted-foreground">Chave PIX</Label>
+                        <p className="font-medium">{selectedProtocol.pix_key}</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedProtocol.bank_name && (
+                          <div>
+                            <Label className="text-muted-foreground">Banco</Label>
+                            <p className="font-medium">{selectedProtocol.bank_name}</p>
+                          </div>
+                        )}
+                        {selectedProtocol.bank_agency && (
+                          <div>
+                            <Label className="text-muted-foreground">Agência</Label>
+                            <p className="font-medium">{selectedProtocol.bank_agency}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedProtocol.bank_account && (
+                          <div>
+                            <Label className="text-muted-foreground">Conta</Label>
+                            <p className="font-medium">{selectedProtocol.bank_account}</p>
+                          </div>
+                        )}
+                        {selectedProtocol.account_type && (
+                          <div>
+                            <Label className="text-muted-foreground">Tipo de Conta</Label>
+                            <p className="font-medium">{selectedProtocol.account_type}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-muted-foreground">Valor da Nota Fiscal</Label>
+                        <p className="font-medium">
+                          R$ {selectedProtocol.invoice_amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+
+                      {selectedProtocol.invoice_url && (
+                        <div>
+                          <Label className="text-muted-foreground">Nota Fiscal</Label>
+                          <a
+                            href={selectedProtocol.invoice_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-primary hover:underline mt-1"
+                          >
+                            <FileText className="h-4 w-4" />
+                            Ver nota fiscal enviada
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-4 border-t">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedProtocol(null);
+                          resetForm();
+                        }}
+                        className="w-full"
+                      >
+                        Voltar para lista
+                      </Button>
+                    </div>
+
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-sm text-blue-900 dark:text-blue-100">
+                        <strong>Próximo passo:</strong> Seus dados foram enviados e estão aguardando aprovação do Master. 
+                        Após a aprovação, o protocolo seguirá para aprovação final do Owner e então o pagamento será processado.
+                      </p>
+                    </div>
+                  </div>
                 ) : (
+                  // Formulário para preenchimento inicial
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -476,6 +587,7 @@ export default function OperationProtocolData() {
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png"
                         onChange={handleFileChange}
+                        required
                         disabled={submitting || uploading}
                       />
                       {invoiceFile && (
@@ -483,16 +595,12 @@ export default function OperationProtocolData() {
                           Arquivo selecionado: {invoiceFile.name}
                         </p>
                       )}
-                      {selectedProtocol.invoice_url && (
-                        <a
-                          href={selectedProtocol.invoice_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline"
-                        >
-                          Ver nota fiscal enviada
-                        </a>
-                      )}
+                    </div>
+
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <p className="text-sm text-yellow-900 dark:text-yellow-100">
+                        <strong>Atenção:</strong> Após enviar os dados, você não poderá editá-los. Confira todas as informações antes de confirmar.
+                      </p>
                     </div>
 
                     <div className="flex gap-2">
