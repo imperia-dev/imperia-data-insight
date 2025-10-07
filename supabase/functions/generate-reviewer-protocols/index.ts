@@ -229,8 +229,8 @@ serve(async (req) => {
         throw rpcError;
       }
 
-      // Add RAS- prefix for draft protocols
-      const finalProtocolNumber = `RAS-${protocolNumber}`;
+      // Protocol number já vem correto da função generate_protocol_number
+      const finalProtocolNumber = protocolNumber;
 
       console.log(`Generated protocol number: ${finalProtocolNumber} for ${provider.reviewer_name}`);
 

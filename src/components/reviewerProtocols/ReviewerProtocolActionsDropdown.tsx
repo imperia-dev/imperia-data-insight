@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AssignOperationUserDialog } from "./AssignOperationUserDialog";
 
 interface ReviewerProtocolActionsDropdownProps {
   protocol: any;
@@ -26,6 +27,7 @@ export const ReviewerProtocolActionsDropdown = ({
 }: ReviewerProtocolActionsDropdownProps) => {
   const { user } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<string>("");
 
   // Sequência correta: Criado → Master Inicial (vincular operation) → Operation insere dados → Master Final → Owner → Pagamento
@@ -38,6 +40,12 @@ export const ReviewerProtocolActionsDropdown = ({
   const canCancel = protocol.status === 'draft' && userRole === 'owner';
 
   const handleAction = async (action: string) => {
+    // Aprovação master inicial abre dialog especial para vincular usuário operation
+    if (action === 'approve_master_initial') {
+      setAssignDialogOpen(true);
+      return;
+    }
+    
     setActionType(action);
     setConfirmOpen(true);
   };
@@ -48,18 +56,20 @@ export const ReviewerProtocolActionsDropdown = ({
 
       switch (actionType) {
         case 'generate_protocol':
+          // Quando gerar protocolo, remove o prefixo RAS-
+          const currentNumber = protocol.protocol_number;
+          const newNumber = currentNumber.startsWith('RAS-') 
+            ? currentNumber.replace('RAS-', '') 
+            : currentNumber;
+          
           updateData = {
             status: 'pending_approval',
+            protocol_number: newNumber,
           };
           break;
         case 'approve_master_initial':
-          // Este step deve incluir um dialog para selecionar o usuário operation
-          updateData = {
-            status: 'master_initial',
-            master_initial_approved_at: new Date().toISOString(),
-            master_initial_approved_by: user?.id,
-          };
-          break;
+          // Esta ação agora é tratada pelo AssignOperationUserDialog
+          return;
         case 'insert_data':
           updateData = {
             status: 'data_inserted',
@@ -210,6 +220,13 @@ export const ReviewerProtocolActionsDropdown = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AssignOperationUserDialog
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        protocolId={protocol.id}
+        onSuccess={onUpdate}
+      />
     </>
   );
 };
