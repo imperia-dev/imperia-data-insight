@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReviewerProtocolsTab } from "@/components/reviewerProtocols/ReviewerProtocolsTab";
 import * as XLSX from 'xlsx';
 import { exportToPDF } from "@/utils/exportUtils";
 import {
@@ -591,6 +593,13 @@ const TranslationOrders = () => {
           <Header userName={userProfile?.name || ''} userRole={userProfile?.role || 'operation'} />
           <main className="flex-1 overflow-y-auto p-6">
             <div className="max-w-[1600px] mx-auto space-y-6">
+              <Tabs defaultValue="orders" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+                  <TabsTrigger value="orders">📋 Listagem de Pedidos</TabsTrigger>
+                  <TabsTrigger value="protocols">📑 Protocolos de Revisores</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="orders" className="space-y-6 mt-6">
               {/* Metrics Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card>
@@ -921,6 +930,12 @@ const TranslationOrders = () => {
                   )}
                 </CardContent>
               </Card>
+                </TabsContent>
+
+                <TabsContent value="protocols" className="mt-6">
+                  <ReviewerProtocolsTab userRole={userProfile?.role || 'operation'} />
+                </TabsContent>
+              </Tabs>
             </div>
           </main>
         </div>

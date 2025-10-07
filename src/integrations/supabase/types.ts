@@ -2957,6 +2957,105 @@ export type Database = {
           },
         ]
       }
+      reviewer_protocols: {
+        Row: {
+          competence_month: string
+          created_at: string
+          created_by: string | null
+          document_count: number
+          id: string
+          master_final_approved_at: string | null
+          master_final_approved_by: string | null
+          master_final_notes: string | null
+          master_initial_approved_at: string | null
+          master_initial_approved_by: string | null
+          master_initial_notes: string | null
+          metadata: Json | null
+          order_count: number
+          orders_data: Json
+          owner_approval_notes: string | null
+          owner_approved_at: string | null
+          owner_approved_by: string | null
+          paid_at: string | null
+          payment_metadata: Json | null
+          payment_reference: string | null
+          protocol_number: string
+          reviewer_approval_notes: string | null
+          reviewer_approved_at: string | null
+          reviewer_approved_by: string | null
+          reviewer_email: string
+          reviewer_id: string
+          reviewer_name: string
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          competence_month: string
+          created_at?: string
+          created_by?: string | null
+          document_count?: number
+          id?: string
+          master_final_approved_at?: string | null
+          master_final_approved_by?: string | null
+          master_final_notes?: string | null
+          master_initial_approved_at?: string | null
+          master_initial_approved_by?: string | null
+          master_initial_notes?: string | null
+          metadata?: Json | null
+          order_count?: number
+          orders_data?: Json
+          owner_approval_notes?: string | null
+          owner_approved_at?: string | null
+          owner_approved_by?: string | null
+          paid_at?: string | null
+          payment_metadata?: Json | null
+          payment_reference?: string | null
+          protocol_number: string
+          reviewer_approval_notes?: string | null
+          reviewer_approved_at?: string | null
+          reviewer_approved_by?: string | null
+          reviewer_email: string
+          reviewer_id: string
+          reviewer_name: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          competence_month?: string
+          created_at?: string
+          created_by?: string | null
+          document_count?: number
+          id?: string
+          master_final_approved_at?: string | null
+          master_final_approved_by?: string | null
+          master_final_notes?: string | null
+          master_initial_approved_at?: string | null
+          master_initial_approved_by?: string | null
+          master_initial_notes?: string | null
+          metadata?: Json | null
+          order_count?: number
+          orders_data?: Json
+          owner_approval_notes?: string | null
+          owner_approved_at?: string | null
+          owner_approved_by?: string | null
+          paid_at?: string | null
+          payment_metadata?: Json | null
+          payment_reference?: string | null
+          protocol_number?: string
+          reviewer_approval_notes?: string | null
+          reviewer_approved_at?: string | null
+          reviewer_approved_by?: string | null
+          reviewer_email?: string
+          reviewer_id?: string
+          reviewer_name?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           created_at: string | null
@@ -3342,6 +3441,7 @@ export type Database = {
           review_email: string | null
           review_id: string | null
           review_name: string | null
+          reviewer_protocol_id: string | null
           status_pagamento: string
           sync_status: string | null
           updated_at: string
@@ -3360,6 +3460,7 @@ export type Database = {
           review_email?: string | null
           review_id?: string | null
           review_name?: string | null
+          reviewer_protocol_id?: string | null
           status_pagamento: string
           sync_status?: string | null
           updated_at?: string
@@ -3378,6 +3479,7 @@ export type Database = {
           review_email?: string | null
           review_id?: string | null
           review_name?: string | null
+          reviewer_protocol_id?: string | null
           status_pagamento?: string
           sync_status?: string | null
           updated_at?: string
@@ -3385,7 +3487,15 @@ export type Database = {
           valor_pedido?: number
           valor_total_pago_servico?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "translation_orders_reviewer_protocol_id_fkey"
+            columns: ["reviewer_protocol_id"]
+            isOneToOne: false
+            referencedRelation: "reviewer_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       unit_economics: {
         Row: {
