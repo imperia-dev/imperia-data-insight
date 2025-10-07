@@ -1,4 +1,4 @@
-export type Role = 'owner' | 'master' | 'admin' | 'operation';
+export type Role = 'owner' | 'master' | 'admin' | 'operation' | 'translator';
 
 // Define which roles can access which routes
 export const rolePermissions: Record<Role, string[]> = {
@@ -92,6 +92,11 @@ export const rolePermissions: Record<Role, string[]> = {
     '/chat',
     '/settings',
     '/operation-protocol-data'
+  ],
+  translator: [
+    '/my-orders',
+    '/notifications',
+    '/settings'
   ]
 };
 
