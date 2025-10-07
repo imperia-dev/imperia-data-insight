@@ -50,9 +50,12 @@ export const useRoleAccess = (pathname: string) => {
         // Check if the current route allows this role
         const hasPermission = canAccessRoute(data.role as Role, pathname);
         
-        if (!hasPermission) {
-          // Silently deny access without logging
-        }
+        console.log('🔍 Role Access Check:', {
+          role: data.role,
+          pathname,
+          hasPermission,
+          availableRoutes: pathname === '/master-protocol-approvals' ? 'checking...' : ''
+        });
         
         setHasAccess(hasPermission);
       } catch (error) {
