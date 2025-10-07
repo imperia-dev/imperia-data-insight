@@ -28,12 +28,12 @@ export const ReviewerProtocolActionsDropdown = ({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [actionType, setActionType] = useState<string>("");
 
-  const canApproveReviewer = protocol.status === 'draft' && protocol.reviewer_id === user?.id;
-  const canApproveMasterInitial = protocol.status === 'awaiting_reviewer' && ['master', 'owner'].includes(userRole);
+  const canGenerateProtocol = protocol.status === 'draft' && userRole === 'owner';
+  const canApproveMasterInitial = protocol.status === 'pending_approval' && ['master', 'owner'].includes(userRole);
   const canApproveMasterFinal = protocol.status === 'master_initial' && ['master', 'owner'].includes(userRole);
   const canApproveOwner = protocol.status === 'master_final' && userRole === 'owner';
   const canMarkAsPaid = protocol.status === 'owner_approval' && userRole === 'owner';
-  const canCancel = ['draft', 'awaiting_reviewer'].includes(protocol.status) && userRole === 'owner';
+  const canCancel = protocol.status === 'draft' && userRole === 'owner';
 
   const handleAction = async (action: string) => {
     setActionType(action);
@@ -45,11 +45,9 @@ export const ReviewerProtocolActionsDropdown = ({
       let updateData: any = {};
 
       switch (actionType) {
-        case 'approve_reviewer':
+        case 'generate_protocol':
           updateData = {
-            status: 'awaiting_reviewer',
-            reviewer_approved_at: new Date().toISOString(),
-            reviewer_approved_by: user?.id,
+            status: 'pending_approval',
           };
           break;
         case 'approve_master_initial':
@@ -105,8 +103,8 @@ export const ReviewerProtocolActionsDropdown = ({
 
   const getActionLabel = () => {
     switch (actionType) {
-      case 'approve_reviewer':
-        return 'Aprovar como Revisor';
+      case 'generate_protocol':
+        return 'Gerar Protocolo';
       case 'approve_master_initial':
         return 'Aprovação Master - Inicial';
       case 'approve_master_final':
@@ -131,10 +129,10 @@ export const ReviewerProtocolActionsDropdown = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {canApproveReviewer && (
-            <DropdownMenuItem onClick={() => handleAction('approve_reviewer')}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Aprovar Protocolo
+          {canGenerateProtocol && (
+            <DropdownMenuItem onClick={() => handleAction('generate_protocol')}>
+              <FileText className="mr-2 h-4 w-4" />
+              Gerar Protocolo
             </DropdownMenuItem>
           )}
           {canApproveMasterInitial && (
