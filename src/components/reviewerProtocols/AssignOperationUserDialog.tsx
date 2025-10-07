@@ -19,6 +19,7 @@ interface OperationUser {
   id: string;
   full_name: string;
   email: string;
+  role: string;
 }
 
 export const AssignOperationUserDialog = ({
@@ -44,8 +45,8 @@ export const AssignOperationUserDialog = ({
       setLoadingUsers(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email')
-        .eq('role', 'operation')
+        .select('id, full_name, email, role')
+        .in('role', ['operation', 'translator'])
         .eq('approval_status', 'approved')
         .order('full_name');
 
@@ -54,7 +55,7 @@ export const AssignOperationUserDialog = ({
       setOperationUsers(data || []);
     } catch (error: any) {
       console.error('Error fetching operation users:', error);
-      toast.error("Erro ao carregar usuários de operação");
+      toast.error("Erro ao carregar usuários");
     } finally {
       setLoadingUsers(false);
     }
@@ -103,13 +104,13 @@ export const AssignOperationUserDialog = ({
         <DialogHeader>
           <DialogTitle>Aprovação Master - Inicial</DialogTitle>
           <DialogDescription>
-            Selecione o usuário de operação responsável pela inserção dos dados e nota fiscal.
+            Selecione o usuário responsável pela inserção dos dados e nota fiscal.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="operation-user">Usuário de Operação *</Label>
+            <Label htmlFor="operation-user">Usuário Responsável *</Label>
             {loadingUsers ? (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-6 w-6 animate-spin" />
@@ -126,12 +127,12 @@ export const AssignOperationUserDialog = ({
                 <SelectContent>
                   {operationUsers.length === 0 ? (
                     <SelectItem value="none" disabled>
-                      Nenhum usuário de operação disponível
+                      Nenhum usuário disponível
                     </SelectItem>
                   ) : (
                     operationUsers.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
-                        {user.full_name} ({user.email})
+                        {user.full_name} ({user.email}) - {user.role === 'translator' ? 'Tradutor' : 'Operação'}
                       </SelectItem>
                     ))
                   )}
