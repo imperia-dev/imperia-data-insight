@@ -52,8 +52,12 @@ serve(async (req) => {
     });
 
     if (!tokenResponse.ok) {
-      console.error('Failed to get BTG token:', await tokenResponse.text());
-      throw new Error('Failed to authenticate with BTG');
+      const errorText = await tokenResponse.text();
+      console.error('BTG API Error Status:', tokenResponse.status);
+      console.error('BTG API Error Response:', errorText);
+      console.error('BTG API Headers:', Object.fromEntries(tokenResponse.headers.entries()));
+      
+      throw new Error(`Failed to authenticate with BTG: ${tokenResponse.status} - ${errorText}`);
     }
 
     const tokenData = await tokenResponse.json();
