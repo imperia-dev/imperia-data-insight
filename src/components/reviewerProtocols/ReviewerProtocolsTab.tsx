@@ -8,7 +8,6 @@ import { ptBR } from "date-fns/locale";
 import { ReviewerProtocolStatusBadge } from "./ReviewerProtocolStatusBadge";
 import { ReviewerProtocolActionsDropdown } from "./ReviewerProtocolActionsDropdown";
 import { ReviewerProtocolDetailsDialog } from "./ReviewerProtocolDetailsDialog";
-import { GenerateReviewerProtocolsCard } from "./GenerateReviewerProtocolsCard";
 import { FileText, DollarSign, Clock, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -123,11 +122,6 @@ export const ReviewerProtocolsTab = ({ userRole }: ReviewerProtocolsTabProps) =>
           </CardContent>
         </Card>
       </div>
-
-      {/* Generate Protocols Card */}
-      {['owner', 'master'].includes(userRole) && (
-        <GenerateReviewerProtocolsCard onProtocolsGenerated={fetchProtocols} />
-      )}
 
       {/* Protocols Table */}
       <Card>

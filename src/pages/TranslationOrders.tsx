@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown, Trash2 } from "lucide-react";
+import { Download, FileText, DollarSign, Package, Users, Search, RefreshCw, ArrowUpDown, FileDown, Trash2, Save } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReviewerProtocolsTab } from "@/components/reviewerProtocols/ReviewerProtocolsTab";
@@ -59,12 +59,17 @@ interface TranslationOrder {
   metadata: any;
   created_at: string;
   updated_at: string;
+  reviewer_protocol_id: string | null;
+  reviewer_protocols?: {
+    protocol_number: string;
+  } | null;
 }
 
 const TranslationOrders = () => {
   const [orders, setOrders] = useState<TranslationOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -156,7 +161,12 @@ const TranslationOrders = () => {
     try {
       let query = supabase
         .from('translation_orders')
-        .select('*', { count: 'exact' });
+        .select(`
+          *,
+          reviewer_protocols (
+            protocol_number
+          )
+        `, { count: 'exact' });
 
       // Apply filters
       if (searchTerm) {
@@ -364,6 +374,96 @@ const TranslationOrders = () => {
       toast.error('Erro ao limpar pedidos de tradução');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveDraftProtocol = async () => {
+    if (orders.length === 0) {
+      toast.error("Nenhum pedido filtrado para criar protocolo");
+      return;
+    }
+
+    // Check if all filtered orders are completed (entregue)
+    const allCompleted = orders.every(order => order.pedido_status === 'entregue');
+    if (!allCompleted) {
+      toast.error("Todos os pedidos devem estar com status 'entregue' para gerar protocolo");
+      return;
+    }
+
+    // Check if orders have reviewers
+    const hasReviewers = orders.every(order => order.review_id);
+    if (!hasReviewers) {
+      toast.error("Todos os pedidos devem ter um revisor atribuído");
+      return;
+    }
+
+    setSavingDraft(true);
+    try {
+      // Fetch ALL filtered orders (not just current page)
+      let query = supabase
+        .from('translation_orders')
+        .select('*');
+
+      // Apply same filters
+      if (searchTerm) {
+        query = query.or(`pedido_id.ilike.%${searchTerm}%,review_name.ilike.%${searchTerm}%,review_email.ilike.%${searchTerm}%`);
+      }
+      if (statusFilter !== "all") {
+        query = query.eq('pedido_status', statusFilter);
+      }
+      if (paymentStatusFilter !== "all") {
+        query = query.eq('status_pagamento', paymentStatusFilter);
+      }
+      if (dateFrom) {
+        const startDate = new Date(dateFrom);
+        startDate.setHours(0, 0, 0, 0);
+        query = query.gte('pedido_data', startDate.toISOString());
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        query = query.lte('pedido_data', endDate.toISOString());
+      }
+      if (reviewerFilter) {
+        query = query.ilike('review_name', `%${reviewerFilter}%`);
+      }
+
+      const { data: allFilteredOrders, error } = await query
+        .eq('pedido_status', 'entregue')
+        .is('reviewer_protocol_id', null);
+
+      if (error) throw error;
+
+      if (!allFilteredOrders || allFilteredOrders.length === 0) {
+        toast.error("Nenhum pedido entregue sem protocolo encontrado nos filtros aplicados");
+        return;
+      }
+
+      // Get order IDs
+      const orderIds = allFilteredOrders.map(o => o.id);
+
+      // Call edge function with filtered order IDs
+      const { data, error: fnError } = await supabase.functions.invoke('generate-reviewer-protocols', {
+        body: {
+          orderIds: orderIds,
+          preview: false,
+        },
+      });
+
+      if (fnError) throw fnError;
+
+      toast.success(
+        `${data.protocolsCreated} protocolo(s) rascunho criado(s)!` +
+        (data.protocolsSkipped > 0 ? ` (${data.protocolsSkipped} já existiam)` : '')
+      );
+
+      // Refresh orders to show updated protocol_id
+      fetchOrders();
+    } catch (error: any) {
+      console.error('Error saving draft protocol:', error);
+      toast.error("Erro ao salvar rascunho: " + error.message);
+    } finally {
+      setSavingDraft(false);
     }
   };
 
@@ -782,6 +882,14 @@ const TranslationOrders = () => {
                       <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                       Atualizar
                     </Button>
+                    <Button 
+                      onClick={handleSaveDraftProtocol} 
+                      disabled={savingDraft || orders.length === 0}
+                      variant="default"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {savingDraft ? 'Salvando...' : 'Salvar Rascunho de Protocolo'}
+                    </Button>
                     <Button onClick={exportToExcel} variant="outline">
                       <Download className="h-4 w-4 mr-2" />
                       Exportar Excel
@@ -850,18 +958,19 @@ const TranslationOrders = () => {
                           <TableHead>Status Pagamento</TableHead>
                           <TableHead>Revisor</TableHead>
                           <TableHead>Documentos</TableHead>
+                          <TableHead>Protocolo</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {loading ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8">
+                            <TableCell colSpan={9} className="text-center py-8">
                               Carregando...
                             </TableCell>
                           </TableRow>
                         ) : orders.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8">
+                            <TableCell colSpan={9} className="text-center py-8">
                               Nenhum pedido encontrado
                             </TableCell>
                           </TableRow>
@@ -878,6 +987,15 @@ const TranslationOrders = () => {
                               <TableCell>{getPaymentStatusBadge(order.status_pagamento)}</TableCell>
                               <TableCell>{order.review_name || '-'}</TableCell>
                               <TableCell>{order.quantidade_documentos || 0}</TableCell>
+                              <TableCell>
+                                {order.reviewer_protocol_id ? (
+                                  <Badge variant="outline">
+                                    {order.reviewer_protocols?.protocol_number || 'Incluído'}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">Sem Protocolo</Badge>
+                                )}
+                              </TableCell>
                             </TableRow>
                           ))
                         )}

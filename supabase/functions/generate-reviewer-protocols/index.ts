@@ -26,39 +26,63 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { competence, preview = false } = await req.json();
+    const { competence, orderIds, preview = false } = await req.json();
 
-    if (!competence) {
+    // Validate: must have either competence or orderIds
+    if (!competence && (!orderIds || orderIds.length === 0)) {
       return new Response(
-        JSON.stringify({ error: 'Competence month is required' }),
+        JSON.stringify({ error: 'Either competence month or orderIds is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const competenceDate = new Date(competence);
-    const startDate = new Date(competenceDate.getFullYear(), competenceDate.getMonth(), 1);
-    const endDate = new Date(competenceDate.getFullYear(), competenceDate.getMonth() + 1, 0);
+    let orders: any[] = [];
 
-    console.log('Fetching translation orders for competence:', competence);
+    if (orderIds && orderIds.length > 0) {
+      // Fetch specific orders by IDs
+      console.log(`Fetching ${orderIds.length} specific orders`);
+      
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('translation_orders')
+        .select('*')
+        .in('id', orderIds)
+        .eq('pedido_status', 'entregue')
+        .is('reviewer_protocol_id', null);
 
-    // Fetch completed orders without protocol in the competence month
-    const { data: orders, error: ordersError } = await supabase
-      .from('translation_orders')
-      .select('*')
-      .eq('pedido_status', 'entregue')
-      .is('reviewer_protocol_id', null)
-      .gte('data_entrega', startDate.toISOString())
-      .lte('data_entrega', endDate.toISOString());
+      if (ordersError) {
+        console.error('Error fetching orders by IDs:', ordersError);
+        throw ordersError;
+      }
 
-    if (ordersError) {
-      console.error('Error fetching orders:', ordersError);
-      throw ordersError;
+      orders = ordersData || [];
+    } else if (competence) {
+      // Fetch by competence month (original logic)
+      const competenceDate = new Date(competence);
+      const startDate = new Date(competenceDate.getFullYear(), competenceDate.getMonth(), 1);
+      const endDate = new Date(competenceDate.getFullYear(), competenceDate.getMonth() + 1, 0);
+
+      console.log('Fetching translation orders for competence:', competence);
+
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('translation_orders')
+        .select('*')
+        .eq('pedido_status', 'entregue')
+        .is('reviewer_protocol_id', null)
+        .gte('data_entrega', startDate.toISOString())
+        .lte('data_entrega', endDate.toISOString());
+
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
+        throw ordersError;
+      }
+
+      orders = ordersData || [];
     }
 
-    if (!orders || orders.length === 0) {
+    if (orders.length === 0) {
       return new Response(
         JSON.stringify({ 
-          message: 'No completed orders found for this competence month',
+          message: 'No completed orders found',
           protocols: []
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -104,7 +128,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           preview: true,
-          competence,
+          competence: competence || 'filtered',
           reviewerCount: providers.length,
           totalOrders: orders.length,
           totalDocuments: providers.reduce((sum, p) => sum + p.documentCount, 0),
@@ -122,6 +146,19 @@ serve(async (req) => {
       );
     }
 
+    // Determine competence month for protocol
+    // If orderIds provided, use the most recent order date
+    let protocolCompetence = competence;
+    if (!protocolCompetence && orders.length > 0) {
+      const mostRecentOrder = orders.reduce((latest, order) => {
+        const orderDate = new Date(order.data_entrega || order.pedido_data);
+        const latestDate = new Date(latest.data_entrega || latest.pedido_data);
+        return orderDate > latestDate ? order : latest;
+      });
+      const date = new Date(mostRecentOrder.data_entrega || mostRecentOrder.pedido_data);
+      protocolCompetence = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+
     // Create protocols
     const createdProtocols = [];
     const skippedReviewers = [];
@@ -132,7 +169,7 @@ serve(async (req) => {
         .from('reviewer_protocols')
         .select('id, protocol_number')
         .eq('reviewer_id', provider.reviewer_id)
-        .eq('competence_month', competence)
+        .eq('competence_month', protocolCompetence)
         .single();
 
       if (existingProtocol) {
@@ -149,7 +186,7 @@ serve(async (req) => {
         'generate_protocol_number',
         {
           p_type: 'reviewer',
-          p_competence_month: competence,
+          p_competence_month: protocolCompetence,
           p_supplier_name: provider.reviewer_name,
         }
       );
@@ -166,7 +203,7 @@ serve(async (req) => {
         .from('reviewer_protocols')
         .insert({
           protocol_number: protocolNumber,
-          competence_month: competence,
+          competence_month: protocolCompetence,
           reviewer_id: provider.reviewer_id,
           reviewer_name: provider.reviewer_name,
           reviewer_email: provider.reviewer_email,
@@ -204,7 +241,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        competence,
+        competence: protocolCompetence,
         protocolsCreated: createdProtocols.length,
         protocolsSkipped: skippedReviewers.length,
         protocols: createdProtocols,
