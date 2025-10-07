@@ -277,7 +277,9 @@ export default function MasterProtocolApprovals() {
             <TableRow key={protocol.id}>
               <TableCell className="font-medium">{protocol.protocol_number}</TableCell>
               <TableCell>{protocol.provider_name}</TableCell>
-              <TableCell>{format(new Date(protocol.competence_month), "MM/yyyy")}</TableCell>
+              <TableCell>
+                {new Date(protocol.competence_month + 'T12:00:00').toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' })}
+              </TableCell>
               <TableCell>{formatCurrency(protocol.total_amount)}</TableCell>
               <TableCell>{protocol.expense_count}</TableCell>
               {!isInitial && (
