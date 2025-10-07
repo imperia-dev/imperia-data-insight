@@ -113,7 +113,7 @@ export default function OperationProtocolData() {
 
       if (error) throw error;
 
-      setProtocols(data as ReviewerProtocol[] || []);
+      setProtocols(data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar protocolos",

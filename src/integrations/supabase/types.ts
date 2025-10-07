@@ -2959,12 +2959,20 @@ export type Database = {
       }
       reviewer_protocols: {
         Row: {
+          account_type: string | null
           assigned_operation_user_id: string | null
+          bank_account: string | null
+          bank_agency: string | null
+          bank_name: string | null
+          cnpj: string | null
           competence_month: string
+          cpf: string | null
           created_at: string
           created_by: string | null
           document_count: number
           id: string
+          invoice_amount: number | null
+          invoice_url: string | null
           master_final_approved_at: string | null
           master_final_approved_by: string | null
           master_final_notes: string | null
@@ -2972,6 +2980,7 @@ export type Database = {
           master_initial_approved_by: string | null
           master_initial_notes: string | null
           metadata: Json | null
+          operation_data_filled_at: string | null
           order_count: number
           orders_data: Json
           owner_approval_notes: string | null
@@ -2980,6 +2989,7 @@ export type Database = {
           paid_at: string | null
           payment_metadata: Json | null
           payment_reference: string | null
+          pix_key: string | null
           protocol_number: string
           reviewer_approval_notes: string | null
           reviewer_approved_at: string | null
@@ -2992,12 +3002,20 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_type?: string | null
           assigned_operation_user_id?: string | null
+          bank_account?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
+          cnpj?: string | null
           competence_month: string
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           document_count?: number
           id?: string
+          invoice_amount?: number | null
+          invoice_url?: string | null
           master_final_approved_at?: string | null
           master_final_approved_by?: string | null
           master_final_notes?: string | null
@@ -3005,6 +3023,7 @@ export type Database = {
           master_initial_approved_by?: string | null
           master_initial_notes?: string | null
           metadata?: Json | null
+          operation_data_filled_at?: string | null
           order_count?: number
           orders_data?: Json
           owner_approval_notes?: string | null
@@ -3013,6 +3032,7 @@ export type Database = {
           paid_at?: string | null
           payment_metadata?: Json | null
           payment_reference?: string | null
+          pix_key?: string | null
           protocol_number: string
           reviewer_approval_notes?: string | null
           reviewer_approved_at?: string | null
@@ -3025,12 +3045,20 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_type?: string | null
           assigned_operation_user_id?: string | null
+          bank_account?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
+          cnpj?: string | null
           competence_month?: string
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           document_count?: number
           id?: string
+          invoice_amount?: number | null
+          invoice_url?: string | null
           master_final_approved_at?: string | null
           master_final_approved_by?: string | null
           master_final_notes?: string | null
@@ -3038,6 +3066,7 @@ export type Database = {
           master_initial_approved_by?: string | null
           master_initial_notes?: string | null
           metadata?: Json | null
+          operation_data_filled_at?: string | null
           order_count?: number
           orders_data?: Json
           owner_approval_notes?: string | null
@@ -3046,6 +3075,7 @@ export type Database = {
           paid_at?: string | null
           payment_metadata?: Json | null
           payment_reference?: string | null
+          pix_key?: string | null
           protocol_number?: string
           reviewer_approval_notes?: string | null
           reviewer_approved_at?: string | null
