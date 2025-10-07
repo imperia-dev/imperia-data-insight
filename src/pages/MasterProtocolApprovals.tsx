@@ -73,10 +73,7 @@ export default function MasterProtocolApprovals() {
 
       const { data: reviewer, error: reviewerError } = await supabase
         .from("reviewer_protocols")
-        .select(`
-          *,
-          profiles!reviewer_id(full_name)
-        `)
+        .select("*")
         .eq("status", "pending_approval")
         .order("created_at", { ascending: false });
 
@@ -85,10 +82,7 @@ export default function MasterProtocolApprovals() {
       // Buscar reviewer_protocols aguardando aprovação final do master (após operation inserir dados)
       const { data: reviewerFinal, error: reviewerFinalError } = await supabase
         .from("reviewer_protocols")
-        .select(`
-          *,
-          profiles!reviewer_id(full_name)
-        `)
+        .select("*")
         .eq("status", "operation_data_filled")
         .order("created_at", { ascending: false });
 
@@ -99,13 +93,13 @@ export default function MasterProtocolApprovals() {
       setReviewerProtocols((reviewer || []).map(p => ({ 
         ...p, 
         table_type: 'reviewer' as const,
-        provider_name: (p as any).profiles?.full_name || 'Unknown',
+        provider_name: p.reviewer_name || 'Unknown',
         expense_count: p.document_count || 0
       })));
       setReviewerFinalProtocols((reviewerFinal || []).map(p => ({ 
         ...p, 
         table_type: 'reviewer' as const,
-        provider_name: (p as any).profiles?.full_name || 'Unknown',
+        provider_name: p.reviewer_name || 'Unknown',
         expense_count: p.document_count || 0,
         invoice_file_url: p.invoice_url,
         invoice_amount: p.invoice_amount
