@@ -16,6 +16,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { AssignOperationUserDialog } from "@/components/reviewerProtocols/AssignOperationUserDialog";
+import { cn } from "@/lib/utils";
 
 interface Protocol {
   id: string;
@@ -350,7 +351,7 @@ export default function MasterProtocolApprovals() {
   return (
     <div className="flex min-h-screen w-full bg-background">
       <Sidebar userRole={userRole} />
-      <div className={mainContainerClass}>
+      <div className={cn("flex-1 w-full flex flex-col", mainContainerClass)}>
         <Header userName="" userRole={userRole} />
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           <div className="max-w-[1600px] mx-auto space-y-6">
