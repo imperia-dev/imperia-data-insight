@@ -100,7 +100,9 @@ export default function MasterProtocolApprovals() {
         ...p, 
         table_type: 'reviewer' as const,
         provider_name: p.reviewer_name,
-        expense_count: p.document_count || 0
+        expense_count: p.document_count || 0,
+        invoice_file_url: p.invoice_url, // Mapear corretamente o campo da nota fiscal
+        invoice_amount: p.invoice_amount
       })));
     } catch (error: any) {
       toast({
