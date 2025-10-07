@@ -96,6 +96,7 @@ export const rolePermissions: Record<Role, string[]> = {
   ],
   translator: [
     '/my-orders',
+    '/wallet',
     '/notifications',
     '/settings'
   ]
