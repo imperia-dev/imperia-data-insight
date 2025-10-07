@@ -51,6 +51,7 @@ import FechamentoPrestadores from "./pages/FechamentoPrestadores";
 import MasterProtocolApprovals from "./pages/MasterProtocolApprovals";
 import OwnerFinalApproval from "./pages/OwnerFinalApproval";
 import PaymentProcessing from "./pages/PaymentProcessing";
+import OperationProtocolData from "./pages/OperationProtocolData";
 
 const queryClient = new QueryClient();
 
@@ -256,6 +257,11 @@ const App = () => (
             <Route path="/payment-processing" element={
               <ProtectedRouteWithApproval>
                 <PaymentProcessing />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/operation-protocol-data" element={
+              <ProtectedRouteWithApproval>
+                <OperationProtocolData />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

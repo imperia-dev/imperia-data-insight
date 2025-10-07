@@ -90,7 +90,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/productivity',
     '/notifications',
     '/chat',
-    '/settings'
+    '/settings',
+    '/operation-protocol-data'
   ]
 };
 
