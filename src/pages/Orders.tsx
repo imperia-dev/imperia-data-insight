@@ -109,6 +109,7 @@ export function Orders() {
     document_count: "",
     deadline: getDefaultDeadline(),
     attribution_date: "",
+    customer: "",
   });
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -290,6 +291,7 @@ export function Orders() {
         document_count: "",
         deadline: getDefaultDeadline(),
         attribution_date: "",
+        customer: "",
       });
     },
     onError: (error: any) => {
@@ -709,6 +711,25 @@ export function Orders() {
                     <DialogTitle>Criar Novo Pedido</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="customer">Cliente *</Label>
+                      <Select
+                        value={formData.customer}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, customer: value })
+                        }
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o cliente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Cidadania4y">Cidadania4y</SelectItem>
+                          <SelectItem value="Yellowling">Yellowling</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div>
                       <Label htmlFor="order_number">ID do Pedido *</Label>
                       <Input
