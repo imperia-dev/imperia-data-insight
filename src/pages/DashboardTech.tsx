@@ -13,6 +13,7 @@ import { WhatsAppReportModal } from "@/components/dashboard/WhatsAppReportModal"
 import { exportToPDF, exportToExcel } from "@/utils/exportUtils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ErrorTypeData {
   type: string;
@@ -43,6 +44,7 @@ export default function DashboardTech() {
     inProgress: 0,
     errorTypes: []
   });
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("all");
 
   const errorTypesMap: Record<string, string> = {
     "nao_e_erro": "Não é erro",
@@ -88,16 +90,20 @@ export default function DashboardTech() {
 
   useEffect(() => {
     fetchPendencyStats();
-  }, []);
+  }, [selectedCustomer]);
 
   const fetchPendencyStats = async () => {
     try {
       setLoading(true);
       
-      // Fetch all pendencies
-      const { data: pendencies, error } = await supabase
-        .from('pendencies')
-        .select('*');
+      // Fetch pendencies with optional customer filter
+      let query = supabase.from('pendencies').select('*');
+      
+      if (selectedCustomer !== "all") {
+        query = query.eq('customer', selectedCustomer);
+      }
+      
+      const { data: pendencies, error } = await query;
 
       if (error) throw error;
 
@@ -226,7 +232,17 @@ export default function DashboardTech() {
                 Acompanhe as métricas de pendências e erros
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Clientes</SelectItem>
+                  <SelectItem value="Cidadania4y">Cidadania4y</SelectItem>
+                  <SelectItem value="Yellowling">Yellowling</SelectItem>
+                </SelectContent>
+              </Select>
               <Button
                 variant="outline"
                 size="sm"
