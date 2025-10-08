@@ -104,14 +104,16 @@ export default function PaymentProcessing() {
         ...(serviceProviderData || []).map((p: any) => ({ 
           ...p, 
           protocol_type: 'service_provider' as const,
-          provider_name: p.provider_name || 'N/A'
+          provider_name: p.provider_name || 'N/A',
+          pix_key: p.provider_pix_key || p.pix_key // Usar provider_pix_key da tabela
         })),
         ...(reviewerData || []).map((p: any) => {
           const profile = reviewerProfiles[p.assigned_operation_user_id];
           return {
             ...p, 
             protocol_type: 'reviewer' as const,
-            provider_name: profile?.email || profile?.full_name || p.reviewer_name || 'N/A'
+            provider_name: profile?.email || profile?.full_name || p.reviewer_name || 'N/A',
+            pix_key: p.provider_pix_key || p.pix_key // Usar provider_pix_key da tabela
           };
         })
       ];
