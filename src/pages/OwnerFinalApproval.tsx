@@ -22,6 +22,7 @@ interface Protocol {
   id: string;
   protocol_number: string;
   provider_name: string;
+  provider_email?: string;
   competence_month: string;
   total_amount: number;
   status: string;
@@ -63,11 +64,32 @@ export default function OwnerFinalApproval() {
       // Buscar protocolos de revisores com status master_final
       const { data: revData, error: revError } = await supabase
         .from("reviewer_protocols")
-        .select("id, protocol_number, reviewer_name, competence_month, total_amount, status, invoice_url, payment_reference")
+        .select("id, protocol_number, reviewer_name, competence_month, total_amount, status, invoice_url, payment_reference, assigned_operation_user_id")
         .eq("status", "master_final")
         .order("created_at", { ascending: false });
 
       if (revError) throw revError;
+
+      // Buscar perfis dos revisores
+      let reviewerProfiles: any = {};
+      if (revData && revData.length > 0) {
+        const userIds = revData
+          .map((p: any) => p.assigned_operation_user_id)
+          .filter(Boolean);
+        
+        if (userIds.length > 0) {
+          const { data: profilesData } = await supabase
+            .from("profiles")
+            .select("id, email, full_name")
+            .in("id", userIds);
+          
+          if (profilesData) {
+            reviewerProfiles = Object.fromEntries(
+              profilesData.map(p => [p.id, p])
+            );
+          }
+        }
+      }
 
       // Mapear protocolos de service providers
       const serviceProviderProtocols: Protocol[] = (spData || []).map(p => ({
@@ -76,17 +98,21 @@ export default function OwnerFinalApproval() {
       }));
 
       // Mapear protocolos de revisores
-      const reviewerProtocols: Protocol[] = (revData || []).map(p => ({
-        id: p.id,
-        protocol_number: p.protocol_number,
-        provider_name: p.reviewer_name,
-        competence_month: p.competence_month,
-        total_amount: p.total_amount,
-        status: p.status,
-        invoice_file_url: p.invoice_url,
-        payment_reference: p.payment_reference,
-        table_type: 'reviewer' as const
-      }));
+      const reviewerProtocols: Protocol[] = (revData || []).map(p => {
+        const profile = reviewerProfiles[p.assigned_operation_user_id];
+        return {
+          id: p.id,
+          protocol_number: p.protocol_number,
+          provider_name: p.reviewer_name || profile?.full_name || 'N/A',
+          provider_email: profile?.email,
+          competence_month: p.competence_month,
+          total_amount: p.total_amount,
+          status: p.status,
+          invoice_file_url: p.invoice_url,
+          payment_reference: p.payment_reference,
+          table_type: 'reviewer' as const
+        };
+      });
 
       setProtocols([...serviceProviderProtocols, ...reviewerProtocols]);
     } catch (error: any) {
@@ -233,7 +259,16 @@ export default function OwnerFinalApproval() {
                           <TableCell className="font-medium">
                             {protocol.protocol_number}
                           </TableCell>
-                          <TableCell>{protocol.provider_name}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <span>{protocol.provider_name}</span>
+                              {protocol.provider_email && (
+                                <span className="text-xs text-muted-foreground">
+                                  {protocol.provider_email}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             {new Date(protocol.competence_month).toLocaleDateString("pt-BR", {
                               month: "long",
