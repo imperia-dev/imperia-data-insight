@@ -68,10 +68,13 @@ export default function PaymentProcessing() {
 
       if (spError) throw spError;
 
-      // Buscar protocolos de revisores com status "owner_approval"
+      // Buscar protocolos de revisores com status "owner_approval" e fazer join com profiles
       const { data: reviewerData, error: revError } = await supabase
         .from("reviewer_protocols")
-        .select("*")
+        .select(`
+          *,
+          profiles!reviewer_protocols_assigned_operation_user_id_fkey(email, full_name)
+        `)
         .eq("status", "owner_approval")
         .order("created_at", { ascending: false });
 
@@ -87,7 +90,7 @@ export default function PaymentProcessing() {
         ...(reviewerData || []).map((p: any) => ({ 
           ...p, 
           protocol_type: 'reviewer' as const,
-          provider_name: p.reviewer_name || 'N/A'
+          provider_name: p.profiles?.email || p.profiles?.full_name || p.reviewer_name || 'N/A'
         }))
       ];
       
