@@ -1168,6 +1168,11 @@ export function Orders() {
                                     Assinaturas
                                   </Badge>
                                 )}
+                                {order.tags.includes("Apostila") && (
+                                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                                    Apostila
+                                  </Badge>
+                                )}
                               </div>
                             )}
                           </div>

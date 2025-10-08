@@ -466,6 +466,8 @@ export function MyOrders() {
                                           ? "bg-blue-500/10 text-blue-600 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-800"
                                           : tag === "Assinaturas"
                                           ? "bg-purple-500/10 text-purple-600 border-purple-200 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-800"
+                                          : tag === "Apostila"
+                                          ? "bg-green-500/10 text-green-600 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-800"
                                           : ""
                                       }
                                     >
@@ -581,6 +583,8 @@ export function MyOrders() {
                                         ? "bg-blue-500/10 text-blue-600 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-800"
                                         : tag === "Assinaturas"
                                         ? "bg-purple-500/10 text-purple-600 border-purple-200 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-800"
+                                        : tag === "Apostila"
+                                        ? "bg-green-500/10 text-green-600 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-800"
                                         : ""
                                     }
                                   >
