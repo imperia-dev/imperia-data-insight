@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { Logo } from "@/components/layout/Logo";
+import yellowlingLogo from "@/assets/yellowling-logo.png";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { ErrorTypesChart } from "@/components/dashboard/ErrorTypesChart";
@@ -997,6 +999,16 @@ export default function Dashboard() {
           <div className="mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
+                <div className="flex items-center gap-4 mb-2">
+                  <Logo size="md" />
+                  {selectedCustomer === 'Yellowling' && (
+                    <img 
+                      src={yellowlingLogo} 
+                      alt="Yellowling Logo" 
+                      className="h-10 object-contain"
+                    />
+                  )}
+                </div>
                 <h1 className="text-3xl font-black text-foreground">
                   Dashboard Operação
                 </h1>
