@@ -98,7 +98,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/my-orders',
     '/wallet',
     '/notifications',
-    '/settings'
+    '/settings',
+    '/operation-protocol-data'
   ]
 };
 
