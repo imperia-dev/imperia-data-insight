@@ -487,7 +487,7 @@ export function MyOrders() {
                         </TableCell>
                         <TableCell>
                           {order.attribution_date &&
-                            format(new Date(order.attribution_date), "dd/MM/yyyy", {
+                            format(new Date(order.attribution_date), "dd/MM/yyyy HH:mm", {
                               locale: ptBR,
                             })}
                         </TableCell>
