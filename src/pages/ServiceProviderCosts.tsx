@@ -425,9 +425,9 @@ export default function ServiceProviderCosts() {
         }
       }
       
-      // Then delete the cost record
+      // Then delete the cost record from expenses table
       const { error } = await supabase
-        .from('service_provider_costs')
+        .from('expenses')
         .delete()
         .eq('id', deleteConfirmId);
 
