@@ -21,7 +21,7 @@ interface BTGExportData {
   boletoPayments: any[];
 }
 
-export const exportBTGPayments = (protocols: BTGProtocol[], sourceAgency?: string, sourceAccount?: string) => {
+export const exportBTGPayments = (protocols: BTGProtocol[], sourceAgency: string = '0050', sourceAccount: string = '823953-8') => {
   const data: BTGExportData = {
     pixPayments: [],
     tedPayments: [],
@@ -45,8 +45,8 @@ export const exportBTGPayments = (protocols: BTGProtocol[], sourceAgency?: strin
         'Data de Pagamento (dd/mm/aaaa)': formattedDate,
         'Descrição (Opcional)': description,
         'Identificação Interna (Opcional)': protocol.protocol_number,
-        'Agência de Origem': sourceAgency || '',
-        'Conta de Origem': sourceAccount || ''
+        'Agência de Origem': sourceAgency,
+        'Conta de Origem': sourceAccount
       });
     }
     // Se tem dados bancários completos, adicionar na aba TED/DOC
@@ -63,8 +63,8 @@ export const exportBTGPayments = (protocols: BTGProtocol[], sourceAgency?: strin
         'Data de Pagamento (dd/mm/aaaa)': formattedDate,
         'Descrição (Opcional)': description,
         'Identificação Interna (Opcional)': protocol.protocol_number,
-        'Agência de Origem': sourceAgency || '',
-        'Conta de Origem': sourceAccount || ''
+          'Agência de Origem': sourceAgency,
+          'Conta de Origem': sourceAccount
       });
     }
   });
