@@ -796,6 +796,21 @@ export function Orders() {
                         >
                           Assinaturas
                         </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={formData.tags.includes("Apostila") ? "default" : "outline"}
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              tags: formData.tags.includes("Apostila")
+                                ? formData.tags.filter(t => t !== "Apostila")
+                                : [...formData.tags, "Apostila"]
+                            });
+                          }}
+                        >
+                          Apostila
+                        </Button>
                       </div>
                     </div>
 
@@ -1506,6 +1521,21 @@ export function Orders() {
                       }}
                     >
                       Assinaturas
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={editFormData.tags.includes("Apostila") ? "default" : "outline"}
+                      onClick={() => {
+                        setEditFormData({
+                          ...editFormData,
+                          tags: editFormData.tags.includes("Apostila")
+                            ? editFormData.tags.filter(t => t !== "Apostila")
+                            : [...editFormData.tags, "Apostila"]
+                        });
+                      }}
+                    >
+                      Apostila
                     </Button>
                   </div>
                 </div>
