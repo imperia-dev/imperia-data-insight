@@ -68,15 +68,33 @@ export default function PaymentProcessing() {
 
       if (spError) throw spError;
 
-      // Buscar protocolos de revisores com status "owner_approval" e fazer join com profiles
+      // Buscar protocolos de revisores com status "owner_approval"
       const { data: reviewerData, error: revError } = await supabase
         .from("reviewer_protocols")
-        .select(`
-          *,
-          profiles!reviewer_protocols_assigned_operation_user_id_fkey(email, full_name)
-        `)
+        .select("*")
         .eq("status", "owner_approval")
         .order("created_at", { ascending: false });
+
+      // Buscar perfis dos revisores separadamente
+      let reviewerProfiles: any = {};
+      if (reviewerData && reviewerData.length > 0) {
+        const userIds = reviewerData
+          .map((p: any) => p.assigned_operation_user_id)
+          .filter(Boolean);
+        
+        if (userIds.length > 0) {
+          const { data: profilesData } = await supabase
+            .from("profiles")
+            .select("id, email, full_name")
+            .in("id", userIds);
+          
+          if (profilesData) {
+            reviewerProfiles = Object.fromEntries(
+              profilesData.map(p => [p.id, p])
+            );
+          }
+        }
+      }
 
       if (revError) throw revError;
 
@@ -87,11 +105,14 @@ export default function PaymentProcessing() {
           protocol_type: 'service_provider' as const,
           provider_name: p.provider_name || 'N/A'
         })),
-        ...(reviewerData || []).map((p: any) => ({ 
-          ...p, 
-          protocol_type: 'reviewer' as const,
-          provider_name: p.profiles?.email || p.profiles?.full_name || p.reviewer_name || 'N/A'
-        }))
+        ...(reviewerData || []).map((p: any) => {
+          const profile = reviewerProfiles[p.assigned_operation_user_id];
+          return {
+            ...p, 
+            protocol_type: 'reviewer' as const,
+            provider_name: profile?.email || profile?.full_name || p.reviewer_name || 'N/A'
+          };
+        })
       ];
       
       setProtocols(allProtocols as Protocol[]);
