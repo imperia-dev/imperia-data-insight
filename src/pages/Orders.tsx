@@ -121,6 +121,8 @@ export function Orders() {
     deadline: "",
     attribution_date: "",
     delivered_at: "",
+    customer: "",
+    serviceType: "",
   });
 
   // Fetch user profile to get role
@@ -472,6 +474,8 @@ export function Orders() {
       deadline: order.deadline ? format(new Date(order.deadline), "yyyy-MM-dd'T'HH:mm") : "",
       attribution_date: order.attribution_date ? format(new Date(order.attribution_date), "yyyy-MM-dd'T'HH:mm") : "",
       delivered_at: order.delivered_at ? format(new Date(order.delivered_at), "yyyy-MM-dd'T'HH:mm") : "",
+      customer: order.customer || "",
+      serviceType: order.service_type || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -1357,6 +1361,44 @@ export function Orders() {
                     }
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-customer">Cliente *</Label>
+                  <Select
+                    value={editFormData.customer}
+                    onValueChange={(value) =>
+                      setEditFormData({ ...editFormData, customer: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Cidadania4y">Cidadania4y</SelectItem>
+                      <SelectItem value="Yellowling">Yellowling</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-service-type">Tipo de Serviço *</Label>
+                  <Select
+                    value={editFormData.serviceType}
+                    onValueChange={(value) =>
+                      setEditFormData({ ...editFormData, serviceType: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo de serviço" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Drive">Drive</SelectItem>
+                      <SelectItem value="Diagramação">Diagramação</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">
