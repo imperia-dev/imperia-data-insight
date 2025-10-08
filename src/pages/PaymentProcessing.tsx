@@ -135,11 +135,19 @@ export default function PaymentProcessing() {
     }
   };
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = (checked: boolean, protocolType?: 'service_provider' | 'reviewer') => {
     if (checked) {
-      setSelectedProtocols(new Set(protocols.map(p => p.id)));
+      const protocolsToSelect = protocolType 
+        ? protocols.filter(p => p.protocol_type === protocolType)
+        : protocols;
+      setSelectedProtocols(new Set([...selectedProtocols, ...protocolsToSelect.map(p => p.id)]));
     } else {
-      setSelectedProtocols(new Set());
+      if (protocolType) {
+        const protocolsToDeselect = protocols.filter(p => p.protocol_type === protocolType).map(p => p.id);
+        setSelectedProtocols(new Set([...selectedProtocols].filter(id => !protocolsToDeselect.includes(id))));
+      } else {
+        setSelectedProtocols(new Set());
+      }
     }
   };
 
@@ -317,11 +325,13 @@ export default function PaymentProcessing() {
     }
 
     const selectedProtocolsData = protocols.filter(p => selectedProtocols.has(p.id));
+    const prestadoresCount = selectedProtocolsData.filter(p => p.protocol_type === 'service_provider').length;
+    const revisoresCount = selectedProtocolsData.filter(p => p.protocol_type === 'reviewer').length;
     
     try {
       const result = exportBTGPayments(selectedProtocolsData);
       toast.success(`Arquivo BTG exportado com sucesso!`, {
-        description: `${result.pixCount} pagamentos PIX, ${result.tedCount} pagamentos TED/DOC`
+        description: `${prestadoresCount} prestadores, ${revisoresCount} revisores | ${result.pixCount} PIX, ${result.tedCount} TED/DOC`
       });
     } catch (error: any) {
       toast.error("Erro ao exportar arquivo BTG", {
@@ -433,8 +443,8 @@ export default function PaymentProcessing() {
                       <TableRow>
                         <TableHead className="w-12">
                           <Checkbox
-                            checked={selectedProtocols.size === protocols.length}
-                            onCheckedChange={handleSelectAll}
+                            checked={protocols.filter(p => p.protocol_type === 'service_provider').every(p => selectedProtocols.has(p.id)) && protocols.filter(p => p.protocol_type === 'service_provider').length > 0}
+                            onCheckedChange={(checked) => handleSelectAll(checked as boolean, 'service_provider')}
                           />
                         </TableHead>
                         <TableHead>Protocolo</TableHead>
@@ -587,14 +597,8 @@ export default function PaymentProcessing() {
                           <TableRow>
                             <TableHead className="w-12">
                               <Checkbox
-                                checked={selectedProtocols.size === protocols.filter(p => p.protocol_type === 'reviewer').length}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setSelectedProtocols(new Set(protocols.filter(p => p.protocol_type === 'reviewer').map(p => p.id)));
-                                  } else {
-                                    setSelectedProtocols(new Set());
-                                  }
-                                }}
+                                checked={protocols.filter(p => p.protocol_type === 'reviewer').every(p => selectedProtocols.has(p.id)) && protocols.filter(p => p.protocol_type === 'reviewer').length > 0}
+                                onCheckedChange={(checked) => handleSelectAll(checked as boolean, 'reviewer')}
                               />
                             </TableHead>
                             <TableHead>Protocolo</TableHead>
@@ -603,7 +607,7 @@ export default function PaymentProcessing() {
                             <TableHead>Valor Total</TableHead>
                             <TableHead>Comprovante</TableHead>
                             <TableHead>Dados Bancários</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
+                            <TableHead>Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
