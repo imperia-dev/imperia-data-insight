@@ -2155,6 +2155,7 @@ export type Database = {
           service_provider_protocol_id: string | null
           service_type: string | null
           status_order: string
+          tags: string[] | null
           updated_at: string
           urgent_document_count: number | null
         }
@@ -2178,6 +2179,7 @@ export type Database = {
           service_provider_protocol_id?: string | null
           service_type?: string | null
           status_order?: string
+          tags?: string[] | null
           updated_at?: string
           urgent_document_count?: number | null
         }
@@ -2201,6 +2203,7 @@ export type Database = {
           service_provider_protocol_id?: string | null
           service_type?: string | null
           status_order?: string
+          tags?: string[] | null
           updated_at?: string
           urgent_document_count?: number | null
         }

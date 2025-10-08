@@ -112,6 +112,7 @@ export function Orders() {
     attribution_date: "",
     customer: "",
     serviceType: "",
+    tags: [] as string[],
   });
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -124,6 +125,7 @@ export function Orders() {
     delivered_at: "",
     customer: "",
     serviceType: "",
+    tags: [] as string[],
   });
 
   // Fetch user profile to get role
@@ -297,6 +299,7 @@ export function Orders() {
         attribution_date: "",
         customer: "",
         serviceType: "",
+        tags: [],
       });
     },
     onError: (error: any) => {
@@ -477,6 +480,7 @@ export function Orders() {
       delivered_at: order.delivered_at ? format(new Date(order.delivered_at), "yyyy-MM-dd'T'HH:mm") : "",
       customer: order.customer || "",
       serviceType: order.service_type || "",
+      tags: order.tags || [],
     });
     setIsEditDialogOpen(true);
   };
@@ -490,6 +494,7 @@ export function Orders() {
       deadline: new Date(editFormData.deadline).toISOString(),
       customer: editFormData.customer,
       service_type: editFormData.serviceType,
+      tags: editFormData.tags,
     };
     
     if (editFormData.attribution_date) {
@@ -756,6 +761,42 @@ export function Orders() {
                           <SelectItem value="Diagramação">Diagramação</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div>
+                      <Label>Tags</Label>
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={formData.tags.includes("Carimbos") ? "default" : "outline"}
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              tags: formData.tags.includes("Carimbos")
+                                ? formData.tags.filter(t => t !== "Carimbos")
+                                : [...formData.tags, "Carimbos"]
+                            });
+                          }}
+                        >
+                          Carimbos
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={formData.tags.includes("Assinaturas") ? "default" : "outline"}
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              tags: formData.tags.includes("Assinaturas")
+                                ? formData.tags.filter(t => t !== "Assinaturas")
+                                : [...formData.tags, "Assinaturas"]
+                            });
+                          }}
+                        >
+                          Assinaturas
+                        </Button>
+                      </div>
                     </div>
 
                     <div>
@@ -1115,6 +1156,20 @@ export function Orders() {
                             {order.service_type === "Diagramação" && (
                               <Hammer className="h-4 w-4 text-muted-foreground" />
                             )}
+                            {order.tags && order.tags.length > 0 && (
+                              <div className="flex gap-1 ml-2">
+                                {order.tags.includes("Carimbos") && (
+                                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                                    Carimbos
+                                  </Badge>
+                                )}
+                                {order.tags.includes("Assinaturas") && (
+                                  <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300">
+                                    Assinaturas
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>{order.document_count}</TableCell>
@@ -1412,6 +1467,42 @@ export function Orders() {
                       <SelectItem value="Diagramação">Diagramação</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tags</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={editFormData.tags.includes("Carimbos") ? "default" : "outline"}
+                      onClick={() => {
+                        setEditFormData({
+                          ...editFormData,
+                          tags: editFormData.tags.includes("Carimbos")
+                            ? editFormData.tags.filter(t => t !== "Carimbos")
+                            : [...editFormData.tags, "Carimbos"]
+                        });
+                      }}
+                    >
+                      Carimbos
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={editFormData.tags.includes("Assinaturas") ? "default" : "outline"}
+                      onClick={() => {
+                        setEditFormData({
+                          ...editFormData,
+                          tags: editFormData.tags.includes("Assinaturas")
+                            ? editFormData.tags.filter(t => t !== "Assinaturas")
+                            : [...editFormData.tags, "Assinaturas"]
+                        });
+                      }}
+                    >
+                      Assinaturas
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
