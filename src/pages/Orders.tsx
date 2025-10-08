@@ -1016,6 +1016,7 @@ export function Orders() {
                       <TableRow>
                         {(isAttentionMode || isDelayMode) && <TableHead className="w-10"></TableHead>}
                         <TableHead className="min-w-[150px]">ID Pedido</TableHead>
+                        <TableHead className="w-[120px]">Cliente</TableHead>
                         <TableHead className="w-[120px]">Qtd. Documentos</TableHead>
                         {(isAdmin || isMaster) && <TableHead className="w-[180px]">Data Atribuição</TableHead>}
                         <TableHead className="w-[180px]">Deadline</TableHead>
@@ -1098,6 +1099,7 @@ export function Orders() {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell>{order.customer || "-"}</TableCell>
                         <TableCell>{order.document_count}</TableCell>
                         {(isAdmin || isMaster) && (
                           <TableCell>
