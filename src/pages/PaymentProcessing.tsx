@@ -10,7 +10,8 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useLocation, Navigate } from "react-router-dom";
-import { Send, Eye, CheckCircle2, Upload, FileCheck, Loader2 } from "lucide-react";
+import { Send, Eye, CheckCircle2, Upload, FileCheck, Loader2, FileSpreadsheet } from "lucide-react";
+import { exportBTGPayments } from "@/utils/exportBTGPayments";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
@@ -309,6 +310,26 @@ export default function PaymentProcessing() {
     }
   };
 
+  const handleExportBTG = () => {
+    if (selectedProtocols.size === 0) {
+      toast.error("Selecione pelo menos um protocolo para exportar");
+      return;
+    }
+
+    const selectedProtocolsData = protocols.filter(p => selectedProtocols.has(p.id));
+    
+    try {
+      const result = exportBTGPayments(selectedProtocolsData);
+      toast.success(`Arquivo BTG exportado com sucesso!`, {
+        description: `${result.pixCount} pagamentos PIX, ${result.tedCount} pagamentos TED/DOC`
+      });
+    } catch (error: any) {
+      toast.error("Erro ao exportar arquivo BTG", {
+        description: error.message
+      });
+    }
+  };
+
   if (roleLoading) {
     return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
@@ -342,14 +363,24 @@ export default function PaymentProcessing() {
                 </p>
               </div>
               {selectedProtocols.size > 0 && (
-                <Button
-                  onClick={handleProcessPayments}
-                  disabled={processing}
-                  size="lg"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {processing ? "Processando..." : `Processar ${selectedProtocols.size} Protocolo(s)`}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleExportBTG}
+                    variant="outline"
+                    size="lg"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Exportar BTG
+                  </Button>
+                  <Button
+                    onClick={handleProcessPayments}
+                    disabled={processing}
+                    size="lg"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {processing ? "Processando..." : `Processar ${selectedProtocols.size} Protocolo(s)`}
+                  </Button>
+                </div>
               )}
             </div>
 
