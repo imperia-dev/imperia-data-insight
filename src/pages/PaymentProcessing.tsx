@@ -331,7 +331,7 @@ export default function PaymentProcessing() {
     try {
       const result = exportBTGPayments(selectedProtocolsData);
       toast.success(`Arquivo BTG exportado com sucesso!`, {
-        description: `${prestadoresCount} prestadores, ${revisoresCount} revisores | ${result.pixCount} PIX, ${result.tedCount} TED/DOC`
+        description: `${prestadoresCount} prestadores, ${revisoresCount} revisores | ${result.pixCount} pagamentos PIX`
       });
     } catch (error: any) {
       toast.error("Erro ao exportar arquivo BTG", {
