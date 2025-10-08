@@ -154,6 +154,7 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("all");
   const [documentsTranslated, setDocumentsTranslated] = useState(0);
   const [documentsInProgress, setDocumentsInProgress] = useState(0);
   const [documentsDelivered, setDocumentsDelivered] = useState(0);
@@ -428,7 +429,7 @@ export default function Dashboard() {
     fetchDashboardData();
     fetchEvolutionData();
     fetchGoogleSheetsData(); // Load Google Sheets data on initial load
-  }, [selectedPeriod, customDateRange]);
+  }, [selectedPeriod, customDateRange, selectedCustomer]);
 
   // Auto-refresh Google Sheets data every 30 minutes
   useEffect(() => {
@@ -575,11 +576,18 @@ export default function Dashboard() {
       }
       
       // Fetch pendencies for the period - todas criadas no período
-      const { data: pendenciesData, error: pendenciesError } = await supabase
+      let pendenciesQuery = supabase
         .from('pendencies')
         .select('id, c4u_id, error_type, created_at, order_id, description, status, treatment') 
         .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+      
+      // Apply customer filter if not "all"
+      if (selectedCustomer !== "all") {
+        pendenciesQuery = pendenciesQuery.eq('customer', selectedCustomer);
+      }
+      
+      const { data: pendenciesData, error: pendenciesError } = await pendenciesQuery
         .order('created_at', { ascending: false });
 
       interface PendencyData {
@@ -968,6 +976,18 @@ export default function Dashboard() {
               </div>
               
               <div className="flex items-center gap-3">
+                {/* Customer Filter */}
+                <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Clientes</SelectItem>
+                    <SelectItem value="Cidadania4y">Cidadania4y</SelectItem>
+                    <SelectItem value="Yellowling">Yellowling</SelectItem>
+                  </SelectContent>
+                </Select>
+                
                 {/* WhatsApp Button */}
                 <Button 
                   onClick={() => setIsWhatsAppModalOpen(true)}
