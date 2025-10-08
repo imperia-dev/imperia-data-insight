@@ -847,14 +847,29 @@ export function Orders() {
                     
                     <div>
                       <Label htmlFor="attribution_date">Data de Atribuição</Label>
-                      <Input
-                        id="attribution_date"
-                        type="datetime-local"
-                        value={formData.attribution_date}
-                        onChange={(e) =>
-                          setFormData({ ...formData, attribution_date: e.target.value })
-                        }
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          id="attribution_date"
+                          type="datetime-local"
+                          value={formData.attribution_date}
+                          onChange={(e) =>
+                            setFormData({ ...formData, attribution_date: e.target.value })
+                          }
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const now = format(new Date(), "yyyy-MM-dd'T'HH:mm");
+                            setFormData({ ...formData, attribution_date: now });
+                          }}
+                          className="text-xs px-3 shrink-0"
+                        >
+                          Agora
+                        </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Opcional - Data quando o pedido foi atribuído
                       </p>
@@ -1572,14 +1587,29 @@ export function Orders() {
                 
                 <div className="space-y-2">
                   <Label htmlFor="edit-attribution-date">Data de Atribuição</Label>
-                  <Input
-                    id="edit-attribution-date"
-                    type="datetime-local"
-                    value={editFormData.attribution_date}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, attribution_date: e.target.value })
-                    }
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="edit-attribution-date"
+                      type="datetime-local"
+                      value={editFormData.attribution_date}
+                      onChange={(e) =>
+                        setEditFormData({ ...editFormData, attribution_date: e.target.value })
+                      }
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const now = format(new Date(), "yyyy-MM-dd'T'HH:mm");
+                        setEditFormData({ ...editFormData, attribution_date: now });
+                      }}
+                      className="text-xs px-3 shrink-0"
+                    >
+                      Agora
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
