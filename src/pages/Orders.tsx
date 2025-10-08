@@ -36,7 +36,8 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock, Hammer } from "lucide-react";
+import googleDriveLogo from "@/assets/google-drive-logo.png";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
 import {
@@ -1105,7 +1106,17 @@ export function Orders() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>{order.customer || "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {order.customer || "-"}
+                            {order.service_type === "Drive" && (
+                              <img src={googleDriveLogo} alt="Drive" className="h-4 w-4" />
+                            )}
+                            {order.service_type === "Diagramação" && (
+                              <Hammer className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{order.document_count}</TableCell>
                         {(isAdmin || isMaster) && (
                           <TableCell>
