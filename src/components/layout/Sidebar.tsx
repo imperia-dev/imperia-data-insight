@@ -288,7 +288,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Meus Protocolos",
         icon: ClipboardList,
         href: "/operation-protocol-data",
-        roles: ["operation"],
+        roles: ["operation", "translator"],
       },
       {
         title: "Calendário",
