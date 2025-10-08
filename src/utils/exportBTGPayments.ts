@@ -24,6 +24,8 @@ export const exportBTGPayments = (protocols: BTGProtocol[], sourceAgency: string
     pixPayments: []
   };
 
+  let protocolsWithoutPix = 0;
+
   // Organizar protocolos por tipo de pagamento
   protocols.forEach(protocol => {
     const cpfCnpj = protocol.cpf || protocol.cnpj || '';
@@ -44,6 +46,8 @@ export const exportBTGPayments = (protocols: BTGProtocol[], sourceAgency: string
         'Agência de Origem': sourceAgency,
         'Conta de Origem': sourceAccount
       });
+    } else {
+      protocolsWithoutPix++;
     }
   });
 
@@ -72,6 +76,7 @@ export const exportBTGPayments = (protocols: BTGProtocol[], sourceAgency: string
 
   return {
     pixCount: data.pixPayments.length,
+    protocolsWithoutPix,
     fileName
   };
 };

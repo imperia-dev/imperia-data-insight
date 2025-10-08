@@ -328,10 +328,29 @@ export default function PaymentProcessing() {
     const prestadoresCount = selectedProtocolsData.filter(p => p.protocol_type === 'service_provider').length;
     const revisoresCount = selectedProtocolsData.filter(p => p.protocol_type === 'reviewer').length;
     
+    console.log('Protocolos selecionados para exportação:', {
+      total: selectedProtocolsData.length,
+      prestadores: prestadoresCount,
+      revisores: revisoresCount,
+      protocolos: selectedProtocolsData.map(p => ({
+        id: p.id,
+        numero: p.protocol_number,
+        tipo: p.protocol_type,
+        temPix: !!p.pix_key,
+        pixKey: p.pix_key
+      }))
+    });
+    
     try {
       const result = exportBTGPayments(selectedProtocolsData);
+      
+      let description = `${prestadoresCount} prestadores, ${revisoresCount} revisores | ${result.pixCount} pagamentos PIX`;
+      if (result.protocolsWithoutPix > 0) {
+        description += `\n⚠️ ${result.protocolsWithoutPix} protocolo(s) sem chave PIX não foram exportados`;
+      }
+      
       toast.success(`Arquivo BTG exportado com sucesso!`, {
-        description: `${prestadoresCount} prestadores, ${revisoresCount} revisores | ${result.pixCount} pagamentos PIX`
+        description
       });
     } catch (error: any) {
       toast.error("Erro ao exportar arquivo BTG", {
