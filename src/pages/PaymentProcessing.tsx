@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
@@ -67,11 +68,11 @@ export default function PaymentProcessing() {
 
       if (spError) throw spError;
 
-      // Buscar protocolos de revisores com status "approved"
+      // Buscar protocolos de revisores com status "owner_approval"
       const { data: reviewerData, error: revError } = await supabase
         .from("reviewer_protocols")
         .select("*")
-        .eq("status", "approved")
+        .eq("status", "owner_approval")
         .order("created_at", { ascending: false });
 
       if (revError) throw revError;
@@ -349,19 +350,30 @@ export default function PaymentProcessing() {
               </Card>
             )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Protocolos Aprovados</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <p className="text-center py-8 text-muted-foreground">Carregando...</p>
-                ) : protocols.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">
-                    Nenhum protocolo aprovado aguardando processamento
-                  </p>
-                ) : (
-                  <Table>
+            <Tabs defaultValue="prestadores" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="prestadores">
+                  Prestadores ({protocols.filter(p => p.protocol_type === 'service_provider').length})
+                </TabsTrigger>
+                <TabsTrigger value="revisores">
+                  Revisores ({protocols.filter(p => p.protocol_type === 'reviewer').length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="prestadores">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Protocolos de Prestadores</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+                    ) : protocols.filter(p => p.protocol_type === 'service_provider').length === 0 ? (
+                      <p className="text-center py-8 text-muted-foreground">
+                        Nenhum protocolo de prestador aprovado aguardando processamento
+                      </p>
+                    ) : (
+                      <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">
@@ -380,7 +392,7 @@ export default function PaymentProcessing() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {protocols.map((protocol) => (
+                      {protocols.filter(p => p.protocol_type === 'service_provider').map((protocol) => (
                         <TableRow key={protocol.id}>
                           <TableCell>
                             <Checkbox
@@ -497,9 +509,183 @@ export default function PaymentProcessing() {
                       ))}
                     </TableBody>
                   </Table>
-                )}
-              </CardContent>
-            </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="revisores">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Protocolos de Revisores</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+                    ) : protocols.filter(p => p.protocol_type === 'reviewer').length === 0 ? (
+                      <p className="text-center py-8 text-muted-foreground">
+                        Nenhum protocolo de revisor aprovado aguardando processamento
+                      </p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">
+                              <Checkbox
+                                checked={selectedProtocols.size === protocols.filter(p => p.protocol_type === 'reviewer').length}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedProtocols(new Set(protocols.filter(p => p.protocol_type === 'reviewer').map(p => p.id)));
+                                  } else {
+                                    setSelectedProtocols(new Set());
+                                  }
+                                }}
+                              />
+                            </TableHead>
+                            <TableHead>Protocolo</TableHead>
+                            <TableHead>Revisor</TableHead>
+                            <TableHead>Competência</TableHead>
+                            <TableHead>Valor Total</TableHead>
+                            <TableHead>Comprovante</TableHead>
+                            <TableHead>Dados Bancários</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {protocols.filter(p => p.protocol_type === 'reviewer').map((protocol) => (
+                            <TableRow key={protocol.id}>
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedProtocols.has(protocol.id)}
+                                  onCheckedChange={(checked) => 
+                                    handleSelectProtocol(protocol.id, checked as boolean)
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                <div className="flex flex-col gap-1">
+                                  <span>{protocol.protocol_number}</span>
+                                  <span className="text-xs text-muted-foreground">Revisor</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{protocol.provider_name}</TableCell>
+                              <TableCell>
+                                {new Date(protocol.competence_month).toLocaleDateString("pt-BR", {
+                                  month: "long",
+                                  year: "numeric",
+                                })}
+                              </TableCell>
+                              <TableCell>
+                                {new Intl.NumberFormat("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                }).format(protocol.total_amount)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col gap-2">
+                                  {protocolReceipts.has(protocol.id) ? (
+                                    <div className="flex items-center gap-2 text-sm text-green-600">
+                                      <FileCheck className="h-4 w-4" />
+                                      <span>Enviado</span>
+                                      <a 
+                                        href={protocolReceipts.get(protocol.id)} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-primary underline"
+                                      >
+                                        Ver
+                                      </a>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <Label htmlFor={`file-${protocol.id}`} className="cursor-pointer">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                                          {uploadingFiles.has(protocol.id) ? (
+                                            <>
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                              <span>Enviando...</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Upload className="h-4 w-4" />
+                                              <span>Enviar</span>
+                                            </>
+                                          )}
+                                        </div>
+                                      </Label>
+                                      <Input
+                                        id={`file-${protocol.id}`}
+                                        type="file"
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        className="hidden"
+                                        disabled={uploadingFiles.has(protocol.id)}
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleFileUpload(protocol.id, file);
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm space-y-1">
+                                  {protocol.pix_key && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">PIX:</span>
+                                      <span className="text-muted-foreground">{protocol.pix_key}</span>
+                                    </div>
+                                  )}
+                                  {protocol.bank_name && (
+                                    <>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">Banco:</span>
+                                        <span className="text-muted-foreground">{protocol.bank_name}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">Agência:</span>
+                                        <span className="text-muted-foreground">{protocol.bank_agency}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">Conta:</span>
+                                        <span className="text-muted-foreground">{protocol.bank_account}</span>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedProtocol(protocol);
+                                      setShowDetailsDialog(true);
+                                    }}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => handleMarkAsPaid(protocol.id)}
+                                    disabled={!protocolReceipts.has(protocol.id)}
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                                    Marcar como Pago
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>
