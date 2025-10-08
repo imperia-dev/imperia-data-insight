@@ -255,13 +255,20 @@ export default function Dashboard() {
       
       // Fetch delivered orders for each operation user
       const performancePromises = operationUsers.map(async (user) => {
-        const { data: orders, error: ordersError } = await supabase
+        let performanceQuery = supabase
           .from('orders')
           .select('document_count')
           .eq('assigned_to', user.id)
           .eq('status_order', 'delivered')
           .gte('delivered_at', startDate.toISOString())
           .lte('delivered_at', endDate.toISOString());
+        
+        // Apply customer filter if not "all"
+        if (selectedCustomer !== "all") {
+          performanceQuery = performanceQuery.eq('customer', selectedCustomer);
+        }
+        
+        const { data: orders, error: ordersError } = await performanceQuery;
         
         if (ordersError) {
           console.error(`Error fetching orders for user ${user.id}:`, ordersError);
@@ -448,11 +455,18 @@ export default function Dashboard() {
       const { startDate, endDate } = getDateRange();
 
       // Fetch delivered orders (documents translated) for the period
-      const { data: ordersData, error: ordersError } = await supabase
+      let ordersQuery = supabase
         .from('orders')
         .select('id, order_number, document_count, status_order, is_urgent, urgent_document_count, created_at, delivered_at, deadline, attribution_date')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
+      
+      // Apply customer filter if not "all"
+      if (selectedCustomer !== "all") {
+        ordersQuery = ordersQuery.eq('customer', selectedCustomer);
+      }
+      
+      const { data: ordersData, error: ordersError } = await ordersQuery;
       
       const typedOrdersData: OrderData[] = (ordersData || []) as OrderData[];
 
@@ -491,11 +505,18 @@ export default function Dashboard() {
       setDeliveryRate(deliveryRateCalc);
 
       // Fetch attributed documents in the period
-      const { data: attributedOrdersData, error: attributedError } = await supabase
+      let attributedQuery = supabase
         .from('orders')
         .select('id, order_number, document_count, attribution_date')
         .gte('attribution_date', startDate.toISOString())
         .lte('attribution_date', endDate.toISOString());
+      
+      // Apply customer filter if not "all"
+      if (selectedCustomer !== "all") {
+        attributedQuery = attributedQuery.eq('customer', selectedCustomer);
+      }
+      
+      const { data: attributedOrdersData, error: attributedError } = await attributedQuery;
       
       const typedAttributedOrdersData: Pick<OrderData, "id" | "order_number" | "document_count" | "attribution_date">[] = (attributedOrdersData || []) as Pick<OrderData, "id" | "order_number" | "document_count" | "attribution_date">[];
 
@@ -777,11 +798,18 @@ export default function Dashboard() {
       }
 
       // Fetch assigned orders for the period
-      const { data: ordersData, error: ordersError } = await supabase
+      let evolutionQuery = supabase
         .from('orders')
         .select('document_count, attribution_date')
         .gte('attribution_date', startDate.toISOString())
         .lte('attribution_date', endDate.toISOString());
+      
+      // Apply customer filter if not "all"
+      if (selectedCustomer !== "all") {
+        evolutionQuery = evolutionQuery.eq('customer', selectedCustomer);
+      }
+      
+      const { data: ordersData, error: ordersError } = await evolutionQuery;
 
       if (ordersError) {
         console.error('Error fetching evolution data:', ordersError);
@@ -837,15 +865,15 @@ export default function Dashboard() {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, 5 * 60 * 1000); // Refresh every 5 minutes
     return () => clearInterval(interval);
-  }, [selectedPeriod, customDateRange]);
+  }, [selectedPeriod, customDateRange, selectedCustomer]);
 
   useEffect(() => {
     fetchEvolutionData();
-  }, [selectedPeriod, customDateRange]);
+  }, [selectedPeriod, customDateRange, selectedCustomer]);
 
   useEffect(() => {
     fetchTranslatorPerformance();
-  }, [selectedPeriod, customDateRange]);
+  }, [selectedPeriod, customDateRange, selectedCustomer]);
 
   const handleExportPDF = () => {
     // Prepare indicators data with better labels
