@@ -69,6 +69,7 @@ export default function ServiceProviderCosts() {
   const [showSensitiveData, setShowSensitiveData] = useState(false);
   const [sensitiveDataAlert, setSensitiveDataAlert] = useState(false);
   const [viewingSensitiveFor, setViewingSensitiveFor] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [quickCostData, setQuickCostData] = useState({
     days_worked: "",
     amount: "",
@@ -403,12 +404,12 @@ export default function ServiceProviderCosts() {
     setViewingSensitiveFor(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este prestador?")) return;
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
 
     try {
       // First, get the cost to check for files
-      const cost = costs.find(c => c.id === id);
+      const cost = costs.find(c => c.id === deleteConfirmId);
       
       // If there are files, delete them from storage
       if (cost?.files && cost.files.length > 0) {
@@ -418,6 +419,9 @@ export default function ServiceProviderCosts() {
         
         if (storageError) {
           console.error('Error deleting files from storage:', storageError);
+          toast.error("Erro ao excluir arquivos do prestador");
+          setDeleteConfirmId(null);
+          return;
         }
       }
       
@@ -425,14 +429,20 @@ export default function ServiceProviderCosts() {
       const { error } = await supabase
         .from('service_provider_costs')
         .delete()
-        .eq('id', id);
+        .eq('id', deleteConfirmId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
+      
       toast.success("Prestador excluído com sucesso");
+      setDeleteConfirmId(null);
       fetchCosts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting service provider cost:', error);
-      toast.error("Erro ao excluir prestador");
+      toast.error(error?.message || "Erro ao excluir prestador");
+      setDeleteConfirmId(null);
     }
   };
 
@@ -1457,7 +1467,7 @@ export default function ServiceProviderCosts() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleDelete(cost.id)}
+                            onClick={() => setDeleteConfirmId(cost.id)}
                             title="Excluir"
                             className="hover:bg-destructive/10 text-destructive transition-colors h-8 w-8 p-0"
                           >
@@ -1708,6 +1718,24 @@ export default function ServiceProviderCosts() {
             >
               <Shield className="h-4 w-4 mr-2" />
               Acessar Dados Protegidos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este prestador? Esta ação não pode ser desfeita e todos os arquivos associados serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
