@@ -274,6 +274,9 @@ export function Orders() {
         deadline: new Date(data.deadline).toISOString(),
         created_by: user?.id,
         status_order: "available", // Always start with available status
+        customer: data.customer || null,
+        service_type: data.serviceType || null,
+        tags: data.tags.length > 0 ? data.tags : null,
       };
       
       // Add optional fields if provided
