@@ -225,48 +225,57 @@ export default function DashboardTech() {
         <Header userName={userName} userRole={userRole} />
         
         <main className="container mx-auto p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Dashboard de Operação</h1>
-              <p className="text-muted-foreground mt-1">
-                Acompanhe as métricas de pendências e erros
-              </p>
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Dashboard de Operação</h1>
+                <p className="text-muted-foreground mt-1">
+                  Acompanhe as métricas de pendências e erros
+                </p>
+              </div>
             </div>
-            <div className="flex gap-2 items-center">
-              <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Clientes</SelectItem>
-                  <SelectItem value="Cidadania4y">Cidadania4y</SelectItem>
-                  <SelectItem value="Yellowling">Yellowling</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportPDF}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Exportar PDF
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportExcel}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Exportar Excel
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setIsWhatsAppModalOpen(true)}
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Enviar via WhatsApp
-              </Button>
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">Filtrar por cliente:</span>
+                <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Clientes</SelectItem>
+                    <SelectItem value="Cidadania4y">Cidadania4y</SelectItem>
+                    <SelectItem value="Yellowling">Yellowling</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportPDF}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportExcel}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar Excel
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setIsWhatsAppModalOpen(true)}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Enviar via WhatsApp
+                </Button>
+              </div>
             </div>
           </div>
           
