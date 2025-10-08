@@ -110,6 +110,7 @@ export function Orders() {
     deadline: getDefaultDeadline(),
     attribution_date: "",
     customer: "",
+    serviceType: "",
   });
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -292,6 +293,7 @@ export function Orders() {
         deadline: getDefaultDeadline(),
         attribution_date: "",
         customer: "",
+        serviceType: "",
       });
     },
     onError: (error: any) => {
@@ -726,6 +728,25 @@ export function Orders() {
                         <SelectContent>
                           <SelectItem value="Cidadania4y">Cidadania4y</SelectItem>
                           <SelectItem value="Yellowling">Yellowling</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="serviceType">Tipo de Serviço *</Label>
+                      <Select
+                        value={formData.serviceType}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, serviceType: value })
+                        }
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo de serviço" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Drive">Drive</SelectItem>
+                          <SelectItem value="Diagramação">Diagramação</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
