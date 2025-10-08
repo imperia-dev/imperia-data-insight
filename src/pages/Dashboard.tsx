@@ -944,9 +944,11 @@ export default function Dashboard() {
       : selectedPeriod === 'month' ? `Últimos 30 dias`
       : selectedPeriod === 'quarter' ? `Últimos 3 meses`
       : `Últimos 12 meses`;
+    
+    const customerText = selectedCustomer === 'all' ? 'Todos os Clientes' : selectedCustomer;
 
     const exportData = {
-      title: `Dashboard Operacional - ${periodText}`,
+      title: `Dashboard Operacional - ${customerText} - ${periodText}`,
       headers: ['C4U ID', 'Tipo de Erro', 'Descrição', 'Tratativa', 'Status', 'Data'],
       rows: pendenciesTableRows,
       totals: indicators,
