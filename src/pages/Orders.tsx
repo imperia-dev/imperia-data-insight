@@ -487,6 +487,8 @@ export function Orders() {
       order_number: editFormData.order_number,
       document_count: parseInt(editFormData.document_count),
       deadline: new Date(editFormData.deadline).toISOString(),
+      customer: editFormData.customer,
+      service_type: editFormData.serviceType,
     };
     
     if (editFormData.attribution_date) {
