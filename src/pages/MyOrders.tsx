@@ -423,14 +423,58 @@ export function MyOrders() {
                     {availableOrders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {order.order_number}
-                            {order.is_urgent && (
-                              <Badge variant="destructive" className="gap-1">
-                                <AlertTriangle className="h-3 w-3" />
-                                Urgente
-                              </Badge>
-                            )}
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              {order.order_number}
+                              {order.is_urgent && (
+                                <Badge variant="destructive" className="gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Urgente
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {/* Service Type and Tags Row */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {/* Service Type Icon */}
+                              {order.service_type && (
+                                <div className="flex items-center gap-1.5">
+                                  {order.service_type === "Drive" ? (
+                                    <img 
+                                      src={googleDriveLogo} 
+                                      alt="Google Drive" 
+                                      className="h-4 w-4"
+                                    />
+                                  ) : order.service_type === "Diagramação" ? (
+                                    <Hammer className="h-4 w-4 text-muted-foreground" />
+                                  ) : null}
+                                  <span className="text-sm text-muted-foreground">
+                                    {order.service_type}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {/* Tags */}
+                              {order.tags && order.tags.length > 0 && (
+                                <div className="flex gap-1.5">
+                                  {order.tags.map((tag: string) => (
+                                    <Badge
+                                      key={tag}
+                                      variant="outline"
+                                      className={
+                                        tag === "Carimbos"
+                                          ? "bg-blue-500/10 text-blue-600 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-800"
+                                          : tag === "Assinaturas"
+                                          ? "bg-purple-500/10 text-purple-600 border-purple-200 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-800"
+                                          : ""
+                                      }
+                                    >
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>{order.document_count}</TableCell>
