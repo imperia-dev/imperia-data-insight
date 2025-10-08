@@ -2516,6 +2516,7 @@ export type Database = {
           c4u_id: string
           created_at: string
           created_by: string
+          customer: string
           description: string
           error_document_count: number
           error_type: string
@@ -2531,6 +2532,7 @@ export type Database = {
           c4u_id: string
           created_at?: string
           created_by: string
+          customer?: string
           description: string
           error_document_count?: number
           error_type: string
@@ -2546,6 +2548,7 @@ export type Database = {
           c4u_id?: string
           created_at?: string
           created_by?: string
+          customer?: string
           description?: string
           error_document_count?: number
           error_type?: string

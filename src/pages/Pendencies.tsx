@@ -76,6 +76,7 @@ export default function Pendencies() {
   const [errorDocumentCount, setErrorDocumentCount] = useState("");
   const [isOldOrder, setIsOldOrder] = useState(false);
   const [createdAt, setCreatedAt] = useState<Date | undefined>(undefined);
+  const [customer, setCustomer] = useState("Cidadania4y");
   
   // Data states
   const [orders, setOrders] = useState<any[]>([]);
@@ -258,6 +259,7 @@ export default function Pendencies() {
         description,
         error_type: errorType,
         error_document_count: parseInt(errorDocumentCount),
+        customer,
         created_by: user?.id,
       };
 
@@ -284,6 +286,7 @@ export default function Pendencies() {
       setIsOldOrder(false); // Reset isOldOrder
       setOldOrderId(""); // Reset oldOrderId
       setCreatedAt(undefined); // Reset creation date
+      setCustomer("Cidadania4y"); // Reset customer
       
       // Refresh data
       fetchPendencies();
@@ -411,6 +414,7 @@ export default function Pendencies() {
         description: editingPendency.description,
         error_type: editingPendency.error_type,
         error_document_count: editingPendency.error_document_count,
+        customer: editingPendency.customer,
         treatment: editingPendency.treatment,
       };
 
@@ -642,6 +646,20 @@ export default function Pendencies() {
                   />
                 </div>
 
+                {/* Customer */}
+                <div className="space-y-2">
+                  <Label htmlFor="customer">Cliente</Label>
+                  <Select value={customer} onValueChange={setCustomer}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Cidadania4y">Cidadania4y</SelectItem>
+                      <SelectItem value="Yellowling">Yellowling</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Creation Date */}
                 <div className="space-y-2">
                   <Label htmlFor="created_at">Data de Criação (Opcional)</Label>
@@ -704,6 +722,7 @@ export default function Pendencies() {
                   <TableRow>
                     <TableHead>Pedido</TableHead>
                     <TableHead>ID C4U</TableHead>
+                    <TableHead>Cliente</TableHead>
                     <TableHead>Tipo de Erro</TableHead>
                     <TableHead>Qtd. Documentos</TableHead>
                     <TableHead>Descrição</TableHead>
@@ -716,17 +735,18 @@ export default function Pendencies() {
                 <TableBody>
                    {filteredPendencies.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center text-muted-foreground">
                         Nenhuma pendência registrada
                       </TableCell>
                     </TableRow>
-                  ) : (
+                   ) : (
                     paginatedPendencies.map((pendency) => (
                       <TableRow key={pendency.id}>
                         <TableCell className="font-medium">
                           {pendency.orders?.order_number || pendency.old_order_text_id || '-'}
                         </TableCell>
                         <TableCell>{pendency.c4u_id}</TableCell>
+                        <TableCell>{pendency.customer || 'Cidadania4y'}</TableCell>
                         <TableCell>{getErrorTypeLabel(pendency.error_type)}</TableCell>
                         <TableCell>{pendency.error_document_count}</TableCell>
                         <TableCell className="max-w-xs truncate">
@@ -927,6 +947,25 @@ export default function Pendencies() {
                       error_document_count: parseInt(e.target.value)
                     })}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Cliente</Label>
+                  <Select 
+                    value={editingPendency.customer || 'Cidadania4y'} 
+                    onValueChange={(value) => setEditingPendency({
+                      ...editingPendency,
+                      customer: value
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Cidadania4y">Cidadania4y</SelectItem>
+                      <SelectItem value="Yellowling">Yellowling</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
