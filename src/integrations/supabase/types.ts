@@ -2142,6 +2142,7 @@ export type Database = {
           attribution_date: string | null
           created_at: string
           created_by: string
+          customer: string | null
           deadline: string
           delivered_at: string | null
           document_count: number
@@ -2152,6 +2153,7 @@ export type Database = {
           order_number: string
           service_order_link: string | null
           service_provider_protocol_id: string | null
+          service_type: string | null
           status_order: string
           updated_at: string
           urgent_document_count: number | null
@@ -2163,6 +2165,7 @@ export type Database = {
           attribution_date?: string | null
           created_at?: string
           created_by: string
+          customer?: string | null
           deadline: string
           delivered_at?: string | null
           document_count: number
@@ -2173,6 +2176,7 @@ export type Database = {
           order_number: string
           service_order_link?: string | null
           service_provider_protocol_id?: string | null
+          service_type?: string | null
           status_order?: string
           updated_at?: string
           urgent_document_count?: number | null
@@ -2184,6 +2188,7 @@ export type Database = {
           attribution_date?: string | null
           created_at?: string
           created_by?: string
+          customer?: string | null
           deadline?: string
           delivered_at?: string | null
           document_count?: number
@@ -2194,6 +2199,7 @@ export type Database = {
           order_number?: string
           service_order_link?: string | null
           service_provider_protocol_id?: string | null
+          service_type?: string | null
           status_order?: string
           updated_at?: string
           urgent_document_count?: number | null
