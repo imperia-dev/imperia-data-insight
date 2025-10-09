@@ -24,15 +24,21 @@ const ALLOWED_TYPES = {
   'text/csv': ['.csv']
 };
 
-// Dangerous patterns to check in files
+// Dangerous patterns to check in files (malware signatures and malicious code)
 const DANGEROUS_PATTERNS = [
-  /<script[\s\S]*?<\/script>/gi, // Script tags
-  /javascript:/gi, // JavaScript protocol
-  /on\w+\s*=/gi, // Event handlers
-  /<iframe/gi, // Iframes
-  /<embed/gi, // Embed tags
-  /<object/gi, // Object tags
-];
+  // Script injections
+  /<script[\s\S]*?<\/script>/gi,
+  /javascript:/gi,
+  /on\w+\s*=/gi,
+  /<iframe/gi,
+  /<embed/gi,
+  /<object/gi,
+  /vbscript:/gi,
+  /data:text\/html/gi,
+  /expression\s*\(/gi,
+  
+  // Malware signatures - common malware indicators
+  /X5O!P%@AP\
 
 // Maximum file sizes by type (in bytes)
 const MAX_SIZES = {
