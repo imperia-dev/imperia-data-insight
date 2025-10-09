@@ -1,18 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { securityHeaders, validatePayload, validatePayloadSize } from "../_shared/validation.ts";
+import { btgAuthRequestSchema } from "./validation.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: securityHeaders });
   }
 
   try {
+    // Validar tamanho do payload
+    const rawBody = await req.text();
+    validatePayloadSize(rawBody, 1); // Max 1MB
+    
+    // Validar e parsear body (se houver)
+    let validatedBody;
+    if (rawBody) {
+      const body = JSON.parse(rawBody);
+      validatedBody = validatePayload(btgAuthRequestSchema, body);
+    }
     // Get BTG credentials from environment
     const btgClientId = Deno.env.get('BTG_CLIENT_ID');
     const btgClientSecret = Deno.env.get('BTG_CLIENT_SECRET');
@@ -27,7 +34,7 @@ serve(async (req) => {
         }),
         { 
           status: 503,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...securityHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -86,7 +93,7 @@ serve(async (req) => {
         expiresIn: tokenData.expires_in
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...securityHeaders, 'Content-Type': 'application/json' },
         status: 200
       }
     );
@@ -99,7 +106,7 @@ serve(async (req) => {
         details: error instanceof Error ? error.message : 'Unknown error' 
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...securityHeaders, 'Content-Type': 'application/json' },
         status: 500
       }
     );

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { ErrorBoundary } from "./components/security/ErrorBoundary";
+import { MFAEnforcement } from "./components/security/MFAEnforcement";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ProtectedRouteWithApproval } from "./components/ProtectedRouteWithApproval";
 import Dashboard from "./pages/Dashboard";
@@ -66,6 +67,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <MFAEnforcement />
             <SidebarProvider>
             <Routes>
             <Route path="/auth" element={<Auth />} />
