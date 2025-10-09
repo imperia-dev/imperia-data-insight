@@ -24,6 +24,22 @@ export function ProtectedRouteWithApproval({ children }: ProtectedRouteWithAppro
       }
 
       try {
+        // Check if user has customer role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .eq('role', 'customer')
+          .maybeSingle();
+
+        // Customers don't need approval - they are pre-approved
+        if (roleData?.role === 'customer') {
+          setApprovalStatus('approved');
+          setCheckingApproval(false);
+          return;
+        }
+
+        // For non-customer users, check approval status in profiles
         const { data, error } = await supabase
           .from('profiles')
           .select('approval_status')

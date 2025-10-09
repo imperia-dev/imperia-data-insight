@@ -24,11 +24,13 @@ export const useRoleAccess = (pathname: string) => {
       }
 
       try {
-        // Fetch user role from profiles
+        // Fetch user role from user_roles table (new system)
         const { data, error } = await supabase
-          .from('profiles')
+          .from('user_roles')
           .select('role')
-          .eq('id', session.user.id)
+          .eq('user_id', session.user.id)
+          .order('role', { ascending: true }) // Get highest priority role
+          .limit(1)
           .single();
 
         if (error || !data) {
@@ -40,7 +42,7 @@ export const useRoleAccess = (pathname: string) => {
         setUserRole(data.role);
 
         // Check if the user role is valid
-        const validRoles: Role[] = ['owner', 'master', 'admin', 'operation', 'translator'];
+        const validRoles: Role[] = ['owner', 'master', 'admin', 'operation', 'translator', 'customer'];
         if (!validRoles.includes(data.role as Role)) {
           setHasAccess(false);
           setLoading(false);

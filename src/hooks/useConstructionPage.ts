@@ -12,15 +12,28 @@ export function useConstructionPage() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
-        const { data, error } = await supabase
+        // Get user name from profiles
+        const { data: profileData } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
-        if (data && !error) {
-          setUserName(data.full_name);
-          setUserRole(data.role);
+        if (profileData) {
+          setUserName(profileData.full_name);
+        }
+
+        // Get role from user_roles
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .order('role', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (roleData) {
+          setUserRole(roleData.role);
         }
       }
     };
