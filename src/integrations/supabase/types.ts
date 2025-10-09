@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_lockouts: {
+        Row: {
+          failed_attempts: number
+          id: string
+          identifier: string
+          locked_at: string | null
+          locked_until: string | null
+          lockout_type: string
+          metadata: Json | null
+          reason: string
+          unlocked_at: string | null
+          unlocked_by: string | null
+          user_id: string | null
+        }
+        Insert: {
+          failed_attempts: number
+          id?: string
+          identifier: string
+          locked_at?: string | null
+          locked_until?: string | null
+          lockout_type: string
+          metadata?: Json | null
+          reason: string
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          failed_attempts?: number
+          id?: string
+          identifier?: string
+          locked_at?: string | null
+          locked_until?: string | null
+          lockout_type?: string
+          metadata?: Json | null
+          reason?: string
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      active_sessions: {
+        Row: {
+          created_at: string | null
+          device_fingerprint: string | null
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          last_activity: string | null
+          refresh_token_hash: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_fingerprint?: string | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          last_activity?: string | null
+          refresh_token_hash?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_fingerprint?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          last_activity?: string | null
+          refresh_token_hash?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           accessed_fields: string[] | null
@@ -2146,6 +2233,80 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          attempt_type: string
+          created_at: string | null
+          failure_reason: string | null
+          id: string
+          identifier: string
+          ip_address: unknown | null
+          metadata: Json | null
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          attempt_type: string
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          identifier: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          success: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          attempt_type?: string
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          identifier?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      login_notifications: {
+        Row: {
+          acknowledged_at: string | null
+          id: string
+          login_attempt_id: string | null
+          metadata: Json | null
+          notification_type: string
+          sent_at: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          id?: string
+          login_attempt_id?: string | null
+          metadata?: Json | null
+          notification_type: string
+          sent_at?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          id?: string
+          login_attempt_id?: string | null
+          metadata?: Json | null
+          notification_type?: string
+          sent_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "login_notifications_login_attempt_id_fkey"
+            columns: ["login_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "login_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mfa_audit_logs: {
         Row: {
           created_at: string | null
@@ -3048,6 +3209,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limit_entries: {
+        Row: {
+          blocked_until: string | null
+          created_at: string | null
+          endpoint: string
+          id: string
+          identifier: string
+          request_count: number
+          updated_at: string | null
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          blocked_until?: string | null
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          identifier: string
+          request_count?: number
+          updated_at?: string | null
+          window_end: string
+          window_start?: string
+        }
+        Update: {
+          blocked_until?: string | null
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          identifier?: string
+          request_count?: number
+          updated_at?: string | null
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       registration_requests: {
         Row: {
@@ -4103,6 +4300,19 @@ export type Database = {
         Args: { p_lead_id: string }
         Returns: number
       }
+      check_and_apply_lockout: {
+        Args: { p_attempt_type?: string; p_identifier: string }
+        Returns: Json
+      }
+      check_rate_limit_v2: {
+        Args: {
+          p_endpoint: string
+          p_identifier: string
+          p_max_requests: number
+          p_window_seconds: number
+        }
+        Returns: Json
+      }
       check_secret_expiration: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4126,6 +4336,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_old_backups: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_rate_limit_entries: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -4230,6 +4444,18 @@ export type Database = {
         Args: { p_current_step?: string; p_protocol_id: string }
         Returns: boolean
       }
+      log_login_attempt: {
+        Args: {
+          p_attempt_type: string
+          p_failure_reason?: string
+          p_identifier: string
+          p_ip_address?: unknown
+          p_metadata?: Json
+          p_success: boolean
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       log_mfa_event: {
         Args: { p_event_type: string; p_metadata?: Json }
         Returns: undefined
@@ -4269,6 +4495,15 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      revoke_user_sessions: {
+        Args: {
+          p_current_session_token?: string
+          p_keep_current?: boolean
+          p_reason?: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       sync_protocol_workflow_steps: {
         Args: { p_protocol_id: string }
         Returns: undefined
@@ -4295,6 +4530,10 @@ export type Database = {
       validate_sensitive_access: {
         Args: { p_table_name: string; p_user_id: string }
         Returns: boolean
+      }
+      validate_session: {
+        Args: { p_session_token: string }
+        Returns: Json
       }
       verify_mfa_backup_code: {
         Args: { p_code: string }

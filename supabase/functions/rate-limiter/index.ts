@@ -6,35 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Rate limit configuration
-const RATE_LIMITS = {
-  '/auth/login': { max: 10, windowMs: 60000 }, // 10 requests per minute
-  '/auth/signup': { max: 5, windowMs: 60000 }, // 5 requests per minute
-  '/api/*': { max: 60, windowMs: 60000 }, // 60 requests per minute
-  '/upload/*': { max: 5, windowMs: 60000 }, // 5 uploads per minute
-  'default': { max: 100, windowMs: 60000 } // 100 requests per minute default
+// Rate limit configuration (max requests, window in seconds)
+const RATE_LIMITS: Record<string, { max: number; windowSeconds: number }> = {
+  '/auth/login': { max: 10, windowSeconds: 60 },
+  '/auth/signup': { max: 5, windowSeconds: 60 },
+  '/api/*': { max: 60, windowSeconds: 60 },
+  '/upload/*': { max: 5, windowSeconds: 60 },
+  'default': { max: 100, windowSeconds: 60 }
 };
 
-// In-memory store for rate limiting (consider using Redis in production)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-// Cleanup old entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of rateLimitStore.entries()) {
-    if (value.resetTime < now) {
-      rateLimitStore.delete(key);
-    }
-  }
-}, 60000); // Clean up every minute
-
 function getRateLimitConfig(path: string) {
-  // Check for exact match first
-  if (RATE_LIMITS[path as keyof typeof RATE_LIMITS]) {
-    return RATE_LIMITS[path as keyof typeof RATE_LIMITS];
+  if (RATE_LIMITS[path]) {
+    return RATE_LIMITS[path];
   }
   
-  // Check for wildcard patterns
   for (const [pattern, config] of Object.entries(RATE_LIMITS)) {
     if (pattern.includes('*')) {
       const regex = new RegExp('^' + pattern.replace('*', '.*') + '$');
@@ -48,99 +33,100 @@ function getRateLimitConfig(path: string) {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const url = new URL(req.url);
     const path = url.pathname;
     const clientIp = req.headers.get('x-forwarded-for') || 
                      req.headers.get('x-real-ip') || 
                      'unknown';
     
-    // Get user ID from authorization header if available
     const authorization = req.headers.get('authorization');
     let userId: string | null = null;
     
     if (authorization) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      
       const token = authorization.replace('Bearer ', '');
       const { data: { user } } = await supabase.auth.getUser(token);
       userId = user?.id || null;
     }
     
-    // Create rate limit key (IP + path or userId + path)
-    const rateLimitKey = userId ? `${userId}:${path}` : `${clientIp}:${path}`;
+    const identifier = userId || clientIp;
     const config = getRateLimitConfig(path);
-    const now = Date.now();
     
-    // Check rate limit
-    let entry = rateLimitStore.get(rateLimitKey);
-    
-    if (!entry || entry.resetTime < now) {
-      // Create new entry
-      entry = {
-        count: 1,
-        resetTime: now + config.windowMs
-      };
-      rateLimitStore.set(rateLimitKey, entry);
-    } else {
-      // Increment count
-      entry.count++;
-      
-      // Check if limit exceeded
-      if (entry.count > config.max) {
-        // Log rate limit violation
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        
-        await supabase.from('security_events').insert({
-          event_type: 'rate_limit_exceeded',
-          severity: 'warning',
-          user_id: userId,
-          ip_address: clientIp,
-          details: {
-            path,
-            limit: config.max,
-            window_ms: config.windowMs,
-            attempts: entry.count
-          }
-        });
-        
-        return new Response(
-          JSON.stringify({
-            error: 'Too many requests',
-            retry_after: Math.ceil((entry.resetTime - now) / 1000)
-          }),
-          {
-            status: 429,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-              'Retry-After': String(Math.ceil((entry.resetTime - now) / 1000)),
-              'X-RateLimit-Limit': String(config.max),
-              'X-RateLimit-Remaining': '0',
-              'X-RateLimit-Reset': String(entry.resetTime)
-            }
-          }
-        );
-      }
+    // Usar função do banco para verificar rate limit
+    const { data, error } = await supabase.rpc('check_rate_limit_v2', {
+      p_identifier: identifier,
+      p_endpoint: path,
+      p_max_requests: config.max,
+      p_window_seconds: config.windowSeconds
+    });
+
+    if (error) {
+      console.error('Rate limit check error:', error);
+      throw error;
     }
-    
-    // Return rate limit headers with success
+
+    const result = data as {
+      allowed: boolean;
+      remaining: number;
+      reset_at: string;
+      reason?: string;
+      blocked_until?: string;
+    };
+
+    if (!result.allowed) {
+      // Log violação
+      await supabase.from('security_events').insert({
+        event_type: 'rate_limit_exceeded',
+        severity: 'warning',
+        user_id: userId,
+        ip_address: clientIp,
+        details: {
+          path,
+          limit: config.max,
+          window_seconds: config.windowSeconds,
+          reason: result.reason
+        }
+      });
+
+      const retryAfter = result.blocked_until 
+        ? Math.ceil((new Date(result.blocked_until).getTime() - Date.now()) / 1000)
+        : config.windowSeconds;
+
+      return new Response(
+        JSON.stringify({
+          error: 'Too many requests',
+          retry_after: retryAfter,
+          reason: result.reason
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': String(retryAfter),
+            'X-RateLimit-Limit': String(config.max),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': result.reset_at
+          }
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         rate_limit: {
           limit: config.max,
-          remaining: config.max - entry.count,
-          reset: entry.resetTime
+          remaining: result.remaining,
+          reset_at: result.reset_at
         }
       }),
       {
@@ -149,22 +135,18 @@ serve(async (req) => {
           ...corsHeaders,
           'Content-Type': 'application/json',
           'X-RateLimit-Limit': String(config.max),
-          'X-RateLimit-Remaining': String(config.max - entry.count),
-          'X-RateLimit-Reset': String(entry.resetTime)
+          'X-RateLimit-Remaining': String(result.remaining),
+          'X-RateLimit-Reset': result.reset_at
         }
       }
     );
   } catch (error) {
     console.error('Rate limiter error:', error);
-    
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       {
         status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
