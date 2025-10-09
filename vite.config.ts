@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => ({
       'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
       'Content-Security-Policy': mode === 'production' 
         ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://agttqqaampznczkyfvkf.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://agttqqaampznczkyfvkf.supabase.co wss://agttqqaampznczkyfvkf.supabase.co; frame-ancestors 'none';"
-        : "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' http://localhost:* ws://localhost:* https://agttqqaampznczkyfvkf.supabase.co wss://agttqqaampznczkyfvkf.supabase.co;",
+        : "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' http://localhost:* ws://localhost:* wss://*.lovableproject.com https://agttqqaampznczkyfvkf.supabase.co wss://agttqqaampznczkyfvkf.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
     },
   },
   plugins: [
