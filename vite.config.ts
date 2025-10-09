@@ -8,16 +8,17 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    headers: {
-      // Security headers aplicados em desenvolvimento e produção
+    headers: mode === 'production' ? {
+      // Security headers apenas em produção (preview do Lovable precisa de iframe)
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
       'X-Frame-Options': 'DENY',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
-      'Content-Security-Policy': mode === 'production' 
-        ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://agttqqaampznczkyfvkf.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://agttqqaampznczkyfvkf.supabase.co wss://agttqqaampznczkyfvkf.supabase.co; frame-ancestors 'none';"
-        : "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' http://localhost:* ws://localhost:* wss://*.lovableproject.com https://agttqqaampznczkyfvkf.supabase.co wss://agttqqaampznczkyfvkf.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://agttqqaampznczkyfvkf.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://agttqqaampznczkyfvkf.supabase.co wss://agttqqaampznczkyfvkf.supabase.co; frame-ancestors 'none';",
+    } : {
+      // Headers mínimos em desenvolvimento para permitir iframe do Lovable
+      'X-Content-Type-Options': 'nosniff',
     },
   },
   plugins: [
