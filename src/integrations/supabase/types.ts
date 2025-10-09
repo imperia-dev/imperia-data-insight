@@ -835,6 +835,68 @@ export type Database = {
           },
         ]
       }
+      customer_pendency_requests: {
+        Row: {
+          attachments: Json | null
+          converted_at: string | null
+          converted_by: string | null
+          converted_to_pendency_id: string | null
+          created_at: string | null
+          created_by: string
+          customer_name: string
+          description: string
+          id: string
+          internal_notes: string | null
+          order_id: string
+          priority: string | null
+          rejection_reason: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          converted_at?: string | null
+          converted_by?: string | null
+          converted_to_pendency_id?: string | null
+          created_at?: string | null
+          created_by: string
+          customer_name: string
+          description: string
+          id?: string
+          internal_notes?: string | null
+          order_id: string
+          priority?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          converted_at?: string | null
+          converted_by?: string | null
+          converted_to_pendency_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          customer_name?: string
+          description?: string
+          id?: string
+          internal_notes?: string | null
+          order_id?: string
+          priority?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_pendency_requests_converted_to_pendency_id_fkey"
+            columns: ["converted_to_pendency_id"]
+            isOneToOne: false
+            referencedRelation: "pendencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           assigned_to: string | null
@@ -3644,6 +3706,33 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_name: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_name?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_name?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       webhook_logs: {
         Row: {
           error_message: string | null
@@ -3903,6 +3992,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["approval_status"]
       }
+      get_user_customer: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       get_user_email: {
         Args: { user_id: string }
         Returns: string
@@ -3910,6 +4003,17 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_user_role_new: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       is_channel_member: {
         Args: { p_channel_id: string; p_user_id: string }
@@ -3970,6 +4074,13 @@ export type Database = {
       }
     }
     Enums: {
+      app_role:
+        | "owner"
+        | "master"
+        | "admin"
+        | "operation"
+        | "translator"
+        | "customer"
       approval_status: "pending" | "approved" | "rejected"
       balance_sheet_type:
         | "current_asset"
@@ -4136,6 +4247,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: [
+        "owner",
+        "master",
+        "admin",
+        "operation",
+        "translator",
+        "customer",
+      ],
       approval_status: ["pending", "approved", "rejected"],
       balance_sheet_type: [
         "current_asset",
