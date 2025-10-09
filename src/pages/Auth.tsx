@@ -81,6 +81,14 @@ export default function Auth() {
             description: "Este email já está cadastrado. Tente fazer login.",
             variant: "destructive",
           });
+        } else if (error.message.toLowerCase().includes("rate limit") || 
+                   error.message.toLowerCase().includes("too many") ||
+                   error.message.toLowerCase().includes("email rate limit exceeded")) {
+          toast({
+            title: "Muitas tentativas",
+            description: "Por favor, aguarde alguns minutos antes de tentar novamente. O limite de tentativas foi excedido temporariamente.",
+            variant: "destructive",
+          });
         } else {
           toast({
             title: "Erro no cadastro",
