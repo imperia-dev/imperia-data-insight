@@ -57,6 +57,7 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import CustomerPendencyRequest from "./pages/CustomerPendencyRequest";
 import CustomerRequests from "./pages/CustomerRequests";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import SecretManagement from "./pages/SecretManagement";
 
 const queryClient = new QueryClient();
 
@@ -287,6 +288,11 @@ const App = () => (
             } />
             <Route path="/settings" element={<Settings />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/settings/security/secrets" element={
+              <ProtectedRouteWithApproval>
+                <SecretManagement />
+              </ProtectedRouteWithApproval>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
             </Routes>

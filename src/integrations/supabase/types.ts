@@ -1766,6 +1766,45 @@ export type Database = {
           },
         ]
       }
+      idempotency_keys: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          key: string
+          operation_type: string
+          request_hash: string
+          response_data: Json | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          key: string
+          operation_type: string
+          request_hash: string
+          response_data?: Json | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          key?: string
+          operation_type?: string
+          request_hash?: string
+          response_data?: Json | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       lead_conversions: {
         Row: {
           attribution_campaign: string | null
@@ -3190,6 +3229,48 @@ export type Database = {
         }
         Relationships: []
       }
+      secret_rotation_logs: {
+        Row: {
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          new_secret_hash: string | null
+          next_rotation_due: string | null
+          old_secret_hash: string | null
+          rotated_at: string | null
+          rotated_by: string | null
+          rotation_type: string
+          secret_name: string
+          status: string
+        }
+        Insert: {
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_secret_hash?: string | null
+          next_rotation_due?: string | null
+          old_secret_hash?: string | null
+          rotated_at?: string | null
+          rotated_by?: string | null
+          rotation_type: string
+          secret_name: string
+          status?: string
+        }
+        Update: {
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_secret_hash?: string | null
+          next_rotation_due?: string | null
+          old_secret_hash?: string | null
+          rotated_at?: string | null
+          rotated_by?: string | null
+          rotation_type?: string
+          secret_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
       security_alert_config: {
         Row: {
           alert_type: string
@@ -4022,9 +4103,23 @@ export type Database = {
         Args: { p_lead_id: string }
         Returns: number
       }
+      check_secret_expiration: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          days_until_expiration: number
+          last_rotation_date: string
+          rotation_type: string
+          secret_name: string
+          status: string
+        }[]
+      }
       check_sensitive_data_rate_limit: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      cleanup_expired_idempotency_keys: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       cleanup_expired_reset_tokens: {
         Args: Record<PropertyKey, never>
@@ -4049,6 +4144,16 @@ export type Database = {
       generate_sms_code: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_active_secrets_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          days_until_expiration: number
+          expires_at: string
+          last_rotated: string
+          rotation_count: number
+          secret_name: string
+        }[]
       }
       get_backup_stats: {
         Args: Record<PropertyKey, never>
@@ -4128,6 +4233,16 @@ export type Database = {
       log_mfa_event: {
         Args: { p_event_type: string; p_metadata?: Json }
         Returns: undefined
+      }
+      log_secret_rotation: {
+        Args: {
+          p_expires_in_days?: number
+          p_new_hash: string
+          p_old_hash: string
+          p_rotation_type: string
+          p_secret_name: string
+        }
+        Returns: string
       }
       log_security_event: {
         Args: { p_details?: Json; p_event_type: string; p_severity: string }

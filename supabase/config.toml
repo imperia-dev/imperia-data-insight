@@ -3,6 +3,15 @@ project_id = "agttqqaampznczkyfvkf"
 [functions.send-payment-email]
 verify_jwt = false
 
+[functions.process-idempotent-operation]
+verify_jwt = true
+
+[functions.rotate-secret]
+verify_jwt = true
+
+[functions.check-secret-expiration]
+verify_jwt = false
+
 [functions.btg-auth]
 verify_jwt = true
 
