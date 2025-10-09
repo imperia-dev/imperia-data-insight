@@ -350,7 +350,35 @@ const standaloneItems: NavigationItem[] = [
     title: "Configurações",
     icon: Settings,
     href: "/settings",
-    roles: ["owner", "master", "admin", "operation", "translator"],
+    roles: ["owner", "master", "admin", "operation", "translator", "customer"],
+  },
+];
+
+// Customer-specific navigation
+const customerNavigationItems: NavigationItem[] = [
+  {
+    title: "Dashboard",
+    icon: LayoutDashboard,
+    href: "/customer-dashboard",
+    roles: ["customer"],
+  },
+  {
+    title: "Nova Solicitação",
+    icon: Send,
+    href: "/customer-pendency-request",
+    roles: ["customer"],
+  },
+  {
+    title: "Minhas Solicitações",
+    icon: ClipboardList,
+    href: "/customer-requests",
+    roles: ["customer"],
+  },
+  {
+    title: "Configurações",
+    icon: Settings,
+    href: "/settings",
+    roles: ["customer"],
   },
 ];
 
@@ -427,6 +455,11 @@ export function Sidebar({ userRole }: SidebarProps) {
     userRole ? item.roles.includes(userRole.toLowerCase()) : false
   );
 
+  // Filter customer navigation if role is customer
+  const filteredCustomerItems = userRole === 'customer' 
+    ? customerNavigationItems.filter(item => item.roles.includes('customer'))
+    : [];
+
   const renderNavItem = (item: NavigationItem, isNested: boolean = false) => {
     const isActive = location.pathname === item.href;
     const Icon = item.icon;
@@ -502,18 +535,25 @@ export function Sidebar({ userRole }: SidebarProps) {
         {/* Navigation with Scroll */}
         <ScrollArea className="flex-1">
           <nav className="px-2 py-4">
-            {/* Standalone items first (Aprovação de Cadastros) */}
-            {filteredStandaloneItems
-              .filter(item => item.href === '/registration-approvals')
-              .map(item => (
-                <div key={item.href} className="mb-4">
-                  {renderNavItem(item)}
-                </div>
-              ))}
+            {/* Customer Navigation (if customer role) */}
+            {userRole === 'customer' ? (
+              <div className="space-y-1">
+                {filteredCustomerItems.map(item => renderNavItem(item))}
+              </div>
+            ) : (
+              <>
+                {/* Standalone items first (Aprovação de Cadastros) */}
+                {filteredStandaloneItems
+                  .filter(item => item.href === '/registration-approvals')
+                  .map(item => (
+                    <div key={item.href} className="mb-4">
+                      {renderNavItem(item)}
+                    </div>
+                  ))}
 
-            {/* Navigation Groups */}
-            <div className="space-y-4">
-              {filteredGroups.map((group) => {
+                {/* Navigation Groups */}
+                <div className="space-y-4">
+                  {filteredGroups.map((group) => {
                 const isOpen = openGroups.includes(group.title);
                 const GroupIcon = group.icon;
                 const hasActiveItem = group.items.some(item => location.pathname === item.href);
@@ -557,15 +597,17 @@ export function Sidebar({ userRole }: SidebarProps) {
                     </CollapsibleContent>
                   </Collapsible>
                 );
-              })}
-            </div>
+                  })}
+                </div>
 
-            {/* Other standalone items (Configurações) */}
-            <div className="mt-4 pt-4 border-t">
-              {filteredStandaloneItems
-                .filter(item => item.href !== '/registration-approvals')
-                .map(item => renderNavItem(item))}
-            </div>
+                {/* Other standalone items (Configurações) */}
+                <div className="mt-4 pt-4 border-t">
+                  {filteredStandaloneItems
+                    .filter(item => item.href !== '/registration-approvals')
+                    .map(item => renderNavItem(item))}
+                </div>
+              </>
+            )}
           </nav>
         </ScrollArea>
 

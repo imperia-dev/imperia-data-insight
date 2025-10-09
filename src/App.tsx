@@ -52,6 +52,9 @@ import MasterProtocolApprovals from "./pages/MasterProtocolApprovals";
 import OwnerFinalApproval from "./pages/OwnerFinalApproval";
 import PaymentProcessing from "./pages/PaymentProcessing";
 import OperationProtocolData from "./pages/OperationProtocolData";
+import CustomerDashboard from "./pages/CustomerDashboard";
+import CustomerPendencyRequest from "./pages/CustomerPendencyRequest";
+import CustomerRequests from "./pages/CustomerRequests";
 
 const queryClient = new QueryClient();
 
@@ -262,6 +265,21 @@ const App = () => (
             <Route path="/operation-protocol-data" element={
               <ProtectedRouteWithApproval>
                 <OperationProtocolData />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/customer-dashboard" element={
+              <ProtectedRouteWithApproval>
+                <CustomerDashboard />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/customer-pendency-request" element={
+              <ProtectedRouteWithApproval>
+                <CustomerPendencyRequest />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/customer-requests" element={
+              <ProtectedRouteWithApproval>
+                <CustomerRequests />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

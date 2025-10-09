@@ -6,3 +6,4 @@ export { useNotifications } from './useNotifications';
 export { usePageLayout } from './usePageLayout';
 export { useRoleAccess } from './useRoleAccess';
 export { useSidebarOffset } from './useSidebarOffset';
+export { useCustomerContext } from './useCustomerContext';
