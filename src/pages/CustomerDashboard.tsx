@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCustomerContext } from "@/hooks/useCustomerContext";
 import { RequestStatusBadge } from "@/components/customer/RequestStatusBadge";
 import { PriorityBadge } from "@/components/customer/PriorityBadge";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Plus, FileText, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -14,8 +17,28 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { customerName, loading: customerLoading } = useCustomerContext();
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("customer");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setUserName(data.full_name);
+          setUserRole(data.role);
+        }
+      }
+    };
+    fetchUserProfile();
+  }, [user]);
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['customer-dashboard', session?.user?.id, customerName],
@@ -61,7 +84,11 @@ export default function CustomerDashboard() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole} />
+      <div className="md:pl-64">
+        <Header userName={userName} userRole={userRole} />
+        <main className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Dashboard {customerName}</h1>
@@ -187,6 +214,8 @@ export default function CustomerDashboard() {
         <Button variant="outline" onClick={() => navigate('/customer-requests')}>
           Ver Todas as Solicitações
         </Button>
+      </div>
+      </main>
       </div>
     </div>
   );

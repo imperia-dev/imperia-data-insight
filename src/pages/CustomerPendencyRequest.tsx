@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,10 +21,30 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function CustomerPendencyRequest() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { customerName, loading: customerLoading } = useCustomerContext();
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ url: string; name: string; size: number; type: string }>>([]);
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("customer");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setUserName(data.full_name);
+          setUserRole(data.role);
+        }
+      }
+    };
+    fetchUserProfile();
+  }, [user]);
 
   const form = useForm<CustomerPendencyRequestInput>({
     resolver: zodResolver(customerPendencyRequestSchema),
@@ -152,7 +174,11 @@ export default function CustomerPendencyRequest() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole} />
+      <div className="md:pl-64">
+        <Header userName={userName} userRole={userRole} />
+        <main className="container mx-auto py-8 px-4 max-w-4xl">
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Nova Solicitação de Pendência</CardTitle>
@@ -290,6 +316,8 @@ export default function CustomerPendencyRequest() {
           </Form>
         </CardContent>
       </Card>
+      </main>
+      </div>
     </div>
   );
 }
