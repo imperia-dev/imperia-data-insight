@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.generate-reviewer-protocols]
 verify_jwt = true
+
+[functions.send-security-alert]
+verify_jwt = true

@@ -2632,6 +2632,33 @@ export type Database = {
           },
         ]
       }
+      privacy_policy_acceptances: {
+        Row: {
+          accepted_at: string | null
+          id: string
+          ip_address: unknown | null
+          policy_version: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          policy_version?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          policy_version?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       productivity: {
         Row: {
           created_at: string | null
@@ -3160,6 +3187,81 @@ export type Database = {
           status?: string
           total_amount?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      security_alert_config: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          enabled: boolean
+          id: string
+          notify_roles: string[]
+          threshold: number
+          time_window_minutes: number
+          updated_at: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          notify_roles?: string[]
+          threshold?: number
+          time_window_minutes?: number
+          updated_at?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          notify_roles?: string[]
+          threshold?: number
+          time_window_minutes?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      security_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          notified_at: string | null
+          severity: string
+          title: string
+          triggered_by: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          notified_at?: string | null
+          severity: string
+          title: string
+          triggered_by?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          notified_at?: string | null
+          severity?: string
+          title?: string
+          triggered_by?: string | null
         }
         Relationships: []
       }
@@ -4063,6 +4165,17 @@ export type Database = {
       track_failed_access: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      trigger_security_alert: {
+        Args: {
+          p_alert_type: string
+          p_message: string
+          p_metadata?: Json
+          p_severity: string
+          p_title: string
+          p_triggered_by?: string
+        }
+        Returns: string
       }
       validate_sensitive_access: {
         Args: { p_table_name: string; p_user_id: string }

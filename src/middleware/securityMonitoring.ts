@@ -53,12 +53,81 @@ class SecurityMonitor {
       if (attempts + 1 >= 5 && ip) {
         this.suspiciousIPs.add(ip);
       }
+
+      // Trigger automatic alert after threshold
+      if (attempts + 1 >= 5) {
+        await this.triggerAutomaticAlert(
+          'failed_login',
+          attempts + 1 >= 10 ? 'critical' : 'high',
+          'Múltiplas tentativas de login falhadas',
+          `Detectadas ${attempts + 1} tentativas de login falhadas para ${email}`,
+          { email, attempts: attempts + 1, ip }
+        );
+      }
     }
 
     // Clear attempts after 15 minutes
     setTimeout(() => {
       this.failedLoginAttempts.delete(email);
     }, 15 * 60 * 1000);
+  }
+
+  async triggerAutomaticAlert(
+    alertType: string,
+    severity: 'low' | 'medium' | 'high' | 'critical',
+    title: string,
+    message: string,
+    metadata?: Record<string, any>
+  ) {
+    try {
+      // Create alert in database
+      const { data: alert, error: alertError } = await supabase
+        .from('security_alerts')
+        .insert({
+          alert_type: alertType,
+          severity,
+          title,
+          message,
+          metadata: metadata || {}
+        })
+        .select()
+        .single();
+
+      if (alertError) {
+        console.error('Error creating security alert:', alertError);
+        return;
+      }
+
+      // Get alert configuration
+      const { data: config } = await supabase
+        .from('security_alert_config')
+        .select('notify_roles')
+        .eq('alert_type', alertType)
+        .eq('enabled', true)
+        .single();
+
+      if (!config) {
+        console.log('No alert configuration found for:', alertType);
+        return;
+      }
+
+      // Send alert via edge function
+      await supabase.functions.invoke('send-security-alert', {
+        body: {
+          alert_id: alert.id,
+          alert_type: alertType,
+          severity,
+          title,
+          message,
+          metadata,
+          notify_roles: config.notify_roles
+        }
+      });
+
+      console.log('Automatic security alert triggered:', alert.id);
+    } catch (error) {
+      console.error('Error triggering automatic alert:', error);
+    }
   }
 
   async trackSuccessfulLogin(email: string) {
