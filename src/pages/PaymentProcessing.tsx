@@ -10,7 +10,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useLocation, Navigate } from "react-router-dom";
-import { Send, Eye, CheckCircle2, Upload, FileCheck, Loader2, FileSpreadsheet } from "lucide-react";
+import { Send, Eye, CheckCircle2, Upload, FileCheck, Loader2, FileSpreadsheet, Trash2 } from "lucide-react";
 import { exportBTGPayments } from "@/utils/exportBTGPayments";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { ProtocolDetailsDialog } from "@/components/fechamentoPrestadores/ProtocolDetailsDialog";
 import { ProtocolStatusBadge } from "@/components/fechamentoPrestadores/ProtocolStatusBadge";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Protocol {
   id: string;
@@ -51,6 +54,9 @@ export default function PaymentProcessing() {
   const [processing, setProcessing] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [protocolReceipts, setProtocolReceipts] = useState<Map<string, string>>(new Map());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [protocolToDelete, setProtocolToDelete] = useState<Protocol | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
 
   useEffect(() => {
     fetchProtocols();
@@ -361,6 +367,39 @@ export default function PaymentProcessing() {
     }
   };
 
+  const handleDeleteProtocol = async () => {
+    if (!protocolToDelete || !deleteReason.trim()) {
+      toast.error("Por favor, informe o motivo do cancelamento");
+      return;
+    }
+
+    try {
+      const tableName = protocolToDelete.protocol_type === 'service_provider' 
+        ? 'service_provider_protocols' 
+        : 'reviewer_protocols';
+
+      const { error } = await supabase
+        .from(tableName)
+        .update({ 
+          status: "cancelled",
+          cancelled_reason: deleteReason.trim()
+        })
+        .eq("id", protocolToDelete.id);
+
+      if (error) throw error;
+
+      toast.success("Protocolo cancelado com sucesso!");
+      setShowDeleteDialog(false);
+      setProtocolToDelete(null);
+      setDeleteReason("");
+      fetchProtocols();
+    } catch (error: any) {
+      toast.error("Erro ao cancelar protocolo", {
+        description: error.message,
+      });
+    }
+  };
+
   if (roleLoading) {
     return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
@@ -569,27 +608,39 @@ export default function PaymentProcessing() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedProtocol(protocol);
-                                setShowDetailsDialog(true);
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Detalhes
-                            </Button>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleMarkAsPaid(protocol.id)}
-                              disabled={!protocolReceipts.has(protocol.id)}
-                            >
-                              <CheckCircle2 className="h-4 w-4 mr-1" />
-                              Marcar como Pago
-                            </Button>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedProtocol(protocol);
+                                  setShowDetailsDialog(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Detalhes
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleMarkAsPaid(protocol.id)}
+                                disabled={!protocolReceipts.has(protocol.id)}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
+                                Marcar como Pago
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  setProtocolToDelete(protocol);
+                                  setShowDeleteDialog(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -755,6 +806,16 @@ export default function PaymentProcessing() {
                                     <CheckCircle2 className="h-4 w-4 mr-2" />
                                     Marcar como Pago
                                   </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => {
+                                      setProtocolToDelete(protocol);
+                                      setShowDeleteDialog(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -778,6 +839,51 @@ export default function PaymentProcessing() {
           onOpenChange={setShowDetailsDialog}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar Protocolo</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja cancelar o protocolo {protocolToDelete?.protocol_number}?
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-reason">Motivo do Cancelamento *</Label>
+              <Textarea
+                id="delete-reason"
+                placeholder="Descreva o motivo do cancelamento deste protocolo..."
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setProtocolToDelete(null);
+                setDeleteReason("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteProtocol}
+              disabled={!deleteReason.trim()}
+            >
+              Confirmar Cancelamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

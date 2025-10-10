@@ -3301,6 +3301,7 @@ export type Database = {
           bank_account: string | null
           bank_agency: string | null
           bank_name: string | null
+          cancelled_reason: string | null
           cnpj: string | null
           competence_month: string
           cpf: string | null
@@ -3345,6 +3346,7 @@ export type Database = {
           bank_account?: string | null
           bank_agency?: string | null
           bank_name?: string | null
+          cancelled_reason?: string | null
           cnpj?: string | null
           competence_month: string
           cpf?: string | null
@@ -3389,6 +3391,7 @@ export type Database = {
           bank_account?: string | null
           bank_agency?: string | null
           bank_name?: string | null
+          cancelled_reason?: string | null
           cnpj?: string | null
           competence_month?: string
           cpf?: string | null
@@ -3647,6 +3650,7 @@ export type Database = {
       }
       service_provider_protocols: {
         Row: {
+          cancelled_reason: string | null
           competence_month: string
           created_at: string
           created_by: string | null
@@ -3693,6 +3697,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancelled_reason?: string | null
           competence_month: string
           created_at?: string
           created_by?: string | null
@@ -3739,6 +3744,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancelled_reason?: string | null
           competence_month?: string
           created_at?: string
           created_by?: string | null
