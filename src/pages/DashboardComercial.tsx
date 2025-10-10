@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const pipelineStages = [
 ];
 
 export default function DashboardComercial() {
+  const navigate = useNavigate();
   const { userRole, userName, mainContainerClass } = useConstructionPage();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -333,7 +335,7 @@ export default function DashboardComercial() {
                     <Filter className="h-4 w-4 mr-2" />
                     Filtrar
                   </Button>
-                  <Button size="sm">
+                  <Button size="sm" onClick={() => navigate('/leads')}>
                     <Plus className="h-4 w-4 mr-2" />
                     Novo Lead
                   </Button>
