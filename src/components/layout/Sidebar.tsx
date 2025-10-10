@@ -40,6 +40,7 @@ import {
   FileBarChart,
   UserPlus,
   MessageSquare,
+  Image,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -301,6 +302,12 @@ const navigationGroups: NavigationGroup[] = [
         icon: Clock,
         href: "/timesheet",
         roles: ["owner", "master", "admin"],
+      },
+      {
+        title: "Assets da Empresa",
+        icon: Image,
+        href: "/company-assets",
+        roles: ["owner"],
       },
     ],
   },
