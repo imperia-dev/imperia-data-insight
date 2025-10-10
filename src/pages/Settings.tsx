@@ -39,16 +39,27 @@ export default function Settings() {
 
   const fetchUserProfile = async () => {
     if (user) {
-      const { data, error } = await supabase
+      // Fetch profile data
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, role, avatar_url, avatar_style, avatar_color, avatar_animation_preference')
+        .select('full_name, avatar_url, avatar_style, avatar_color, avatar_animation_preference')
         .eq('id', user.id)
         .single();
 
-      if (data && !error) {
-        setUserName(data.full_name);
-        setUserRole(data.role);
-        setUserProfile(data);
+      // Fetch role from user_roles table
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileData && !profileError) {
+        setUserName(profileData.full_name);
+        setUserProfile(profileData);
+      }
+
+      if (roleData && !roleError) {
+        setUserRole(roleData.role);
       }
     }
   };
