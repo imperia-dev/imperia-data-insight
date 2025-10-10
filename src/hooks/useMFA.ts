@@ -23,11 +23,15 @@ export function useMFA() {
       setLoading(true);
       
       // Check profile for MFA status first
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('mfa_enabled, mfa_verified')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
+      
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+      }
       
       if (profile) {
         setMfaEnabled(profile.mfa_enabled || false);
