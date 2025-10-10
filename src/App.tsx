@@ -58,6 +58,7 @@ import CustomerPendencyRequest from "./pages/CustomerPendencyRequest";
 import CustomerRequests from "./pages/CustomerRequests";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import SecretManagement from "./pages/SecretManagement";
+import CompanyAssets from "./pages/CompanyAssets";
 
 const queryClient = new QueryClient();
 
@@ -291,6 +292,11 @@ const App = () => (
             <Route path="/settings/security/secrets" element={
               <ProtectedRouteWithApproval>
                 <SecretManagement />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/company-assets" element={
+              <ProtectedRouteWithApproval>
+                <CompanyAssets />
               </ProtectedRouteWithApproval>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
