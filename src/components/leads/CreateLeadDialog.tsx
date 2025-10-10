@@ -223,6 +223,7 @@ export function CreateLeadDialog({ open, onOpenChange, onSuccess }: CreateLeadDi
                         <SelectItem value="landing-page">Landing Page</SelectItem>
                         <SelectItem value="indicacao">Indicação</SelectItem>
                         <SelectItem value="linkedin">LinkedIn</SelectItem>
+                        <SelectItem value="instagram">Instagram</SelectItem>
                         <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="telefone">Telefone</SelectItem>
                         <SelectItem value="outro">Outro</SelectItem>
