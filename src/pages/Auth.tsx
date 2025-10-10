@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useBlocker } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,18 +30,9 @@ export default function Auth() {
   const [mfaFactors, setMfaFactors] = useState<any[]>([]);
   const [mfaChallengeId, setMfaChallengeId] = useState<string>("");
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { verifyChallenge, verifyBackupCode } = useMFA();
-
-  // Block navigation during MFA challenge
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) => {
-      // Block if MFA is active and user tries to leave /auth
-      return showMFAChallenge && 
-             currentLocation.pathname === "/auth" && 
-             nextLocation.pathname !== "/auth";
-    }
-  );
 
   useEffect(() => {
     // Check system preference for dark mode
@@ -56,22 +47,52 @@ export default function Auth() {
     }
   }, []);
 
-  // Handle blocked navigation attempts
+  // Block navigation during MFA challenge
   useEffect(() => {
-    if (blocker.state === "blocked") {
-      const confirmLeave = window.confirm(
-        "Você precisa completar a autenticação de dois fatores antes de continuar. Deseja realmente sair?"
-      );
-      
-      if (confirmLeave) {
-        // Clear partial session and allow navigation
-        supabase.auth.signOut();
-        blocker.proceed();
-      } else {
-        blocker.reset();
+    if (!showMFAChallenge) return;
+
+    // Prevent browser back/forward/refresh
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+
+    // Prevent programmatic navigation
+    const handlePopState = (e: PopStateEvent) => {
+      if (showMFAChallenge) {
+        const confirmLeave = window.confirm(
+          "Você precisa completar a autenticação de dois fatores antes de continuar. Deseja realmente sair?"
+        );
+        
+        if (!confirmLeave) {
+          // Push the current state back
+          window.history.pushState(null, '', window.location.href);
+        } else {
+          // Clear session and allow navigation
+          supabase.auth.signOut();
+        }
       }
+    };
+
+    // Add current state to history to detect back button
+    window.history.pushState(null, '', window.location.href);
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [showMFAChallenge]);
+
+  // Monitor route changes and redirect back if trying to leave during MFA
+  useEffect(() => {
+    if (showMFAChallenge && location.pathname !== '/auth') {
+      navigate('/auth', { replace: true });
     }
-  }, [blocker]);
+  }, [location.pathname, showMFAChallenge, navigate]);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
