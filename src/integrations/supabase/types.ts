@@ -3325,6 +3325,7 @@ export type Database = {
           owner_approved_by: string | null
           paid_at: string | null
           payment_metadata: Json | null
+          payment_receipt_url: string | null
           payment_reference: string | null
           pix_key: string | null
           protocol_number: string
@@ -3368,6 +3369,7 @@ export type Database = {
           owner_approved_by?: string | null
           paid_at?: string | null
           payment_metadata?: Json | null
+          payment_receipt_url?: string | null
           payment_reference?: string | null
           pix_key?: string | null
           protocol_number: string
@@ -3411,6 +3413,7 @@ export type Database = {
           owner_approved_by?: string | null
           paid_at?: string | null
           payment_metadata?: Json | null
+          payment_receipt_url?: string | null
           payment_reference?: string | null
           pix_key?: string | null
           protocol_number?: string
