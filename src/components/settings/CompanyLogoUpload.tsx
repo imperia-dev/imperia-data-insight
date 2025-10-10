@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +17,35 @@ export const CompanyLogoUpload = () => {
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
   // Generate the public URL
   const publicUrl = `https://agttqqaampznczkyfvkf.supabase.co/storage/v1/object/public/${BUCKET_NAME}/${FILE_NAME}`;
+
+  // Check if logo exists on mount
+  useEffect(() => {
+    const checkExistingLogo = async () => {
+      try {
+        const { data, error } = await supabase.storage
+          .from(BUCKET_NAME)
+          .list("", {
+            search: FILE_NAME,
+          });
+
+        if (!error && data && data.length > 0) {
+          // Logo exists, set the URL with cache buster
+          const cacheBuster = `?t=${Date.now()}`;
+          setLogoUrl(publicUrl + cacheBuster);
+        }
+      } catch (error) {
+        console.error("Error checking existing logo:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkExistingLogo();
+  }, [publicUrl]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -109,6 +135,14 @@ export const CompanyLogoUpload = () => {
     });
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
