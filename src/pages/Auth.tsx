@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Eye, EyeOff, Moon, Sun } from "lucide-react";
+import { Loader2, Eye, EyeOff, Moon, Sun, AlertCircle } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MFAChallenge } from "@/components/mfa/MFAChallenge";
 import { BackupCodeChallenge } from "@/components/mfa/BackupCodeChallenge";
 import { ForgotPasswordModal } from "@/components/auth/ForgotPasswordModal";
@@ -29,10 +30,29 @@ export default function Auth() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [mfaFactors, setMfaFactors] = useState<any[]>([]);
   const [mfaChallengeId, setMfaChallengeId] = useState<string>("");
+  const [rateLimitCooldown, setRateLimitCooldown] = useState<number>(0);
+  const [lastSignupAttempt, setLastSignupAttempt] = useState<number>(0);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { verifyChallenge, verifyBackupCode } = useMFA();
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (rateLimitCooldown <= 0) return;
+
+    const timer = setInterval(() => {
+      setRateLimitCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [rateLimitCooldown]);
 
   useEffect(() => {
     // Check system preference for dark mode
@@ -105,6 +125,29 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check if in cooldown period
+    if (rateLimitCooldown > 0) {
+      toast({
+        title: "Aguarde",
+        description: `Por favor, aguarde ${rateLimitCooldown} segundos antes de tentar novamente.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Prevent rapid successive attempts (minimum 3 seconds between attempts)
+    const now = Date.now();
+    if (now - lastSignupAttempt < 3000) {
+      toast({
+        title: "Muitas tentativas",
+        description: "Por favor, aguarde alguns segundos entre as tentativas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLastSignupAttempt(now);
     setLoading(true);
 
     try {
@@ -131,11 +174,16 @@ export default function Auth() {
           });
         } else if (error.message.toLowerCase().includes("rate limit") || 
                    error.message.toLowerCase().includes("too many") ||
-                   error.message.toLowerCase().includes("email rate limit exceeded")) {
+                   error.message.toLowerCase().includes("email rate limit exceeded") ||
+                   error.message.includes("429")) {
+          // Set 5 minute cooldown (300 seconds)
+          setRateLimitCooldown(300);
+          
           toast({
-            title: "Muitas tentativas",
-            description: "Por favor, aguarde alguns minutos antes de tentar novamente. O limite de tentativas foi excedido temporariamente.",
+            title: "Limite de tentativas excedido",
+            description: "Você atingiu o limite de cadastros. Por favor, aguarde 5 minutos antes de tentar novamente. Um contador aparecerá no botão.",
             variant: "destructive",
+            duration: 8000,
           });
         } else {
           toast({
@@ -600,6 +648,19 @@ export default function Auth() {
             </TabsContent>
             
             <TabsContent value="signup">
+              {rateLimitCooldown > 0 && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Limite de tentativas atingido. Aguarde{" "}
+                    <strong>
+                      {Math.floor(rateLimitCooldown / 60)}:
+                      {(rateLimitCooldown % 60).toString().padStart(2, '0')}
+                    </strong>{" "}
+                    para tentar novamente.
+                  </AlertDescription>
+                </Alert>
+              )}
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Nome Completo</Label>
@@ -666,8 +727,17 @@ export default function Auth() {
                     </Button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={loading || rateLimitCooldown > 0}
+                >
+                  {rateLimitCooldown > 0 ? (
+                    <>
+                      Aguarde {Math.floor(rateLimitCooldown / 60)}:
+                      {(rateLimitCooldown % 60).toString().padStart(2, '0')}
+                    </>
+                  ) : loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Cadastrando...
