@@ -42,7 +42,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/translation-orders',
     '/owner-final-approval',
     '/payment-processing',
-    '/master-protocol-approvals'
+    '/master-protocol-approvals',
+    '/company-assets'
   ],
   master: [
     '/',
