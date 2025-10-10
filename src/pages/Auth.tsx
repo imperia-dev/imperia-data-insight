@@ -108,7 +108,7 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/pending-approval`;
       
       // First create the user
       const { data, error } = await supabase.auth.signUp({
@@ -144,7 +144,10 @@ export default function Auth() {
             variant: "destructive",
           });
         }
-      } else if (data.user) {
+        return;
+      }
+      
+      if (data.user) {
         // If signup successful and phone was provided, update the profile
         if (phone) {
           // Extract digits only for international format
@@ -167,13 +170,11 @@ export default function Auth() {
         
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu email para confirmar o cadastro.",
+          description: "Verifique seu email para confirmar o cadastro. Após a confirmação, aguarde a aprovação do administrador.",
         });
-        // Switch to login tab
-        const loginTab = document.querySelector('[value="login"]');
-        if (loginTab) {
-          (loginTab as HTMLElement).click();
-        }
+        
+        // Redirect to pending approval page
+        navigate("/pending-approval");
       }
     } catch (error: any) {
       toast({
