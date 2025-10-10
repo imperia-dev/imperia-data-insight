@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useBlocker } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,16 @@ export default function Auth() {
   const { toast } = useToast();
   const { verifyChallenge, verifyBackupCode } = useMFA();
 
+  // Block navigation during MFA challenge
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) => {
+      // Block if MFA is active and user tries to leave /auth
+      return showMFAChallenge && 
+             currentLocation.pathname === "/auth" && 
+             nextLocation.pathname !== "/auth";
+    }
+  );
+
   useEffect(() => {
     // Check system preference for dark mode
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -45,6 +55,23 @@ export default function Auth() {
       document.documentElement.classList.remove("dark");
     }
   }, []);
+
+  // Handle blocked navigation attempts
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      const confirmLeave = window.confirm(
+        "Você precisa completar a autenticação de dois fatores antes de continuar. Deseja realmente sair?"
+      );
+      
+      if (confirmLeave) {
+        // Clear partial session and allow navigation
+        supabase.auth.signOut();
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker]);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -186,25 +213,28 @@ export default function Auth() {
           });
         }
       } else if (data.user) {
-        // Check if user has verified MFA factors
-        const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
-        
-        if (!factorsError && factorsData?.all && factorsData.all.length > 0) {
-          // Only check for verified factors
-          const verifiedFactors = factorsData.all.filter(f => f.status === 'verified');
-          
-          if (verifiedFactors.length > 0) {
-            // Check AAL level
-            const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        // ALWAYS verify if MFA is necessary BEFORE redirecting
+        const { data: factorsData } = await supabase.auth.mfa.listFactors();
+        const verifiedFactors = factorsData?.all?.filter(f => f.status === 'verified') || [];
+
+        if (verifiedFactors.length > 0) {
+          // Check current AAL level
+          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+          // If not at AAL2, force MFA challenge
+          if (aalData?.currentLevel !== 'aal2') {
+            setMfaFactors(verifiedFactors);
+            setShowMFAChallenge(true);
+            setLoading(false);
             
-            if (aalData && aalData.currentLevel !== 'aal2') {
-              setMfaFactors(verifiedFactors);
-              setShowMFAChallenge(true);
-              setLoading(false);
-              return;
-            }
+            // DO NOT redirect, DO NOT play success sound
+            return;
           }
         }
+
+        // Only reach here if:
+        // 1. User doesn't have MFA configured, OR
+        // 2. MFA was successfully completed (AAL2)
         
         // Play reward sound
         const audio = new Audio('/login-success.mp3');

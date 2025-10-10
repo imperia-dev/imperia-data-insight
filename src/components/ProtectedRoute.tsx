@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useMFARequired } from "@/hooks/useMFARequired";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -11,9 +12,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { session, loading: authLoading } = useAuth();
   const location = useLocation();
   const { hasAccess, loading: roleLoading } = useRoleAccess(location.pathname);
+  const { mfaRequired, mfaCompleted, loading: mfaLoading } = useMFARequired();
 
-  // Show loading while checking auth and role
-  if (authLoading || roleLoading) {
+  // Show loading while checking auth, role, and MFA
+  if (authLoading || roleLoading || mfaLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -26,8 +28,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/auth" replace />;
   }
 
+  // Check if MFA was completed (when required)
+  if (mfaRequired && !mfaCompleted) {
+    // Redirect to auth with state preservation
+    return <Navigate to="/auth" state={{ requireMFA: true }} replace />;
+  }
+
   // Wait for role check to complete before deciding on access
-  // If still loading role, show loader instead of redirecting
   if (roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
