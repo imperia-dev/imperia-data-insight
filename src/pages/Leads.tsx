@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, RefreshCw, Mail, Phone, Building2, MessageSquare, Calendar } from "lucide-react";
+import { Search, RefreshCw, Mail, Phone, Building2, MessageSquare, Calendar, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -16,10 +16,12 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { cn } from "@/lib/utils";
+import { CreateLeadDialog } from "@/components/leads/CreateLeadDialog";
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState("");
   const [userRole, setUserRole] = useState<string>("");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
@@ -120,10 +122,16 @@ export default function Leads() {
                 Gerencie os leads cadastrados no sistema
               </p>
             </div>
-            <Button onClick={handleRefresh} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleRefresh} variant="outline">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Atualizar
+              </Button>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Lead
+              </Button>
+            </div>
           </div>
 
       <Card>
@@ -240,6 +248,12 @@ export default function Leads() {
 
         </div>
       </main>
+
+      <CreateLeadDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={refetch}
+      />
     </div>
   );
 }
