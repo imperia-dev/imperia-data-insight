@@ -205,6 +205,45 @@ export default function ServiceProviderCosts() {
 
   const handleSubmit = async () => {
     try {
+      // Verificar se a despesa está vinculada a um protocolo fechado
+      if (editingCost) {
+        const { data: expense, error: expenseError } = await supabase
+          .from('expenses')
+          .select('closing_protocol_id, service_provider_protocol_id')
+          .eq('id', editingCost.id)
+          .maybeSingle();
+
+        if (expenseError) throw expenseError;
+
+        // Verificar se existe protocolo de fechamento fechado
+        if (expense?.closing_protocol_id) {
+          const { data: closingProtocol } = await supabase
+            .from('expense_closing_protocols')
+            .select('status')
+            .eq('id', expense.closing_protocol_id)
+            .maybeSingle();
+
+          if (closingProtocol?.status === 'closed') {
+            toast.error("Esta despesa faz parte de um protocolo fechado e não pode ser modificada");
+            return;
+          }
+        }
+
+        // Verificar se existe protocolo de prestador fechado
+        if (expense?.service_provider_protocol_id) {
+          const { data: providerProtocol } = await supabase
+            .from('service_provider_protocols')
+            .select('paid_at')
+            .eq('id', expense.service_provider_protocol_id)
+            .maybeSingle();
+
+          if (providerProtocol?.paid_at) {
+            toast.error("Esta despesa faz parte de um protocolo já pago e não pode ser modificada");
+            return;
+          }
+        }
+      }
+
       // Buscar o plano de contas 4.01 para prestadores de serviço
       const { data: chartOfAccount } = await supabase
         .from('chart_of_accounts')
