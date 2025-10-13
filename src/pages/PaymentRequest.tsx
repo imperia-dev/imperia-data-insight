@@ -700,17 +700,33 @@ Alex - Admin.`);
 
         if (updateError) throw updateError;
       } else {
-        // For expense protocols, update status to 'closed' and add payment info to notes
-        const paymentInfo = `\n\n--- Pagamento Realizado ---\nData: ${paymentDate}\nValor: ${formatCurrency(parseFloat(paymentAmount))}\nMétodo: ${paymentMethod}\nComprovante: ${publicUrl}`;
-        
+        // For expense protocols, mark as paid
         const { error: updateError } = await supabase
           .from('expense_closing_protocols')
           .update({
-            status: 'closed'
+            status: 'closed',
+            paid_at: new Date().toISOString(),
+            paid_by: user?.id,
+            payment_receipt_url: publicUrl,
+            payment_amount: parseFloat(paymentAmount)
           })
           .eq('id', selectedProtocolForPayment.id);
 
         if (updateError) throw updateError;
+        
+        // Update all expenses to paid status
+        const { error: expensesError } = await supabase
+          .from('expenses')
+          .update({
+            status: 'pago',
+            data_pagamento: paymentDate
+          })
+          .eq('closing_protocol_id', selectedProtocolForPayment.id);
+          
+        if (expensesError) {
+          console.error('Error updating expenses:', expensesError);
+          // Don't throw - protocol payment was successful
+        }
       }
 
       toast({

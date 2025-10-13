@@ -1128,6 +1128,10 @@ export type Database = {
           expense_count: number
           id: string
           notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          payment_amount: number | null
+          payment_receipt_url: string | null
           protocol_number: string
           reviewed_at: string | null
           reviewed_by: string | null
@@ -1147,6 +1151,10 @@ export type Database = {
           expense_count?: number
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_amount?: number | null
+          payment_receipt_url?: string | null
           protocol_number: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -1166,6 +1174,10 @@ export type Database = {
           expense_count?: number
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_amount?: number | null
+          payment_receipt_url?: string | null
           protocol_number?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
