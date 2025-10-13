@@ -2054,6 +2054,39 @@ export type Database = {
           },
         ]
       }
+      lead_pricing_analysis: {
+        Row: {
+          created_at: string | null
+          daily_volume: number
+          id: string
+          lead_info: Json | null
+          potential_savings: number | null
+          potential_savings_percent: number | null
+          selected_plan: string
+          traditional_cost_per_document: number
+        }
+        Insert: {
+          created_at?: string | null
+          daily_volume: number
+          id?: string
+          lead_info?: Json | null
+          potential_savings?: number | null
+          potential_savings_percent?: number | null
+          selected_plan: string
+          traditional_cost_per_document: number
+        }
+        Update: {
+          created_at?: string | null
+          daily_volume?: number
+          id?: string
+          lead_info?: Json | null
+          potential_savings?: number | null
+          potential_savings_percent?: number | null
+          selected_plan?: string
+          traditional_cost_per_document?: number
+        }
+        Relationships: []
+      }
       lead_sessions: {
         Row: {
           browser: string | null
