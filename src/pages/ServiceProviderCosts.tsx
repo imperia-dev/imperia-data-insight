@@ -219,26 +219,26 @@ export default function ServiceProviderCosts() {
         if (expense?.closing_protocol_id) {
           const { data: closingProtocol } = await supabase
             .from('expense_closing_protocols')
-            .select('status')
+            .select('status, protocol_number')
             .eq('id', expense.closing_protocol_id)
             .maybeSingle();
 
           if (closingProtocol?.status === 'closed') {
-            toast.error("Esta despesa faz parte de um protocolo fechado e não pode ser modificada");
+            toast.error(`Esta despesa faz parte do protocolo fechado ${closingProtocol.protocol_number} e não pode ser modificada`);
             return;
           }
         }
 
-        // Verificar se existe protocolo de prestador fechado
+        // Verificar se existe protocolo de prestador pago
         if (expense?.service_provider_protocol_id) {
           const { data: providerProtocol } = await supabase
             .from('service_provider_protocols')
-            .select('paid_at')
+            .select('paid_at, protocol_number')
             .eq('id', expense.service_provider_protocol_id)
             .maybeSingle();
 
           if (providerProtocol?.paid_at) {
-            toast.error("Esta despesa faz parte de um protocolo já pago e não pode ser modificada");
+            toast.error(`Esta despesa faz parte do protocolo ${providerProtocol.protocol_number} que já foi pago e não pode ser modificada`);
             return;
           }
         }
