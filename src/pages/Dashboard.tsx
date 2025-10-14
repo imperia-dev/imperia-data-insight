@@ -948,7 +948,8 @@ export default function Dashboard() {
     const customerText = selectedCustomer === 'all' ? 'Todos os Clientes' : selectedCustomer;
 
     const exportData = {
-      title: `Dashboard Operacional - ${customerText} - ${periodText}`,
+      title: `Dashboard Operacional - ${customerText}`,
+      subtitle: periodText,
       headers: ['C4U ID', 'Tipo de Erro', 'Descrição', 'Tratativa', 'Status', 'Data'],
       rows: pendenciesTableRows,
       totals: indicators,
