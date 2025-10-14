@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { ErrorTypesChart } from "@/components/dashboard/ErrorTypesChart";
+import { PendencyGoalChart } from "@/components/dashboard/PendencyGoalChart";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 import { WhatsAppOperationalReportModal } from "@/components/dashboard/WhatsAppOperationalReportModal";
 
@@ -161,6 +162,7 @@ export default function Dashboard() {
   const [attributedDocuments, setAttributedDocuments] = useState(0);
   const [loading, setLoading] = useState(true);
   const [lineChartData, setLineChartData] = useState<any[]>([]);
+  const [pendencyGoalData, setPendencyGoalData] = useState<any[]>([]);
   const [urgencies, setUrgencies] = useState(0);
   const [pendencies, setPendencies] = useState(0);
   const [pendencyTypesData, setPendencyTypesData] = useState<any[]>([]);
@@ -816,6 +818,29 @@ export default function Dashboard() {
         return;
       }
 
+      // Fetch pendencies for the same period
+      let pendenciesQuery = supabase
+        .from('pendencies')
+        .select('id, created_at, order_id')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+      
+      // Apply customer filter if not "all"
+      if (selectedCustomer !== "all") {
+        // First get orders for this customer
+        const { data: customerOrders } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('customer', selectedCustomer);
+        
+        if (customerOrders && customerOrders.length > 0) {
+          const orderIds = customerOrders.map(o => o.id);
+          pendenciesQuery = pendenciesQuery.in('order_id', orderIds);
+        }
+      }
+      
+      const { data: pendenciesData } = await pendenciesQuery;
+
       // Process data based on period
       const chartData = interval.map(date => {
         let label = '';
@@ -849,13 +874,23 @@ export default function Dashboard() {
           return attributionDate >= dateStart && attributionDate < dateEnd;
         }).reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
 
+        // Count pendencies for this interval
+        const pendenciesInInterval = pendenciesData?.filter(pendency => {
+          if (!pendency.created_at) return false;
+          const createdDate = new Date(pendency.created_at);
+          return createdDate >= dateStart && createdDate < dateEnd;
+        }).length || 0;
+
         return {
           label,
           documentos: documentsInInterval,
+          pendencies: pendenciesInInterval,
+          total: documentsInInterval,
         };
       });
 
       setLineChartData(chartData);
+      setPendencyGoalData(chartData);
     } catch (error) {
       console.error('Error fetching evolution data:', error);
     }
@@ -1347,6 +1382,11 @@ export default function Dashboard() {
                 </LineChart>
               </ResponsiveContainer>
             </ChartCard>
+          </div>
+
+          {/* Pendency Goal Chart - Full Width */}
+          <div className="mb-8">
+            <PendencyGoalChart data={pendencyGoalData} />
           </div>
 
           {/* Performance Charts */}
