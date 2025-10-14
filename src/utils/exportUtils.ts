@@ -153,13 +153,13 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
     console.warn('Could not load logos for PDF:', error);
   }
   
-  // Add title (moved down slightly to not overlap with logo)
+  // Add title (moved down to not overlap with logo)
   doc.setFontSize(20);
   doc.setTextColor(44, 62, 80); // Dark blue-gray
-  doc.text(data.title, doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
+  doc.text(data.title, doc.internal.pageSize.getWidth() / 2, 38, { align: 'center' });
   
   // Add subtitle if provided
-  let subtitleY = 33;
+  let subtitleY = 46;
   if (data.subtitle) {
     doc.setFontSize(12);
     doc.setTextColor(100, 116, 139); // Slate gray
