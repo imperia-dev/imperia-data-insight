@@ -4602,6 +4602,7 @@ export type Database = {
         | "operation"
         | "translator"
         | "customer"
+        | "financeiro"
       approval_status: "pending" | "approved" | "rejected"
       balance_sheet_type:
         | "current_asset"
@@ -4775,6 +4776,7 @@ export const Constants = {
         "operation",
         "translator",
         "customer",
+        "financeiro",
       ],
       approval_status: ["pending", "approved", "rejected"],
       balance_sheet_type: [
