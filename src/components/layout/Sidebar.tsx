@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   Users,
   TrendingUp,
+  TrendingDown,
   DollarSign,
   Settings,
   Calendar,
@@ -392,15 +393,15 @@ const customerNavigationItems: NavigationItem[] = [
 // Financeiro-specific navigation
 const financeiroNavigationItems: NavigationItem[] = [
   {
-    title: "Dashboard Financeiro",
-    icon: TrendingUp,
-    href: "/dashboard-financeiro",
+    title: "Contas a Pagar",
+    icon: TrendingDown,
+    href: "/contas-a-pagar",
     roles: ["financeiro"],
   },
   {
-    title: "Configurações",
-    icon: Settings,
-    href: "/settings",
+    title: "Contas a Receber",
+    icon: TrendingUp,
+    href: "/contas-a-receber",
     roles: ["financeiro"],
   },
 ];
