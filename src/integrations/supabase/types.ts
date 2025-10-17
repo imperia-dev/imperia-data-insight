@@ -4641,7 +4641,13 @@ export type Database = {
       payment_status_enum: "pending" | "sent" | "paid" | "failed"
       protocol_type: "receita" | "despesa_fixa" | "despesa_variavel" | "folha"
       scenario_type: "pessimistic" | "realistic" | "optimistic"
-      user_role: "master" | "admin" | "operation" | "owner" | "translator"
+      user_role:
+        | "master"
+        | "admin"
+        | "operation"
+        | "owner"
+        | "translator"
+        | "financeiro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4820,7 +4826,14 @@ export const Constants = {
       payment_status_enum: ["pending", "sent", "paid", "failed"],
       protocol_type: ["receita", "despesa_fixa", "despesa_variavel", "folha"],
       scenario_type: ["pessimistic", "realistic", "optimistic"],
-      user_role: ["master", "admin", "operation", "owner", "translator"],
+      user_role: [
+        "master",
+        "admin",
+        "operation",
+        "owner",
+        "translator",
+        "financeiro",
+      ],
     },
   },
 } as const
