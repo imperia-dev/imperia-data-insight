@@ -50,8 +50,6 @@ export const rolePermissions: Record<Role, string[]> = {
   ],
   financeiro: [
     '/dashboard-financeiro',
-    '/contas-a-pagar',
-    '/contas-a-receber',
     '/settings',
     '/notifications'
   ],

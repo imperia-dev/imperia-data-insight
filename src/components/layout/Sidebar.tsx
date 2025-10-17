@@ -389,6 +389,22 @@ const customerNavigationItems: NavigationItem[] = [
   },
 ];
 
+// Financeiro-specific navigation
+const financeiroNavigationItems: NavigationItem[] = [
+  {
+    title: "Dashboard Financeiro",
+    icon: TrendingUp,
+    href: "/dashboard-financeiro",
+    roles: ["financeiro"],
+  },
+  {
+    title: "Configurações",
+    icon: Settings,
+    href: "/settings",
+    roles: ["financeiro"],
+  },
+];
+
 export function Sidebar({ userRole }: SidebarProps) {
   const location = useLocation();
   const { isCollapsed, toggleSidebar } = useSidebar();
@@ -465,6 +481,11 @@ export function Sidebar({ userRole }: SidebarProps) {
   // Filter customer navigation if role is customer
   const filteredCustomerItems = userRole === 'customer' 
     ? customerNavigationItems.filter(item => item.roles.includes('customer'))
+    : [];
+
+  // Filter financeiro navigation if role is financeiro
+  const filteredFinanceiroItems = userRole === 'financeiro' 
+    ? financeiroNavigationItems.filter(item => item.roles.includes('financeiro'))
     : [];
 
   const renderNavItem = (item: NavigationItem, isNested: boolean = false) => {
@@ -546,6 +567,11 @@ export function Sidebar({ userRole }: SidebarProps) {
             {userRole === 'customer' ? (
               <div className="space-y-1">
                 {filteredCustomerItems.map(item => renderNavItem(item))}
+              </div>
+            ) : userRole === 'financeiro' ? (
+              /* Financeiro Navigation (if financeiro role) */
+              <div className="space-y-1">
+                {filteredFinanceiroItems.map(item => renderNavItem(item))}
               </div>
             ) : (
               <>

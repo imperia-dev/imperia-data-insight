@@ -9,6 +9,7 @@ import { ErrorBoundary } from "./components/security/ErrorBoundary";
 import { MFAEnforcement } from "./components/security/MFAEnforcement";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ProtectedRouteWithApproval } from "./components/ProtectedRouteWithApproval";
+import { HomePage } from "./components/HomePage";
 import Dashboard from "./pages/Dashboard";
 import Documents from "./pages/Documents";
 
@@ -84,7 +85,7 @@ const App = () => (
             } />
             <Route path="/" element={
               <ProtectedRouteWithApproval>
-                <Dashboard />
+                <HomePage />
               </ProtectedRouteWithApproval>
             } />
             <Route path="/dashboard-operacao" element={
