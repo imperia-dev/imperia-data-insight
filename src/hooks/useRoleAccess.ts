@@ -42,7 +42,7 @@ export const useRoleAccess = (pathname: string) => {
         setUserRole(data.role);
 
         // Check if the user role is valid
-        const validRoles: Role[] = ['owner', 'master', 'admin', 'operation', 'translator', 'customer'];
+        const validRoles: Role[] = ['owner', 'master', 'admin', 'operation', 'translator', 'customer', 'financeiro'];
         if (!validRoles.includes(data.role as Role)) {
           setHasAccess(false);
           setLoading(false);
