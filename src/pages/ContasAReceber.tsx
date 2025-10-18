@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, TrendingUp, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/currency";
@@ -94,6 +95,31 @@ export default function ContasAReceber() {
       });
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const handleIniciarPagamento = async (protocolId: string) => {
+    try {
+      const { error } = await supabase
+        .from('closing_protocols')
+        .update({ payment_requested_at: new Date().toISOString() })
+        .eq('id', protocolId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Pagamento iniciado com sucesso",
+      });
+
+      await fetchContas();
+    } catch (error) {
+      console.error('Error starting payment:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao iniciar pagamento",
+        variant: "destructive",
+      });
     }
   };
 
@@ -216,6 +242,7 @@ export default function ContasAReceber() {
                             <TableHead>Produto 2</TableHead>
                             <TableHead>Média/Doc</TableHead>
                             <TableHead>Status</TableHead>
+                            {tab === "novos" && <TableHead>Ações</TableHead>}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -238,11 +265,23 @@ export default function ContasAReceber() {
                                   {protocol.payment_status === 'paid' ? 'Pago' : 'Pendente'}
                                 </span>
                               </TableCell>
+                              {tab === "novos" && (
+                                <TableCell>
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    onClick={() => handleIniciarPagamento(protocol.id)}
+                                  >
+                                    <PlayCircle className="h-4 w-4 mr-2" />
+                                    Iniciar Pagamento
+                                  </Button>
+                                </TableCell>
+                              )}
                             </TableRow>
                           ))}
                           {filterProtocolsByStatus(tab).length === 0 && (
                             <TableRow>
-                              <TableCell colSpan={9} className="text-center text-muted-foreground">
+                              <TableCell colSpan={tab === "novos" ? 10 : 9} className="text-center text-muted-foreground">
                                 Nenhum protocolo encontrado nesta categoria
                               </TableCell>
                             </TableRow>
