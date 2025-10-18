@@ -9,11 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, PlayCircle, Eye, FileCheck } from "lucide-react";
+import { Loader2, TrendingUp, PlayCircle, Eye, FileCheck, Upload, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/currency";
 import { RevenueProtocolDetailsDialog } from "@/components/fechamentoPrestadores/RevenueProtocolDetailsDialog";
+import { UploadReceiptDialog } from "@/components/fechamentoPrestadores/UploadReceiptDialog";
 
 interface RevenueProtocol {
   id: string;
@@ -29,6 +30,7 @@ interface RevenueProtocol {
   payment_status: string | null;
   payment_requested_at: string | null;
   payment_received_at: string | null;
+  receipt_url: string | null;
 }
 
 export default function ContasAReceber() {
@@ -41,6 +43,8 @@ export default function ContasAReceber() {
   const [activeTab, setActiveTab] = useState("novos");
   const [selectedProtocol, setSelectedProtocol] = useState<RevenueProtocol | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadProtocol, setUploadProtocol] = useState<RevenueProtocol | null>(null);
   const { toast } = useToast();
 
   const filterProtocolsByStatus = (status: string) => {
@@ -154,6 +158,36 @@ export default function ContasAReceber() {
   const handleViewDetails = (protocol: RevenueProtocol) => {
     setSelectedProtocol(protocol);
     setDetailsDialogOpen(true);
+  };
+
+  const handleOpenUploadDialog = (protocol: RevenueProtocol) => {
+    setUploadProtocol(protocol);
+    setUploadDialogOpen(true);
+  };
+
+  const handleFinalizarProtocol = async (protocolId: string) => {
+    try {
+      const { error } = await supabase
+        .from('closing_protocols')
+        .update({ payment_status: 'paid' })
+        .eq('id', protocolId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Protocolo finalizado com sucesso",
+      });
+
+      await fetchContas();
+    } catch (error) {
+      console.error('Error finalizing protocol:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao finalizar protocolo",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading || loadingData) {
@@ -275,7 +309,7 @@ export default function ContasAReceber() {
                             <TableHead>Produto 2</TableHead>
                             <TableHead>Média/Doc</TableHead>
                             <TableHead>Status</TableHead>
-                            {(tab === "novos" || tab === "aguardando-pagamento") && <TableHead>Ações</TableHead>}
+                            {(tab === "novos" || tab === "aguardando-pagamento" || tab === "aguardando-comprovante") && <TableHead>Ações</TableHead>}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -331,11 +365,35 @@ export default function ContasAReceber() {
                                   </div>
                                 </TableCell>
                               )}
+                              {tab === "aguardando-comprovante" && (
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleOpenUploadDialog(protocol)}
+                                    >
+                                      <Upload className="h-4 w-4 mr-2" />
+                                      Inserir Comprovante
+                                    </Button>
+                                    {protocol.receipt_url && (
+                                      <Button
+                                        size="sm"
+                                        variant="default"
+                                        onClick={() => handleFinalizarProtocol(protocol.id)}
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Finalizar
+                                      </Button>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              )}
                             </TableRow>
                           ))}
                            {filterProtocolsByStatus(tab).length === 0 && (
                              <TableRow>
-                               <TableCell colSpan={(tab === "novos" || tab === "aguardando-pagamento") ? 10 : 9} className="text-center text-muted-foreground">
+                               <TableCell colSpan={(tab === "novos" || tab === "aguardando-pagamento" || tab === "aguardando-comprovante") ? 10 : 9} className="text-center text-muted-foreground">
                                  Nenhum protocolo encontrado nesta categoria
                                </TableCell>
                              </TableRow>
@@ -356,6 +414,16 @@ export default function ContasAReceber() {
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
       />
+
+      {uploadProtocol && (
+        <UploadReceiptDialog
+          protocolId={uploadProtocol.id}
+          protocolNumber={uploadProtocol.protocol_number}
+          open={uploadDialogOpen}
+          onOpenChange={setUploadDialogOpen}
+          onSuccess={fetchContas}
+        />
+      )}
     </div>
   );
 }
