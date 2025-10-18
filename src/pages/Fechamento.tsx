@@ -195,29 +195,34 @@ export default function Fechamento() {
 
     setIsLoading(true);
     try {
-      // Get the count of protocols for this month to generate sequence
-      const { count } = await supabase
-        .from("closing_protocols")
-        .select("*", { count: 'exact', head: true })
-        .gte("competence_month", `${competenceMonth}-01`)
-        .lt("competence_month", `${format(new Date(competenceMonth + "-01").setMonth(new Date(competenceMonth + "-01").getMonth() + 1), "yyyy-MM")}-01`);
+      const competenceDate = `${competenceMonth}-01`;
+      
+      // Generate protocol number using database function
+      const { data: protocolNumberData, error: protocolError } = await supabase
+        .rpc('generate_protocol_number', {
+          p_type: 'revenue',
+          p_competence_month: competenceDate
+        });
 
-      const sequence = ((count || 0) + 1).toString().padStart(2, "0");
-      const protocolNumber = `${competenceMonth}-comp-${sequence}`;
+      if (protocolError) {
+        throw protocolError;
+      }
+
+      const protocolNumber = protocolNumberData;
 
       // Save to database
       const { error } = await supabase
         .from("closing_protocols")
         .insert({
           protocol_number: protocolNumber,
-          competence_month: `${competenceMonth}-01`,
+          competence_month: competenceDate,
           total_ids: analysisData.totalIds,
           total_pages: analysisData.totalPages,
           total_value: analysisData.totalValue,
           avg_value_per_document: analysisData.avgValuePerDocument,
           product_1_count: analysisData.product1Count,
           product_2_count: analysisData.product2Count,
-          document_data: analysisData.documents as any, // Cast to any for JSON type
+          document_data: analysisData.documents as any,
           created_by: (await supabase.auth.getUser()).data.user?.id
         });
 
@@ -237,7 +242,7 @@ export default function Fechamento() {
       console.error("Error generating protocol:", error);
       toast({
         title: "Erro",
-        description: "Erro ao gerar protocolo",
+        description: "Erro ao gerar protocolo. Tente novamente.",
         variant: "destructive"
       });
     } finally {
