@@ -13,19 +13,18 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/currency";
 
-interface ContaReceber {
+interface RevenueProtocol {
   id: string;
-  cliente_nome: string;
-  cnpj: string;
-  pix: string | null;
-  prestacoes: any;
-  valor_total: number;
-  valor_por_produto: any;
-  produto_1_vendido: number;
+  protocol_number: string;
+  competence_month: string;
   total_ids: number;
-  total_paginas: number;
-  media_por_documento: number;
+  total_pages: number;
+  total_value: number;
+  avg_value_per_document: number;
+  product_1_count: number;
+  product_2_count: number;
   created_at: string;
+  payment_status: string | null;
 }
 
 export default function ContasAReceber() {
@@ -33,7 +32,7 @@ export default function ContasAReceber() {
   const { userRole, loading } = useRoleAccess("/contas-a-receber");
   const { isCollapsed } = useSidebar();
   const [userName, setUserName] = useState('');
-  const [contas, setContas] = useState<ContaReceber[]>([]);
+  const [protocols, setProtocols] = useState<RevenueProtocol[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const { toast } = useToast();
 
@@ -62,17 +61,17 @@ export default function ContasAReceber() {
   const fetchContas = async () => {
     try {
       const { data, error } = await supabase
-        .from('contas_a_receber')
+        .from('closing_protocols')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setContas(data || []);
+      setProtocols(data || []);
     } catch (error) {
-      console.error('Error fetching contas:', error);
+      console.error('Error fetching protocols:', error);
       toast({
         title: "Erro",
-        description: "Erro ao carregar contas a receber",
+        description: "Erro ao carregar protocolos de receita",
         variant: "destructive",
       });
     } finally {
@@ -114,10 +113,10 @@ export default function ContasAReceber() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrency(contas.reduce((sum, c) => sum + c.valor_total, 0))}
+                    {formatCurrency(protocols.reduce((sum, p) => sum + p.total_value, 0))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {contas.length} cliente{contas.length !== 1 ? 's' : ''}
+                    {protocols.length} protocolo{protocols.length !== 1 ? 's' : ''}
                   </p>
                 </CardContent>
               </Card>
@@ -129,7 +128,7 @@ export default function ContasAReceber() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {contas.reduce((sum, c) => sum + c.total_ids, 0)}
+                    {protocols.reduce((sum, p) => sum + p.total_ids, 0)}
                   </div>
                 </CardContent>
               </Card>
@@ -141,7 +140,7 @@ export default function ContasAReceber() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {contas.reduce((sum, c) => sum + c.total_paginas, 0)}
+                    {protocols.reduce((sum, p) => sum + p.total_pages, 0)}
                   </div>
                 </CardContent>
               </Card>
@@ -154,8 +153,8 @@ export default function ContasAReceber() {
                 <CardContent>
                   <div className="text-2xl font-bold">
                     {formatCurrency(
-                      contas.length > 0 
-                        ? contas.reduce((sum, c) => sum + c.media_por_documento, 0) / contas.length 
+                      protocols.length > 0 
+                        ? protocols.reduce((sum, p) => sum + p.avg_value_per_document, 0) / protocols.length 
                         : 0
                     )}
                   </div>
@@ -165,40 +164,50 @@ export default function ContasAReceber() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Clientes e Recebíveis</CardTitle>
-                <CardDescription>Informações detalhadas dos recebimentos por cliente</CardDescription>
+                <CardTitle>Protocolos de Receita</CardTitle>
+                <CardDescription>Protocolos criados no fechamento de receitas</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>CNPJ</TableHead>
-                      <TableHead>Pix</TableHead>
+                      <TableHead>Protocolo</TableHead>
+                      <TableHead>Competência</TableHead>
                       <TableHead>Valor Total</TableHead>
                       <TableHead>Total IDs</TableHead>
                       <TableHead>Total Páginas</TableHead>
                       <TableHead>Produto 1</TableHead>
+                      <TableHead>Produto 2</TableHead>
                       <TableHead>Média/Doc</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {contas.map((conta) => (
-                      <TableRow key={conta.id}>
-                        <TableCell className="font-medium">{conta.cliente_nome}</TableCell>
-                        <TableCell className="font-mono text-xs">{conta.cnpj}</TableCell>
-                        <TableCell className="text-xs">{conta.pix || '-'}</TableCell>
-                        <TableCell className="font-semibold">{formatCurrency(conta.valor_total)}</TableCell>
-                        <TableCell>{conta.total_ids}</TableCell>
-                        <TableCell>{conta.total_paginas}</TableCell>
-                        <TableCell>{conta.produto_1_vendido}</TableCell>
-                        <TableCell>{formatCurrency(conta.media_por_documento)}</TableCell>
+                    {protocols.map((protocol) => (
+                      <TableRow key={protocol.id}>
+                        <TableCell className="font-mono text-xs font-medium">{protocol.protocol_number}</TableCell>
+                        <TableCell>{new Date(protocol.competence_month).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' })}</TableCell>
+                        <TableCell className="font-semibold">{formatCurrency(protocol.total_value)}</TableCell>
+                        <TableCell>{protocol.total_ids}</TableCell>
+                        <TableCell>{protocol.total_pages}</TableCell>
+                        <TableCell>{protocol.product_1_count}</TableCell>
+                        <TableCell>{protocol.product_2_count}</TableCell>
+                        <TableCell>{formatCurrency(protocol.avg_value_per_document)}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                            protocol.payment_status === 'paid' 
+                              ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20'
+                              : 'bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-600/20'
+                          }`}>
+                            {protocol.payment_status === 'paid' ? 'Pago' : 'Pendente'}
+                          </span>
+                        </TableCell>
                       </TableRow>
                     ))}
-                    {contas.length === 0 && (
+                    {protocols.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center text-muted-foreground">
-                          Nenhuma conta a receber encontrada
+                        <TableCell colSpan={9} className="text-center text-muted-foreground">
+                          Nenhum protocolo de receita encontrado
                         </TableCell>
                       </TableRow>
                     )}
