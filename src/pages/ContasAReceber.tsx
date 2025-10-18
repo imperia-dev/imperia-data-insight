@@ -9,10 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, PlayCircle } from "lucide-react";
+import { Loader2, TrendingUp, PlayCircle, Eye, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/currency";
+import { RevenueProtocolDetailsDialog } from "@/components/fechamentoPrestadores/RevenueProtocolDetailsDialog";
 
 interface RevenueProtocol {
   id: string;
@@ -38,6 +39,8 @@ export default function ContasAReceber() {
   const [protocols, setProtocols] = useState<RevenueProtocol[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [activeTab, setActiveTab] = useState("novos");
+  const [selectedProtocol, setSelectedProtocol] = useState<RevenueProtocol | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const filterProtocolsByStatus = (status: string) => {
@@ -121,6 +124,36 @@ export default function ContasAReceber() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSeguirParaComprovante = async (protocolId: string) => {
+    try {
+      const { error } = await supabase
+        .from('closing_protocols')
+        .update({ payment_received_at: new Date().toISOString() })
+        .eq('id', protocolId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Protocolo movido para aguardando comprovante",
+      });
+
+      await fetchContas();
+    } catch (error) {
+      console.error('Error updating protocol:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar protocolo",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewDetails = (protocol: RevenueProtocol) => {
+    setSelectedProtocol(protocol);
+    setDetailsDialogOpen(true);
   };
 
   if (loading || loadingData) {
@@ -242,7 +275,7 @@ export default function ContasAReceber() {
                             <TableHead>Produto 2</TableHead>
                             <TableHead>Média/Doc</TableHead>
                             <TableHead>Status</TableHead>
-                            {tab === "novos" && <TableHead>Ações</TableHead>}
+                            {(tab === "novos" || tab === "aguardando-pagamento") && <TableHead>Ações</TableHead>}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -277,15 +310,36 @@ export default function ContasAReceber() {
                                   </Button>
                                 </TableCell>
                               )}
+                              {tab === "aguardando-pagamento" && (
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleViewDetails(protocol)}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      onClick={() => handleSeguirParaComprovante(protocol.id)}
+                                    >
+                                      <FileCheck className="h-4 w-4 mr-2" />
+                                      Seguir para Comprovante
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
                             </TableRow>
                           ))}
-                          {filterProtocolsByStatus(tab).length === 0 && (
-                            <TableRow>
-                              <TableCell colSpan={tab === "novos" ? 10 : 9} className="text-center text-muted-foreground">
-                                Nenhum protocolo encontrado nesta categoria
-                              </TableCell>
-                            </TableRow>
-                          )}
+                           {filterProtocolsByStatus(tab).length === 0 && (
+                             <TableRow>
+                               <TableCell colSpan={(tab === "novos" || tab === "aguardando-pagamento") ? 10 : 9} className="text-center text-muted-foreground">
+                                 Nenhum protocolo encontrado nesta categoria
+                               </TableCell>
+                             </TableRow>
+                           )}
                         </TableBody>
                       </Table>
                     </TabsContent>
@@ -296,6 +350,12 @@ export default function ContasAReceber() {
           </div>
         </main>
       </div>
+
+      <RevenueProtocolDetailsDialog
+        protocol={selectedProtocol}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
     </div>
   );
 }
