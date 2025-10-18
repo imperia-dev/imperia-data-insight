@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { VariaveisEsporadicas } from "@/components/financeiro/VariaveisEsporadicas";
+
 import { Loader2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -206,8 +206,6 @@ export default function ContasAReceber() {
                 </Table>
               </CardContent>
             </Card>
-
-            <VariaveisEsporadicas tipo="receber" onSuccess={fetchContas} />
           </div>
         </main>
       </div>
