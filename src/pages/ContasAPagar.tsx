@@ -6,18 +6,54 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { VariaveisEsporadicas } from "@/components/financeiro/VariaveisEsporadicas";
+import { Loader2, PlayCircle, Upload, FileText, CheckCircle, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/lib/currency";
+
+interface ContaPagar {
+  id: string;
+  protocolo: string | null;
+  pedido_ids: string[];
+  prestador_nome: string;
+  prestador_cpf: string | null;
+  prestador_cnpj: string | null;
+  prestador_funcao: string | null;
+  meio_pagamento_digital: string | null;
+  meio_pagamento_agencia: string | null;
+  valor_total: number;
+  status: string;
+  anexos: string[];
+  observacoes: string | null;
+  nota_fiscal_url: string | null;
+  pago_em: string | null;
+  created_at: string;
+}
 
 export default function ContasAPagar() {
   const { user } = useAuth();
   const { userRole, loading } = useRoleAccess("/contas-a-pagar");
   const { isCollapsed } = useSidebar();
   const [userName, setUserName] = useState('');
+  const [contas, setContas] = useState<ContaPagar[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
+  const [notaFiscal, setNotaFiscal] = useState<File | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
+      fetchContas();
     }
   }, [user]);
 
@@ -30,16 +66,155 @@ export default function ContasAPagar() {
         .single();
 
       if (error) throw error;
-
-      if (data) {
-        setUserName(data.full_name || 'Usuário');
-      }
+      if (data) setUserName(data.full_name || 'Usuário');
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
   };
 
-  if (loading) {
+  const fetchContas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('contas_a_pagar')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setContas(data || []);
+    } catch (error) {
+      console.error('Error fetching contas:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar contas a pagar",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const iniciarProcessoPagamento = async (contaId: string) => {
+    try {
+      const protocolo = `PAG-${Date.now()}`;
+      
+      const { error } = await supabase
+        .from('contas_a_pagar')
+        .update({
+          protocolo,
+          status: 'aguardando_pagamento'
+        })
+        .eq('id', contaId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Processo de pagamento iniciado",
+      });
+
+      fetchContas();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao iniciar processo",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const marcarComoPago = async (contaId: string) => {
+    try {
+      const { error } = await supabase
+        .from('contas_a_pagar')
+        .update({
+          status: 'aguardando_nf',
+          pago_em: new Date().toISOString()
+        })
+        .eq('id', contaId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Conta marcada como paga",
+      });
+
+      fetchContas();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao marcar como pago",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const uploadNotaFiscal = async () => {
+    if (!selectedConta || !notaFiscal) return;
+
+    try {
+      const fileExt = notaFiscal.name.split('.').pop();
+      const fileName = `${selectedConta.id}-${Date.now()}.${fileExt}`;
+      const filePath = `notas-fiscais/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, notaFiscal);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      const { error } = await supabase
+        .from('contas_a_pagar')
+        .update({
+          nota_fiscal_url: publicUrl,
+          status: 'finalizado'
+        })
+        .eq('id', selectedConta.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Nota fiscal enviada com sucesso",
+      });
+
+      setSelectedConta(null);
+      setNotaFiscal(null);
+      fetchContas();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao enviar nota fiscal",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderStatusBadge = (status: string) => {
+    const variants: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+      novo: { label: "Novo", variant: "secondary" },
+      aguardando_pagamento: { label: "Aguardando Pagamento", variant: "default" },
+      aguardando_nf: { label: "Aguardando NF", variant: "outline" },
+      finalizado: { label: "Finalizado", variant: "default" }
+    };
+
+    const config = variants[status] || { label: status, variant: "default" };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const contasNovos = contas.filter(c => c.status === 'novo');
+  const contasAguardandoPagamento = contas.filter(c => c.status === 'aguardando_pagamento');
+  const contasAguardandoNF = contas.filter(c => c.status === 'aguardando_nf');
+  const contasFinalizados = contas.filter(c => c.status === 'finalizado');
+
+  if (loading || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -61,23 +236,218 @@ export default function ContasAPagar() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Contas a Pagar</h1>
               <p className="text-muted-foreground mt-2">
-                Gerencie e acompanhe todas as contas a pagar da empresa
+                Gerencie o fluxo completo de pagamentos
               </p>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Contas a Pagar</CardTitle>
-                <CardDescription>
-                  Lista de todas as contas pendentes de pagamento
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Conteúdo em desenvolvimento...
-                </p>
-              </CardContent>
-            </Card>
+            <Tabs defaultValue="novos" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="novos">
+                  Novos ({contasNovos.length})
+                </TabsTrigger>
+                <TabsTrigger value="aguardando">
+                  Aguardando Pagamento ({contasAguardandoPagamento.length})
+                </TabsTrigger>
+                <TabsTrigger value="nf">
+                  Aguardando NF ({contasAguardandoNF.length})
+                </TabsTrigger>
+                <TabsTrigger value="finalizados">
+                  Finalizados ({contasFinalizados.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="novos" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Itens Novos</CardTitle>
+                    <CardDescription>Contas que ainda não iniciaram o processo de pagamento</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Prestador</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {contasNovos.map((conta) => (
+                          <TableRow key={conta.id}>
+                            <TableCell>{conta.prestador_nome}</TableCell>
+                            <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
+                            <TableCell>{renderStatusBadge(conta.status)}</TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                onClick={() => iniciarProcessoPagamento(conta.id)}
+                              >
+                                <PlayCircle className="h-4 w-4 mr-2" />
+                                Iniciar Processo
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="aguardando" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Aguardando Pagamento</CardTitle>
+                    <CardDescription>Contas com processo iniciado aguardando pagamento</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Prestador</TableHead>
+                          <TableHead>CPF/CNPJ</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {contasAguardandoPagamento.map((conta) => (
+                          <TableRow key={conta.id}>
+                            <TableCell className="font-mono">{conta.protocolo}</TableCell>
+                            <TableCell>{conta.prestador_nome}</TableCell>
+                            <TableCell>{conta.prestador_cpf || conta.prestador_cnpj}</TableCell>
+                            <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                onClick={() => marcarComoPago(conta.id)}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Marcar como Pago
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="nf" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Aguardando Nota Fiscal</CardTitle>
+                    <CardDescription>Pagamentos realizados aguardando upload da NF</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Prestador</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Pago em</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {contasAguardandoNF.map((conta) => (
+                          <TableRow key={conta.id}>
+                            <TableCell className="font-mono">{conta.protocolo}</TableCell>
+                            <TableCell>{conta.prestador_nome}</TableCell>
+                            <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
+                            <TableCell>{new Date(conta.pago_em!).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => setSelectedConta(conta)}
+                                  >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Upload NF
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Enviar Nota Fiscal</DialogTitle>
+                                    <DialogDescription>
+                                      Protocolo: {conta.protocolo}
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                    <div className="space-y-2">
+                                      <Label htmlFor="nf">Nota Fiscal (PDF)</Label>
+                                      <Input
+                                        id="nf"
+                                        type="file"
+                                        accept=".pdf"
+                                        onChange={(e) => setNotaFiscal(e.target.files?.[0] || null)}
+                                      />
+                                    </div>
+                                    <Button onClick={uploadNotaFiscal} disabled={!notaFiscal}>
+                                      <Upload className="h-4 w-4 mr-2" />
+                                      Enviar Nota Fiscal
+                                    </Button>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="finalizados" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pagamentos Finalizados</CardTitle>
+                    <CardDescription>Contas completas (pagos + NF anexada)</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Prestador</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>NF</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {contasFinalizados.map((conta) => (
+                          <TableRow key={conta.id}>
+                            <TableCell className="font-mono">{conta.protocolo}</TableCell>
+                            <TableCell>{conta.prestador_nome}</TableCell>
+                            <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
+                            <TableCell>{renderStatusBadge(conta.status)}</TableCell>
+                            <TableCell>
+                              {conta.nota_fiscal_url && (
+                                <Button size="sm" variant="outline" asChild>
+                                  <a href={conta.nota_fiscal_url} target="_blank" rel="noopener noreferrer">
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Ver NF
+                                  </a>
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+
+            <VariaveisEsporadicas tipo="pagar" onSuccess={fetchContas} />
           </div>
         </main>
       </div>

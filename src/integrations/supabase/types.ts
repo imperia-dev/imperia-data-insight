@@ -881,6 +881,156 @@ export type Database = {
         }
         Relationships: []
       }
+      contas_a_pagar: {
+        Row: {
+          anexos: string[] | null
+          created_at: string
+          created_by: string | null
+          id: string
+          meio_pagamento_agencia: string | null
+          meio_pagamento_digital: string | null
+          nota_fiscal_url: string | null
+          observacoes: string | null
+          pago_em: string | null
+          pedido_ids: string[] | null
+          prestador_cnpj: string | null
+          prestador_cpf: string | null
+          prestador_funcao: string | null
+          prestador_id: string | null
+          prestador_nome: string
+          protocolo: string | null
+          status: Database["public"]["Enums"]["conta_pagar_status"]
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          anexos?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          meio_pagamento_agencia?: string | null
+          meio_pagamento_digital?: string | null
+          nota_fiscal_url?: string | null
+          observacoes?: string | null
+          pago_em?: string | null
+          pedido_ids?: string[] | null
+          prestador_cnpj?: string | null
+          prestador_cpf?: string | null
+          prestador_funcao?: string | null
+          prestador_id?: string | null
+          prestador_nome: string
+          protocolo?: string | null
+          status?: Database["public"]["Enums"]["conta_pagar_status"]
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          anexos?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          meio_pagamento_agencia?: string | null
+          meio_pagamento_digital?: string | null
+          nota_fiscal_url?: string | null
+          observacoes?: string | null
+          pago_em?: string | null
+          pedido_ids?: string[] | null
+          prestador_cnpj?: string | null
+          prestador_cpf?: string | null
+          prestador_funcao?: string | null
+          prestador_id?: string | null
+          prestador_nome?: string
+          protocolo?: string | null
+          status?: Database["public"]["Enums"]["conta_pagar_status"]
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_a_pagar_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_a_pagar_prestador_id_fkey"
+            columns: ["prestador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_a_receber: {
+        Row: {
+          cliente_id: string | null
+          cliente_nome: string
+          cnpj: string
+          created_at: string
+          created_by: string | null
+          id: string
+          media_por_documento: number | null
+          pix: string | null
+          prestacoes: Json | null
+          produto_1_vendido: number | null
+          total_ids: number | null
+          total_paginas: number | null
+          updated_at: string
+          valor_por_produto: Json | null
+          valor_total: number
+        }
+        Insert: {
+          cliente_id?: string | null
+          cliente_nome: string
+          cnpj: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          media_por_documento?: number | null
+          pix?: string | null
+          prestacoes?: Json | null
+          produto_1_vendido?: number | null
+          total_ids?: number | null
+          total_paginas?: number | null
+          updated_at?: string
+          valor_por_produto?: Json | null
+          valor_total?: number
+        }
+        Update: {
+          cliente_id?: string | null
+          cliente_nome?: string
+          cnpj?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          media_por_documento?: number | null
+          pix?: string | null
+          prestacoes?: Json | null
+          produto_1_vendido?: number | null
+          total_ids?: number | null
+          total_paginas?: number | null
+          updated_at?: string
+          valor_por_produto?: Json | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_a_receber_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_a_receber_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_centers: {
         Row: {
           code: string | null
@@ -4167,6 +4317,50 @@ export type Database = {
         }
         Relationships: []
       }
+      variaveis_esporadicas: {
+        Row: {
+          arquivo_url: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string
+          id: string
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          arquivo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao: string
+          id?: string
+          status?: string
+          tipo: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          arquivo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variaveis_esporadicas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_logs: {
         Row: {
           error_message: string | null
@@ -4612,6 +4806,11 @@ export type Database = {
         | "equity"
       batch_status: "draft" | "sent" | "processing" | "completed" | "failed"
       cash_flow_method: "direct" | "indirect"
+      conta_pagar_status:
+        | "novo"
+        | "aguardando_pagamento"
+        | "aguardando_nf"
+        | "finalizado"
       dfc_activity_type: "OPERATING" | "INVESTING" | "FINANCING"
       document_status:
         | "pending"
@@ -4794,6 +4993,12 @@ export const Constants = {
       ],
       batch_status: ["draft", "sent", "processing", "completed", "failed"],
       cash_flow_method: ["direct", "indirect"],
+      conta_pagar_status: [
+        "novo",
+        "aguardando_pagamento",
+        "aguardando_nf",
+        "finalizado",
+      ],
       dfc_activity_type: ["OPERATING", "INVESTING", "FINANCING"],
       document_status: [
         "pending",
