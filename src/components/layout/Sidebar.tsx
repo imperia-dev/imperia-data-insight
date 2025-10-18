@@ -393,6 +393,12 @@ const customerNavigationItems: NavigationItem[] = [
 // Financeiro-specific navigation
 const financeiroNavigationItems: NavigationItem[] = [
   {
+    title: "Dashboard",
+    icon: BarChart3,
+    href: "/dashboard-controle-financeiro",
+    roles: ["financeiro"],
+  },
+  {
     title: "Contas a Pagar",
     icon: TrendingDown,
     href: "/contas-a-pagar",

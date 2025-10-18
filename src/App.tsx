@@ -62,6 +62,7 @@ import SecretManagement from "./pages/SecretManagement";
 import CompanyAssets from "./pages/CompanyAssets";
 import ContasAPagar from "./pages/ContasAPagar";
 import ContasAReceber from "./pages/ContasAReceber";
+import DashboardControleFinanceiro from "./pages/DashboardControleFinanceiro";
 
 const queryClient = new QueryClient();
 
@@ -302,16 +303,21 @@ const App = () => (
                 <CompanyAssets />
               </ProtectedRouteWithApproval>
             } />
-            <Route path="/contas-a-pagar" element={
-              <ProtectedRouteWithApproval>
-                <ContasAPagar />
-              </ProtectedRouteWithApproval>
-            } />
-            <Route path="/contas-a-receber" element={
-              <ProtectedRouteWithApproval>
-                <ContasAReceber />
-              </ProtectedRouteWithApproval>
-            } />
+          <Route path="/dashboard-controle-financeiro" element={
+            <ProtectedRouteWithApproval>
+              <DashboardControleFinanceiro />
+            </ProtectedRouteWithApproval>
+          } />
+          <Route path="/contas-a-pagar" element={
+            <ProtectedRouteWithApproval>
+              <ContasAPagar />
+            </ProtectedRouteWithApproval>
+          } />
+          <Route path="/contas-a-receber" element={
+            <ProtectedRouteWithApproval>
+              <ContasAReceber />
+            </ProtectedRouteWithApproval>
+          } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
             </Routes>

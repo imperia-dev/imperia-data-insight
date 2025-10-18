@@ -13,7 +13,7 @@ export function HomePage() {
       // Redirect based on user role to their specific dashboard
       switch (userRole) {
         case "financeiro":
-          navigate("/contas-a-pagar", { replace: true });
+          navigate("/dashboard-controle-financeiro", { replace: true });
           break;
         case "customer":
           navigate("/customer-dashboard", { replace: true });
