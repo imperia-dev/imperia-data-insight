@@ -6,18 +6,23 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, BarChart3 } from "lucide-react";
+import { Loader2, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StatsCard } from "@/components/dashboard/StatsCard";
 
 export default function DashboardControleFinanceiro() {
   const { user } = useAuth();
   const { userRole, loading } = useRoleAccess("/dashboard-controle-financeiro");
   const { isCollapsed } = useSidebar();
   const [userName, setUserName] = useState('');
+  const [contasPagar, setContasPagar] = useState({ pendente: 0, pago: 0 });
+  const [contasReceber, setContasReceber] = useState({ pendente: 0, recebido: 0 });
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
+      fetchFinancialData();
     }
   }, [user]);
 
@@ -37,6 +42,63 @@ export default function DashboardControleFinanceiro() {
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
+  };
+
+  const fetchFinancialData = async () => {
+    setLoadingData(true);
+    try {
+      // Fetch Contas a Pagar
+      const { data: contasPagarData, error: pagarError } = await supabase
+        .from('contas_a_pagar')
+        .select('valor_total, status');
+
+      if (pagarError) throw pagarError;
+
+      const totalPendente = contasPagarData
+        ?.filter(c => c.status === 'novo' || c.status === 'aguardando_pagamento')
+        .reduce((sum, c) => sum + Number(c.valor_total || 0), 0) || 0;
+
+      const totalPago = contasPagarData
+        ?.filter(c => c.status === 'finalizado')
+        .reduce((sum, c) => sum + Number(c.valor_total || 0), 0) || 0;
+
+      setContasPagar({ pendente: totalPendente, pago: totalPago });
+
+      // Fetch Contas a Receber
+      const { data: contasReceberData, error: receberError } = await supabase
+        .from('contas_a_receber')
+        .select('valor_total, prestacoes');
+
+      if (receberError) throw receberError;
+
+      let totalReceber = 0;
+      let totalRecebido = 0;
+
+      contasReceberData?.forEach(conta => {
+        const prestacoes = conta.prestacoes as any[] || [];
+        prestacoes.forEach((p: any) => {
+          const valor = Number(p.valor || 0);
+          if (p.status === 'pendente') {
+            totalReceber += valor;
+          } else if (p.status === 'recebido') {
+            totalRecebido += valor;
+          }
+        });
+      });
+
+      setContasReceber({ pendente: totalReceber, recebido: totalRecebido });
+    } catch (error) {
+      console.error('Error fetching financial data:', error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
   if (loading) {
@@ -65,29 +127,49 @@ export default function DashboardControleFinanceiro() {
               </p>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Dashboard em Desenvolvimento
-                </CardTitle>
-                <CardDescription>
-                  Esta página está sendo construída e em breve exibirá os indicadores consolidados
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center py-12">
-                <div className="text-center space-y-4">
-                  <BarChart3 className="h-16 w-16 mx-auto text-muted-foreground" />
-                  <p className="text-muted-foreground text-lg">
-                    Conteúdo em desenvolvimento...
-                  </p>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Em breve você poderá visualizar os totalizadores de Contas a Pagar, 
-                    Contas a Receber e filtros por período.
-                  </p>
+            {loadingData ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Contas a Pagar</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <StatsCard
+                      title="Total Pendente"
+                      value={formatCurrency(contasPagar.pendente)}
+                      icon={<TrendingDown className="h-5 w-5" />}
+                      description="Aguardando pagamento"
+                    />
+                    <StatsCard
+                      title="Total Pago"
+                      value={formatCurrency(contasPagar.pago)}
+                      icon={<DollarSign className="h-5 w-5" />}
+                      description="Finalizados"
+                    />
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Contas a Receber</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <StatsCard
+                      title="Total a Receber"
+                      value={formatCurrency(contasReceber.pendente)}
+                      icon={<TrendingUp className="h-5 w-5" />}
+                      description="Prestações pendentes"
+                    />
+                    <StatsCard
+                      title="Total Recebido"
+                      value={formatCurrency(contasReceber.recebido)}
+                      icon={<DollarSign className="h-5 w-5" />}
+                      description="Prestações pagas"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </main>
       </div>
