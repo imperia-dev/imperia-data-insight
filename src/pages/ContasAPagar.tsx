@@ -75,18 +75,20 @@ export default function ContasAPagar() {
 
       if (despesasError) throw despesasError;
 
-      // Buscar protocolos de prestadores
+      // Buscar protocolos de prestadores (excluir cancelados)
       const { data: prestadores, error: prestadoresError } = await supabase
         .from('service_provider_protocols')
         .select('*')
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false });
 
       if (prestadoresError) throw prestadoresError;
 
-      // Buscar protocolos de revisores
+      // Buscar protocolos de revisores (excluir cancelados)
       const { data: revisores, error: revisoresError } = await supabase
         .from('reviewer_protocols')
         .select('*')
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false });
 
       if (revisoresError) throw revisoresError;
@@ -165,6 +167,7 @@ export default function ContasAPagar() {
   const mapProviderStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
       'draft': 'novo',
+      'awaiting_provider_data': 'novo',
       'awaiting_approval': 'novo',
       'approved': 'aguardando_pagamento',
       'awaiting_payment': 'aguardando_pagamento',
@@ -178,6 +181,7 @@ export default function ContasAPagar() {
   const mapReviewerStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
       'draft': 'novo',
+      'pending_approval': 'novo',
       'awaiting_approval': 'novo',
       'approved': 'aguardando_pagamento',
       'awaiting_payment': 'aguardando_pagamento',
