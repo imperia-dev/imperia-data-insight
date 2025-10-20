@@ -24,6 +24,7 @@ interface ContaPagar {
   protocolo: string;
   tipo: 'despesas' | 'prestadores' | 'revisores';
   prestador_nome: string;
+  prestador_detalhe?: string; // Para email ou função do revisor
   valor_total: number;
   status: string;
   pago_em: string | null;
@@ -125,6 +126,7 @@ export default function ContasAPagar() {
         protocolo: r.protocol_number,
         tipo: 'revisores' as const,
         prestador_nome: r.reviewer_name || 'Revisor',
+        prestador_detalhe: r.reviewer_email || undefined,
         valor_total: Number(r.total_amount || 0),
         status: mapReviewerStatus(r.status),
         pago_em: r.paid_at,
@@ -445,7 +447,14 @@ export default function ContasAPagar() {
                                 {conta.tipo === 'despesas' ? 'Despesas' : conta.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
                               </Badge>
                             </TableCell>
-                            <TableCell>{conta.prestador_nome}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{conta.prestador_nome}</p>
+                                {conta.prestador_detalhe && (
+                                  <p className="text-xs text-muted-foreground">{conta.prestador_detalhe}</p>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>{renderStatusBadge(conta.status)}</TableCell>
                             <TableCell>
@@ -491,7 +500,14 @@ export default function ContasAPagar() {
                                 {conta.tipo === 'despesas' ? 'Despesas' : conta.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
                               </Badge>
                             </TableCell>
-                            <TableCell>{conta.prestador_nome}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{conta.prestador_nome}</p>
+                                {conta.prestador_detalhe && (
+                                  <p className="text-xs text-muted-foreground">{conta.prestador_detalhe}</p>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>
                               <Button
@@ -537,7 +553,14 @@ export default function ContasAPagar() {
                                 {conta.tipo === 'despesas' ? 'Despesas' : conta.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
                               </Badge>
                             </TableCell>
-                            <TableCell>{conta.prestador_nome}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{conta.prestador_nome}</p>
+                                {conta.prestador_detalhe && (
+                                  <p className="text-xs text-muted-foreground">{conta.prestador_detalhe}</p>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>{conta.pago_em ? new Date(conta.pago_em).toLocaleDateString() : '-'}</TableCell>
                             <TableCell>
@@ -611,7 +634,14 @@ export default function ContasAPagar() {
                                 {conta.tipo === 'despesas' ? 'Despesas' : conta.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
                               </Badge>
                             </TableCell>
-                            <TableCell>{conta.prestador_nome}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{conta.prestador_nome}</p>
+                                {conta.prestador_detalhe && (
+                                  <p className="text-xs text-muted-foreground">{conta.prestador_detalhe}</p>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>{renderStatusBadge(conta.status)}</TableCell>
                             <TableCell>
