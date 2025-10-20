@@ -3527,6 +3527,7 @@ export type Database = {
           owner_approved_at: string | null
           owner_approved_by: string | null
           paid_at: string | null
+          paid_by: string | null
           payment_metadata: Json | null
           payment_receipt_url: string | null
           payment_reference: string | null
@@ -3538,6 +3539,8 @@ export type Database = {
           reviewer_email: string
           reviewer_id: string
           reviewer_name: string
+          sent_to_finance_at: string | null
+          sent_to_finance_by: string | null
           status: string
           total_amount: number
           updated_at: string
@@ -3573,6 +3576,7 @@ export type Database = {
           owner_approved_at?: string | null
           owner_approved_by?: string | null
           paid_at?: string | null
+          paid_by?: string | null
           payment_metadata?: Json | null
           payment_receipt_url?: string | null
           payment_reference?: string | null
@@ -3584,6 +3588,8 @@ export type Database = {
           reviewer_email: string
           reviewer_id: string
           reviewer_name: string
+          sent_to_finance_at?: string | null
+          sent_to_finance_by?: string | null
           status?: string
           total_amount?: number
           updated_at?: string
@@ -3619,6 +3625,7 @@ export type Database = {
           owner_approved_at?: string | null
           owner_approved_by?: string | null
           paid_at?: string | null
+          paid_by?: string | null
           payment_metadata?: Json | null
           payment_receipt_url?: string | null
           payment_reference?: string | null
@@ -3630,6 +3637,8 @@ export type Database = {
           reviewer_email?: string
           reviewer_id?: string
           reviewer_name?: string
+          sent_to_finance_at?: string | null
+          sent_to_finance_by?: string | null
           status?: string
           total_amount?: number
           updated_at?: string
