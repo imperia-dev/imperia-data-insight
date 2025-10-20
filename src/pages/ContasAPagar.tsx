@@ -165,7 +165,7 @@ export default function ContasAPagar() {
   const mapExpenseStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
       'draft': 'novo',
-      'under_review': 'novo',
+      'under_review': 'aguardando_nf',
       'approved': 'novo',
       'cancelled': 'novo',
       'closed': 'finalizado'
@@ -182,7 +182,7 @@ export default function ContasAPagar() {
       'approved': 'novo',
       'awaiting_payment': 'aguardando_pagamento',
       'cancelled': 'novo',
-      'paid': 'finalizado',
+      'paid': 'aguardando_nf',
       'completed': 'finalizado'
     };
     return statusMap[status] || 'novo';
@@ -202,7 +202,7 @@ export default function ContasAPagar() {
       'sent_to_finance': 'aguardando_pagamento',
       'awaiting_payment': 'aguardando_pagamento',
       'cancelled': 'novo',
-      'paid': 'finalizado',
+      'paid': 'aguardando_nf',
       'completed': 'finalizado'
     };
     return statusMap[status] || 'novo';
@@ -252,6 +252,51 @@ export default function ContasAPagar() {
       toast({
         title: "Erro",
         description: "Erro ao iniciar processo",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const seguirParaComprovante = async (contaId: string) => {
+    try {
+      const conta = contas.find(c => c.id === contaId);
+      if (!conta) return;
+
+      let updateError;
+
+      if (conta.tipo === 'despesas') {
+        const { error } = await supabase
+          .from('expense_closing_protocols')
+          .update({ status: 'closed' })
+          .eq('id', contaId);
+        updateError = error;
+      } else if (conta.tipo === 'prestadores') {
+        const { error } = await supabase
+          .from('service_provider_protocols')
+          .update({ status: 'completed' })
+          .eq('id', contaId);
+        updateError = error;
+      } else if (conta.tipo === 'revisores') {
+        const { error } = await supabase
+          .from('reviewer_protocols')
+          .update({ status: 'completed' })
+          .eq('id', contaId);
+        updateError = error;
+      }
+
+      if (updateError) throw updateError;
+
+      await fetchContas();
+
+      toast({
+        title: "Sucesso",
+        description: "Protocolo finalizado",
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao finalizar protocolo",
         variant: "destructive",
       });
     }
@@ -691,40 +736,22 @@ export default function ContasAPagar() {
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>{conta.pago_em ? new Date(conta.pago_em).toLocaleDateString() : '-'}</TableCell>
                             <TableCell>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => setSelectedConta(conta)}
-                                  >
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Upload NF
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Enviar Nota Fiscal</DialogTitle>
-                                    <DialogDescription>
-                                      Protocolo: {conta.protocolo}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div className="space-y-2">
-                                      <Label htmlFor="nf">Nota Fiscal (PDF)</Label>
-                                      <Input
-                                        id="nf"
-                                        type="file"
-                                        accept=".pdf"
-                                        onChange={(e) => setNotaFiscal(e.target.files?.[0] || null)}
-                                      />
-                                    </div>
-                                    <Button onClick={uploadNotaFiscal} disabled={!notaFiscal}>
-                                      <Upload className="h-4 w-4 mr-2" />
-                                      Enviar Nota Fiscal
-                                    </Button>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {/* TODO: Ver detalhes */}}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => seguirParaComprovante(conta.id)}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Seguir para Comprovante
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
