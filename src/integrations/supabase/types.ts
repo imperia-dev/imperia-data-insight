@@ -3503,6 +3503,7 @@ export type Database = {
           bank_agency: string | null
           bank_name: string | null
           cancelled_reason: string | null
+          centro_custo_id: string | null
           cnpj: string | null
           competence_month: string
           cpf: string | null
@@ -3548,6 +3549,7 @@ export type Database = {
           bank_agency?: string | null
           bank_name?: string | null
           cancelled_reason?: string | null
+          centro_custo_id?: string | null
           cnpj?: string | null
           competence_month: string
           cpf?: string | null
@@ -3593,6 +3595,7 @@ export type Database = {
           bank_agency?: string | null
           bank_name?: string | null
           cancelled_reason?: string | null
+          centro_custo_id?: string | null
           cnpj?: string | null
           competence_month?: string
           cpf?: string | null
@@ -3631,7 +3634,15 @@ export type Database = {
           total_amount?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reviewer_protocols_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       secret_rotation_logs: {
         Row: {
