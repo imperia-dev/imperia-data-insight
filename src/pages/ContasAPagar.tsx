@@ -184,7 +184,7 @@ export default function ContasAPagar() {
       'draft': 'novo',
       'awaiting_provider_data': 'novo',
       'awaiting_approval': 'novo',
-      'approved': 'novo',
+      'approved': 'aguardando_pagamento',
       'awaiting_payment': 'aguardando_pagamento',
       'cancelled': 'novo',
       'paid': 'aguardando_nf',
