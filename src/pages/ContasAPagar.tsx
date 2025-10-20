@@ -109,36 +109,40 @@ export default function ContasAPagar() {
         original_data: d
       }));
 
-      // Mapear protocolos de prestadores
-      const contasPrestadores: ContaPagar[] = (prestadores || []).map(p => ({
-        id: p.id,
-        protocolo: p.protocol_number,
-        tipo: 'prestadores' as const,
-        prestador_nome: p.provider_name || 'Prestador',
-        valor_total: Number(p.total_amount || 0),
-        competencia: p.competence_month,
-        status: mapProviderStatus(p.status),
-        pago_em: p.paid_at,
-        nota_fiscal_url: null,
-        created_at: p.created_at,
-        original_data: p
-      }));
+      // Mapear protocolos de prestadores (excluindo cancelados)
+      const contasPrestadores: ContaPagar[] = (prestadores || [])
+        .filter(p => p.status !== 'cancelled')
+        .map(p => ({
+          id: p.id,
+          protocolo: p.protocol_number,
+          tipo: 'prestadores' as const,
+          prestador_nome: p.provider_name || 'Prestador',
+          valor_total: Number(p.total_amount || 0),
+          competencia: p.competence_month,
+          status: mapProviderStatus(p.status),
+          pago_em: p.paid_at,
+          nota_fiscal_url: null,
+          created_at: p.created_at,
+          original_data: p
+        }));
 
-      // Mapear protocolos de revisores
-      const contasRevisores: ContaPagar[] = (revisores || []).map(r => ({
-        id: r.id,
-        protocolo: r.protocol_number,
-        tipo: 'revisores' as const,
-        prestador_nome: r.reviewer_name || 'Revisor',
-        prestador_detalhe: r.reviewer_email || undefined,
-        valor_total: Number(r.total_amount || 0),
-        competencia: r.competence_month,
-        status: mapReviewerStatus(r.status),
-        pago_em: r.paid_at,
-        nota_fiscal_url: null,
-        created_at: r.created_at,
-        original_data: r
-      }));
+      // Mapear protocolos de revisores (excluindo cancelados)
+      const contasRevisores: ContaPagar[] = (revisores || [])
+        .filter(r => r.status !== 'cancelled')
+        .map(r => ({
+          id: r.id,
+          protocolo: r.protocol_number,
+          tipo: 'revisores' as const,
+          prestador_nome: r.reviewer_name || 'Revisor',
+          prestador_detalhe: r.reviewer_email || undefined,
+          valor_total: Number(r.total_amount || 0),
+          competencia: r.competence_month,
+          status: mapReviewerStatus(r.status),
+          pago_em: r.paid_at,
+          nota_fiscal_url: null,
+          created_at: r.created_at,
+          original_data: r
+        }));
 
       // Combinar todos os protocolos
       const todasContas = [...contasDespesas, ...contasPrestadores, ...contasRevisores]
