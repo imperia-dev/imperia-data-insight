@@ -75,20 +75,18 @@ export default function ContasAPagar() {
 
       if (despesasError) throw despesasError;
 
-      // Buscar protocolos de prestadores (excluir cancelados)
+      // Buscar protocolos de prestadores
       const { data: prestadores, error: prestadoresError } = await supabase
         .from('service_provider_protocols')
         .select('*')
-        .neq('status', 'cancelled')
         .order('created_at', { ascending: false });
 
       if (prestadoresError) throw prestadoresError;
 
-      // Buscar protocolos de revisores (excluir cancelados)
+      // Buscar protocolos de revisores
       const { data: revisores, error: revisoresError } = await supabase
         .from('reviewer_protocols')
         .select('*')
-        .neq('status', 'cancelled')
         .order('created_at', { ascending: false });
 
       if (revisoresError) throw revisoresError;
@@ -158,6 +156,7 @@ export default function ContasAPagar() {
       'draft': 'novo',
       'under_review': 'novo',
       'approved': 'novo',
+      'cancelled': 'novo',
       'closed': 'finalizado'
     };
     return statusMap[status] || 'novo';
@@ -171,6 +170,7 @@ export default function ContasAPagar() {
       'awaiting_approval': 'novo',
       'approved': 'novo',
       'awaiting_payment': 'aguardando_pagamento',
+      'cancelled': 'novo',
       'paid': 'finalizado',
       'completed': 'finalizado'
     };
@@ -185,6 +185,7 @@ export default function ContasAPagar() {
       'awaiting_approval': 'novo',
       'approved': 'novo',
       'awaiting_payment': 'aguardando_pagamento',
+      'cancelled': 'novo',
       'paid': 'finalizado',
       'completed': 'finalizado'
     };
