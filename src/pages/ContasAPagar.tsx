@@ -213,36 +213,53 @@ export default function ContasAPagar() {
       const conta = contas.find(c => c.id === contaId);
       if (!conta) return;
 
+      console.log('Iniciando processo para:', { id: contaId, tipo: conta.tipo, status_atual: conta.original_data?.status });
+
       let updateError;
+      let updatedData;
 
       if (conta.tipo === 'despesas') {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('expense_closing_protocols')
           .update({ status: 'approved' })
-          .eq('id', contaId);
+          .eq('id', contaId)
+          .select()
+          .single();
         updateError = error;
+        updatedData = data;
       } else if (conta.tipo === 'prestadores') {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('service_provider_protocols')
           .update({ status: 'awaiting_payment' })
-          .eq('id', contaId);
+          .eq('id', contaId)
+          .select()
+          .single();
         updateError = error;
+        updatedData = data;
       } else if (conta.tipo === 'revisores') {
         // Para revisores, enviar para o financeiro
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('reviewer_protocols')
           .update({ 
             status: 'sent_to_finance',
             sent_to_finance_at: new Date().toISOString(),
             sent_to_finance_by: user?.id
           })
-          .eq('id', contaId);
+          .eq('id', contaId)
+          .select()
+          .single();
         updateError = error;
+        updatedData = data;
       }
 
       if (updateError) throw updateError;
 
-      // Aguardar a recarga dos dados antes de mostrar o toast
+      console.log('Dados atualizados:', updatedData);
+
+      // Pequeno delay para garantir que a atualização foi propagada
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Recarregar os dados
       await fetchContas();
 
       toast({
