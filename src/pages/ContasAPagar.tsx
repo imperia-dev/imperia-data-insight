@@ -173,7 +173,7 @@ export default function ContasAPagar() {
           nota_fiscal_url: p.payment_receipt_url,
           created_at: p.created_at,
           original_data: p,
-          centro_custo_nome: prestadoresCentroCustoMap.get(p.id)
+          centro_custo_nome: 'Operacional'
         }));
 
       // Mapear protocolos de revisores (excluindo cancelados)
