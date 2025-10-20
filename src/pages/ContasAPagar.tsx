@@ -46,6 +46,9 @@ export default function ContasAPagar() {
   const [activeTab, setActiveTab] = useState("novos");
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedContaForDetails, setSelectedContaForDetails] = useState<ContaPagar | null>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedContaForUpload, setSelectedContaForUpload] = useState<ContaPagar | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -259,7 +262,81 @@ export default function ContasAPagar() {
     }
   };
 
-  const seguirParaComprovante = async (contaId: string) => {
+  const inserirComprovante = async () => {
+    if (!selectedContaForUpload || !uploadedFile) {
+      toast({
+        title: "Erro",
+        description: "Selecione um arquivo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const fileExt = uploadedFile.name.split('.').pop();
+      const fileName = `${selectedContaForUpload.id}-${Date.now()}.${fileExt}`;
+      const filePath = `comprovantes/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, uploadedFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      let updateError;
+
+      if (selectedContaForUpload.tipo === 'despesas') {
+        const { error } = await supabase
+          .from('expense_closing_protocols')
+          .update({
+            payment_receipt_url: publicUrl
+          })
+          .eq('id', selectedContaForUpload.id);
+        updateError = error;
+      } else if (selectedContaForUpload.tipo === 'prestadores') {
+        const { error } = await supabase
+          .from('service_provider_protocols')
+          .update({
+            payment_receipt_url: publicUrl
+          })
+          .eq('id', selectedContaForUpload.id);
+        updateError = error;
+      } else if (selectedContaForUpload.tipo === 'revisores') {
+        const { error } = await supabase
+          .from('reviewer_protocols')
+          .update({
+            payment_receipt_url: publicUrl
+          })
+          .eq('id', selectedContaForUpload.id);
+        updateError = error;
+      }
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Sucesso",
+        description: "Comprovante inserido com sucesso",
+      });
+
+      setUploadDialogOpen(false);
+      setUploadedFile(null);
+      setSelectedContaForUpload(null);
+      fetchContas();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao inserir comprovante",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const finalizarProtocolo = async (contaId: string) => {
     try {
       const conta = contas.find(c => c.id === contaId);
       if (!conta) return;
@@ -754,17 +831,33 @@ export default function ContasAPagar() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => {/* TODO: Ver detalhes */}}
+                                  onClick={() => {
+                                    setSelectedContaForDetails(conta);
+                                    setDetailsDialogOpen(true);
+                                  }}
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => seguirParaComprovante(conta.id)}
-                                >
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  Seguir para Comprovante
-                                </Button>
+                                {!conta.nota_fiscal_url ? (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedContaForUpload(conta);
+                                      setUploadDialogOpen(true);
+                                    }}
+                                  >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Inserir Comprovante
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => finalizarProtocolo(conta.id)}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Finalizar
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -894,6 +987,56 @@ export default function ContasAPagar() {
                     </p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Upload de Comprovante */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Inserir Comprovante</DialogTitle>
+            <DialogDescription>
+              Faça o upload do comprovante de pagamento
+            </DialogDescription>
+          </DialogHeader>
+          {selectedContaForUpload && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Protocolo</Label>
+                <p className="font-mono text-sm">{selectedContaForUpload.protocolo}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Prestador/Revisor</Label>
+                <p className="text-sm">{selectedContaForUpload.prestador_nome}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Valor</Label>
+                <p className="text-sm font-bold">{formatCurrency(selectedContaForUpload.valor_total)}</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="comprovante">Arquivo do Comprovante</Label>
+                <Input
+                  id="comprovante"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => {
+                  setUploadDialogOpen(false);
+                  setUploadedFile(null);
+                  setSelectedContaForUpload(null);
+                }}>
+                  Cancelar
+                </Button>
+                <Button onClick={inserirComprovante} disabled={!uploadedFile}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Inserir
+                </Button>
               </div>
             </div>
           )}
