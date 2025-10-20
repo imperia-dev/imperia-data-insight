@@ -137,10 +137,6 @@ export default function ContasAPagar() {
       const todasContas = [...contasDespesas, ...contasPrestadores, ...contasRevisores]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      console.log('Total de protocolos carregados:', todasContas.length);
-      console.log('Despesas:', contasDespesas.length, 'Prestadores:', contasPrestadores.length, 'Revisores:', contasRevisores.length);
-      console.log('Detalhes:', todasContas.map(c => ({ protocolo: c.protocolo, tipo: c.tipo, status: c.status })));
-
       setContas(todasContas);
     } catch (error) {
       console.error('Error fetching contas:', error);
