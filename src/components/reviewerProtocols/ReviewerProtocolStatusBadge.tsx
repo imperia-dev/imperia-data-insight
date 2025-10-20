@@ -19,6 +19,8 @@ export const ReviewerProtocolStatusBadge = ({ status }: ReviewerProtocolStatusBa
         return { label: 'Aguard. Owner', variant: 'default' as const };
       case 'owner_approval':
         return { label: 'Aprovado Owner', variant: 'default' as const };
+      case 'sent_to_finance':
+        return { label: 'Enviado p/ Financeiro', variant: 'default' as const };
       case 'paid':
         return { label: 'Pago', variant: 'default' as const };
       case 'cancelled':

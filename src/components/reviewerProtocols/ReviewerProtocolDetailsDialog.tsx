@@ -115,6 +115,11 @@ export const ReviewerProtocolDetailsDialog = ({
                 notes={protocol.owner_approval_notes}
               />
               <TimelineStep
+                title="Enviado para Financeiro"
+                date={protocol.sent_to_finance_at}
+                completed={!!protocol.sent_to_finance_at}
+              />
+              <TimelineStep
                 title="Pagamento"
                 date={protocol.paid_at}
                 completed={!!protocol.paid_at}

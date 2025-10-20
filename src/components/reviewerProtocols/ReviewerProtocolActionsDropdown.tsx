@@ -30,13 +30,14 @@ export const ReviewerProtocolActionsDropdown = ({
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<string>("");
 
-  // Sequência correta: Criado → Master Inicial (vincular operation) → Operation insere dados → Master Final → Owner → Pagamento
+  // Sequência correta: Criado → Master Inicial (vincular operation) → Operation insere dados → Master Final → Owner → Enviar para Financeiro → Pagamento
   const canGenerateProtocol = protocol.status === 'draft' && userRole === 'owner';
   const canApproveMasterInitial = protocol.status === 'pending_approval' && ['master', 'owner'].includes(userRole);
   const canInsertData = protocol.status === 'master_initial' && protocol.assigned_operation_user_id === user?.id && userRole === 'operation';
   const canApproveMasterFinal = protocol.status === 'data_inserted' && ['master', 'owner'].includes(userRole);
   const canApproveOwner = protocol.status === 'master_final' && userRole === 'owner';
-  const canMarkAsPaid = protocol.status === 'owner_approval' && userRole === 'owner';
+  const canSendToFinance = protocol.status === 'owner_approval' && userRole === 'owner';
+  const canMarkAsPaid = protocol.status === 'sent_to_finance' && userRole === 'owner';
   const canCancel = protocol.status === 'draft' && userRole === 'owner';
 
   const handleAction = async (action: string) => {
@@ -89,10 +90,18 @@ export const ReviewerProtocolActionsDropdown = ({
             owner_approved_by: user?.id,
           };
           break;
+        case 'send_to_finance':
+          updateData = {
+            status: 'sent_to_finance',
+            sent_to_finance_at: new Date().toISOString(),
+            sent_to_finance_by: user?.id,
+          };
+          break;
         case 'mark_paid':
           updateData = {
             status: 'paid',
             paid_at: new Date().toISOString(),
+            paid_by: user?.id,
           };
           break;
         case 'cancel':
@@ -131,6 +140,8 @@ export const ReviewerProtocolActionsDropdown = ({
         return 'Aprovação Master - Final';
       case 'approve_owner':
         return 'Aprovação Owner';
+      case 'send_to_finance':
+        return 'Enviar para Financeiro';
       case 'mark_paid':
         return 'Marcar como Pago';
       case 'cancel':
@@ -179,14 +190,20 @@ export const ReviewerProtocolActionsDropdown = ({
               Aprovação Owner
             </DropdownMenuItem>
           )}
-          {canMarkAsPaid && (
+          {canSendToFinance && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleAction('mark_paid')}>
+              <DropdownMenuItem onClick={() => handleAction('send_to_finance')}>
                 <DollarSign className="mr-2 h-4 w-4" />
-                Marcar como Pago
+                Enviar para Financeiro
               </DropdownMenuItem>
             </>
+          )}
+          {canMarkAsPaid && (
+            <DropdownMenuItem onClick={() => handleAction('mark_paid')}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Marcar como Pago
+            </DropdownMenuItem>
           )}
           {canCancel && (
             <>
