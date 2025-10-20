@@ -126,7 +126,7 @@ export default function ContasAPagar() {
           competencia: p.competence_month,
           status: mapProviderStatus(p.status),
           pago_em: p.paid_at,
-          nota_fiscal_url: null,
+          nota_fiscal_url: p.payment_receipt_url,
           created_at: p.created_at,
           original_data: p
         }));
@@ -144,7 +144,7 @@ export default function ContasAPagar() {
           competencia: r.competence_month,
           status: mapReviewerStatus(r.status),
           pago_em: r.paid_at,
-          nota_fiscal_url: null,
+          nota_fiscal_url: r.payment_receipt_url,
           created_at: r.created_at,
           original_data: r
         }));
