@@ -103,71 +103,70 @@ export default function ContasAPagar() {
 
       if (revisoresError) throw revisoresError;
 
-      // Buscar centros de custo das despesas para protocolos de despesas
-      const despesasCentroCusto = await Promise.all(
-        (despesas || []).map(async (d) => {
-          const { data: expenses } = await supabase
-            .from('expenses')
-            .select('cost_centers(name)')
-            .eq('closing_protocol_id', d.id)
-            .limit(1)
-            .maybeSingle();
-          return { id: d.id, centro_custo_nome: expenses?.cost_centers?.name };
-        })
+      // Buscar centros de custo para todos os protocolos de despesas de uma vez
+      const despesasIds = (despesas || []).map(d => d.id);
+      const { data: expensesCentroCusto } = await supabase
+        .from('expenses')
+        .select('closing_protocol_id, cost_centers(name)')
+        .in('closing_protocol_id', despesasIds)
+        .not('closing_protocol_id', 'is', null);
+
+      // Buscar centros de custo para todos os protocolos de prestadores de uma vez
+      const prestadoresIds = (prestadores || []).map(p => p.id);
+      const { data: providersCentroCusto } = await supabase
+        .from('expenses')
+        .select('service_provider_protocol_id, cost_centers(name)')
+        .in('service_provider_protocol_id', prestadoresIds)
+        .not('service_provider_protocol_id', 'is', null);
+
+      // Criar mapas de centro de custo por protocolo
+      const despesasCentroCustoMap = new Map(
+        (expensesCentroCusto || []).map(e => [
+          e.closing_protocol_id, 
+          e.cost_centers?.name
+        ])
       );
 
-      // Buscar centros de custo das despesas para protocolos de prestadores
-      const prestadoresCentroCusto = await Promise.all(
-        (prestadores || []).map(async (p) => {
-          const { data: expenses } = await supabase
-            .from('expenses')
-            .select('cost_centers(name)')
-            .eq('service_provider_protocol_id', p.id)
-            .limit(1)
-            .maybeSingle();
-          return { id: p.id, centro_custo_nome: expenses?.cost_centers?.name };
-        })
+      const prestadoresCentroCustoMap = new Map(
+        (providersCentroCusto || []).map(e => [
+          e.service_provider_protocol_id,
+          e.cost_centers?.name
+        ])
       );
 
       // Mapear protocolos de despesas
-      const contasDespesas: ContaPagar[] = (despesas || []).map(d => {
-        const centroCusto = despesasCentroCusto.find(cc => cc.id === d.id);
-        return {
-          id: d.id,
-          protocolo: d.protocol_number,
-          tipo: 'despesas' as const,
-          prestador_nome: 'Fechamento de Despesas',
-          valor_total: Number(d.total_amount || 0),
-          competencia: d.competence_month,
-          status: mapExpenseStatus(d.status),
-          pago_em: d.paid_at,
-          nota_fiscal_url: d.payment_receipt_url,
-          created_at: d.created_at,
-          original_data: d,
-          centro_custo_nome: centroCusto?.centro_custo_nome
-        };
-      });
+      const contasDespesas: ContaPagar[] = (despesas || []).map(d => ({
+        id: d.id,
+        protocolo: d.protocol_number,
+        tipo: 'despesas' as const,
+        prestador_nome: 'Fechamento de Despesas',
+        valor_total: Number(d.total_amount || 0),
+        competencia: d.competence_month,
+        status: mapExpenseStatus(d.status),
+        pago_em: d.paid_at,
+        nota_fiscal_url: d.payment_receipt_url,
+        created_at: d.created_at,
+        original_data: d,
+        centro_custo_nome: despesasCentroCustoMap.get(d.id)
+      }));
 
       // Mapear protocolos de prestadores (excluindo cancelados)
       const contasPrestadores: ContaPagar[] = (prestadores || [])
         .filter(p => p.status !== 'cancelled')
-        .map(p => {
-          const centroCusto = prestadoresCentroCusto.find(cc => cc.id === p.id);
-          return {
-            id: p.id,
-            protocolo: p.protocol_number,
-            tipo: 'prestadores' as const,
-            prestador_nome: p.provider_name || 'Prestador',
-            valor_total: Number(p.total_amount || 0),
-            competencia: p.competence_month,
-            status: mapProviderStatus(p.status),
-            pago_em: p.paid_at,
-            nota_fiscal_url: p.payment_receipt_url,
-            created_at: p.created_at,
-            original_data: p,
-            centro_custo_nome: centroCusto?.centro_custo_nome
-          };
-        });
+        .map(p => ({
+          id: p.id,
+          protocolo: p.protocol_number,
+          tipo: 'prestadores' as const,
+          prestador_nome: p.provider_name || 'Prestador',
+          valor_total: Number(p.total_amount || 0),
+          competencia: p.competence_month,
+          status: mapProviderStatus(p.status),
+          pago_em: p.paid_at,
+          nota_fiscal_url: p.payment_receipt_url,
+          created_at: p.created_at,
+          original_data: p,
+          centro_custo_nome: prestadoresCentroCustoMap.get(p.id)
+        }));
 
       // Mapear protocolos de revisores (excluindo cancelados)
       const contasRevisores: ContaPagar[] = (revisores || [])
