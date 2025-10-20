@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, PlayCircle, Eye, FileCheck, Upload, CheckCircle } from "lucide-react";
+import { Loader2, TrendingUp, PlayCircle, Eye, FileCheck, Upload, CheckCircle, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/currency";
@@ -31,6 +31,8 @@ interface RevenueProtocol {
   payment_requested_at: string | null;
   payment_received_at: string | null;
   receipt_url: string | null;
+  attachment_url: string | null;
+  generated_pdf_url: string | null;
 }
 
 export default function ContasAReceber() {
@@ -309,6 +311,7 @@ export default function ContasAReceber() {
                             <TableHead>Produto 2</TableHead>
                             <TableHead>Média/Doc</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Anexos</TableHead>
                             {(tab === "novos" || tab === "aguardando-pagamento" || tab === "aguardando-comprovante") && <TableHead>Ações</TableHead>}
                           </TableRow>
                         </TableHeader>
@@ -331,6 +334,33 @@ export default function ContasAReceber() {
                                 }`}>
                                   {protocol.payment_status === 'paid' ? 'Pago' : 'Pendente'}
                                 </span>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  {protocol.attachment_url && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => window.open(protocol.attachment_url!, '_blank')}
+                                      title="Visualizar anexo"
+                                    >
+                                      <Paperclip className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  {protocol.generated_pdf_url && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => window.open(protocol.generated_pdf_url!, '_blank')}
+                                      title="Visualizar PDF gerado"
+                                    >
+                                      <FileCheck className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  {!protocol.attachment_url && !protocol.generated_pdf_url && (
+                                    <span className="text-xs text-muted-foreground px-2">Nenhum anexo</span>
+                                  )}
+                                </div>
                               </TableCell>
                               {tab === "novos" && (
                                 <TableCell>
@@ -393,7 +423,7 @@ export default function ContasAReceber() {
                           ))}
                            {filterProtocolsByStatus(tab).length === 0 && (
                              <TableRow>
-                               <TableCell colSpan={(tab === "novos" || tab === "aguardando-pagamento" || tab === "aguardando-comprovante") ? 10 : 9} className="text-center text-muted-foreground">
+                               <TableCell colSpan={(tab === "novos" || tab === "aguardando-pagamento" || tab === "aguardando-comprovante") ? 11 : 10} className="text-center text-muted-foreground">
                                  Nenhum protocolo encontrado nesta categoria
                                </TableCell>
                              </TableRow>
