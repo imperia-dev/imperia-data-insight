@@ -26,6 +26,7 @@ interface ContaPagar {
   prestador_nome: string;
   prestador_detalhe?: string; // Para email ou função do revisor
   valor_total: number;
+  competencia: string | null;
   status: string;
   pago_em: string | null;
   nota_fiscal_url: string | null;
@@ -100,6 +101,7 @@ export default function ContasAPagar() {
         tipo: 'despesas' as const,
         prestador_nome: 'Fechamento de Despesas',
         valor_total: Number(d.total_amount || 0),
+        competencia: d.competence_month,
         status: mapExpenseStatus(d.status),
         pago_em: d.paid_at,
         nota_fiscal_url: d.payment_receipt_url,
@@ -114,6 +116,7 @@ export default function ContasAPagar() {
         tipo: 'prestadores' as const,
         prestador_nome: p.provider_name || 'Prestador',
         valor_total: Number(p.total_amount || 0),
+        competencia: p.competence_month,
         status: mapProviderStatus(p.status),
         pago_em: p.paid_at,
         nota_fiscal_url: null,
@@ -129,6 +132,7 @@ export default function ContasAPagar() {
         prestador_nome: r.reviewer_name || 'Revisor',
         prestador_detalhe: r.reviewer_email || undefined,
         valor_total: Number(r.total_amount || 0),
+        competencia: r.competence_month,
         status: mapReviewerStatus(r.status),
         pago_em: r.paid_at,
         nota_fiscal_url: null,
@@ -531,6 +535,7 @@ export default function ContasAPagar() {
                           <TableHead>Protocolo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
+                          <TableHead>Competência</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Ações</TableHead>
@@ -552,6 +557,9 @@ export default function ContasAPagar() {
                                   <p className="text-xs text-muted-foreground">{conta.prestador_detalhe}</p>
                                 )}
                               </div>
+                            </TableCell>
+                            <TableCell>
+                              {conta.competencia ? new Date(conta.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '-'}
                             </TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>{renderStatusBadge(conta.status)}</TableCell>
@@ -585,6 +593,7 @@ export default function ContasAPagar() {
                           <TableHead>Protocolo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
+                          <TableHead>Competência</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Ações</TableHead>
                         </TableRow>
@@ -605,6 +614,9 @@ export default function ContasAPagar() {
                                   <p className="text-xs text-muted-foreground">{conta.prestador_detalhe}</p>
                                 )}
                               </div>
+                            </TableCell>
+                            <TableCell>
+                              {conta.competencia ? new Date(conta.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '-'}
                             </TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>
@@ -637,6 +649,7 @@ export default function ContasAPagar() {
                           <TableHead>Protocolo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
+                          <TableHead>Competência</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Pago em</TableHead>
                           <TableHead>Ações</TableHead>
@@ -658,6 +671,9 @@ export default function ContasAPagar() {
                                   <p className="text-xs text-muted-foreground">{conta.prestador_detalhe}</p>
                                 )}
                               </div>
+                            </TableCell>
+                            <TableCell>
+                              {conta.competencia ? new Date(conta.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '-'}
                             </TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>{conta.pago_em ? new Date(conta.pago_em).toLocaleDateString() : '-'}</TableCell>
@@ -718,6 +734,7 @@ export default function ContasAPagar() {
                           <TableHead>Protocolo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
+                          <TableHead>Competência</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>NF</TableHead>
@@ -739,6 +756,9 @@ export default function ContasAPagar() {
                                   <p className="text-xs text-muted-foreground">{conta.prestador_detalhe}</p>
                                 )}
                               </div>
+                            </TableCell>
+                            <TableCell>
+                              {conta.competencia ? new Date(conta.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '-'}
                             </TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>{renderStatusBadge(conta.status)}</TableCell>
