@@ -104,20 +104,28 @@ export default function ContasAPagar() {
       if (revisoresError) throw revisoresError;
 
       // Buscar centros de custo para todos os protocolos de despesas de uma vez
-      const despesasIds = (despesas || []).map(d => d.id);
-      const { data: expensesCentroCusto } = await supabase
-        .from('expenses')
-        .select('closing_protocol_id, cost_centers(name)')
-        .in('closing_protocol_id', despesasIds)
-        .not('closing_protocol_id', 'is', null);
+      const despesasIds = (despesas || []).map(d => d.id).filter(Boolean);
+      let expensesCentroCusto: any[] = [];
+      
+      if (despesasIds.length > 0) {
+        const { data } = await supabase
+          .from('expenses')
+          .select('closing_protocol_id, cost_centers!inner(name)')
+          .in('closing_protocol_id', despesasIds);
+        expensesCentroCusto = data || [];
+      }
 
       // Buscar centros de custo para todos os protocolos de prestadores de uma vez
-      const prestadoresIds = (prestadores || []).map(p => p.id);
-      const { data: providersCentroCusto } = await supabase
-        .from('expenses')
-        .select('service_provider_protocol_id, cost_centers(name)')
-        .in('service_provider_protocol_id', prestadoresIds)
-        .not('service_provider_protocol_id', 'is', null);
+      const prestadoresIds = (prestadores || []).map(p => p.id).filter(Boolean);
+      let providersCentroCusto: any[] = [];
+      
+      if (prestadoresIds.length > 0) {
+        const { data } = await supabase
+          .from('expenses')
+          .select('service_provider_protocol_id, cost_centers!inner(name)')
+          .in('service_provider_protocol_id', prestadoresIds);
+        providersCentroCusto = data || [];
+      }
 
       // Criar mapas de centro de custo por protocolo
       const despesasCentroCustoMap = new Map(
