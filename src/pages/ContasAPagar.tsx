@@ -156,8 +156,8 @@ export default function ContasAPagar() {
   const mapExpenseStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
       'draft': 'novo',
-      'under_review': 'aguardando_pagamento',
-      'approved': 'aguardando_pagamento',
+      'under_review': 'novo',
+      'approved': 'novo',
       'closed': 'finalizado'
     };
     return statusMap[status] || 'novo';
@@ -169,9 +169,9 @@ export default function ContasAPagar() {
       'draft': 'novo',
       'awaiting_provider_data': 'novo',
       'awaiting_approval': 'novo',
-      'approved': 'aguardando_pagamento',
+      'approved': 'novo',
       'awaiting_payment': 'aguardando_pagamento',
-      'paid': 'aguardando_nf',
+      'paid': 'finalizado',
       'completed': 'finalizado'
     };
     return statusMap[status] || 'novo';
@@ -183,9 +183,9 @@ export default function ContasAPagar() {
       'draft': 'novo',
       'pending_approval': 'novo',
       'awaiting_approval': 'novo',
-      'approved': 'aguardando_pagamento',
+      'approved': 'novo',
       'awaiting_payment': 'aguardando_pagamento',
-      'paid': 'aguardando_nf',
+      'paid': 'finalizado',
       'completed': 'finalizado'
     };
     return statusMap[status] || 'novo';
