@@ -44,6 +44,8 @@ export default function ContasAPagar() {
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
   const [notaFiscal, setNotaFiscal] = useState<File | null>(null);
   const [activeTab, setActiveTab] = useState("novos");
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedContaForDetails, setSelectedContaForDetails] = useState<ContaPagar | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -678,13 +680,25 @@ export default function ContasAPagar() {
                             </TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>
-                              <Button
-                                size="sm"
-                                onClick={() => marcarComoPago(conta.id)}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Marcar como Pago
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedContaForDetails(conta);
+                                    setDetailsDialogOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => marcarComoPago(conta.id)}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Marcar como Pago
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -823,6 +837,68 @@ export default function ContasAPagar() {
           </div>
         </main>
       </div>
+
+      {/* Dialog de Detalhes do Protocolo */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Protocolo</DialogTitle>
+            <DialogDescription>
+              Informações completas do protocolo selecionado
+            </DialogDescription>
+          </DialogHeader>
+          {selectedContaForDetails && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Protocolo</Label>
+                  <p className="font-mono text-sm mt-1">{selectedContaForDetails.protocolo}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Tipo</Label>
+                  <p className="text-sm mt-1">
+                    {selectedContaForDetails.tipo === 'despesas' ? 'Despesas' : 
+                     selectedContaForDetails.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Prestador/Revisor</Label>
+                  <p className="text-sm mt-1">{selectedContaForDetails.prestador_nome}</p>
+                  {selectedContaForDetails.prestador_detalhe && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {selectedContaForDetails.prestador_detalhe}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Competência</Label>
+                  <p className="text-sm mt-1">
+                    {selectedContaForDetails.competencia ? 
+                      new Date(selectedContaForDetails.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : 
+                      '-'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Valor Total</Label>
+                  <p className="text-lg font-bold mt-1">{formatCurrency(selectedContaForDetails.valor_total)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <div className="mt-1">{renderStatusBadge(selectedContaForDetails.status)}</div>
+                </div>
+                {selectedContaForDetails.pago_em && (
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Pago em</Label>
+                    <p className="text-sm mt-1">
+                      {new Date(selectedContaForDetails.pago_em).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
