@@ -242,12 +242,13 @@ export default function ContasAPagar() {
 
       if (updateError) throw updateError;
 
+      // Aguardar a recarga dos dados antes de mostrar o toast
+      await fetchContas();
+
       toast({
         title: "Sucesso",
         description: "Processo de pagamento iniciado",
       });
-
-      fetchContas();
     } catch (error) {
       console.error('Error:', error);
       toast({
