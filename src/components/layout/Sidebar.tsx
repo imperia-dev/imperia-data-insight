@@ -410,6 +410,12 @@ const financeiroNavigationItems: NavigationItem[] = [
     href: "/contas-a-receber",
     roles: ["financeiro"],
   },
+  {
+    title: "Configurações",
+    icon: Settings,
+    href: "/settings",
+    roles: ["financeiro"],
+  },
 ];
 
 export function Sidebar({ userRole }: SidebarProps) {
