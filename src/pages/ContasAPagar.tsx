@@ -129,20 +129,24 @@ export default function ContasAPagar() {
       // Mapear protocolos de revisores (excluindo cancelados)
       const contasRevisores: ContaPagar[] = (revisores || [])
         .filter(r => r.status !== 'cancelled')
-        .map(r => ({
-          id: r.id,
-          protocolo: r.protocol_number,
-          tipo: 'revisores' as const,
-          prestador_nome: r.reviewer_name || 'Revisor',
-          prestador_detalhe: r.reviewer_email || undefined,
-          valor_total: Number(r.total_amount || 0),
-          competencia: r.competence_month,
-          status: mapReviewerStatus(r.status),
-          pago_em: r.paid_at,
-          nota_fiscal_url: null,
-          created_at: r.created_at,
-          original_data: r
-        }));
+        .map(r => {
+          const mappedStatus = mapReviewerStatus(r.status);
+          console.log(`Revisor ${r.protocol_number}: DB status = ${r.status}, mapped = ${mappedStatus}`);
+          return {
+            id: r.id,
+            protocolo: r.protocol_number,
+            tipo: 'revisores' as const,
+            prestador_nome: r.reviewer_name || 'Revisor',
+            prestador_detalhe: r.reviewer_email || undefined,
+            valor_total: Number(r.total_amount || 0),
+            competencia: r.competence_month,
+            status: mappedStatus,
+            pago_em: r.paid_at,
+            nota_fiscal_url: null,
+            created_at: r.created_at,
+            original_data: r
+          };
+        });
 
       // Combinar todos os protocolos
       const todasContas = [...contasDespesas, ...contasPrestadores, ...contasRevisores]
@@ -249,11 +253,23 @@ export default function ContasAPagar() {
 
       console.log('Update realizado com sucesso');
 
+      // Verificar o status atualizado no banco
+      if (conta.tipo === 'revisores') {
+        const { data: verificacao } = await supabase
+          .from('reviewer_protocols')
+          .select('id, status, sent_to_finance_at')
+          .eq('id', contaId)
+          .single();
+        console.log('Status após update no banco:', verificacao);
+      }
+
       // Pequeno delay para garantir que a atualização foi propagada
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Recarregar os dados
+      console.log('Recarregando dados...');
       await fetchContas();
+      console.log('Dados recarregados');
 
       toast({
         title: "Sucesso",
