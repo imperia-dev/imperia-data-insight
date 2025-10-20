@@ -46,6 +46,7 @@ export default function Fechamento() {
   const [userRole, setUserRole] = useState<UserRole>("operation");
   const [showHistory, setShowHistory] = useState(false);
   const [closingHistory, setClosingHistory] = useState<any[]>([]);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { mainContainerClass } = useSidebarOffset();
@@ -177,6 +178,7 @@ export default function Fechamento() {
   const handleSubmitAgain = () => {
     setCsvData([]);
     setAnalysisData(null);
+    setAttachmentFile(null);
     setCurrentStep("upload");
     
     // Reset file input
@@ -186,12 +188,31 @@ export default function Fechamento() {
     }
   };
 
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAttachmentFile(file);
+      toast({
+        title: "Arquivo selecionado",
+        description: file.name,
+      });
+    }
+  };
+
   const handleConfirm = () => {
+    if (!attachmentFile) {
+      toast({
+        title: "Arquivo obrigatório",
+        description: "É necessário anexar um arquivo antes de confirmar o fechamento",
+        variant: "destructive",
+      });
+      return;
+    }
     setShowConfirmDialog(true);
   };
 
   const generateProtocol = async () => {
-    if (!analysisData) return;
+    if (!analysisData || !attachmentFile) return;
 
     setIsLoading(true);
     try {
@@ -210,6 +231,22 @@ export default function Fechamento() {
 
       const protocolNumber = protocolNumberData;
 
+      // Upload attachment file
+      const fileExt = attachmentFile.name.split('.').pop();
+      const fileName = `${protocolNumber}-${Date.now()}.${fileExt}`;
+      const filePath = `closing/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, attachmentFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
       // Save to database
       const { error } = await supabase
         .from("closing_protocols")
@@ -223,6 +260,7 @@ export default function Fechamento() {
           product_1_count: analysisData.product1Count,
           product_2_count: analysisData.product2Count,
           document_data: analysisData.documents as any,
+          attachment_url: publicUrl,
           created_by: (await supabase.auth.getUser()).data.user?.id
         });
 
@@ -418,12 +456,41 @@ export default function Fechamento() {
                   </CardContent>
                 </Card>
 
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Anexar Documento</CardTitle>
+                    <CardDescription>
+                      É obrigatório anexar um arquivo antes de confirmar o fechamento
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-8 hover:border-primary/50 transition-colors">
+                      <FileUp className="h-10 w-10 text-muted-foreground mb-3" />
+                      <label htmlFor="attachment-upload" className="cursor-pointer">
+                        <span className="text-primary font-medium hover:underline">Clique para selecionar</span>
+                        <span className="text-muted-foreground"> um arquivo</span>
+                      </label>
+                      <input
+                        id="attachment-upload"
+                        type="file"
+                        onChange={handleAttachmentChange}
+                        className="hidden"
+                      />
+                      {attachmentFile && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Arquivo selecionado: {attachmentFile.name}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <div className="flex gap-4">
                   <Button onClick={handleSubmitAgain} variant="outline" className="gap-2">
                     <RefreshCw className="h-4 w-4" />
                     Enviar Novamente
                   </Button>
-                  <Button onClick={handleConfirm} className="gap-2">
+                  <Button onClick={handleConfirm} className="gap-2" disabled={!attachmentFile}>
                     <CheckCircle className="h-4 w-4" />
                     Confirmar Fechamento
                   </Button>

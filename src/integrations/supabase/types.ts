@@ -652,6 +652,7 @@ export type Database = {
           approval_notes: string | null
           approved_at: string | null
           approved_by: string | null
+          attachment_url: string | null
           avg_value_per_document: number
           bank_batch_id: string | null
           competence_month: string
@@ -680,6 +681,7 @@ export type Database = {
           approval_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          attachment_url?: string | null
           avg_value_per_document: number
           bank_batch_id?: string | null
           competence_month: string
@@ -708,6 +710,7 @@ export type Database = {
           approval_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          attachment_url?: string | null
           avg_value_per_document?: number
           bank_batch_id?: string | null
           competence_month?: string
