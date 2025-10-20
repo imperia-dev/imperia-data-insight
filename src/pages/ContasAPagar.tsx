@@ -38,12 +38,27 @@ interface ContaPagar {
   created_at: string;
 }
 
+interface ProtocoloDespesa {
+  id: string;
+  protocol_number: string;
+  competence_month: string;
+  total_amount: number;
+  expense_count: number;
+  status: string;
+  created_at: string;
+  payment_receipt_url: string | null;
+  notes: string | null;
+  approved_at: string | null;
+  paid_at: string | null;
+}
+
 export default function ContasAPagar() {
   const { user } = useAuth();
   const { userRole, loading } = useRoleAccess("/contas-a-pagar");
   const { isCollapsed } = useSidebar();
   const [userName, setUserName] = useState('');
   const [contas, setContas] = useState<ContaPagar[]>([]);
+  const [protocolosDespesas, setProtocolosDespesas] = useState<ProtocoloDespesa[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
   const [notaFiscal, setNotaFiscal] = useState<File | null>(null);
@@ -53,6 +68,7 @@ export default function ContasAPagar() {
     if (user) {
       fetchUserProfile();
       fetchContas();
+      fetchProtocolosDespesas();
     }
   }, [user]);
 
@@ -89,6 +105,25 @@ export default function ContasAPagar() {
       });
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const fetchProtocolosDespesas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('expense_closing_protocols')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProtocolosDespesas(data || []);
+    } catch (error) {
+      console.error('Error fetching expense protocols:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar protocolos de despesas",
+        variant: "destructive",
+      });
     }
   };
 
@@ -201,7 +236,11 @@ export default function ContasAPagar() {
       novo: { label: "Novo", variant: "secondary" },
       aguardando_pagamento: { label: "Aguardando Pagamento", variant: "default" },
       aguardando_nf: { label: "Aguardando NF", variant: "outline" },
-      finalizado: { label: "Finalizado", variant: "default" }
+      finalizado: { label: "Finalizado", variant: "default" },
+      draft: { label: "Rascunho", variant: "secondary" },
+      approved: { label: "Aprovado", variant: "default" },
+      paid: { label: "Pago", variant: "outline" },
+      reviewed: { label: "Revisado", variant: "default" }
     };
 
     const config = variants[status] || { label: status, variant: "default" };
@@ -212,6 +251,10 @@ export default function ContasAPagar() {
   const contasAguardandoPagamento = contas.filter(c => c.status === 'aguardando_pagamento');
   const contasAguardandoNF = contas.filter(c => c.status === 'aguardando_nf');
   const contasFinalizados = contas.filter(c => c.status === 'finalizado');
+
+  const protocolosDraft = protocolosDespesas.filter(p => p.status === 'draft');
+  const protocolosApproved = protocolosDespesas.filter(p => p.status === 'approved');
+  const protocolosPaid = protocolosDespesas.filter(p => p.status === 'paid');
 
   if (loading || loadingData) {
     return (
@@ -239,8 +282,11 @@ export default function ContasAPagar() {
               </p>
             </div>
 
-            <Tabs defaultValue="novos" className="space-y-4">
+            <Tabs defaultValue="protocolos" className="space-y-4">
               <TabsList>
+                <TabsTrigger value="protocolos">
+                  Protocolos de Despesas ({protocolosDespesas.length})
+                </TabsTrigger>
                 <TabsTrigger value="novos">
                   Novos ({contasNovos.length})
                 </TabsTrigger>
@@ -254,6 +300,103 @@ export default function ContasAPagar() {
                   Finalizados ({contasFinalizados.length})
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="protocolos" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Rascunhos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{protocolosDraft.length}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(protocolosDraft.reduce((sum, p) => sum + p.total_amount, 0))}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Aprovados</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{protocolosApproved.length}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(protocolosApproved.reduce((sum, p) => sum + p.total_amount, 0))}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Pagos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{protocolosPaid.length}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(protocolosPaid.reduce((sum, p) => sum + p.total_amount, 0))}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Protocolos de Despesas</CardTitle>
+                    <CardDescription>Protocolos consolidados de fechamento de despesas</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Competência</TableHead>
+                          <TableHead>Qtd. Despesas</TableHead>
+                          <TableHead>Valor Total</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Criado em</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {protocolosDespesas.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                              Nenhum protocolo de despesa encontrado
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          protocolosDespesas.map((protocolo) => (
+                            <TableRow key={protocolo.id}>
+                              <TableCell className="font-mono">{protocolo.protocol_number}</TableCell>
+                              <TableCell>
+                                {new Date(protocolo.competence_month).toLocaleDateString('pt-BR', { 
+                                  month: 'long', 
+                                  year: 'numeric' 
+                                })}
+                              </TableCell>
+                              <TableCell>{protocolo.expense_count}</TableCell>
+                              <TableCell>{formatCurrency(protocolo.total_amount)}</TableCell>
+                              <TableCell>{renderStatusBadge(protocolo.status)}</TableCell>
+                              <TableCell>
+                                {new Date(protocolo.created_at).toLocaleDateString('pt-BR')}
+                              </TableCell>
+                              <TableCell>
+                                {protocolo.payment_receipt_url && (
+                                  <Button size="sm" variant="outline" asChild>
+                                    <a href={protocolo.payment_receipt_url} target="_blank" rel="noopener noreferrer">
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      Ver Comprovante
+                                    </a>
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               <TabsContent value="novos" className="space-y-4">
                 <Card>
