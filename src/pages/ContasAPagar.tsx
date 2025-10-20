@@ -195,6 +195,11 @@ export default function ContasAPagar() {
       'pending_approval': 'novo',
       'awaiting_approval': 'novo',
       'approved': 'novo',
+      'master_initial': 'novo',
+      'data_inserted': 'novo',
+      'master_final': 'novo',
+      'owner_approval': 'novo',
+      'sent_to_finance': 'aguardando_pagamento',
       'awaiting_payment': 'aguardando_pagamento',
       'cancelled': 'novo',
       'paid': 'finalizado',
@@ -223,9 +228,14 @@ export default function ContasAPagar() {
           .eq('id', contaId);
         updateError = error;
       } else if (conta.tipo === 'revisores') {
+        // Para revisores, enviar para o financeiro
         const { error } = await supabase
           .from('reviewer_protocols')
-          .update({ status: 'awaiting_payment' })
+          .update({ 
+            status: 'sent_to_finance',
+            sent_to_finance_at: new Date().toISOString(),
+            sent_to_finance_by: user?.id
+          })
           .eq('id', contaId);
         updateError = error;
       }
