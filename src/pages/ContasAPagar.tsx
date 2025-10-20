@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, PlayCircle, Upload, FileText, CheckCircle, Eye } from "lucide-react";
+import { Loader2, PlayCircle, Upload, FileText, CheckCircle, Eye, TrendingUp, Receipt, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/currency";
@@ -42,6 +42,7 @@ export default function ContasAPagar() {
   const [loadingData, setLoadingData] = useState(true);
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
   const [notaFiscal, setNotaFiscal] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState("novos");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -404,7 +405,104 @@ export default function ContasAPagar() {
               </p>
             </div>
 
-            <Tabs defaultValue="novos" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total a Pagar</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(
+                      (activeTab === 'novos' ? contasNovos :
+                       activeTab === 'aguardando' ? contasAguardandoPagamento :
+                       activeTab === 'nf' ? contasAguardandoNF :
+                       contasFinalizados).reduce((sum, c) => sum + c.valor_total, 0)
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {(activeTab === 'novos' ? contasNovos :
+                      activeTab === 'aguardando' ? contasAguardandoPagamento :
+                      activeTab === 'nf' ? contasAguardandoNF :
+                      contasFinalizados).length} conta{(activeTab === 'novos' ? contasNovos :
+                        activeTab === 'aguardando' ? contasAguardandoPagamento :
+                        activeTab === 'nf' ? contasAguardandoNF :
+                        contasFinalizados).length !== 1 ? 's' : ''}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Despesas</CardTitle>
+                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {(activeTab === 'novos' ? contasNovos :
+                      activeTab === 'aguardando' ? contasAguardandoPagamento :
+                      activeTab === 'nf' ? contasAguardandoNF :
+                      contasFinalizados).filter(c => c.tipo === 'despesas').length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatCurrency(
+                      (activeTab === 'novos' ? contasNovos :
+                        activeTab === 'aguardando' ? contasAguardandoPagamento :
+                        activeTab === 'nf' ? contasAguardandoNF :
+                        contasFinalizados).filter(c => c.tipo === 'despesas').reduce((sum, c) => sum + c.valor_total, 0)
+                    )}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Prestadores</CardTitle>
+                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {(activeTab === 'novos' ? contasNovos :
+                      activeTab === 'aguardando' ? contasAguardandoPagamento :
+                      activeTab === 'nf' ? contasAguardandoNF :
+                      contasFinalizados).filter(c => c.tipo === 'prestadores').length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatCurrency(
+                      (activeTab === 'novos' ? contasNovos :
+                        activeTab === 'aguardando' ? contasAguardandoPagamento :
+                        activeTab === 'nf' ? contasAguardandoNF :
+                        contasFinalizados).filter(c => c.tipo === 'prestadores').reduce((sum, c) => sum + c.valor_total, 0)
+                    )}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Revisores</CardTitle>
+                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {(activeTab === 'novos' ? contasNovos :
+                      activeTab === 'aguardando' ? contasAguardandoPagamento :
+                      activeTab === 'nf' ? contasAguardandoNF :
+                      contasFinalizados).filter(c => c.tipo === 'revisores').length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatCurrency(
+                      (activeTab === 'novos' ? contasNovos :
+                        activeTab === 'aguardando' ? contasAguardandoPagamento :
+                        activeTab === 'nf' ? contasAguardandoNF :
+                        contasFinalizados).filter(c => c.tipo === 'revisores').reduce((sum, c) => sum + c.valor_total, 0)
+                    )}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList>
                 <TabsTrigger value="novos">
                   Novos ({contasNovos.length})
