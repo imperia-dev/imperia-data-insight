@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { formatCurrency } from "@/lib/currency";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Database } from "@/integrations/supabase/types";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type UserRole = Database['public']['Enums']['user_role'];
 
@@ -211,6 +213,55 @@ export default function Fechamento() {
     setShowConfirmDialog(true);
   };
 
+  const generatePDF = async (protocolNumber: string): Promise<Blob> => {
+    if (!analysisData) throw new Error("No analysis data");
+
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text("Fechamento de Receitas", 105, 20, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.text(`Protocolo: ${protocolNumber}`, 105, 30, { align: "center" });
+    const competenceDate = new Date(`${competenceMonth}-01`);
+    doc.text(`Competência: ${competenceDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`, 105, 38, { align: "center" });
+    
+    // Summary stats
+    doc.setFontSize(14);
+    doc.text("Resumo", 20, 50);
+    
+    doc.setFontSize(11);
+    doc.text(`Total de IDs: ${analysisData.totalIds}`, 20, 60);
+    doc.text(`Total de Páginas: ${analysisData.totalPages}`, 20, 68);
+    doc.text(`Valor Total: ${formatCurrency(analysisData.totalValue)}`, 20, 76);
+    doc.text(`Média por Documento: ${formatCurrency(analysisData.avgValuePerDocument)}`, 20, 84);
+    doc.text(`Produto 1 (≤4 páginas): ${analysisData.product1Count} documentos`, 20, 92);
+    doc.text(`Produto 2 (>4 páginas): ${analysisData.product2Count} documentos`, 20, 100);
+    
+    // Document details table
+    doc.setFontSize(14);
+    doc.text("Detalhamento dos Documentos", 20, 115);
+    
+    const tableData = analysisData.documents.map((doc: CSVData) => [
+      doc.id,
+      doc.pages.toString(),
+      doc.pages <= 4 ? 'Produto 1' : 'Produto 2',
+      formatCurrency(doc.pages <= 4 ? 50 : 30)
+    ]);
+    
+    autoTable(doc, {
+      startY: 120,
+      head: [['ID do Documento', 'Páginas', 'Tipo', 'Valor']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [79, 70, 229] },
+      styles: { fontSize: 9 },
+    });
+    
+    return doc.output('blob');
+  };
+
   const generateProtocol = async () => {
     if (!analysisData || !attachmentFile) return;
 
@@ -242,10 +293,29 @@ export default function Fechamento() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // Get public URL for attachment
+      const { data: { publicUrl: attachmentUrl } } = supabase.storage
         .from('documents')
         .getPublicUrl(filePath);
+
+      // Generate PDF
+      const pdfBlob = await generatePDF(protocolNumber);
+      const pdfFileName = `${protocolNumber}.pdf`;
+      const pdfFilePath = `closing/pdfs/${pdfFileName}`;
+
+      const { error: pdfUploadError } = await supabase.storage
+        .from('documents')
+        .upload(pdfFilePath, pdfBlob, {
+          contentType: 'application/pdf',
+          upsert: false,
+        });
+
+      if (pdfUploadError) throw pdfUploadError;
+
+      // Get public URL for PDF
+      const { data: { publicUrl: pdfUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(pdfFilePath);
 
       // Save to database
       const { error } = await supabase
@@ -260,7 +330,8 @@ export default function Fechamento() {
           product_1_count: analysisData.product1Count,
           product_2_count: analysisData.product2Count,
           document_data: analysisData.documents as any,
-          attachment_url: publicUrl,
+          attachment_url: attachmentUrl,
+          generated_pdf_url: pdfUrl,
           created_by: (await supabase.auth.getUser()).data.user?.id
         });
 
@@ -273,7 +344,7 @@ export default function Fechamento() {
       setShowConfirmDialog(false);
       
       toast({
-        title: "Protocolo gerado",
+        title: "Protocolo e PDF gerados",
         description: `Protocolo ${protocolNumber} criado com sucesso`,
       });
     } catch (error) {

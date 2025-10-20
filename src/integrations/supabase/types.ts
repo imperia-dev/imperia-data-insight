@@ -659,6 +659,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           document_data: Json
+          generated_pdf_url: string | null
           id: string
           payment_amount: number | null
           payment_notes: string | null
@@ -688,6 +689,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           document_data: Json
+          generated_pdf_url?: string | null
           id?: string
           payment_amount?: number | null
           payment_notes?: string | null
@@ -717,6 +719,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           document_data?: Json
+          generated_pdf_url?: string | null
           id?: string
           payment_amount?: number | null
           payment_notes?: string | null
