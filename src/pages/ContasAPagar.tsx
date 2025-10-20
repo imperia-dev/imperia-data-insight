@@ -14,7 +14,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { VariaveisEsporadicas } from "@/components/financeiro/VariaveisEsporadicas";
 import { Loader2, PlayCircle, Upload, FileText, CheckCircle, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -446,8 +445,6 @@ export default function ContasAPagar() {
                 </Card>
               </TabsContent>
             </Tabs>
-
-            <VariaveisEsporadicas tipo="pagar" onSuccess={fetchContas} />
           </div>
         </main>
       </div>
