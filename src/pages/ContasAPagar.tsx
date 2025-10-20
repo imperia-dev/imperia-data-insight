@@ -352,7 +352,7 @@ export default function ContasAPagar() {
       } else if (conta.tipo === 'prestadores') {
         const { error } = await supabase
           .from('service_provider_protocols')
-          .update({ status: 'completed' })
+          .update({ status: 'paid' })
           .eq('id', contaId);
         updateError = error;
       } else if (conta.tipo === 'revisores') {
