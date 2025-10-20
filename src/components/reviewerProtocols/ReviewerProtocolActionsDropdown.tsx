@@ -36,7 +36,7 @@ export const ReviewerProtocolActionsDropdown = ({
   const canInsertData = protocol.status === 'master_initial' && protocol.assigned_operation_user_id === user?.id && userRole === 'operation';
   const canApproveMasterFinal = protocol.status === 'data_inserted' && ['master', 'owner'].includes(userRole);
   const canApproveOwner = protocol.status === 'master_final' && userRole === 'owner';
-  const canSendToFinance = protocol.status === 'owner_approval' && userRole === 'owner';
+  const canSendToFinance = protocol.status === 'owner_approval' && userRole === 'owner' && protocol.centro_custo_id;
   const canMarkAsPaid = protocol.status === 'sent_to_finance' && userRole === 'owner';
   const canCancel = protocol.status === 'draft' && userRole === 'owner';
 
@@ -44,6 +44,12 @@ export const ReviewerProtocolActionsDropdown = ({
     // Aprovação master inicial abre dialog especial para vincular usuário operation
     if (action === 'approve_master_initial') {
       setAssignDialogOpen(true);
+      return;
+    }
+    
+    // Validar centro de custo antes de enviar ao financeiro
+    if (action === 'send_to_finance' && !protocol.centro_custo_id) {
+      toast.error("É necessário selecionar um centro de custo antes de enviar ao financeiro");
       return;
     }
     

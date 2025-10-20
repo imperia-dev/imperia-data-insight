@@ -221,11 +221,11 @@ export const ReviewerProtocolsTab = ({ userRole }: ReviewerProtocolsTabProps) =>
                             value={protocol.centro_custo_id || ""}
                             onValueChange={(value) => handleCostCenterChange(protocol.id, value)}
                           >
-                            <SelectTrigger className="w-[200px]">
-                              <SelectValue placeholder="Selecionar centro de custo">
+                            <SelectTrigger className={`w-[200px] ${!protocol.centro_custo_id && protocol.status === 'owner_approval' ? 'border-destructive' : ''}`}>
+                              <SelectValue placeholder="Obrigatório *">
                                 {protocol.cost_centers 
                                   ? `${protocol.cost_centers.code} - ${protocol.cost_centers.name}`
-                                  : "Selecionar..."}
+                                  : "Obrigatório *"}
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
