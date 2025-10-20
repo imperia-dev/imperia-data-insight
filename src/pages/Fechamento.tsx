@@ -18,6 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import type { Database } from "@/integrations/supabase/types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { ProtocolStatusBadge } from "@/components/fechamentoPrestadores/ProtocolStatusBadge";
 
 type UserRole = Database['public']['Enums']['user_role'];
 
@@ -636,6 +637,7 @@ export default function Fechamento() {
                           <TableHead>Total IDs</TableHead>
                           <TableHead>Páginas</TableHead>
                           <TableHead>Valor Total</TableHead>
+                          <TableHead>Status</TableHead>
                           <TableHead>Data</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -647,6 +649,9 @@ export default function Fechamento() {
                             <TableCell>{protocol.total_ids}</TableCell>
                             <TableCell>{protocol.total_pages}</TableCell>
                             <TableCell>{formatCurrency(protocol.total_value)}</TableCell>
+                            <TableCell>
+                              <ProtocolStatusBadge status={protocol.status || 'pending'} />
+                            </TableCell>
                             <TableCell>{format(new Date(protocol.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                           </TableRow>
                         ))}
