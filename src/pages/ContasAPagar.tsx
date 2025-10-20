@@ -21,21 +21,15 @@ import { formatCurrency } from "@/lib/currency";
 
 interface ContaPagar {
   id: string;
-  protocolo: string | null;
-  pedido_ids: string[];
+  protocolo: string;
+  tipo: 'despesas' | 'prestadores' | 'revisores';
   prestador_nome: string;
-  prestador_cpf: string | null;
-  prestador_cnpj: string | null;
-  prestador_funcao: string | null;
-  meio_pagamento_digital: string | null;
-  meio_pagamento_agencia: string | null;
   valor_total: number;
   status: string;
-  anexos: string[];
-  observacoes: string | null;
-  nota_fiscal_url: string | null;
   pago_em: string | null;
+  nota_fiscal_url: string | null;
   created_at: string;
+  original_data: any;
 }
 
 export default function ContasAPagar() {
@@ -73,13 +67,77 @@ export default function ContasAPagar() {
 
   const fetchContas = async () => {
     try {
-      const { data, error } = await supabase
-        .from('contas_a_pagar')
+      // Buscar protocolos de fechamento de despesas
+      const { data: despesas, error: despesasError } = await supabase
+        .from('expense_closing_protocols')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setContas(data || []);
+      if (despesasError) throw despesasError;
+
+      // Buscar protocolos de prestadores
+      const { data: prestadores, error: prestadoresError } = await supabase
+        .from('service_provider_protocols')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (prestadoresError) throw prestadoresError;
+
+      // Buscar protocolos de revisores
+      const { data: revisores, error: revisoresError } = await supabase
+        .from('reviewer_protocols')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (revisoresError) throw revisoresError;
+
+      // Mapear protocolos de despesas
+      const contasDespesas: ContaPagar[] = (despesas || []).map(d => ({
+        id: d.id,
+        protocolo: d.protocol_number,
+        tipo: 'despesas' as const,
+        prestador_nome: 'Fechamento de Despesas',
+        valor_total: Number(d.total_amount || 0),
+        status: mapExpenseStatus(d.status),
+        pago_em: d.paid_at,
+        nota_fiscal_url: d.payment_receipt_url,
+        created_at: d.created_at,
+        original_data: d
+      }));
+
+      // Mapear protocolos de prestadores
+      const contasPrestadores: ContaPagar[] = (prestadores || []).map(p => ({
+        id: p.id,
+        protocolo: p.protocol_number,
+        tipo: 'prestadores' as const,
+        prestador_nome: p.provider_name || 'Prestador',
+        valor_total: Number(p.total_amount || 0),
+        status: mapProviderStatus(p.status),
+        pago_em: p.paid_at,
+        nota_fiscal_url: null,
+        created_at: p.created_at,
+        original_data: p
+      }));
+
+      // Mapear protocolos de revisores
+      const contasRevisores: ContaPagar[] = (revisores || []).map(r => ({
+        id: r.id,
+        protocolo: r.protocol_number,
+        tipo: 'revisores' as const,
+        prestador_nome: r.reviewer_name || 'Revisor',
+        valor_total: Number(r.total_amount || 0),
+        status: mapReviewerStatus(r.status),
+        pago_em: r.paid_at,
+        nota_fiscal_url: null,
+        created_at: r.created_at,
+        original_data: r
+      }));
+
+      // Combinar todos os protocolos
+      const todasContas = [...contasDespesas, ...contasPrestadores, ...contasRevisores]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setContas(todasContas);
     } catch (error) {
       console.error('Error fetching contas:', error);
       toast({
@@ -92,19 +150,71 @@ export default function ContasAPagar() {
     }
   };
 
+  // Mapear status de expense_closing_protocols para status de contas
+  const mapExpenseStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'draft': 'novo',
+      'under_review': 'aguardando_pagamento',
+      'approved': 'aguardando_pagamento',
+      'closed': 'finalizado'
+    };
+    return statusMap[status] || 'novo';
+  };
+
+  // Mapear status de service_provider_protocols para status de contas
+  const mapProviderStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'draft': 'novo',
+      'awaiting_approval': 'novo',
+      'approved': 'aguardando_pagamento',
+      'awaiting_payment': 'aguardando_pagamento',
+      'paid': 'aguardando_nf',
+      'completed': 'finalizado'
+    };
+    return statusMap[status] || 'novo';
+  };
+
+  // Mapear status de reviewer_protocols para status de contas
+  const mapReviewerStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'draft': 'novo',
+      'awaiting_approval': 'novo',
+      'approved': 'aguardando_pagamento',
+      'awaiting_payment': 'aguardando_pagamento',
+      'paid': 'aguardando_nf',
+      'completed': 'finalizado'
+    };
+    return statusMap[status] || 'novo';
+  };
+
   const iniciarProcessoPagamento = async (contaId: string) => {
     try {
-      const protocolo = `PAG-${Date.now()}`;
-      
-      const { error } = await supabase
-        .from('contas_a_pagar')
-        .update({
-          protocolo,
-          status: 'aguardando_pagamento'
-        })
-        .eq('id', contaId);
+      const conta = contas.find(c => c.id === contaId);
+      if (!conta) return;
 
-      if (error) throw error;
+      let updateError;
+
+      if (conta.tipo === 'despesas') {
+        const { error } = await supabase
+          .from('expense_closing_protocols')
+          .update({ status: 'approved' })
+          .eq('id', contaId);
+        updateError = error;
+      } else if (conta.tipo === 'prestadores') {
+        const { error } = await supabase
+          .from('service_provider_protocols')
+          .update({ status: 'awaiting_payment' })
+          .eq('id', contaId);
+        updateError = error;
+      } else if (conta.tipo === 'revisores') {
+        const { error } = await supabase
+          .from('reviewer_protocols')
+          .update({ status: 'awaiting_payment' })
+          .eq('id', contaId);
+        updateError = error;
+      }
+
+      if (updateError) throw updateError;
 
       toast({
         title: "Sucesso",
@@ -124,15 +234,42 @@ export default function ContasAPagar() {
 
   const marcarComoPago = async (contaId: string) => {
     try {
-      const { error } = await supabase
-        .from('contas_a_pagar')
-        .update({
-          status: 'aguardando_nf',
-          pago_em: new Date().toISOString()
-        })
-        .eq('id', contaId);
+      const conta = contas.find(c => c.id === contaId);
+      if (!conta) return;
 
-      if (error) throw error;
+      let updateError;
+      const now = new Date().toISOString();
+
+      if (conta.tipo === 'despesas') {
+        const { error } = await supabase
+          .from('expense_closing_protocols')
+          .update({ 
+            status: 'under_review',
+            paid_at: now
+          })
+          .eq('id', contaId);
+        updateError = error;
+      } else if (conta.tipo === 'prestadores') {
+        const { error } = await supabase
+          .from('service_provider_protocols')
+          .update({ 
+            status: 'paid',
+            paid_at: now
+          })
+          .eq('id', contaId);
+        updateError = error;
+      } else if (conta.tipo === 'revisores') {
+        const { error } = await supabase
+          .from('reviewer_protocols')
+          .update({ 
+            status: 'paid',
+            paid_at: now
+          })
+          .eq('id', contaId);
+        updateError = error;
+      }
+
+      if (updateError) throw updateError;
 
       toast({
         title: "Sucesso",
@@ -168,15 +305,36 @@ export default function ContasAPagar() {
         .from('documents')
         .getPublicUrl(filePath);
 
-      const { error } = await supabase
-        .from('contas_a_pagar')
-        .update({
-          nota_fiscal_url: publicUrl,
-          status: 'finalizado'
-        })
-        .eq('id', selectedConta.id);
+      let updateError;
 
-      if (error) throw error;
+      if (selectedConta.tipo === 'despesas') {
+        const { error } = await supabase
+          .from('expense_closing_protocols')
+          .update({
+            payment_receipt_url: publicUrl,
+            status: 'closed'
+          })
+          .eq('id', selectedConta.id);
+        updateError = error;
+      } else if (selectedConta.tipo === 'prestadores') {
+        const { error } = await supabase
+          .from('service_provider_protocols')
+          .update({
+            status: 'completed'
+          })
+          .eq('id', selectedConta.id);
+        updateError = error;
+      } else if (selectedConta.tipo === 'revisores') {
+        const { error } = await supabase
+          .from('reviewer_protocols')
+          .update({
+            status: 'completed'
+          })
+          .eq('id', selectedConta.id);
+        updateError = error;
+      }
+
+      if (updateError) throw updateError;
 
       toast({
         title: "Sucesso",
@@ -265,6 +423,8 @@ export default function ContasAPagar() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Status</TableHead>
@@ -274,6 +434,12 @@ export default function ContasAPagar() {
                       <TableBody>
                         {contasNovos.map((conta) => (
                           <TableRow key={conta.id}>
+                            <TableCell className="font-mono">{conta.protocolo}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {conta.tipo === 'despesas' ? 'Despesas' : conta.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{conta.prestador_nome}</TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>{renderStatusBadge(conta.status)}</TableCell>
@@ -305,8 +471,8 @@ export default function ContasAPagar() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Protocolo</TableHead>
+                          <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
-                          <TableHead>CPF/CNPJ</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Ações</TableHead>
                         </TableRow>
@@ -315,8 +481,12 @@ export default function ContasAPagar() {
                         {contasAguardandoPagamento.map((conta) => (
                           <TableRow key={conta.id}>
                             <TableCell className="font-mono">{conta.protocolo}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {conta.tipo === 'despesas' ? 'Despesas' : conta.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{conta.prestador_nome}</TableCell>
-                            <TableCell>{conta.prestador_cpf || conta.prestador_cnpj}</TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>
                               <Button
@@ -346,6 +516,7 @@ export default function ContasAPagar() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Protocolo</TableHead>
+                          <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Pago em</TableHead>
@@ -356,9 +527,14 @@ export default function ContasAPagar() {
                         {contasAguardandoNF.map((conta) => (
                           <TableRow key={conta.id}>
                             <TableCell className="font-mono">{conta.protocolo}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {conta.tipo === 'despesas' ? 'Despesas' : conta.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{conta.prestador_nome}</TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
-                            <TableCell>{new Date(conta.pago_em!).toLocaleDateString()}</TableCell>
+                            <TableCell>{conta.pago_em ? new Date(conta.pago_em).toLocaleDateString() : '-'}</TableCell>
                             <TableCell>
                               <Dialog>
                                 <DialogTrigger asChild>
@@ -414,6 +590,7 @@ export default function ContasAPagar() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Protocolo</TableHead>
+                          <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Status</TableHead>
@@ -424,6 +601,11 @@ export default function ContasAPagar() {
                         {contasFinalizados.map((conta) => (
                           <TableRow key={conta.id}>
                             <TableCell className="font-mono">{conta.protocolo}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {conta.tipo === 'despesas' ? 'Despesas' : conta.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{conta.prestador_nome}</TableCell>
                             <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
                             <TableCell>{renderStatusBadge(conta.status)}</TableCell>
