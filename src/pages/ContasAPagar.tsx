@@ -32,6 +32,7 @@ interface ContaPagar {
   nota_fiscal_url: string | null;
   created_at: string;
   original_data: any;
+  centro_custo_nome?: string;
 }
 
 export default function ContasAPagar() {
@@ -91,45 +92,82 @@ export default function ContasAPagar() {
 
       if (prestadoresError) throw prestadoresError;
 
-      // Buscar protocolos de revisores
+      // Buscar protocolos de revisores com centro de custo
       const { data: revisores, error: revisoresError } = await supabase
         .from('reviewer_protocols')
-        .select('*')
+        .select(`
+          *,
+          cost_centers(name)
+        `)
         .order('created_at', { ascending: false });
 
       if (revisoresError) throw revisoresError;
 
+      // Buscar centros de custo das despesas para protocolos de despesas
+      const despesasCentroCusto = await Promise.all(
+        (despesas || []).map(async (d) => {
+          const { data: expenses } = await supabase
+            .from('expenses')
+            .select('cost_centers(name)')
+            .eq('closing_protocol_id', d.id)
+            .limit(1)
+            .maybeSingle();
+          return { id: d.id, centro_custo_nome: expenses?.cost_centers?.name };
+        })
+      );
+
+      // Buscar centros de custo das despesas para protocolos de prestadores
+      const prestadoresCentroCusto = await Promise.all(
+        (prestadores || []).map(async (p) => {
+          const { data: expenses } = await supabase
+            .from('expenses')
+            .select('cost_centers(name)')
+            .eq('service_provider_protocol_id', p.id)
+            .limit(1)
+            .maybeSingle();
+          return { id: p.id, centro_custo_nome: expenses?.cost_centers?.name };
+        })
+      );
+
       // Mapear protocolos de despesas
-      const contasDespesas: ContaPagar[] = (despesas || []).map(d => ({
-        id: d.id,
-        protocolo: d.protocol_number,
-        tipo: 'despesas' as const,
-        prestador_nome: 'Fechamento de Despesas',
-        valor_total: Number(d.total_amount || 0),
-        competencia: d.competence_month,
-        status: mapExpenseStatus(d.status),
-        pago_em: d.paid_at,
-        nota_fiscal_url: d.payment_receipt_url,
-        created_at: d.created_at,
-        original_data: d
-      }));
+      const contasDespesas: ContaPagar[] = (despesas || []).map(d => {
+        const centroCusto = despesasCentroCusto.find(cc => cc.id === d.id);
+        return {
+          id: d.id,
+          protocolo: d.protocol_number,
+          tipo: 'despesas' as const,
+          prestador_nome: 'Fechamento de Despesas',
+          valor_total: Number(d.total_amount || 0),
+          competencia: d.competence_month,
+          status: mapExpenseStatus(d.status),
+          pago_em: d.paid_at,
+          nota_fiscal_url: d.payment_receipt_url,
+          created_at: d.created_at,
+          original_data: d,
+          centro_custo_nome: centroCusto?.centro_custo_nome
+        };
+      });
 
       // Mapear protocolos de prestadores (excluindo cancelados)
       const contasPrestadores: ContaPagar[] = (prestadores || [])
         .filter(p => p.status !== 'cancelled')
-        .map(p => ({
-          id: p.id,
-          protocolo: p.protocol_number,
-          tipo: 'prestadores' as const,
-          prestador_nome: p.provider_name || 'Prestador',
-          valor_total: Number(p.total_amount || 0),
-          competencia: p.competence_month,
-          status: mapProviderStatus(p.status),
-          pago_em: p.paid_at,
-          nota_fiscal_url: p.payment_receipt_url,
-          created_at: p.created_at,
-          original_data: p
-        }));
+        .map(p => {
+          const centroCusto = prestadoresCentroCusto.find(cc => cc.id === p.id);
+          return {
+            id: p.id,
+            protocolo: p.protocol_number,
+            tipo: 'prestadores' as const,
+            prestador_nome: p.provider_name || 'Prestador',
+            valor_total: Number(p.total_amount || 0),
+            competencia: p.competence_month,
+            status: mapProviderStatus(p.status),
+            pago_em: p.paid_at,
+            nota_fiscal_url: p.payment_receipt_url,
+            created_at: p.created_at,
+            original_data: p,
+            centro_custo_nome: centroCusto?.centro_custo_nome
+          };
+        });
 
       // Mapear protocolos de revisores (excluindo cancelados)
       const contasRevisores: ContaPagar[] = (revisores || [])
@@ -146,7 +184,8 @@ export default function ContasAPagar() {
           pago_em: r.paid_at,
           nota_fiscal_url: r.payment_receipt_url,
           created_at: r.created_at,
-          original_data: r
+          original_data: r,
+          centro_custo_nome: r.cost_centers?.name
         }));
 
       // Combinar todos os protocolos
@@ -672,6 +711,7 @@ export default function ContasAPagar() {
                           <TableHead>Protocolo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
+                          <TableHead>Centro de Custo</TableHead>
                           <TableHead>Competência</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Status</TableHead>
@@ -695,6 +735,7 @@ export default function ContasAPagar() {
                                 )}
                               </div>
                             </TableCell>
+                            <TableCell>{conta.centro_custo_nome || '-'}</TableCell>
                             <TableCell>
                               {conta.competencia ? new Date(conta.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '-'}
                             </TableCell>
@@ -730,6 +771,7 @@ export default function ContasAPagar() {
                           <TableHead>Protocolo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
+                          <TableHead>Centro de Custo</TableHead>
                           <TableHead>Competência</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Ações</TableHead>
@@ -752,6 +794,7 @@ export default function ContasAPagar() {
                                 )}
                               </div>
                             </TableCell>
+                            <TableCell>{conta.centro_custo_nome || '-'}</TableCell>
                             <TableCell>
                               {conta.competencia ? new Date(conta.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '-'}
                             </TableCell>
@@ -798,6 +841,7 @@ export default function ContasAPagar() {
                           <TableHead>Protocolo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
+                          <TableHead>Centro de Custo</TableHead>
                           <TableHead>Competência</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Pago em</TableHead>
@@ -821,6 +865,7 @@ export default function ContasAPagar() {
                                 )}
                               </div>
                             </TableCell>
+                            <TableCell>{conta.centro_custo_nome || '-'}</TableCell>
                             <TableCell>
                               {conta.competencia ? new Date(conta.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '-'}
                             </TableCell>
@@ -881,6 +926,7 @@ export default function ContasAPagar() {
                           <TableHead>Protocolo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Prestador</TableHead>
+                          <TableHead>Centro de Custo</TableHead>
                           <TableHead>Competência</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead>Status</TableHead>
@@ -904,6 +950,7 @@ export default function ContasAPagar() {
                                 )}
                               </div>
                             </TableCell>
+                            <TableCell>{conta.centro_custo_nome || '-'}</TableCell>
                             <TableCell>
                               {conta.competencia ? new Date(conta.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '-'}
                             </TableCell>
