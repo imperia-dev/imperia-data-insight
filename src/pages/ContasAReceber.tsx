@@ -226,10 +226,10 @@ export default function ContasAReceber() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrency(protocols.reduce((sum, p) => sum + p.total_value, 0))}
+                    {formatCurrency(filterProtocolsByStatus(activeTab).reduce((sum, p) => sum + p.total_value, 0))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {protocols.length} protocolo{protocols.length !== 1 ? 's' : ''}
+                    {filterProtocolsByStatus(activeTab).length} protocolo{filterProtocolsByStatus(activeTab).length !== 1 ? 's' : ''}
                   </p>
                 </CardContent>
               </Card>
@@ -241,7 +241,7 @@ export default function ContasAReceber() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {protocols.reduce((sum, p) => sum + p.total_ids, 0)}
+                    {filterProtocolsByStatus(activeTab).reduce((sum, p) => sum + p.total_ids, 0)}
                   </div>
                 </CardContent>
               </Card>
@@ -253,7 +253,7 @@ export default function ContasAReceber() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {protocols.reduce((sum, p) => sum + p.total_pages, 0)}
+                    {filterProtocolsByStatus(activeTab).reduce((sum, p) => sum + p.total_pages, 0)}
                   </div>
                 </CardContent>
               </Card>
@@ -266,8 +266,8 @@ export default function ContasAReceber() {
                 <CardContent>
                   <div className="text-2xl font-bold">
                     {formatCurrency(
-                      protocols.length > 0 
-                        ? protocols.reduce((sum, p) => sum + p.avg_value_per_document, 0) / protocols.length 
+                      filterProtocolsByStatus(activeTab).reduce((sum, p) => sum + p.total_ids, 0) > 0 
+                        ? filterProtocolsByStatus(activeTab).reduce((sum, p) => sum + p.total_value, 0) / filterProtocolsByStatus(activeTab).reduce((sum, p) => sum + p.total_ids, 0)
                         : 0
                     )}
                   </div>
