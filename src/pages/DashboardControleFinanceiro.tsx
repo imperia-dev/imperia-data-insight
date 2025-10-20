@@ -6,9 +6,14 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { Loader2, DollarSign, TrendingUp, TrendingDown, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function DashboardControleFinanceiro() {
   const { user } = useAuth();
@@ -18,13 +23,15 @@ export default function DashboardControleFinanceiro() {
   const [contasPagar, setContasPagar] = useState({ pendente: 0, pago: 0 });
   const [contasReceber, setContasReceber] = useState({ pendente: 0, recebido: 0 });
   const [loadingData, setLoadingData] = useState(true);
+  const [dateFrom, setDateFrom] = useState<Date>();
+  const [dateTo, setDateTo] = useState<Date>();
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
       fetchFinancialData();
     }
-  }, [user]);
+  }, [user, dateFrom, dateTo]);
 
   const fetchUserProfile = async () => {
     try {
@@ -48,9 +55,20 @@ export default function DashboardControleFinanceiro() {
     setLoadingData(true);
     try {
       // Fetch Contas a Pagar
-      const { data: contasPagarData, error: pagarError } = await supabase
+      let pagarQuery = supabase
         .from('contas_a_pagar')
-        .select('valor_total, status');
+        .select('valor_total, status, created_at');
+
+      if (dateFrom) {
+        pagarQuery = pagarQuery.gte('created_at', dateFrom.toISOString());
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        pagarQuery = pagarQuery.lte('created_at', endDate.toISOString());
+      }
+
+      const { data: contasPagarData, error: pagarError } = await pagarQuery;
 
       if (pagarError) throw pagarError;
 
@@ -65,9 +83,20 @@ export default function DashboardControleFinanceiro() {
       setContasPagar({ pendente: totalPendente, pago: totalPago });
 
       // Fetch Contas a Receber
-      const { data: contasReceberData, error: receberError } = await supabase
+      let receberQuery = supabase
         .from('contas_a_receber')
-        .select('valor_total, prestacoes');
+        .select('valor_total, prestacoes, created_at');
+
+      if (dateFrom) {
+        receberQuery = receberQuery.gte('created_at', dateFrom.toISOString());
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        receberQuery = receberQuery.lte('created_at', endDate.toISOString());
+      }
+
+      const { data: contasReceberData, error: receberError } = await receberQuery;
 
       if (receberError) throw receberError;
 
@@ -120,11 +149,63 @@ export default function DashboardControleFinanceiro() {
         <Header userName={userName} userRole={userRole} />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Dashboard Controle Financeiro</h1>
-              <p className="text-muted-foreground mt-2">
-                Visão consolidada de todas as movimentações financeiras
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Dashboard Controle Financeiro</h1>
+                <p className="text-muted-foreground mt-2">
+                  Visão consolidada de todas as movimentações financeiras
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "Data inicial"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateFrom}
+                      onSelect={setDateFrom}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Data final"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateTo}
+                      onSelect={setDateTo}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {(dateFrom || dateTo) && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setDateFrom(undefined);
+                      setDateTo(undefined);
+                    }}
+                  >
+                    Limpar
+                  </Button>
+                )}
+              </div>
             </div>
 
             {loadingData ? (
