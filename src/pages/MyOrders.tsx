@@ -17,6 +17,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toZonedTime } from "date-fns-tz";
 import { Package, CheckCircle, Clock, AlertTriangle, AlertCircle, User, Hammer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -481,13 +482,13 @@ export function MyOrders() {
                         </TableCell>
                         <TableCell>{order.document_count}</TableCell>
                         <TableCell>
-                          {format(new Date(order.deadline), "dd/MM/yyyy HH:mm", {
+                          {format(toZonedTime(new Date(order.deadline), "America/Sao_Paulo"), "dd/MM/yyyy HH:mm", {
                             locale: ptBR,
                           })}
                         </TableCell>
                         <TableCell>
                           {order.attribution_date &&
-                            format(new Date(order.attribution_date), "dd/MM/yyyy HH:mm", {
+                            format(toZonedTime(new Date(order.attribution_date), "America/Sao_Paulo"), "dd/MM/yyyy HH:mm", {
                               locale: ptBR,
                             })}
                         </TableCell>
@@ -597,13 +598,13 @@ export function MyOrders() {
                         </TableCell>
                         <TableCell>{order.document_count}</TableCell>
                         <TableCell>
-                          {format(new Date(order.deadline), "dd/MM/yyyy HH:mm", {
+                          {format(toZonedTime(new Date(order.deadline), "America/Sao_Paulo"), "dd/MM/yyyy HH:mm", {
                             locale: ptBR,
                           })}
                         </TableCell>
                         <TableCell>
                           {order.assigned_at &&
-                            format(new Date(order.assigned_at), "dd/MM/yyyy HH:mm", {
+                            format(toZonedTime(new Date(order.assigned_at), "America/Sao_Paulo"), "dd/MM/yyyy HH:mm", {
                               locale: ptBR,
                             })}
                         </TableCell>
