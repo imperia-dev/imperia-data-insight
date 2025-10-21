@@ -228,11 +228,12 @@ export function Orders() {
   // Update last document ID mutation
   const updateLastDocumentMutation = useMutation({
     mutationFn: async (value: string) => {
+      const trimmedValue = value.trim();
       const { error } = await supabase
         .from("system_settings")
         .upsert({ 
           key: "last_document_id", 
-          value: value,
+          value: trimmedValue,
           updated_by: user?.id 
         }, { 
           onConflict: "key" 
@@ -269,7 +270,7 @@ export function Orders() {
   const createOrderMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const insertData: any = {
-        order_number: data.order_number,
+        order_number: data.order_number.trim(),
         document_count: parseInt(data.document_count),
         deadline: new Date(data.deadline).toISOString(),
         created_by: user?.id,
@@ -492,7 +493,7 @@ export function Orders() {
     e.preventDefault();
     
     const updates: any = {
-      order_number: editFormData.order_number,
+      order_number: editFormData.order_number.trim(),
       document_count: parseInt(editFormData.document_count),
       deadline: new Date(editFormData.deadline).toISOString(),
       customer: editFormData.customer,
@@ -824,7 +825,7 @@ export function Orders() {
                         placeholder="Ex: PED-001"
                         value={formData.order_number}
                         onChange={(e) =>
-                          setFormData({ ...formData, order_number: e.target.value })
+                          setFormData({ ...formData, order_number: e.target.value.trim() })
                         }
                         required
                       />
@@ -942,7 +943,7 @@ export function Orders() {
                 <Input
                   placeholder="Digite o ID do pedido"
                   value={isEditingLastOrder ? tempLastOrderId : lastOrderId}
-                  onChange={(e) => setTempLastOrderId(e.target.value)}
+                  onChange={(e) => setTempLastOrderId(e.target.value.trim())}
                   disabled={!isEditingLastOrder}
                   className="max-w-xs"
                 />
@@ -1463,7 +1464,7 @@ export function Orders() {
                     id="edit-order-number"
                     value={editFormData.order_number}
                     onChange={(e) =>
-                      setEditFormData({ ...editFormData, order_number: e.target.value })
+                      setEditFormData({ ...editFormData, order_number: e.target.value.trim() })
                     }
                     required
                   />
