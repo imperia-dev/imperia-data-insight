@@ -62,6 +62,31 @@ export const useRoleAccess = (pathname: string) => {
     };
 
     checkAccess();
+
+    // Set up real-time subscription to user_roles changes
+    if (session?.user.id) {
+      const channel = supabase
+        .channel('user-role-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen to INSERT, UPDATE, DELETE
+            schema: 'public',
+            table: 'user_roles',
+            filter: `user_id=eq.${session.user.id}`
+          },
+          (payload) => {
+            console.log('Role change detected:', payload);
+            // Re-check access when role changes
+            checkAccess();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [session, pathname, authLoading]);
 
   return { userRole, loading: loading || authLoading, hasAccess };
