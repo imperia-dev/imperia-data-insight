@@ -351,7 +351,7 @@ const standaloneItems: NavigationItem[] = [
     title: "Aprovação de Cadastros",
     icon: UserCheck,
     href: "/registration-approvals",
-    roles: ["owner"],
+    roles: ["owner", "master"],
     badge: true,
   },
   {
