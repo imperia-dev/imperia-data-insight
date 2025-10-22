@@ -427,9 +427,9 @@ export function Orders() {
           throw new Error("Erro ao processar resposta do webhook");
         }
 
-        // Save service_order_link if returned
-        if (webhookData?.serviceOrderLink || webhookData?.service_order_link) {
-          const linkToSave = webhookData.serviceOrderLink || webhookData.service_order_link;
+        // Save service_order_link if returned (check all possible keys)
+        if (webhookData?.ServiceOrderLink || webhookData?.serviceOrderLink || webhookData?.service_order_link) {
+          const linkToSave = webhookData.ServiceOrderLink || webhookData.serviceOrderLink || webhookData.service_order_link;
           
           console.log('=== SALVANDO SERVICE_ORDER_LINK ===');
           console.log('Link a salvar:', linkToSave);
