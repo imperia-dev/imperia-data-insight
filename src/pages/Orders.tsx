@@ -318,27 +318,147 @@ export function Orders() {
   // Take order mutation
   const takeOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      console.log("Attempting to take order with ID:", orderId);
-      console.log("Assigning to user ID:", user?.id);
-      const { error } = await supabase
+      // ===== LOG 1: DADOS INICIAIS =====
+      console.log('=== INÍCIO TAKE ORDER (Orders.tsx) ===');
+      console.log('Order ID:', orderId);
+      console.log('User ID:', user?.id);
+      console.log('Profile operation_account_id:', profile?.operation_account_id);
+      console.log('Profile completo:', profile);
+      
+      // Check if user has operation_account_id configured
+      if (!profile?.operation_account_id) {
+        console.error('ERRO: operation_account_id não configurado');
+        throw new Error("Peça ao admin o cadastro da plataforma ops");
+      }
+
+      // Get the full order details to access order_number
+      const { data: orderData, error: fetchError } = await supabase
         .from("orders")
-        .update({
-          assigned_to: user?.id,
-          assigned_at: new Date().toISOString(),
-          status_order: "in_progress", // Explicitly set status to in_progress
-        })
-        .eq("id", orderId);
+        .select("*")
+        .eq("id", orderId)
+        .single();
+      
+      if (fetchError) {
+        console.error('ERRO ao buscar order:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('Order Number:', orderData.order_number);
+
+      // ===== LOG 2: ANTES DE ATUALIZAR NO SUPABASE =====
+      const updateData = {
+        assigned_to: user?.id,
+        assigned_at: new Date().toISOString(),
+        status_order: "in_progress",
+        account_ID: profile.operation_account_id,
+      };
+      console.log('=== ATUALIZANDO SUPABASE ===');
+      console.log('Update data:', updateData);
+      console.log('Order ID a ser atualizado:', orderId);
+
+      // Step 1: Update order in Supabase with operation account ID
+      const { data: updateResult, error } = await supabase
+        .from("orders")
+        .update(updateData)
+        .eq("id", orderId)
+        .select();
+      
+      // ===== LOG 3: APÓS ATUALIZAÇÃO =====
+      console.log('=== RESULTADO SUPABASE ===');
+      console.log('Update result:', updateResult);
+      console.log('Update error:', error);
       
       if (error) {
-        console.error("Error taking order:", error);
+        console.error('ERRO ao atualizar no Supabase:', error);
         throw error;
       }
-      console.log("Order taken successfully in Supabase.");
+
+      // ===== LOG 4: VERIFICAR SE account_ID FOI SALVO =====
+      const { data: verifyData } = await supabase
+        .from("orders")
+        .select("id, account_ID, assigned_to, status_order, order_number")
+        .eq("id", orderId)
+        .single();
+      
+      console.log('=== VERIFICAÇÃO account_ID ===');
+      console.log('Dados após update:', verifyData);
+
+      // Step 2: Call n8n webhook to generate service order link
+      try {
+        const payload = {
+          translationOrderId: orderData.order_number,
+          AccountId: profile.operation_account_id,
+        };
+
+        console.log('=== CHAMANDO WEBHOOK N8N ===');
+        console.log('Payload:', payload);
+        console.log('URL:', 'https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138');
+
+        const webhookResponse = await fetch(
+          "https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        const responseText = await webhookResponse.text();
+        
+        console.log('=== RESPOSTA N8N ===');
+        console.log('Status:', webhookResponse.status);
+        console.log('Status OK?:', webhookResponse.ok);
+        console.log('Response text:', responseText);
+        
+        if (!webhookResponse.ok) {
+          console.error('Webhook failed with status:', webhookResponse.status);
+          console.error('Response:', responseText);
+          throw new Error(`Webhook retornou status ${webhookResponse.status}`);
+        }
+
+        let webhookData;
+        try {
+          webhookData = JSON.parse(responseText);
+          console.log('Webhook data parsed:', webhookData);
+        } catch (parseError) {
+          console.error('Erro ao fazer parse da resposta:', parseError);
+          throw new Error("Erro ao processar resposta do webhook");
+        }
+
+        // Save service_order_link if returned
+        if (webhookData?.serviceOrderLink || webhookData?.service_order_link) {
+          const linkToSave = webhookData.serviceOrderLink || webhookData.service_order_link;
+          
+          console.log('=== SALVANDO SERVICE_ORDER_LINK ===');
+          console.log('Link a salvar:', linkToSave);
+          
+          const { error: linkError } = await supabase
+            .from("orders")
+            .update({ service_order_link: linkToSave })
+            .eq("id", orderId);
+
+          if (linkError) {
+            console.error('Erro ao salvar service_order_link:', linkError);
+          } else {
+            console.log('service_order_link salvo com sucesso!');
+          }
+        } else {
+          console.warn('Webhook não retornou service_order_link');
+          console.log('Chaves disponíveis na resposta:', Object.keys(webhookData));
+        }
+      } catch (webhookError) {
+        console.error('=== ERRO NO WEBHOOK ===');
+        console.error('Erro completo:', webhookError);
+        // Não vamos bloquear a atribuição do pedido se o webhook falhar
+        // apenas logamos o erro
+      }
     },
     onSuccess: () => {
-      console.log("takeOrderMutation onSuccess: Invalidating and refetching queries.");
-      queryClient.refetchQueries({ queryKey: ["orders"] }); // Force refetch of all orders
-      queryClient.refetchQueries({ queryKey: ["my-orders", user?.id] }); // Force refetch of my-orders for the current user
+      console.log("takeOrderMutation onSuccess: Invalidando e refazendo queries.");
+      queryClient.refetchQueries({ queryKey: ["orders"] });
+      queryClient.refetchQueries({ queryKey: ["my-orders", user?.id] });
       toast({
         title: "Pedido atribuído",
         description: "O pedido foi atribuído a você com sucesso.",
