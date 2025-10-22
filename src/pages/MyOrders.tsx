@@ -139,8 +139,17 @@ export function MyOrders() {
   // Take order mutation
   const takeOrderMutation = useMutation({
     mutationFn: async (order: any) => {
+      // ===== LOG 1: DADOS INICIAIS =====
+      console.log('=== INÍCIO TAKE ORDER ===');
+      console.log('Order ID:', order.id);
+      console.log('Order Number:', order.order_number);
+      console.log('User ID:', user?.id);
+      console.log('Profile operation_account_id:', profile?.operation_account_id);
+      console.log('Profile completo:', profile);
+      
       // Check if user has operation_account_id configured
       if (!profile?.operation_account_id) {
+        console.error('ERRO: operation_account_id não configurado');
         throw new Error("Peça ao admin o cadastro da plataforma ops");
       }
 
@@ -152,31 +161,57 @@ export function MyOrders() {
         throw new Error(`Você já possui ${currentOrderCount} pedido(s) em andamento. Finalize um pedido antes de pegar outro.`);
       }
 
+      // ===== LOG 2: ANTES DE ATUALIZAR NO SUPABASE =====
+      const updateData = {
+        assigned_to: user?.id,
+        assigned_at: new Date().toISOString(),
+        status_order: "in_progress",
+        account_ID: profile.operation_account_id,
+      };
+      console.log('=== ATUALIZANDO SUPABASE ===');
+      console.log('Update data:', updateData);
+      console.log('Order ID a ser atualizado:', order.id);
+
       // Step 1: Update order in Supabase with operation account ID
-      const { error } = await supabase
+      const { data: updateResult, error } = await supabase
         .from("orders")
-        .update({
-          assigned_to: user?.id,
-          assigned_at: new Date().toISOString(),
-          status_order: "in_progress",
-          account_ID: profile.operation_account_id, // Save the operation account ID
-        })
-        .eq("id", order.id);
+        .update(updateData)
+        .eq("id", order.id)
+        .select();
       
-      if (error) throw error;
+      // ===== LOG 3: APÓS ATUALIZAÇÃO =====
+      console.log('=== RESULTADO SUPABASE ===');
+      console.log('Update result:', updateResult);
+      console.log('Update error:', error);
+      
+      if (error) {
+        console.error('ERRO ao atualizar no Supabase:', error);
+        throw error;
+      }
+
+      // ===== LOG 4: VERIFICAR SE account_ID FOI SALVO =====
+      const { data: verifyData } = await supabase
+        .from("orders")
+        .select("id, account_ID, assigned_to, status_order, order_number")
+        .eq("id", order.id)
+        .single();
+      
+      console.log('=== VERIFICAÇÃO account_ID ===');
+      console.log('Dados após update:', verifyData);
 
       // Step 2: Call n8n webhook with operation_account_id
       try {
         // Prepare payload with correct field names and values
         const payload = {
-          translationOrderId: order.order_number, // Use order_number (fragment) instead of full UUID
+          translationOrderId: order.order_number,
           AccountId: profile.operation_account_id,
         };
 
-        // Detailed logging for debugging
-        console.log('n8n payload:', payload);
+        // ===== LOG 5: ANTES DE CHAMAR WEBHOOK =====
+        console.log('=== CHAMANDO WEBHOOK N8N ===');
+        console.log('Payload:', payload);
+        console.log('URL:', 'https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138');
         
-        // Temporary toast for debugging
         toast({
           title: "Debug: Enviando para n8n",
           description: `translationOrderId=${order.order_number}, AccountId=${profile.operation_account_id}`,
@@ -195,17 +230,24 @@ export function MyOrders() {
 
         // Get response text first to handle empty responses
         const responseText = await webhookResponse.text();
-        console.log('n8n response status:', webhookResponse.status);
-        console.log('n8n response text:', responseText);
+        
+        // ===== LOG 6: RESPOSTA DO WEBHOOK =====
+        console.log('=== RESPOSTA N8N ===');
+        console.log('Status:', webhookResponse.status);
+        console.log('Status OK?:', webhookResponse.ok);
+        console.log('Response text:', responseText);
 
         let responseData = null;
         if (responseText && responseText.trim()) {
           try {
             responseData = JSON.parse(responseText);
+            console.log('Response data parsed:', responseData);
             
             // Check for known n8n errors
             if (responseData.error) {
-              console.error('n8n retornou erro:', responseData.error);
+              console.error('=== ERRO RETORNADO PELO N8N ===');
+              console.error('Erro:', responseData.error);
+              
               if (responseData.error === 'INVALID_INPUT') {
                 console.error('Dados inválidos enviados ao sistema de operação');
                 toast({
@@ -229,22 +271,31 @@ export function MyOrders() {
               };
             }
             
-            // Step 3: Save the ServiceOrderLink to service_order_link field
+            // ===== LOG 7: SALVANDO SERVICE_ORDER_LINK =====
             if (responseData.ServiceOrderLink || responseData.Id) {
               const linkToSave = responseData.ServiceOrderLink || responseData.Id;
               
-              const { error: updateError } = await supabase
+              console.log('=== SALVANDO SERVICE_ORDER_LINK ===');
+              console.log('Link a salvar:', linkToSave);
+              console.log('Order ID:', order.id);
+              
+              const { data: updateLinkResult, error: updateError } = await supabase
                 .from("orders")
                 .update({
                   service_order_link: linkToSave,
                 } as any)
-                .eq("id", order.id);
+                .eq("id", order.id)
+                .select();
+
+              console.log('Update link result:', updateLinkResult);
+              console.log('Update link error:', updateError);
 
               if (updateError) {
-                console.error("Erro ao salvar link de integração:", updateError);
-                // Don't throw, just log - the order was already assigned successfully
+                console.error("=== ERRO AO SALVAR LINK ===");
+                console.error('Erro:', updateError);
               } else {
-                console.log('ServiceOrderLink salvo com sucesso:', linkToSave);
+                console.log('=== LINK SALVO COM SUCESSO ===');
+                console.log('ServiceOrderLink salvo:', linkToSave);
               }
 
               return { 
@@ -253,18 +304,22 @@ export function MyOrders() {
               };
             }
           } catch (parseError) {
-            console.error('Erro ao fazer parse do JSON:', parseError);
+            console.error('=== ERRO AO FAZER PARSE DO JSON ===');
+            console.error('Parse error:', parseError);
             console.log('Resposta recebida:', responseText);
           }
         } else {
-          console.warn('Webhook retornou resposta vazia - pedido atribuído mas sem link');
+          console.warn('=== WEBHOOK RETORNOU RESPOSTA VAZIA ===');
+          console.warn('Pedido atribuído mas sem link');
         }
 
         if (!webhookResponse.ok) {
-          console.error("Webhook retornou erro HTTP:", webhookResponse.status);
+          console.error("=== WEBHOOK RETORNOU ERRO HTTP ===");
+          console.error("Status:", webhookResponse.status);
         }
       } catch (webhookError) {
-        console.error("Erro ao chamar webhook:", webhookError);
+        console.error("=== ERRO AO CHAMAR WEBHOOK ===");
+        console.error('Erro completo:', webhookError);
         // Don't throw - continue with partial success
         return { 
           success: true, 
