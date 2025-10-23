@@ -110,6 +110,7 @@ export default function Pendencies() {
     { value: "matricula_incorreta", label: "Matrícula incorreta" },
     { value: "espacamento", label: "Espaçamento" },
     { value: "sem_cabecalho", label: "Sem cabeçalho" },
+    { value: "solicitacao_cliente", label: "Solicitação do Cliente" },
   ];
 
   useEffect(() => {
@@ -157,17 +158,57 @@ export default function Pendencies() {
 
   const fetchPendencies = async () => {
     try {
-      const { data, error } = await supabase
-        .from('pendencies')
-        .select(`
-          *,
-          orders(order_number)
-        `)
-        .order('created_at', { ascending: false });
+      // Fetch from both tables in parallel
+      const [regularPendencies, customerRequests] = await Promise.all([
+        supabase
+          .from('pendencies')
+          .select(`
+            *,
+            orders(order_number)
+          `)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('customer_pendency_requests')
+          .select('*')
+          .order('created_at', { ascending: false })
+      ]);
 
-      if (error) throw error;
-      setPendencies(data || []);
-      setFilteredPendencies(data || []);
+      if (regularPendencies.error) throw regularPendencies.error;
+      if (customerRequests.error) throw customerRequests.error;
+
+      // Map customer requests to match pendencies structure
+      const mappedCustomerRequests = (customerRequests.data || []).map((request: any) => ({
+        id: request.id,
+        order_id: request.order_id,
+        c4u_id: request.order_id, // Use order_id as c4u_id
+        description: request.description,
+        error_type: 'solicitacao_cliente', // Special type for customer requests
+        error_document_count: 0,
+        customer: request.customer_name || 'Cliente',
+        treatment: request.internal_notes || '',
+        status: request.status === 'approved' ? 'resolved' : 
+                request.status === 'rejected' ? 'resolved' : 'pending',
+        created_at: request.created_at,
+        created_by: request.created_by,
+        // Mark as customer request for identification
+        source: 'customer_request',
+        priority: request.priority,
+        orders: null, // No join for customer requests
+      }));
+
+      // Combine both arrays
+      const allPendencies = [
+        ...(regularPendencies.data || []).map((p: any) => ({ ...p, source: 'internal' })),
+        ...mappedCustomerRequests
+      ];
+
+      // Sort by created_at
+      allPendencies.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setPendencies(allPendencies);
+      setFilteredPendencies(allPendencies);
     } catch (error) {
       console.error('Error fetching pendencies:', error);
       toast({
@@ -741,14 +782,19 @@ export default function Pendencies() {
                     </TableRow>
                    ) : (
                     paginatedPendencies.map((pendency) => (
-                      <TableRow key={pendency.id}>
-                        <TableCell className="font-medium">
-                          {pendency.orders?.order_number || pendency.old_order_text_id || '-'}
-                        </TableCell>
-                        <TableCell>{pendency.c4u_id}</TableCell>
-                        <TableCell>{pendency.customer || 'Cidadania4y'}</TableCell>
-                        <TableCell>{getErrorTypeLabel(pendency.error_type)}</TableCell>
-                        <TableCell>{pendency.error_document_count}</TableCell>
+                       <TableRow key={pendency.id} className={pendency.source === 'customer_request' ? 'bg-blue-50 dark:bg-blue-950/20' : ''}>
+                         <TableCell className="font-medium">
+                           {pendency.orders?.order_number || pendency.old_order_text_id || pendency.order_id || '-'}
+                         </TableCell>
+                         <TableCell>{pendency.c4u_id}</TableCell>
+                         <TableCell>
+                           {pendency.customer || 'Cidadania4y'}
+                           {pendency.source === 'customer_request' && (
+                             <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Cliente</span>
+                           )}
+                         </TableCell>
+                         <TableCell>{getErrorTypeLabel(pendency.error_type)}</TableCell>
+                         <TableCell>{pendency.error_document_count || '-'}</TableCell>
                         <TableCell className="max-w-xs truncate">
                           {pendency.description}
                         </TableCell>
