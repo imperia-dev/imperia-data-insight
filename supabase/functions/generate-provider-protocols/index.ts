@@ -13,6 +13,9 @@ interface ProviderData {
   expense_count: number;
   total_amount: number;
   expenses_data: any[];
+  drive_docs: number;
+  diagramming_docs: number;
+  diagramming_pages: number;
 }
 
 serve(async (req) => {
@@ -53,6 +56,11 @@ serve(async (req) => {
         pages_count_diagramming,
         custom_value_diagramming,
         order_number,
+        drive_document_count,
+        diagramming_document_count,
+        diagramming_pages_total,
+        drive_value,
+        diagramming_value,
         profiles!orders_assigned_to_fkey (
           id,
           full_name,
@@ -88,23 +96,47 @@ serve(async (req) => {
       }
 
       let orderValue: number;
+      let orderDriveDocs = 0;
+      let orderDiagrammingDocs = 0;
+      let orderDiagrammingPages = 0;
       
-      // Calcular valor baseado no tipo de serviço
-      if (order.service_type === 'Diagramação') {
-        if (order.custom_value_diagramming !== null && order.custom_value_diagramming !== undefined) {
-          // Usar valor customizado já calculado (novo sistema)
-          orderValue = order.custom_value_diagramming;
-          console.log(`Order ${order.order_number}: Using custom value R$ ${orderValue.toFixed(2)} (${order.pages_count_diagramming} pages)`);
-        } else {
-          // FALLBACK: Pedidos antigos de Diagramação SEM páginas preenchidas
-          // Usar cálculo padrão até que o master atualize
-          orderValue = (order.document_count || 0) * VALUE_PER_DOCUMENT;
-          console.warn(`Order ${order.order_number}: Legacy Diagramação order without pages_count_diagramming. Using fallback: R$ ${orderValue.toFixed(2)}`);
-        }
+      // Usar novos campos separados se disponíveis
+      if (order.drive_value !== null || order.diagramming_value !== null) {
+        // NOVO SISTEMA: Usar campos separados
+        orderValue = (order.drive_value || 0) + (order.diagramming_value || 0);
+        orderDriveDocs = order.drive_document_count || 0;
+        orderDiagrammingDocs = order.diagramming_document_count || 0;
+        orderDiagrammingPages = order.diagramming_pages_total || 0;
+        
+        console.log(`Order ${order.order_number} (NEW): Drive=${orderDriveDocs} docs, Diag=${orderDiagrammingDocs} docs/${orderDiagrammingPages} pages, Value=R$ ${orderValue.toFixed(2)}`);
+        
       } else {
-        // Cálculo padrão para Drive e outros tipos
-        orderValue = (order.document_count || 0) * VALUE_PER_DOCUMENT;
-        console.log(`Order ${order.order_number}: Standard calculation R$ ${orderValue.toFixed(2)}`);
+        // SISTEMA LEGADO: Calcular baseado em campos antigos
+        if (order.service_type === 'Diagramação') {
+          if (order.custom_value_diagramming !== null) {
+            orderValue = order.custom_value_diagramming;
+            orderDiagrammingDocs = order.document_count || 0;
+            orderDiagrammingPages = order.pages_count_diagramming || 0;
+          } else {
+            // Fallback extremo para pedidos muito antigos
+            orderValue = (order.document_count || 0) * VALUE_PER_DOCUMENT;
+            orderDiagrammingDocs = order.document_count || 0;
+          }
+          console.log(`Order ${order.order_number} (LEGACY Diag): ${orderDiagrammingPages} pages, Value=R$ ${orderValue.toFixed(2)}`);
+          
+        } else if (order.service_type === 'Drive + Diagramação') {
+          orderValue = order.custom_value_diagramming || 0;
+          orderDriveDocs = 0; // Não podemos separar no sistema legado
+          orderDiagrammingDocs = order.document_count || 0;
+          orderDiagrammingPages = order.pages_count_diagramming || 0;
+          console.log(`Order ${order.order_number} (LEGACY Mixed): Value=R$ ${orderValue.toFixed(2)}`);
+          
+        } else {
+          // Drive padrão
+          orderValue = (order.document_count || 0) * VALUE_PER_DOCUMENT;
+          orderDriveDocs = order.document_count || 0;
+          console.log(`Order ${order.order_number} (LEGACY Drive): ${orderDriveDocs} docs, Value=R$ ${orderValue.toFixed(2)}`);
+        }
       }
 
       if (!providersMap.has(supplierId)) {
@@ -112,23 +144,34 @@ serve(async (req) => {
           supplier_id: supplierId,
           provider_name: profile.full_name || 'Prestador',
           provider_email: profile.email || '',
-          expense_count: 0, // número de pedidos
+          expense_count: 0,
           total_amount: 0,
           expenses_data: [],
+          drive_docs: 0,
+          diagramming_docs: 0,
+          diagramming_pages: 0,
         });
       }
 
       const provider = providersMap.get(supplierId)!;
-      provider.expense_count += 1; // conta o pedido
+      provider.expense_count += 1;
       provider.total_amount += orderValue;
+      provider.drive_docs += orderDriveDocs;
+      provider.diagramming_docs += orderDiagrammingDocs;
+      provider.diagramming_pages += orderDiagrammingPages;
+      
       provider.expenses_data.push({
         expense_id: order.id,
-        description: order.service_type === 'Diagramação' && order.pages_count_diagramming
-          ? `Pedido ${order.order_number} - Diagramação (${order.pages_count_diagramming} páginas)`
+        description: order.service_type === 'Diagramação' && orderDiagrammingPages > 0
+          ? `Pedido ${order.order_number} - Diagramação (${orderDiagrammingPages} páginas)`
+          : order.service_type === 'Drive + Diagramação'
+          ? `Pedido ${order.order_number} - Drive + Diagramação (${orderDriveDocs} docs drive, ${orderDiagrammingPages} páginas diag)`
           : `Pedido ${order.order_number}`,
         amount: orderValue,
         document_count: order.document_count,
-        pages_count_diagramming: order.pages_count_diagramming || null,
+        drive_docs: orderDriveDocs,
+        diagramming_docs: orderDiagrammingDocs,
+        diagramming_pages: orderDiagrammingPages,
         service_type: order.service_type,
         delivered_at: order.delivered_at,
       });

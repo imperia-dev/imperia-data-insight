@@ -115,8 +115,8 @@ export function Orders() {
     tags: [] as string[],
     pages_count_diagramming: "",
     documents: [] as Array<{ quantity: string, pages: string }>,
-    totalDocuments: "", // Para Drive + Diagramação
-    driveDocuments: "", // Quantidade de docs no Drive
+    totalDocuments: "",
+    driveDocuments: "",
   });
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -132,8 +132,8 @@ export function Orders() {
     tags: [] as string[],
     pages_count_diagramming: "",
     documents: [] as Array<{ quantity: string, pages: string }>,
-    totalDocuments: "", // Para Drive + Diagramação
-    driveDocuments: "", // Quantidade de docs no Drive
+    totalDocuments: "",
+    driveDocuments: "",
   });
 
   // Fetch user profile to get role
@@ -279,22 +279,50 @@ export function Orders() {
     mutationFn: async (data: typeof formData) => {
       let totalDocuments = 0;
       let totalPages = 0;
+      let driveDocCount = 0;
+      let diagrammingDocCount = 0;
+      let diagrammingPagesTotal = 0;
+      let driveValue = 0;
+      let diagrammingValue = 0;
+      let diagrammingDetails: Array<{ quantity: number; pages: number }> = [];
       
-      // Calcular totais baseado no tipo de serviço
-      if (data.serviceType === "Diagramação") {
+      // Calcular baseado no tipo de serviço
+      if (data.serviceType === "Drive") {
+        // Drive puro
+        driveDocCount = parseInt(data.document_count);
+        totalDocuments = driveDocCount;
+        driveValue = driveDocCount * 1.30;
+        
+      } else if (data.serviceType === "Diagramação") {
+        // Diagramação pura
         if (data.documents.length === 0) {
           throw new Error("Adicione pelo menos um documento para serviços de Diagramação");
         }
         
-        // Somar todos os documentos e páginas
-        totalDocuments = data.documents.reduce((sum, doc) => sum + parseInt(doc.quantity || "0"), 0);
-        totalPages = data.documents.reduce((sum, doc) => sum + (parseInt(doc.quantity || "0") * parseInt(doc.pages || "0")), 0);
+        diagrammingDocCount = data.documents.reduce((sum, doc) => sum + parseInt(doc.quantity || "0"), 0);
+        diagrammingPagesTotal = data.documents.reduce((sum, doc) => sum + (parseInt(doc.quantity || "0") * parseInt(doc.pages || "0")), 0);
+        totalDocuments = diagrammingDocCount;
+        diagrammingValue = diagrammingPagesTotal * 3.00;
+        diagrammingDetails = data.documents.map(d => ({
+          quantity: parseInt(d.quantity),
+          pages: parseInt(d.pages)
+        }));
+        
       } else if (data.serviceType === "Drive + Diagramação") {
-        // Para Drive + Diagramação, usar o total declarado
+        // Híbrido - usar campos separados
+        driveDocCount = parseInt(data.driveDocuments || "0");
+        diagrammingDocCount = data.documents.reduce((sum, doc) => sum + parseInt(doc.quantity || "0"), 0);
+        diagrammingPagesTotal = data.documents.reduce((sum, doc) => sum + (parseInt(doc.quantity || "0") * parseInt(doc.pages || "0")), 0);
         totalDocuments = parseInt(data.totalDocuments);
-        totalPages = data.documents.reduce((sum, doc) => sum + (parseInt(doc.quantity || "0") * parseInt(doc.pages || "0")), 0);
+        driveValue = driveDocCount * 1.30;
+        diagrammingValue = diagrammingPagesTotal * 3.00;
+        diagrammingDetails = data.documents.map(d => ({
+          quantity: parseInt(d.quantity),
+          pages: parseInt(d.pages)
+        }));
+        
       } else {
-        // Para Drive, usar o document_count diretamente
+        // Fallback para tipos antigos
         totalDocuments = parseInt(data.document_count);
       }
 
@@ -303,24 +331,28 @@ export function Orders() {
         document_count: totalDocuments,
         deadline: new Date(data.deadline).toISOString(),
         created_by: user?.id,
-        status_order: "available", // Always start with available status
+        status_order: "available",
         customer: data.customer || null,
         service_type: data.serviceType || null,
         tags: data.tags.length > 0 ? data.tags : null,
+        // Novos campos separados
+        drive_document_count: driveDocCount,
+        diagramming_document_count: diagrammingDocCount,
+        diagramming_pages_total: diagrammingPagesTotal,
+        diagramming_details: diagrammingDetails,
+        drive_value: driveValue,
+        diagramming_value: diagrammingValue,
       };
       
-      // Adicionar campos específicos para Diagramação
-      if (data.serviceType === "Diagramação" && totalPages > 0) {
-        insertData.pages_count_diagramming = totalPages;
-        insertData.custom_value_diagramming = totalPages * 3; // R$ 3,00 por página
+      // Manter campos legados para compatibilidade
+      if (data.serviceType === "Diagramação" && diagrammingPagesTotal > 0) {
+        insertData.pages_count_diagramming = diagrammingPagesTotal;
+        insertData.custom_value_diagramming = diagrammingValue;
       }
       
-      // Adicionar campos específicos para Drive + Diagramação
       if (data.serviceType === "Drive + Diagramação") {
-        const driveValue = parseInt(data.driveDocuments || "0") * 1.30;
-        const diagramacaoValue = totalPages * 3;
-        insertData.pages_count_diagramming = totalPages;
-        insertData.custom_value_diagramming = driveValue + diagramacaoValue;
+        insertData.pages_count_diagramming = diagrammingPagesTotal;
+        insertData.custom_value_diagramming = driveValue + diagrammingValue;
       }
 
       // Add optional fields if provided
@@ -643,6 +675,16 @@ export function Orders() {
 
   const handleEditClick = (order: any) => {
     setEditingOrder(order);
+    
+    // Preparar documents array se existir diagramming_details
+    let documentsArray: Array<{ quantity: string, pages: string }> = [];
+    if (order.diagramming_details && Array.isArray(order.diagramming_details)) {
+      documentsArray = order.diagramming_details.map((d: any) => ({
+        quantity: d.quantity?.toString() || "1",
+        pages: d.pages?.toString() || "0"
+      }));
+    }
+    
     setEditFormData({
       order_number: order.order_number,
       document_count: order.document_count.toString(),
@@ -653,9 +695,9 @@ export function Orders() {
       serviceType: order.service_type || "",
       tags: order.tags || [],
       pages_count_diagramming: (order as any).pages_count_diagramming?.toString() || "",
-      documents: [],
-      totalDocuments: "",
-      driveDocuments: "",
+      documents: documentsArray,
+      totalDocuments: order.document_count?.toString() || "",
+      driveDocuments: order.drive_document_count?.toString() || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -740,18 +782,18 @@ export function Orders() {
         return;
       }
       
-      const hasIncompleteDoc = formData.documents.some(d => !d.quantity || !d.pages);
+      const hasIncompleteDoc = formData.documents.some(d => !d.quantity || !d.pages || parseInt(d.pages) <= 0);
       if (hasIncompleteDoc) {
         toast({
           title: "Erro de validação",
-          description: "Preencha quantidade e páginas para todos os documentos",
+          description: "Preencha quantidade e páginas (>0) para todos os documentos",
           variant: "destructive",
         });
         return;
       }
     }
     
-    // Validação para Drive + Diagramação
+    // Validação ROBUSTA para Drive + Diagramação
     if (formData.serviceType === "Drive + Diagramação") {
       if (!formData.totalDocuments || !formData.driveDocuments) {
         toast({
@@ -771,25 +813,31 @@ export function Orders() {
         return;
       }
       
-      const hasIncompleteDoc = formData.documents.some(d => !d.quantity || !d.pages);
+      const hasIncompleteDoc = formData.documents.some(d => !d.quantity || !d.pages || parseInt(d.pages) <= 0);
       if (hasIncompleteDoc) {
         toast({
           title: "Erro de validação",
-          description: "Preencha quantidade e páginas para todos os documentos da Diagramação",
+          description: "Preencha páginas (>0) para todos os documentos da Diagramação",
           variant: "destructive",
         });
         return;
       }
       
-      // Validar que soma dos documentos = total declarado
+      // VALIDAÇÃO MATEMÁTICA CRÍTICA
       const driveCount = parseInt(formData.driveDocuments);
       const diagramacaoCount = formData.documents.reduce((sum, d) => sum + parseInt(d.quantity || "0"), 0);
       const totalDeclared = parseInt(formData.totalDocuments);
+      const totalActual = driveCount + diagramacaoCount;
       
-      if (driveCount + diagramacaoCount !== totalDeclared) {
+      if (totalActual !== totalDeclared) {
+        const difference = totalDeclared - totalActual;
+        const message = difference > 0 
+          ? `⚠️ FALTAM ${difference} documento(s)\n\nTotal declarado: ${totalDeclared} docs\nDrive: ${driveCount} docs\nDiagramação: ${diagramacaoCount} docs\nTotal atual: ${totalActual} docs`
+          : `⚠️ SOBRAM ${Math.abs(difference)} documento(s)\n\nTotal declarado: ${totalDeclared} docs\nDrive: ${driveCount} docs\nDiagramação: ${diagramacaoCount} docs\nTotal atual: ${totalActual} docs`;
+        
         toast({
-          title: "Erro de validação",
-          description: `A soma de documentos (Drive: ${driveCount} + Diagramação: ${diagramacaoCount} = ${driveCount + diagramacaoCount}) deve ser igual ao total declarado (${totalDeclared})`,
+          title: "Erro de validação matemática",
+          description: message,
           variant: "destructive",
         });
         return;

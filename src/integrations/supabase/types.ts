@@ -2609,7 +2609,13 @@ export type Database = {
           customer: string | null
           deadline: string
           delivered_at: string | null
+          diagramming_details: Json | null
+          diagramming_document_count: number | null
+          diagramming_pages_total: number | null
+          diagramming_value: number | null
           document_count: number
+          drive_document_count: number | null
+          drive_value: number | null
           has_attention: boolean | null
           has_delay: boolean | null
           id: string
@@ -2635,7 +2641,13 @@ export type Database = {
           customer?: string | null
           deadline: string
           delivered_at?: string | null
+          diagramming_details?: Json | null
+          diagramming_document_count?: number | null
+          diagramming_pages_total?: number | null
+          diagramming_value?: number | null
           document_count: number
+          drive_document_count?: number | null
+          drive_value?: number | null
           has_attention?: boolean | null
           has_delay?: boolean | null
           id?: string
@@ -2661,7 +2673,13 @@ export type Database = {
           customer?: string | null
           deadline?: string
           delivered_at?: string | null
+          diagramming_details?: Json | null
+          diagramming_document_count?: number | null
+          diagramming_pages_total?: number | null
+          diagramming_value?: number | null
           document_count?: number
+          drive_document_count?: number | null
+          drive_value?: number | null
           has_attention?: boolean | null
           has_delay?: boolean | null
           id?: string
