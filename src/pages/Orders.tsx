@@ -114,6 +114,7 @@ export function Orders() {
     serviceType: "",
     tags: [] as string[],
     pages_count_diagramming: "",
+    documents: [] as Array<{ quantity: string, pages: string }>,
   });
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -128,6 +129,7 @@ export function Orders() {
     serviceType: "",
     tags: [] as string[],
     pages_count_diagramming: "",
+    documents: [] as Array<{ quantity: string, pages: string }>,
   });
 
   // Fetch user profile to get role
@@ -271,14 +273,26 @@ export function Orders() {
   // Create order mutation (admin and master)
   const createOrderMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Validação adicional para Diagramação
-      if (data.serviceType === "Diagramação" && !data.pages_count_diagramming) {
-        throw new Error("Informe o número de páginas para serviços de Diagramação");
+      let totalDocuments = 0;
+      let totalPages = 0;
+      
+      // Calcular totais baseado no tipo de serviço
+      if (data.serviceType === "Diagramação") {
+        if (data.documents.length === 0) {
+          throw new Error("Adicione pelo menos um documento para serviços de Diagramação");
+        }
+        
+        // Somar todos os documentos e páginas
+        totalDocuments = data.documents.reduce((sum, doc) => sum + parseInt(doc.quantity || "0"), 0);
+        totalPages = data.documents.reduce((sum, doc) => sum + (parseInt(doc.quantity || "0") * parseInt(doc.pages || "0")), 0);
+      } else {
+        // Para Drive, usar o document_count diretamente
+        totalDocuments = parseInt(data.document_count);
       }
 
       const insertData: any = {
         order_number: data.order_number.trim(),
-        document_count: parseInt(data.document_count),
+        document_count: totalDocuments,
         deadline: new Date(data.deadline).toISOString(),
         created_by: user?.id,
         status_order: "available", // Always start with available status
@@ -288,10 +302,9 @@ export function Orders() {
       };
       
       // Adicionar campos específicos para Diagramação
-      if (data.serviceType === "Diagramação" && data.pages_count_diagramming) {
-        const pagesCount = parseInt(data.pages_count_diagramming);
-        insertData.pages_count_diagramming = pagesCount;
-        insertData.custom_value_diagramming = pagesCount * 3; // R$ 3,00 por página
+      if (data.serviceType === "Diagramação" && totalPages > 0) {
+        insertData.pages_count_diagramming = totalPages;
+        insertData.custom_value_diagramming = totalPages * 3; // R$ 3,00 por página
       }
 
       // Add optional fields if provided
@@ -319,6 +332,7 @@ export function Orders() {
           serviceType: "",
           tags: [],
           pages_count_diagramming: "",
+          documents: [],
         });
     },
     onError: (error: any) => {
@@ -621,6 +635,7 @@ export function Orders() {
       serviceType: order.service_type || "",
       tags: order.tags || [],
       pages_count_diagramming: (order as any).pages_count_diagramming?.toString() || "",
+      documents: [],
     });
     setIsEditDialogOpen(true);
   };
@@ -693,6 +708,29 @@ export function Orders() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validação adicional para Diagramação
+    if (formData.serviceType === "Diagramação") {
+      if (formData.documents.length === 0) {
+        toast({
+          title: "Erro de validação",
+          description: "Adicione pelo menos um documento para serviços de Diagramação",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const hasIncompleteDoc = formData.documents.some(d => !d.quantity || !d.pages);
+      if (hasIncompleteDoc) {
+        toast({
+          title: "Erro de validação",
+          description: "Preencha quantidade e páginas para todos os documentos",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     createOrderMutation.mutate(formData);
   };
 
@@ -977,55 +1015,132 @@ export function Orders() {
 
                     {/* Campo condicional para Diagramação */}
         {formData.serviceType === "Diagramação" && (
-          <div className="space-y-2">
-            <Label htmlFor="pages_count_diagramming">Número de Páginas *</Label>
-            <Input
-              id="pages_count_diagramming"
-              type="number"
-              min="1"
-              value={formData.pages_count_diagramming}
-              onChange={(e) => setFormData({ ...formData, pages_count_diagramming: e.target.value })}
-              placeholder="Ex: 10"
-              required
-            />
-            {formData.pages_count_diagramming && (
-              <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
-                💰 Valor calculado: <strong>R$ {(parseInt(formData.pages_count_diagramming) * 3).toFixed(2)}</strong>
-                <span className="text-xs block mt-1">(R$ 3,00 por página)</span>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label className="text-base font-semibold">Documentos *</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    documents: [...formData.documents, { quantity: "", pages: "" }]
+                  });
+                }}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar Documento
+              </Button>
+            </div>
+
+            {formData.documents.length === 0 && (
+              <div className="text-sm text-muted-foreground text-center p-4 border border-dashed rounded">
+                Clique em "Adicionar Documento" para começar
+              </div>
+            )}
+
+            {formData.documents.map((doc, index) => (
+              <div key={index} className="space-y-2 p-4 border rounded-lg bg-muted/30">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Documento {index + 1}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      const newDocs = formData.documents.filter((_, i) => i !== index);
+                      setFormData({ ...formData, documents: newDocs });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor={`doc-quantity-${index}`} className="text-xs">Quantidade de Documentos *</Label>
+                    <Input
+                      id={`doc-quantity-${index}`}
+                      type="number"
+                      min="1"
+                      value={doc.quantity}
+                      onChange={(e) => {
+                        const newDocs = [...formData.documents];
+                        newDocs[index].quantity = e.target.value;
+                        setFormData({ ...formData, documents: newDocs });
+                      }}
+                      placeholder="Ex: 5"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`doc-pages-${index}`} className="text-xs">Número de Páginas *</Label>
+                    <Input
+                      id={`doc-pages-${index}`}
+                      type="number"
+                      min="1"
+                      value={doc.pages}
+                      onChange={(e) => {
+                        const newDocs = [...formData.documents];
+                        newDocs[index].pages = e.target.value;
+                        setFormData({ ...formData, documents: newDocs });
+                      }}
+                      placeholder="Ex: 10"
+                      required
+                    />
+                  </div>
+                </div>
+                {doc.quantity && doc.pages && (
+                  <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
+                    💰 {parseInt(doc.quantity)} doc × {parseInt(doc.pages)} pág × R$ 3,00 = <strong>R$ {(parseInt(doc.quantity) * parseInt(doc.pages) * 3).toFixed(2)}</strong>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {formData.documents.length > 0 && formData.documents.every(d => d.quantity && d.pages) && (
+              <div className="text-sm font-semibold bg-primary/10 p-3 rounded border-2 border-primary/20">
+                🎯 Total Geral:
+                <div className="text-lg mt-1">
+                  {(() => {
+                    const totalDocs = formData.documents.reduce((sum, d) => sum + parseInt(d.quantity || "0"), 0);
+                    const totalPages = formData.documents.reduce((sum, d) => sum + (parseInt(d.quantity || "0") * parseInt(d.pages || "0")), 0);
+                    const totalValue = totalPages * 3;
+                    return (
+                      <>
+                        <div className="text-base text-muted-foreground">
+                          📄 {totalDocs} documento{totalDocs !== 1 ? 's' : ''} • 📃 {totalPages} página{totalPages !== 1 ? 's' : ''}
+                        </div>
+                        <div className="text-primary">
+                          <strong>R$ {totalValue.toFixed(2)}</strong>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             )}
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="document_count">Quantidade de Documentos *</Label>
-          <Input
-            id="document_count"
-            type="number"
-            min="1"
-            value={formData.document_count}
-            onChange={(e) => setFormData({ ...formData, document_count: e.target.value })}
-            placeholder="Ex: 20"
-            required
-          />
-          {formData.document_count && (
-            <div className="text-sm text-muted-foreground bg-green-50 dark:bg-green-950/20 p-2 rounded">
-              💰 Valor calculado: <strong>R$ {(parseInt(formData.document_count) * 1.30).toFixed(2)}</strong>
-              <span className="text-xs block mt-1">(R$ 1,30 por documento)</span>
-            </div>
-          )}
-        </div>
-
-        {formData.serviceType === "Diagramação" && formData.pages_count_diagramming && formData.document_count && (
-          <div className="text-sm font-semibold bg-primary/10 p-3 rounded border-2 border-primary/20">
-            🎯 Valor Total: <strong className="text-lg">R$ {(
-              (parseInt(formData.pages_count_diagramming) * 3) + 
-              (parseInt(formData.document_count) * 1.30)
-            ).toFixed(2)}</strong>
-            <div className="text-xs text-muted-foreground mt-1">
-              Páginas: R$ {(parseInt(formData.pages_count_diagramming) * 3).toFixed(2)} + 
-              Documentos: R$ {(parseInt(formData.document_count) * 1.30).toFixed(2)}
-            </div>
+        {formData.serviceType === "Drive" && (
+          <div className="space-y-2">
+            <Label htmlFor="document_count">Quantidade de Documentos *</Label>
+            <Input
+              id="document_count"
+              type="number"
+              min="1"
+              value={formData.document_count}
+              onChange={(e) => setFormData({ ...formData, document_count: e.target.value })}
+              placeholder="Ex: 20"
+              required
+            />
+            {formData.document_count && (
+              <div className="text-sm text-muted-foreground bg-green-50 dark:bg-green-950/20 p-2 rounded">
+                💰 Valor calculado: <strong>R$ {(parseInt(formData.document_count) * 1.30).toFixed(2)}</strong>
+                <span className="text-xs block mt-1">(R$ 1,30 por documento)</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -1037,21 +1152,6 @@ export function Orders() {
                         value={formData.order_number}
                         onChange={(e) =>
                           setFormData({ ...formData, order_number: e.target.value.trim() })
-                        }
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="document_count">Quantidade de Documentos *</Label>
-                      <Input
-                        id="document_count"
-                        type="number"
-                        min="1"
-                        placeholder="Ex: 10"
-                        value={formData.document_count}
-                        onChange={(e) =>
-                          setFormData({ ...formData, document_count: e.target.value })
                         }
                         required
                       />
