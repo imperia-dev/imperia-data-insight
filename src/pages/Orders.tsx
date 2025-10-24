@@ -976,26 +976,58 @@ export function Orders() {
                     </div>
 
                     {/* Campo condicional para Diagramação */}
-                    {formData.serviceType === "Diagramação" && (
-                      <div className="space-y-2">
-                        <Label htmlFor="pages_count_diagramming">Número de Páginas *</Label>
-                        <Input
-                          id="pages_count_diagramming"
-                          type="number"
-                          min="1"
-                          value={formData.pages_count_diagramming}
-                          onChange={(e) => setFormData({ ...formData, pages_count_diagramming: e.target.value })}
-                          placeholder="Ex: 10"
-                          required
-                        />
-                        {formData.pages_count_diagramming && (
-                          <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
-                            💰 Valor calculado: <strong>R$ {(parseInt(formData.pages_count_diagramming) * 3).toFixed(2)}</strong>
-                            <span className="text-xs block mt-1">(R$ 3,00 por página)</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
+        {formData.serviceType === "Diagramação" && (
+          <div className="space-y-2">
+            <Label htmlFor="pages_count_diagramming">Número de Páginas *</Label>
+            <Input
+              id="pages_count_diagramming"
+              type="number"
+              min="1"
+              value={formData.pages_count_diagramming}
+              onChange={(e) => setFormData({ ...formData, pages_count_diagramming: e.target.value })}
+              placeholder="Ex: 10"
+              required
+            />
+            {formData.pages_count_diagramming && (
+              <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
+                💰 Valor calculado: <strong>R$ {(parseInt(formData.pages_count_diagramming) * 3).toFixed(2)}</strong>
+                <span className="text-xs block mt-1">(R$ 3,00 por página)</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <Label htmlFor="document_count">Quantidade de Documentos *</Label>
+          <Input
+            id="document_count"
+            type="number"
+            min="1"
+            value={formData.document_count}
+            onChange={(e) => setFormData({ ...formData, document_count: e.target.value })}
+            placeholder="Ex: 20"
+            required
+          />
+          {formData.document_count && (
+            <div className="text-sm text-muted-foreground bg-green-50 dark:bg-green-950/20 p-2 rounded">
+              💰 Valor calculado: <strong>R$ {(parseInt(formData.document_count) * 1.30).toFixed(2)}</strong>
+              <span className="text-xs block mt-1">(R$ 1,30 por documento)</span>
+            </div>
+          )}
+        </div>
+
+        {formData.serviceType === "Diagramação" && formData.pages_count_diagramming && formData.document_count && (
+          <div className="text-sm font-semibold bg-primary/10 p-3 rounded border-2 border-primary/20">
+            🎯 Valor Total: <strong className="text-lg">R$ {(
+              (parseInt(formData.pages_count_diagramming) * 3) + 
+              (parseInt(formData.document_count) * 1.30)
+            ).toFixed(2)}</strong>
+            <div className="text-xs text-muted-foreground mt-1">
+              Páginas: R$ {(parseInt(formData.pages_count_diagramming) * 3).toFixed(2)} + 
+              Documentos: R$ {(parseInt(formData.document_count) * 1.30).toFixed(2)}
+            </div>
+          </div>
+        )}
 
                     <div>
                       <Label htmlFor="order_number">ID do Pedido *</Label>
@@ -1772,7 +1804,26 @@ export function Orders() {
                     }
                     required
                   />
+                  {editFormData.document_count && (
+                    <div className="text-sm text-muted-foreground bg-green-50 dark:bg-green-950/20 p-2 rounded">
+                      💰 Valor calculado: <strong>R$ {(parseInt(editFormData.document_count) * 1.30).toFixed(2)}</strong>
+                      <span className="text-xs block mt-1">(R$ 1,30 por documento)</span>
+                    </div>
+                  )}
                 </div>
+
+                {editFormData.serviceType === "Diagramação" && editFormData.pages_count_diagramming && editFormData.document_count && (
+                  <div className="text-sm font-semibold bg-primary/10 p-3 rounded border-2 border-primary/20">
+                    🎯 Valor Total: <strong className="text-lg">R$ {(
+                      (parseInt(editFormData.pages_count_diagramming) * 3) + 
+                      (parseInt(editFormData.document_count) * 1.30)
+                    ).toFixed(2)}</strong>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Páginas: R$ {(parseInt(editFormData.pages_count_diagramming) * 3).toFixed(2)} + 
+                      Documentos: R$ {(parseInt(editFormData.document_count) * 1.30).toFixed(2)}
+                    </div>
+                  </div>
+                )}
                 
                 <div className="space-y-2">
                   <Label htmlFor="edit-deadline">Prazo *</Label>
