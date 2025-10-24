@@ -113,6 +113,7 @@ export function Orders() {
     customer: "",
     serviceType: "",
     tags: [] as string[],
+    pages_count_diagramming: "",
   });
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -126,6 +127,7 @@ export function Orders() {
     customer: "",
     serviceType: "",
     tags: [] as string[],
+    pages_count_diagramming: "",
   });
 
   // Fetch user profile to get role
@@ -269,6 +271,11 @@ export function Orders() {
   // Create order mutation (admin and master)
   const createOrderMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Validação adicional para Diagramação
+      if (data.serviceType === "Diagramação" && !data.pages_count_diagramming) {
+        throw new Error("Informe o número de páginas para serviços de Diagramação");
+      }
+
       const insertData: any = {
         order_number: data.order_number.trim(),
         document_count: parseInt(data.document_count),
@@ -280,6 +287,13 @@ export function Orders() {
         tags: data.tags.length > 0 ? data.tags : null,
       };
       
+      // Adicionar campos específicos para Diagramação
+      if (data.serviceType === "Diagramação" && data.pages_count_diagramming) {
+        const pagesCount = parseInt(data.pages_count_diagramming);
+        insertData.pages_count_diagramming = pagesCount;
+        insertData.custom_value_diagramming = pagesCount * 3; // R$ 3,00 por página
+      }
+
       // Add optional fields if provided
       if (data.attribution_date) {
         insertData.attribution_date = new Date(data.attribution_date).toISOString();
@@ -296,15 +310,16 @@ export function Orders() {
         description: "O pedido foi criado com sucesso.",
       });
       setIsDialogOpen(false);
-      setFormData({
-        order_number: "",
-        document_count: "",
-        deadline: getDefaultDeadline(),
-        attribution_date: "",
-        customer: "",
-        serviceType: "",
-        tags: [],
-      });
+        setFormData({
+          order_number: "",
+          document_count: "",
+          deadline: getDefaultDeadline(),
+          attribution_date: "",
+          customer: "",
+          serviceType: "",
+          tags: [],
+          pages_count_diagramming: "",
+        });
     },
     onError: (error: any) => {
       toast({
@@ -605,6 +620,7 @@ export function Orders() {
       customer: order.customer || "",
       serviceType: order.service_type || "",
       tags: order.tags || [],
+      pages_count_diagramming: (order as any).pages_count_diagramming?.toString() || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -612,6 +628,16 @@ export function Orders() {
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação adicional para Diagramação
+    if (editFormData.serviceType === "Diagramação" && !editFormData.pages_count_diagramming) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Informe o número de páginas para serviços de Diagramação",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const updates: any = {
       order_number: editFormData.order_number.trim(),
       document_count: parseInt(editFormData.document_count),
@@ -621,6 +647,17 @@ export function Orders() {
       tags: editFormData.tags,
     };
     
+    // Recalcular custom_value_diagramming se pages_count_diagramming for alterado
+    if (editFormData.serviceType === "Diagramação" && editFormData.pages_count_diagramming) {
+      const pagesCount = parseInt(editFormData.pages_count_diagramming);
+      updates.pages_count_diagramming = pagesCount;
+      updates.custom_value_diagramming = pagesCount * 3;
+    } else if (editFormData.serviceType && editFormData.serviceType !== "Diagramação") {
+      // Se mudou de Diagramação para outro tipo, limpar campos
+      updates.pages_count_diagramming = null;
+      updates.custom_value_diagramming = null;
+    }
+
     if (editFormData.attribution_date) {
       updates.attribution_date = new Date(editFormData.attribution_date).toISOString();
     }
@@ -937,6 +974,28 @@ export function Orders() {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Campo condicional para Diagramação */}
+                    {formData.serviceType === "Diagramação" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="pages_count_diagramming">Número de Páginas *</Label>
+                        <Input
+                          id="pages_count_diagramming"
+                          type="number"
+                          min="1"
+                          value={formData.pages_count_diagramming}
+                          onChange={(e) => setFormData({ ...formData, pages_count_diagramming: e.target.value })}
+                          placeholder="Ex: 10"
+                          required
+                        />
+                        {formData.pages_count_diagramming && (
+                          <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
+                            💰 Valor calculado: <strong>R$ {(parseInt(formData.pages_count_diagramming) * 3).toFixed(2)}</strong>
+                            <span className="text-xs block mt-1">(R$ 3,00 por página)</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div>
                       <Label htmlFor="order_number">ID do Pedido *</Label>
@@ -1679,6 +1738,28 @@ export function Orders() {
                   </div>
                 </div>
                 
+                {/* Campo condicional para Diagramação */}
+                {editFormData.serviceType === "Diagramação" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-pages-count-diagramming">Número de Páginas *</Label>
+                    <Input
+                      id="edit-pages-count-diagramming"
+                      type="number"
+                      min="1"
+                      value={editFormData.pages_count_diagramming}
+                      onChange={(e) => setEditFormData({ ...editFormData, pages_count_diagramming: e.target.value })}
+                      placeholder="Ex: 10"
+                      required
+                    />
+                    {editFormData.pages_count_diagramming && (
+                      <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
+                        💰 Valor calculado: <strong>R$ {(parseInt(editFormData.pages_count_diagramming) * 3).toFixed(2)}</strong>
+                        <span className="text-xs block mt-1">(R$ 3,00 por página)</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-document-count">Quantidade de Documentos *</Label>
                   <Input

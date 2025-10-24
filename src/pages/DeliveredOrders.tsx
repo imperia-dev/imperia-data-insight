@@ -444,6 +444,19 @@ export function DeliveredOrders() {
                                     Urgente
                                   </Badge>
                                 )}
+                                {order.service_type === "Diagramação" && (
+                                  <>
+                                    {(order as any).pages_count_diagramming ? (
+                                      <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/30">
+                                        {(order as any).pages_count_diagramming} pág
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30">
+                                        ⚠️ Páginas não informadas
+                                      </Badge>
+                                    )}
+                                  </>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>{order.document_count}</TableCell>

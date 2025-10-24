@@ -49,6 +49,10 @@ serve(async (req) => {
         assigned_to,
         document_count,
         delivered_at,
+        service_type,
+        pages_count_diagramming,
+        custom_value_diagramming,
+        order_number,
         profiles!orders_assigned_to_fkey (
           id,
           full_name,
@@ -83,7 +87,25 @@ serve(async (req) => {
         return;
       }
 
-      const orderValue = (order.document_count || 0) * VALUE_PER_DOCUMENT;
+      let orderValue: number;
+      
+      // Calcular valor baseado no tipo de serviço
+      if (order.service_type === 'Diagramação') {
+        if (order.custom_value_diagramming !== null && order.custom_value_diagramming !== undefined) {
+          // Usar valor customizado já calculado (novo sistema)
+          orderValue = order.custom_value_diagramming;
+          console.log(`Order ${order.order_number}: Using custom value R$ ${orderValue.toFixed(2)} (${order.pages_count_diagramming} pages)`);
+        } else {
+          // FALLBACK: Pedidos antigos de Diagramação SEM páginas preenchidas
+          // Usar cálculo padrão até que o master atualize
+          orderValue = (order.document_count || 0) * VALUE_PER_DOCUMENT;
+          console.warn(`Order ${order.order_number}: Legacy Diagramação order without pages_count_diagramming. Using fallback: R$ ${orderValue.toFixed(2)}`);
+        }
+      } else {
+        // Cálculo padrão para Drive e outros tipos
+        orderValue = (order.document_count || 0) * VALUE_PER_DOCUMENT;
+        console.log(`Order ${order.order_number}: Standard calculation R$ ${orderValue.toFixed(2)}`);
+      }
 
       if (!providersMap.has(supplierId)) {
         providersMap.set(supplierId, {
@@ -101,9 +123,13 @@ serve(async (req) => {
       provider.total_amount += orderValue;
       provider.expenses_data.push({
         expense_id: order.id,
-        description: `Pedido ${order.id}`,
+        description: order.service_type === 'Diagramação' && order.pages_count_diagramming
+          ? `Pedido ${order.order_number} - Diagramação (${order.pages_count_diagramming} páginas)`
+          : `Pedido ${order.order_number}`,
         amount: orderValue,
         document_count: order.document_count,
+        pages_count_diagramming: order.pages_count_diagramming || null,
+        service_type: order.service_type,
         delivered_at: order.delivered_at,
       });
     });

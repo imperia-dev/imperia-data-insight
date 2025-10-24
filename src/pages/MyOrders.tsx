@@ -502,7 +502,18 @@ export function MyOrders() {
                                       className="h-4 w-4"
                                     />
                                   ) : order.service_type === "Diagramação" ? (
-                                    <Hammer className="h-4 w-4 text-muted-foreground" />
+                                    <>
+                                      <Hammer className="h-4 w-4 text-purple-600" />
+                                      {(order as any).pages_count_diagramming ? (
+                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/30">
+                                          {(order as any).pages_count_diagramming} pág
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30">
+                                          ⚠️ Páginas não informadas
+                                        </Badge>
+                                      )}
+                                    </>
                                   ) : null}
                                   <span className="text-sm text-muted-foreground">
                                     {order.service_type}

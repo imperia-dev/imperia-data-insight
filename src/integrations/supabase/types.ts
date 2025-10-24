@@ -2605,6 +2605,7 @@ export type Database = {
           attribution_date: string | null
           created_at: string
           created_by: string
+          custom_value_diagramming: number | null
           customer: string | null
           deadline: string
           delivered_at: string | null
@@ -2614,6 +2615,7 @@ export type Database = {
           id: string
           is_urgent: boolean | null
           order_number: string
+          pages_count_diagramming: number | null
           service_order_link: string | null
           service_provider_protocol_id: string | null
           service_type: string | null
@@ -2629,6 +2631,7 @@ export type Database = {
           attribution_date?: string | null
           created_at?: string
           created_by: string
+          custom_value_diagramming?: number | null
           customer?: string | null
           deadline: string
           delivered_at?: string | null
@@ -2638,6 +2641,7 @@ export type Database = {
           id?: string
           is_urgent?: boolean | null
           order_number: string
+          pages_count_diagramming?: number | null
           service_order_link?: string | null
           service_provider_protocol_id?: string | null
           service_type?: string | null
@@ -2653,6 +2657,7 @@ export type Database = {
           attribution_date?: string | null
           created_at?: string
           created_by?: string
+          custom_value_diagramming?: number | null
           customer?: string | null
           deadline?: string
           delivered_at?: string | null
@@ -2662,6 +2667,7 @@ export type Database = {
           id?: string
           is_urgent?: boolean | null
           order_number?: string
+          pages_count_diagramming?: number | null
           service_order_link?: string | null
           service_provider_protocol_id?: string | null
           service_type?: string | null

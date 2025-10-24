@@ -98,13 +98,23 @@ export default function Wallet() {
       if (error) throw error;
 
       const PAYMENT_PER_DOCUMENT = 1.30;
-      const ordersWithPayment = data?.map(order => ({
-        id: order.id,
-        order_number: order.order_number,
-        document_count: order.document_count || 0,
-        delivered_at: order.delivered_at,
-        payment_amount: (order.document_count || 0) * PAYMENT_PER_DOCUMENT
-      })) || [];
+      const ordersWithPayment = data?.map(order => {
+        // Calcular valor baseado no tipo de serviço
+        let paymentAmount: number;
+        if (order.service_type === 'Diagramação' && (order as any).custom_value_diagramming) {
+          paymentAmount = (order as any).custom_value_diagramming;
+        } else {
+          paymentAmount = (order.document_count || 0) * PAYMENT_PER_DOCUMENT;
+        }
+
+        return {
+          id: order.id,
+          order_number: order.order_number,
+          document_count: order.document_count || 0,
+          delivered_at: order.delivered_at,
+          payment_amount: paymentAmount
+        };
+      }) || [];
 
       setOrders(ordersWithPayment);
     } catch (error) {
