@@ -115,6 +115,8 @@ export function Orders() {
     tags: [] as string[],
     pages_count_diagramming: "",
     documents: [] as Array<{ quantity: string, pages: string }>,
+    totalDocuments: "", // Para Drive + Diagramação
+    driveDocuments: "", // Quantidade de docs no Drive
   });
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -130,6 +132,8 @@ export function Orders() {
     tags: [] as string[],
     pages_count_diagramming: "",
     documents: [] as Array<{ quantity: string, pages: string }>,
+    totalDocuments: "", // Para Drive + Diagramação
+    driveDocuments: "", // Quantidade de docs no Drive
   });
 
   // Fetch user profile to get role
@@ -285,6 +289,10 @@ export function Orders() {
         // Somar todos os documentos e páginas
         totalDocuments = data.documents.reduce((sum, doc) => sum + parseInt(doc.quantity || "0"), 0);
         totalPages = data.documents.reduce((sum, doc) => sum + (parseInt(doc.quantity || "0") * parseInt(doc.pages || "0")), 0);
+      } else if (data.serviceType === "Drive + Diagramação") {
+        // Para Drive + Diagramação, usar o total declarado
+        totalDocuments = parseInt(data.totalDocuments);
+        totalPages = data.documents.reduce((sum, doc) => sum + (parseInt(doc.quantity || "0") * parseInt(doc.pages || "0")), 0);
       } else {
         // Para Drive, usar o document_count diretamente
         totalDocuments = parseInt(data.document_count);
@@ -305,6 +313,14 @@ export function Orders() {
       if (data.serviceType === "Diagramação" && totalPages > 0) {
         insertData.pages_count_diagramming = totalPages;
         insertData.custom_value_diagramming = totalPages * 3; // R$ 3,00 por página
+      }
+      
+      // Adicionar campos específicos para Drive + Diagramação
+      if (data.serviceType === "Drive + Diagramação") {
+        const driveValue = parseInt(data.driveDocuments || "0") * 1.30;
+        const diagramacaoValue = totalPages * 3;
+        insertData.pages_count_diagramming = totalPages;
+        insertData.custom_value_diagramming = driveValue + diagramacaoValue;
       }
 
       // Add optional fields if provided
@@ -333,6 +349,8 @@ export function Orders() {
           tags: [],
           pages_count_diagramming: "",
           documents: [],
+          totalDocuments: "",
+          driveDocuments: "",
         });
     },
     onError: (error: any) => {
@@ -636,6 +654,8 @@ export function Orders() {
       tags: order.tags || [],
       pages_count_diagramming: (order as any).pages_count_diagramming?.toString() || "",
       documents: [],
+      totalDocuments: "",
+      driveDocuments: "",
     });
     setIsEditDialogOpen(true);
   };
@@ -725,6 +745,51 @@ export function Orders() {
         toast({
           title: "Erro de validação",
           description: "Preencha quantidade e páginas para todos os documentos",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // Validação para Drive + Diagramação
+    if (formData.serviceType === "Drive + Diagramação") {
+      if (!formData.totalDocuments || !formData.driveDocuments) {
+        toast({
+          title: "Erro de validação",
+          description: "Informe a quantidade total de documentos e a quantidade do Drive",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (formData.documents.length === 0) {
+        toast({
+          title: "Erro de validação",
+          description: "Adicione pelo menos um documento na seção Diagramação",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const hasIncompleteDoc = formData.documents.some(d => !d.quantity || !d.pages);
+      if (hasIncompleteDoc) {
+        toast({
+          title: "Erro de validação",
+          description: "Preencha quantidade e páginas para todos os documentos da Diagramação",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validar que soma dos documentos = total declarado
+      const driveCount = parseInt(formData.driveDocuments);
+      const diagramacaoCount = formData.documents.reduce((sum, d) => sum + parseInt(d.quantity || "0"), 0);
+      const totalDeclared = parseInt(formData.totalDocuments);
+      
+      if (driveCount + diagramacaoCount !== totalDeclared) {
+        toast({
+          title: "Erro de validação",
+          description: `A soma de documentos (Drive: ${driveCount} + Diagramação: ${diagramacaoCount} = ${driveCount + diagramacaoCount}) deve ser igual ao total declarado (${totalDeclared})`,
           variant: "destructive",
         });
         return;
@@ -958,6 +1023,7 @@ export function Orders() {
                         <SelectContent>
                           <SelectItem value="Drive">Drive</SelectItem>
                           <SelectItem value="Diagramação">Diagramação</SelectItem>
+                          <SelectItem value="Drive + Diagramação">Drive + Diagramação</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1012,6 +1078,167 @@ export function Orders() {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Campos para Drive + Diagramação */}
+        {formData.serviceType === "Drive + Diagramação" && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="total_documents" className="text-base font-semibold">Quantidade Total de Documentos *</Label>
+              <Input
+                id="total_documents"
+                type="number"
+                min="1"
+                value={formData.totalDocuments}
+                onChange={(e) => setFormData({ ...formData, totalDocuments: e.target.value })}
+                placeholder="Ex: 10"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Total de documentos do pedido (será dividido entre Drive e Diagramação)
+              </p>
+            </div>
+
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold">Drive</Label>
+              <div className="mt-2 space-y-2">
+                <Label htmlFor="drive_documents">Quantidade de Documentos *</Label>
+                <Input
+                  id="drive_documents"
+                  type="number"
+                  min="0"
+                  value={formData.driveDocuments}
+                  onChange={(e) => setFormData({ ...formData, driveDocuments: e.target.value })}
+                  placeholder="Ex: 2"
+                  required
+                />
+                {formData.driveDocuments && (
+                  <div className="text-sm text-muted-foreground bg-green-50 dark:bg-green-950/20 p-2 rounded">
+                    💰 {parseInt(formData.driveDocuments)} doc × R$ 1,30 = <strong>R$ {(parseInt(formData.driveDocuments) * 1.30).toFixed(2)}</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center mb-2">
+                <Label className="text-base font-semibold">Diagramação</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      documents: [...formData.documents, { quantity: "1", pages: "" }]
+                    });
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Adicionar Documento
+                </Button>
+              </div>
+
+              {formData.documents.length === 0 && (
+                <div className="text-sm text-muted-foreground text-center p-4 border border-dashed rounded">
+                  Clique em "Adicionar Documento" para começar
+                </div>
+              )}
+
+              {formData.documents.map((doc, index) => (
+                <div key={index} className="space-y-2 p-4 border rounded-lg bg-muted/30 mt-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">Documento {index + 1}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        const newDocs = formData.documents.filter((_, i) => i !== index);
+                        setFormData({ ...formData, documents: newDocs });
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor={`doc-quantity-${index}`} className="text-xs">Quantidade de Documentos *</Label>
+                      <Input
+                        id={`doc-quantity-${index}`}
+                        type="number"
+                        value="1"
+                        disabled
+                        className="bg-muted"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Sempre 1 documento</p>
+                    </div>
+                    <div>
+                      <Label htmlFor={`doc-pages-${index}`} className="text-xs">Número de Páginas *</Label>
+                      <Input
+                        id={`doc-pages-${index}`}
+                        type="number"
+                        min="1"
+                        value={doc.pages}
+                        onChange={(e) => {
+                          const newDocs = [...formData.documents];
+                          newDocs[index].pages = e.target.value;
+                          setFormData({ ...formData, documents: newDocs });
+                        }}
+                        placeholder="Ex: 10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  {doc.pages && (
+                    <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
+                      💰 1 doc × {parseInt(doc.pages)} pág × R$ 3,00 = <strong>R$ {(parseInt(doc.pages) * 3).toFixed(2)}</strong>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Total Geral */}
+            {formData.totalDocuments && formData.driveDocuments && formData.documents.length > 0 && formData.documents.every(d => d.pages) && (
+              <div className="text-sm font-semibold bg-primary/10 p-3 rounded border-2 border-primary/20">
+                <div className="mb-2">
+                  📊 Conferência de Documentos:
+                  <div className="text-sm text-muted-foreground font-normal mt-1">
+                    Drive: {parseInt(formData.driveDocuments)} docs + 
+                    Diagramação: {formData.documents.length} doc{formData.documents.length !== 1 ? 's' : ''} = {' '}
+                    <strong className={
+                      parseInt(formData.driveDocuments) + formData.documents.length === parseInt(formData.totalDocuments)
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }>
+                      {parseInt(formData.driveDocuments) + formData.documents.length}
+                    </strong>
+                    {' '}/ {parseInt(formData.totalDocuments)} declarados
+                  </div>
+                </div>
+                <div className="text-lg mt-2">
+                  💰 Valor Total:
+                  {(() => {
+                    const driveValue = parseInt(formData.driveDocuments) * 1.30;
+                    const totalPages = formData.documents.reduce((sum, d) => sum + parseInt(d.pages || "0"), 0);
+                    const diagramacaoValue = totalPages * 3;
+                    const totalValue = driveValue + diagramacaoValue;
+                    return (
+                      <>
+                        <div className="text-base text-muted-foreground font-normal mt-1">
+                          Drive: R$ {driveValue.toFixed(2)} + Diagramação: R$ {diagramacaoValue.toFixed(2)}
+                        </div>
+                        <div className="text-primary">
+                          <strong>R$ {totalValue.toFixed(2)}</strong>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
                     {/* Campo condicional para Diagramação */}
         {formData.serviceType === "Diagramação" && (
@@ -1815,6 +2042,7 @@ export function Orders() {
                     <SelectContent>
                       <SelectItem value="Drive">Drive</SelectItem>
                       <SelectItem value="Diagramação">Diagramação</SelectItem>
+                      <SelectItem value="Drive + Diagramação">Drive + Diagramação</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
