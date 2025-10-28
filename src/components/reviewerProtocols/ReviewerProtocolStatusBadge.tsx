@@ -23,6 +23,8 @@ export const ReviewerProtocolStatusBadge = ({ status }: ReviewerProtocolStatusBa
         return { label: 'Enviado p/ Financeiro', variant: 'default' as const };
       case 'paid':
         return { label: 'Pago', variant: 'default' as const };
+      case 'completed':
+        return { label: 'Concluído', variant: 'default' as const, isGreen: true };
       case 'cancelled':
         return { label: 'Cancelado', variant: 'destructive' as const };
       default:
@@ -33,7 +35,10 @@ export const ReviewerProtocolStatusBadge = ({ status }: ReviewerProtocolStatusBa
   const config = getStatusConfig(status);
 
   return (
-    <Badge variant={config.variant}>
+    <Badge 
+      variant={config.variant}
+      className={config.isGreen ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' : ''}
+    >
       {config.label}
     </Badge>
   );
