@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ReviewerProtocolStatusBadge } from "../reviewerProtocols/ReviewerProtocolStatusBadge";
-import { ReviewerProtocolActionsDropdown } from "../reviewerProtocols/ReviewerProtocolActionsDropdown";
 import { ReviewerProtocolDetailsDialog } from "../reviewerProtocols/ReviewerProtocolDetailsDialog";
 import { ProtocolMetrics } from "./ProtocolMetrics";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,7 +120,6 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
                   <TableHead>Documentos</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -141,13 +139,6 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
                     </TableCell>
                     <TableCell>
                       <ReviewerProtocolStatusBadge status={protocol.status} />
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <ReviewerProtocolActionsDropdown 
-                        protocol={protocol}
-                        userRole={userRole}
-                        onUpdate={fetchProtocols}
-                      />
                     </TableCell>
                   </TableRow>
                 ))}
