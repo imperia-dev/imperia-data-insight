@@ -284,7 +284,6 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
                   <TableHead>Qtd Despesas</TableHead>
                   <TableHead className="text-center">Aprovado?</TableHead>
                   <TableHead className="text-center">Pago?</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -313,12 +312,6 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
                       ) : (
                         <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
                       )}
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <ProtocolActionsDropdown 
-                        protocol={protocol}
-                        onAction={handleAction}
-                      />
                     </TableCell>
                   </TableRow>
                 ))}
