@@ -37,19 +37,32 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
   const fetchProtocols = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch protocols
+      const { data: protocolsData, error: protocolsError } = await supabase
         .from('reviewer_protocols')
-        .select(`
-          *,
-          reviewer:profiles!reviewer_protocols_reviewer_id_fkey(full_name),
-          cost_center:cost_centers(name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (protocolsError) throw protocolsError;
 
-      const protocolsData = data || [];
-      setProtocols(protocolsData);
+      // Fetch all reviewers (profiles)
+      const reviewerIds = [...new Set((protocolsData || []).map(p => p.reviewer_id).filter(Boolean))];
+      
+      let reviewersMap = new Map();
+      if (reviewerIds.length > 0) {
+        const { data: reviewers } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', reviewerIds);
+        
+        reviewersMap = new Map(reviewers?.map(r => [r.id, r]) || []);
+      }
+      const protocolsWithReviewers = (protocolsData || []).map(p => ({
+        ...p,
+        reviewer: reviewersMap.get(p.reviewer_id)
+      }));
+
+      setProtocols(protocolsWithReviewers);
 
       const totalAmount = protocolsData
         .filter(p => p.paid_at)
