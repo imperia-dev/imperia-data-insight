@@ -284,41 +284,34 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
                   <TableHead>Qtd Despesas</TableHead>
                   <TableHead className="text-center">Aprovado?</TableHead>
                   <TableHead className="text-center">Pago?</TableHead>
-                  <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {protocols.map((protocol) => (
-                  <TableRow key={protocol.id} className="hover:bg-muted/50">
-                    <TableCell className="font-mono text-sm cursor-pointer" onClick={() => handleAction("details", protocol)}>{protocol.protocol_number}</TableCell>
-                    <TableCell className="cursor-pointer" onClick={() => handleAction("details", protocol)}>{protocol.provider_name}</TableCell>
-                    <TableCell className="cursor-pointer" onClick={() => handleAction("details", protocol)}>{format(new Date(protocol.competence_month), "MMM/yyyy", { locale: ptBR })}</TableCell>
-                    <TableCell className="cursor-pointer" onClick={() => handleAction("details", protocol)}>
+                  <TableRow key={protocol.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleAction("details", protocol)}>
+                    <TableCell className="font-mono text-sm">{protocol.protocol_number}</TableCell>
+                    <TableCell>{protocol.provider_name}</TableCell>
+                    <TableCell>{format(new Date(protocol.competence_month), "MMM/yyyy", { locale: ptBR })}</TableCell>
+                    <TableCell>
                       <ProtocolStatusBadge status={protocol.status} />
                     </TableCell>
-                    <TableCell className="text-right font-semibold cursor-pointer" onClick={() => handleAction("details", protocol)}>
+                    <TableCell className="text-right font-semibold">
                       {formatCurrency(protocol.total_amount || 0)}
                     </TableCell>
-                    <TableCell className="cursor-pointer" onClick={() => handleAction("details", protocol)}>{protocol.expense_count || 0}</TableCell>
-                    <TableCell className="text-center cursor-pointer" onClick={() => handleAction("details", protocol)}>
+                    <TableCell>{protocol.expense_count || 0}</TableCell>
+                    <TableCell className="text-center">
                       {protocol.provider_approved_at ? (
                         <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
                       ) : (
                         <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
                       )}
                     </TableCell>
-                    <TableCell className="text-center cursor-pointer" onClick={() => handleAction("details", protocol)}>
+                    <TableCell className="text-center">
                       {protocol.paid_at ? (
                         <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
                       ) : (
                         <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
                       )}
-                    </TableCell>
-                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                      <ProtocolActionsDropdown 
-                        protocol={protocol}
-                        onAction={handleAction}
-                      />
                     </TableCell>
                   </TableRow>
                 ))}
