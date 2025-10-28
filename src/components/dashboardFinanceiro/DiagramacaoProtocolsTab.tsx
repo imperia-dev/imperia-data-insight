@@ -7,7 +7,6 @@ import { ProtocolStatusBadge } from "../fechamentoPrestadores/ProtocolStatusBadg
 import { ProtocolActionsDropdown } from "../fechamentoPrestadores/ProtocolActionsDropdown";
 import { ProtocolFilters } from "../fechamentoPrestadores/ProtocolFilters";
 import { ProtocolDetailsDialog } from "../fechamentoPrestadores/ProtocolDetailsDialog";
-import { GenerateProtocolsCard } from "../fechamentoPrestadores/GenerateProtocolsCard";
 import { ProtocolMetrics } from "./ProtocolMetrics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -257,8 +256,6 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
   return (
     <div className="space-y-4">
       <ProtocolMetrics {...metrics} />
-      
-      <GenerateProtocolsCard onProtocolsGenerated={fetchProtocols} />
       
       <ProtocolFilters onFilterChange={fetchProtocols} suppliers={suppliers} />
 
