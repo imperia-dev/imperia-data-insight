@@ -278,7 +278,18 @@ export function ProtocolosIndividuaisTab() {
                       {protocol.paid_at ? (
                         <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-green-500/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction("mark_paid", protocol);
+                          }}
+                          title="Marcar como pago"
+                        >
+                          <XCircle className="h-4 w-4 text-muted-foreground hover:text-green-600" />
+                        </Button>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
