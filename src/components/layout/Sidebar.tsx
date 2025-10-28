@@ -437,7 +437,7 @@ export function Sidebar({ userRole }: SidebarProps) {
   const [openGroups, setOpenGroups] = useState<string[]>(getInitialOpenGroups);
 
   useEffect(() => {
-    if (userRole === 'owner') {
+    if (userRole === 'owner' || userRole === 'master') {
       const fetchPendingCount = async () => {
         const { count } = await supabase
           .from('registration_requests')
