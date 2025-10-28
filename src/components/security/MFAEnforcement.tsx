@@ -48,19 +48,8 @@ export function MFAEnforcement() {
   }, [user]);
 
   useEffect(() => {
-    // Verificar se usuário precisa de MFA
-    if (!loading && !roleLoading && user && userRole) {
-      const requiresMFA = ['owner', 'master'].includes(userRole);
-      
-      // Verifica se o usuário acabou de desabilitar o MFA
-      const recentlyDisabled = localStorage.getItem('mfa_recently_disabled');
-      const now = Date.now();
-      
-      if (requiresMFA && !mfaEnabled && (!recentlyDisabled || now - parseInt(recentlyDisabled) > 3600000)) {
-        // Só mostra se não foi desabilitado recentemente (última hora)
-        setShowEnrollment(true);
-      }
-    }
+    // MFA enforcement desabilitado - usuários podem escolher se querem usar MFA
+    // Não força mais a configuração obrigatória para owner/master
   }, [loading, roleLoading, user, userRole, mfaEnabled]);
 
   const handleEnrollmentComplete = () => {
