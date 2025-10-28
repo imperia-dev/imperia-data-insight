@@ -48,6 +48,11 @@ export function ProtocolStatusBadge({ status, className }: ProtocolStatusBadgePr
       variant: "default" as const,
       className: "bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/50"
     },
+    completed: {
+      label: "Concluído",
+      variant: "default" as const,
+      className: "bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/50"
+    },
     paid: {
       label: "Pago",
       variant: "default" as const,
