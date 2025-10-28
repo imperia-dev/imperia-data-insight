@@ -52,7 +52,12 @@ export function MFAEnforcement() {
     if (!loading && !roleLoading && user && userRole) {
       const requiresMFA = ['owner', 'master'].includes(userRole);
       
-      if (requiresMFA && !mfaEnabled) {
+      // Verifica se o usuário acabou de desabilitar o MFA
+      const recentlyDisabled = localStorage.getItem('mfa_recently_disabled');
+      const now = Date.now();
+      
+      if (requiresMFA && !mfaEnabled && (!recentlyDisabled || now - parseInt(recentlyDisabled) > 3600000)) {
+        // Só mostra se não foi desabilitado recentemente (última hora)
         setShowEnrollment(true);
       }
     }
@@ -60,6 +65,12 @@ export function MFAEnforcement() {
 
   const handleEnrollmentComplete = () => {
     setShowEnrollment(false);
+    localStorage.removeItem('mfa_recently_disabled');
+  };
+  
+  const handleDismiss = () => {
+    setShowEnrollment(false);
+    localStorage.setItem('mfa_recently_disabled', Date.now().toString());
   };
 
   if (loading || roleLoading) {
@@ -67,8 +78,8 @@ export function MFAEnforcement() {
   }
 
   return (
-    <Dialog open={showEnrollment} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-[500px]" onInteractOutside={(e) => e.preventDefault()}>
+    <Dialog open={showEnrollment} onOpenChange={handleDismiss}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldAlert className="h-5 w-5 text-destructive" />
@@ -88,7 +99,7 @@ export function MFAEnforcement() {
 
         <MFAEnrollment 
           onComplete={handleEnrollmentComplete}
-          onCancel={() => {}} 
+          onCancel={handleDismiss} 
         />
       </DialogContent>
     </Dialog>

@@ -96,6 +96,7 @@ export default function Settings() {
     if (success) {
       setShowDisableMFADialog(false);
       setDisableMFACode("");
+      localStorage.setItem('mfa_recently_disabled', Date.now().toString());
       await checkMFAStatus();
     }
   };
