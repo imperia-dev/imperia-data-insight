@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ProtocolStatusBadge } from "../fechamentoPrestadores/ProtocolStatusBadge";
 import { ProtocolActionsDropdown } from "../fechamentoPrestadores/ProtocolActionsDropdown";
-import { ProtocolFilters } from "../fechamentoPrestadores/ProtocolFilters";
 import { ProtocolDetailsDialog } from "../fechamentoPrestadores/ProtocolDetailsDialog";
 import { ProtocolMetrics } from "./ProtocolMetrics";
 import { supabase } from "@/integrations/supabase/client";
@@ -262,15 +261,6 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
   return (
     <div className="space-y-4">
       <ProtocolMetrics {...metrics} />
-      
-      <ProtocolFilters 
-        onFilterChange={(newFilters) => {
-          const mergedFilters = { ...filters, ...newFilters };
-          setFilters(mergedFilters);
-          fetchProtocols(mergedFilters);
-        }} 
-        suppliers={suppliers}
-      />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
