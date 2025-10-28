@@ -294,7 +294,7 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
                   <TableHead>Competência</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Total</TableHead>
-                  <TableHead>Qtd Despesas</TableHead>
+                  <TableHead>Qtd Pedidos</TableHead>
                   <TableHead className="text-center">Aprovado?</TableHead>
                   <TableHead className="text-center">Pago?</TableHead>
                 </TableRow>

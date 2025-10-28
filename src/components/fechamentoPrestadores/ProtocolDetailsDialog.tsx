@@ -222,7 +222,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="info">Informações</TabsTrigger>
             <TabsTrigger value="expenses">
-              Despesas ({expensesData.length})
+              Pedidos ({expensesData.length})
             </TabsTrigger>
             <TabsTrigger value="workflow">Workflow</TabsTrigger>
             <TabsTrigger value="history">Histórico</TabsTrigger>
