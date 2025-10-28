@@ -67,7 +67,7 @@ export function ProtocolActionsDropdown({ protocol, onAction }: ProtocolActionsD
           </>
         )}
 
-        {status === "approved" && (
+        {(status === "approved" || status === "completed") && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onAction("mark_paid", protocol)}>
