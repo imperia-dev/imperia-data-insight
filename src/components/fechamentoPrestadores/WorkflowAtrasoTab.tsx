@@ -11,10 +11,9 @@ import { ptBR } from "date-fns/locale";
 import { Clock, AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
 
 export function WorkflowAtrasoTab() {
-  const [steps, setSteps] = useState<any[]>([]);
+  const [protocols, setProtocols] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    protocolType: 'all',
     status: 'all',
     delayed: 'all'
   });
@@ -26,24 +25,19 @@ export function WorkflowAtrasoTab() {
   });
 
   useEffect(() => {
-    fetchWorkflowSteps();
+    fetchProtocols();
   }, [filters]);
 
-  const fetchWorkflowSteps = async () => {
+  const fetchProtocols = async () => {
     setLoading(true);
     try {
       let query = supabase
-        .from('protocol_workflow_steps')
+        .from('service_provider_protocols')
         .select(`
           *,
-          service_provider_protocols!protocol_workflow_steps_protocol_id_fkey(protocol_number),
-          profiles(full_name)
+          protocol_workflow_steps(*)
         `)
-        .order('started_at', { ascending: false });
-
-      if (filters.protocolType !== 'all') {
-        query = query.eq('protocol_type', filters.protocolType);
-      }
+        .order('created_at', { ascending: false });
 
       if (filters.status !== 'all') {
         query = query.eq('status', filters.status);
@@ -53,68 +47,64 @@ export function WorkflowAtrasoTab() {
 
       if (error) throw error;
 
-      let filteredData = data || [];
+      let protocolsWithWorkflow = (data || []).map(protocol => {
+        const steps = protocol.protocol_workflow_steps || [];
+        const currentStep = steps.find((s: any) => !s.completed_at) || steps[steps.length - 1];
+        const completedSteps = steps.filter((s: any) => s.completed_at);
+        
+        const isDelayed = currentStep && currentStep.due_date && !currentStep.completed_at
+          ? new Date(currentStep.due_date) < new Date()
+          : false;
 
-      // Filter delayed steps if needed
+        const totalDays = protocol.created_at 
+          ? Math.ceil((new Date().getTime() - new Date(protocol.created_at).getTime()) / (1000 * 60 * 60 * 24))
+          : 0;
+
+        return {
+          ...protocol,
+          currentStep,
+          completedSteps: completedSteps.length,
+          totalSteps: steps.length,
+          isDelayed,
+          totalDays
+        };
+      });
+
+      // Filter delayed protocols if needed
       if (filters.delayed === 'yes') {
-        filteredData = filteredData.filter(step => {
-          if (step.completed_at || !step.due_date) return false;
-          return new Date(step.due_date) < new Date();
-        });
+        protocolsWithWorkflow = protocolsWithWorkflow.filter(p => p.isDelayed);
       } else if (filters.delayed === 'no') {
-        filteredData = filteredData.filter(step => {
-          if (step.completed_at) return true;
-          if (!step.due_date) return true;
-          return new Date(step.due_date) >= new Date();
-        });
+        protocolsWithWorkflow = protocolsWithWorkflow.filter(p => !p.isDelayed);
       }
 
-      setSteps(filteredData);
-      calculateMetrics(filteredData);
+      setProtocols(protocolsWithWorkflow);
+      calculateMetrics(protocolsWithWorkflow);
     } catch (error: any) {
-      console.error('Error fetching workflow steps:', error);
-      toast.error("Erro ao carregar workflow");
+      console.error('Error fetching protocols:', error);
+      toast.error("Erro ao carregar protocolos");
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateMetrics = (stepsData: any[]) => {
-    const openSteps = stepsData.filter(s => s.status === 'pending' || s.status === 'in_progress');
-    const delayedSteps = stepsData.filter(s => {
-      if (s.completed_at || !s.due_date) return false;
-      return new Date(s.due_date) < new Date();
-    });
+  const calculateMetrics = (protocolsData: any[]) => {
+    const openProtocols = protocolsData.filter(p => p.status !== 'paid' && p.status !== 'cancelled');
+    const delayedProtocols = protocolsData.filter(p => p.isDelayed);
 
-    const completedSteps = stepsData.filter(s => s.status === 'completed' && s.completed_at && s.started_at);
-    const avgDays = completedSteps.length > 0
-      ? completedSteps.reduce((sum, s) => {
-          const days = Math.ceil((new Date(s.completed_at).getTime() - new Date(s.started_at).getTime()) / (1000 * 60 * 60 * 24));
-          return sum + days;
-        }, 0) / completedSteps.length
+    const avgDays = protocolsData.length > 0
+      ? protocolsData.reduce((sum, p) => sum + p.totalDays, 0) / protocolsData.length
       : 0;
 
-    const totalSteps = stepsData.length;
-    const approvedSteps = stepsData.filter(s => s.status === 'completed').length;
-    const approvalRate = totalSteps > 0 ? (approvedSteps / totalSteps) * 100 : 0;
+    const totalProtocols = protocolsData.length;
+    const completedProtocols = protocolsData.filter(p => p.status === 'paid').length;
+    const approvalRate = totalProtocols > 0 ? (completedProtocols / totalProtocols) * 100 : 0;
 
     setMetrics({
-      totalOpen: openSteps.length,
-      totalDelayed: delayedSteps.length,
+      totalOpen: openProtocols.length,
+      totalDelayed: delayedProtocols.length,
       avgCompletionDays: Math.round(avgDays),
       approvalRate: Math.round(approvalRate)
     });
-  };
-
-  const isDelayed = (step: any) => {
-    if (step.completed_at || !step.due_date) return false;
-    return new Date(step.due_date) < new Date();
-  };
-
-  const getStepDays = (step: any) => {
-    const endDate = step.completed_at ? new Date(step.completed_at) : new Date();
-    const startDate = new Date(step.started_at);
-    return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   };
 
   const getStepLabel = (stepName: string) => {
@@ -128,15 +118,24 @@ export function WorkflowAtrasoTab() {
     return labels[stepName] || stepName;
   };
 
-  const getAssignedName = (step: any) => {
-    if (step.profiles?.full_name) {
-      return step.profiles.full_name;
-    }
-    return step.assigned_to ? 'Não atribuído' : '-';
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: 'Rascunho',
+      awaiting_provider: 'Aguardando Prestador',
+      awaiting_master_initial: 'Aguardando Aprovação Master',
+      awaiting_master_final: 'Aguardando Aprovação Final',
+      awaiting_owner: 'Aguardando Aprovação Owner',
+      approved: 'Aprovado',
+      paid: 'Pago',
+      cancelled: 'Cancelado',
+    };
+    return labels[status] || status;
   };
 
-  const getProtocolNumber = (step: any) => {
-    return step.service_provider_protocols?.protocol_number || step.protocol_id?.substring(0, 8) || '-';
+  const getWorkflowProgress = (protocol: any) => {
+    if (protocol.totalSteps === 0) return '0%';
+    const percentage = (protocol.completedSteps / protocol.totalSteps) * 100;
+    return `${Math.round(percentage)}%`;
   };
 
   return (
@@ -146,7 +145,7 @@ export function WorkflowAtrasoTab() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Steps Abertos
+              Protocolos Abertos
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -158,7 +157,7 @@ export function WorkflowAtrasoTab() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
-              Steps Atrasados
+              Protocolos Atrasados
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -182,7 +181,7 @@ export function WorkflowAtrasoTab() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              Taxa Aprovação
+              Taxa Conclusão
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -196,33 +195,22 @@ export function WorkflowAtrasoTab() {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Tipo de Protocolo</Label>
-              <Select value={filters.protocolType} onValueChange={(value) => setFilters({ ...filters, protocolType: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="individual">Individual</SelectItem>
-                  <SelectItem value="consolidated">Consolidado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Status do Step</Label>
+              <Label>Status do Protocolo</Label>
               <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="in_progress">Em Andamento</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
-                  <SelectItem value="delayed">Atrasado</SelectItem>
+                  <SelectItem value="draft">Rascunho</SelectItem>
+                  <SelectItem value="awaiting_provider">Aguardando Prestador</SelectItem>
+                  <SelectItem value="awaiting_master_initial">Aguardando Aprovação Master</SelectItem>
+                  <SelectItem value="awaiting_master_final">Aguardando Aprovação Final</SelectItem>
+                  <SelectItem value="awaiting_owner">Aguardando Owner</SelectItem>
+                  <SelectItem value="approved">Aprovado</SelectItem>
+                  <SelectItem value="paid">Pago</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -246,53 +234,66 @@ export function WorkflowAtrasoTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Workflow Steps</CardTitle>
+          <CardTitle>Protocolos - Workflow e Atraso</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-          ) : steps.length === 0 ? (
+          ) : protocols.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum step encontrado
+              Nenhum protocolo encontrado
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Protocolo</TableHead>
-                  <TableHead>Step</TableHead>
+                  <TableHead>Prestador</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Iniciado</TableHead>
-                  <TableHead>Concluído</TableHead>
-                  <TableHead>Dias</TableHead>
+                  <TableHead>Etapa Atual</TableHead>
+                  <TableHead>Progresso</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Dias Corridos</TableHead>
                   <TableHead>Atraso?</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {steps.map((step) => (
-                  <TableRow key={step.id}>
-                    <TableCell className="font-medium">
-                      {getProtocolNumber(step)}
+                {protocols.map((protocol) => (
+                  <TableRow key={protocol.id}>
+                    <TableCell className="font-mono font-medium">
+                      {protocol.protocol_number}
                     </TableCell>
-                    <TableCell>{getStepLabel(step.step_name)}</TableCell>
+                    <TableCell>{protocol.provider_name}</TableCell>
                     <TableCell>
                       <Badge variant={
-                        step.status === 'completed' ? 'default' :
-                        step.status === 'in_progress' ? 'secondary' :
+                        protocol.status === 'paid' ? 'default' :
+                        protocol.status === 'approved' ? 'secondary' :
+                        protocol.status === 'cancelled' ? 'destructive' :
                         'outline'
                       }>
-                        {step.status === 'completed' ? 'Concluído' : step.status === 'pending' ? 'Pendente' : step.status}
+                        {getStatusLabel(protocol.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell>{getAssignedName(step)}</TableCell>
-                    <TableCell>{format(new Date(step.started_at), "dd/MM HH:mm", { locale: ptBR })}</TableCell>
                     <TableCell>
-                      {step.completed_at ? format(new Date(step.completed_at), "dd/MM HH:mm", { locale: ptBR }) : '-'}
+                      {protocol.currentStep 
+                        ? getStepLabel(protocol.currentStep.step_name)
+                        : 'Concluído'
+                      }
                     </TableCell>
-                    <TableCell>{getStepDays(step)}</TableCell>
                     <TableCell>
-                      {isDelayed(step) ? (
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium">{getWorkflowProgress(protocol)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          ({protocol.completedSteps}/{protocol.totalSteps})
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      {protocol.total_amount?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </TableCell>
+                    <TableCell>{protocol.totalDays}</TableCell>
+                    <TableCell>
+                      {protocol.isDelayed ? (
                         <Badge variant="destructive">
                           <AlertTriangle className="h-3 w-3 mr-1" />
                           Sim
