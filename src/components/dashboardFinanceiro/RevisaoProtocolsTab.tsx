@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReviewerProtocolStatusBadge } from "../reviewerProtocols/ReviewerProtocolStatusBadge";
 import { ReviewerProtocolActionsDropdown } from "../reviewerProtocols/ReviewerProtocolActionsDropdown";
 import { ReviewerProtocolDetailsDialog } from "../reviewerProtocols/ReviewerProtocolDetailsDialog";
@@ -21,7 +20,6 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
   const [protocols, setProtocols] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProtocol, setSelectedProtocol] = useState<any>(null);
-  const [costCenters, setCostCenters] = useState<any[]>([]);
   const [metrics, setMetrics] = useState({
     totalProtocols: 0,
     totalAmount: 0,
@@ -31,7 +29,6 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
 
   useEffect(() => {
     fetchProtocols();
-    fetchCostCenters();
   }, []);
 
   const fetchProtocols = async () => {
@@ -40,6 +37,7 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
       const { data: protocolsData, error: protocolsError } = await supabase
         .from('reviewer_protocols')
         .select('*')
+        .not('status', 'in', '("cancelled","draft")')
         .order('created_at', { ascending: false });
 
       if (protocolsError) throw protocolsError;
@@ -75,38 +73,8 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
     }
   };
 
-  const fetchCostCenters = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('cost_centers')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setCostCenters(data || []);
-    } catch (error) {
-      console.error('Error fetching cost centers:', error);
-    }
-  };
-
   const handleProtocolClick = (protocol: any) => {
     setSelectedProtocol(protocol);
-  };
-
-  const handleCostCenterChange = async (protocolId: string, costCenterId: string) => {
-    try {
-      const { error } = await supabase
-        .from('reviewer_protocols')
-        .update({ centro_custo_id: costCenterId })
-        .eq('id', protocolId);
-
-      if (error) throw error;
-
-      toast.success("Centro de custo atualizado");
-      fetchProtocols();
-    } catch (error: any) {
-      toast.error("Erro ao atualizar centro de custo");
-    }
   };
 
   if (loading) {
@@ -153,7 +121,6 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
                   <TableHead>Documentos</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  {userRole === 'owner' && <TableHead>Centro de Custo</TableHead>}
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -175,23 +142,6 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
                     <TableCell>
                       <ReviewerProtocolStatusBadge status={protocol.status} />
                     </TableCell>
-                    {userRole === 'owner' && (
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Select 
-                          value={protocol.centro_custo_id || ''} 
-                          onValueChange={(value) => handleCostCenterChange(protocol.id, value)}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Selecionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {costCenters.map(cc => (
-                              <SelectItem key={cc.id} value={cc.id}>{cc.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                    )}
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <ReviewerProtocolActionsDropdown 
                         protocol={protocol}
