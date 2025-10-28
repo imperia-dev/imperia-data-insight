@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,13 +9,22 @@ import { Card, CardContent } from "@/components/ui/card";
 interface ProtocolFiltersProps {
   onFilterChange: (filters: any) => void;
   suppliers?: Array<{ id: string; name: string }>;
+  defaultFilters?: any;
 }
 
-export function ProtocolFilters({ onFilterChange, suppliers = [] }: ProtocolFiltersProps) {
-  const [competence, setCompetence] = useState("");
-  const [supplierId, setSupplierId] = useState("");
-  const [status, setStatus] = useState("");
-  const [protocolNumber, setProtocolNumber] = useState("");
+export function ProtocolFilters({ onFilterChange, suppliers = [], defaultFilters }: ProtocolFiltersProps) {
+  const [competence, setCompetence] = useState(defaultFilters?.competence || "");
+  const [supplierId, setSupplierId] = useState(defaultFilters?.supplierId || "");
+  const [status, setStatus] = useState(() => {
+    if (defaultFilters?.status) {
+      if (Array.isArray(defaultFilters.status)) {
+        return defaultFilters.status[0] || "";
+      }
+      return defaultFilters.status;
+    }
+    return "";
+  });
+  const [protocolNumber, setProtocolNumber] = useState(defaultFilters?.protocolNumber || "");
 
   const handleSearch = () => {
     onFilterChange({

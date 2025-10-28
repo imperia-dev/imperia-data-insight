@@ -32,6 +32,8 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
     protocol: null
   });
 
+  const [filters, setFilters] = useState<any>({ status: ['paid', 'completed'] });
+  
   const [metrics, setMetrics] = useState({
     totalProtocols: 0,
     totalAmount: 0,
@@ -40,7 +42,7 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
   });
 
   useEffect(() => {
-    fetchProtocols();
+    fetchProtocols(filters);
     fetchSuppliers();
   }, []);
 
@@ -61,8 +63,12 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
         query = query.eq('supplier_id', filters.supplierId);
       }
 
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
+      if (filters.status) {
+        if (Array.isArray(filters.status) && filters.status.length > 0) {
+          query = query.in('status', filters.status);
+        } else if (filters.status !== 'all') {
+          query = query.eq('status', filters.status);
+        }
       }
 
       if (filters.protocolNumber) {
@@ -257,7 +263,14 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
     <div className="space-y-4">
       <ProtocolMetrics {...metrics} />
       
-      <ProtocolFilters onFilterChange={fetchProtocols} suppliers={suppliers} />
+      <ProtocolFilters 
+        onFilterChange={(newFilters) => {
+          const mergedFilters = { ...filters, ...newFilters };
+          setFilters(mergedFilters);
+          fetchProtocols(mergedFilters);
+        }} 
+        suppliers={suppliers}
+      />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
