@@ -264,11 +264,36 @@ export function useMFA() {
     }
   };
 
-  const disableMFA = async () => {
+  const disableMFA = async (code: string) => {
     try {
       setLoading(true);
       
-      // Unenroll all factors
+      // First, we need to elevate to AAL2 by verifying the MFA code
+      // Get the first verified factor
+      const verifiedFactor = factors.find(f => f.status === 'verified');
+      if (!verifiedFactor) {
+        throw new Error('Nenhum fator MFA verificado encontrado');
+      }
+      
+      // Create a challenge
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: verifiedFactor.id,
+      });
+      
+      if (challengeError) throw challengeError;
+      
+      // Verify the code to elevate to AAL2
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: verifiedFactor.id,
+        challengeId: challengeData!.id,
+        code,
+      });
+      
+      if (verifyError) {
+        throw new Error('Código inválido. Verifique e tente novamente.');
+      }
+      
+      // Now we have AAL2, unenroll all factors
       for (const factor of factors) {
         await supabase.auth.mfa.unenroll({
           factorId: factor.id,
@@ -306,7 +331,7 @@ export function useMFA() {
     } catch (error: any) {
       toast({
         title: "Erro ao desativar 2FA",
-        description: error.message,
+        description: error.message || "Não foi possível desativar o 2FA.",
         variant: "destructive",
       });
       return false;

@@ -16,6 +16,7 @@ import { MFAEnrollment } from "@/components/mfa/MFAEnrollment";
 import { useToast } from "@/hooks/use-toast";
 import { AvatarSettings } from "@/components/settings/AvatarSettings";
 import { FacebookIntegration } from "@/components/settings/FacebookIntegration";
+import { Input } from "@/components/ui/input";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -26,6 +27,8 @@ export default function Settings() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showBackupCodes, setShowBackupCodes] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [showDisableMFADialog, setShowDisableMFADialog] = useState(false);
+  const [disableMFACode, setDisableMFACode] = useState("");
   
   const { 
     mfaEnabled, 
@@ -70,21 +73,30 @@ export default function Settings() {
 
   const handleToggleMFA = async () => {
     if (mfaEnabled) {
-      // Confirm before disabling
-      const confirmed = window.confirm(
-        "Tem certeza que deseja desativar a autenticação de dois fatores? Isso tornará sua conta menos segura."
-      );
-      
-      if (confirmed) {
-        const success = await disableMFA();
-        if (success) {
-          await checkMFAStatus();
-        }
-      }
+      // Show dialog to enter MFA code before disabling
+      setShowDisableMFADialog(true);
     } else {
       // Clean up any unverified factors before showing enrollment
       await cleanupUnverifiedFactors();
       setShowMFAEnrollment(true);
+    }
+  };
+
+  const handleDisableMFA = async () => {
+    if (!disableMFACode || disableMFACode.length !== 6) {
+      toast({
+        title: "Código inválido",
+        description: "Por favor, insira um código de 6 dígitos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = await disableMFA(disableMFACode);
+    if (success) {
+      setShowDisableMFADialog(false);
+      setDisableMFACode("");
+      await checkMFAStatus();
     }
   };
 
@@ -436,6 +448,62 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
             >
               Fechar
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable MFA Dialog */}
+      <Dialog open={showDisableMFADialog} onOpenChange={setShowDisableMFADialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Desativar Autenticação de Dois Fatores</DialogTitle>
+            <DialogDescription>
+              Para sua segurança, insira o código do seu aplicativo autenticador para confirmar.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-900">
+                Desativar o 2FA tornará sua conta menos segura.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="space-y-2">
+              <Label htmlFor="disable-mfa-code">Código de 6 dígitos</Label>
+              <Input
+                id="disable-mfa-code"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                value={disableMFACode}
+                onChange={(e) => setDisableMFACode(e.target.value.replace(/\D/g, ''))}
+                className="text-center text-2xl tracking-widest"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowDisableMFADialog(false);
+                  setDisableMFACode("");
+                }}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={handleDisableMFA}
+                disabled={mfaLoading || disableMFACode.length !== 6}
+                className="flex-1"
+              >
+                Desativar 2FA
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
