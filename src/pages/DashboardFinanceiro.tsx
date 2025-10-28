@@ -9,6 +9,7 @@ import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { DiagramacaoProtocolsTab } from "@/components/dashboardFinanceiro/DiagramacaoProtocolsTab";
 import { RevisaoProtocolsTab } from "@/components/dashboardFinanceiro/RevisaoProtocolsTab";
 import { DespesasProtocolsTab } from "@/components/dashboardFinanceiro/DespesasProtocolsTab";
+import { FixedVariableCosts } from "@/components/dashboardFinanceiro/FixedVariableCosts";
 import { exportFinancialDashboard } from "@/utils/exportFinancialDashboard";
 import { FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -131,6 +132,10 @@ export default function DashboardFinanceiro() {
                 </>
               )}
             </Button>
+          </div>
+
+          <div className="mb-6">
+            <FixedVariableCosts />
           </div>
           
           <Tabs defaultValue="diagramacao" className="w-full">
