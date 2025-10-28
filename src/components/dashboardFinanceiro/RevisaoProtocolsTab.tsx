@@ -37,7 +37,6 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
   const fetchProtocols = async () => {
     setLoading(true);
     try {
-      // Fetch protocols
       const { data: protocolsData, error: protocolsError } = await supabase
         .from('reviewer_protocols')
         .select('*')
@@ -45,21 +44,10 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
 
       if (protocolsError) throw protocolsError;
 
-      // Fetch all reviewers (profiles)
-      const reviewerIds = [...new Set((protocolsData || []).map(p => p.reviewer_id).filter(Boolean))];
-      
-      let reviewersMap = new Map();
-      if (reviewerIds.length > 0) {
-        const { data: reviewers } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', reviewerIds);
-        
-        reviewersMap = new Map(reviewers?.map(r => [r.id, r]) || []);
-      }
+      // Use the reviewer_name directly from the table
       const protocolsWithReviewers = (protocolsData || []).map(p => ({
         ...p,
-        reviewer: reviewersMap.get(p.reviewer_id)
+        reviewer: p.reviewer_name ? { full_name: p.reviewer_name } : null
       }));
 
       setProtocols(protocolsWithReviewers);
