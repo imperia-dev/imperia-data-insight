@@ -166,7 +166,7 @@ export function DespesasProtocolsTab({ userRole }: DespesasProtocolsTabProps) {
                   >
                     <TableCell className="font-mono text-sm">{protocol.protocol_number}</TableCell>
                     <TableCell>
-                      {format(new Date(protocol.competence_month), "MMM/yyyy", { locale: ptBR })}
+                      {format(new Date(protocol.competence_month + "T12:00:00"), "MMM/yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell>{getStatusBadge(protocol.status)}</TableCell>
                     <TableCell className="text-right">

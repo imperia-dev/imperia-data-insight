@@ -205,7 +205,7 @@ export const ReviewerProtocolsTab = ({ userRole }: ReviewerProtocolsTabProps) =>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(protocol.competence_month), "MMM/yyyy", { locale: ptBR })}
+                        {format(new Date(protocol.competence_month + "T12:00:00"), "MMM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell className="text-center">{protocol.order_count}</TableCell>
                       <TableCell className="text-center">{protocol.document_count}</TableCell>

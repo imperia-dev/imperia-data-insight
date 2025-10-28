@@ -31,7 +31,7 @@ export const ReviewerProtocolDetailsDialog = ({
             <div>
               <DialogTitle className="text-2xl">{protocol.protocol_number}</DialogTitle>
               <DialogDescription>
-                Competência: {format(new Date(protocol.competence_month), "MMMM 'de' yyyy", { locale: ptBR })}
+                Competência: {format(new Date(protocol.competence_month + "T12:00:00"), "MMMM 'de' yyyy", { locale: ptBR })}
               </DialogDescription>
             </div>
             <ReviewerProtocolStatusBadge status={protocol.status} />

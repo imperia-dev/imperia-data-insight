@@ -165,7 +165,7 @@ export function RevisaoProtocolsTab({ userRole }: RevisaoProtocolsTabProps) {
                   >
                     <TableCell className="font-mono text-sm">{protocol.protocol_number}</TableCell>
                     <TableCell>{protocol.reviewer?.full_name || 'N/A'}</TableCell>
-                    <TableCell>{format(new Date(protocol.competence_month), "MMM/yyyy", { locale: ptBR })}</TableCell>
+                    <TableCell>{format(new Date(protocol.competence_month + "T12:00:00"), "MMM/yyyy", { locale: ptBR })}</TableCell>
                     <TableCell>{protocol.order_count || 0}</TableCell>
                     <TableCell>{protocol.document_count || 0}</TableCell>
                     <TableCell className="text-right font-semibold">

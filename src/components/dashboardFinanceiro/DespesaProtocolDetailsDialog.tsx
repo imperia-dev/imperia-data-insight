@@ -31,7 +31,7 @@ export function DespesaProtocolDetailsDialog({ protocol, open, onOpenChange }: D
             <div>
               <p className="text-sm text-muted-foreground">Competência</p>
               <p className="font-semibold">
-                {format(new Date(protocol.competence_month), "MMMM/yyyy", { locale: ptBR })}
+                {format(new Date(protocol.competence_month + "T12:00:00"), "MMMM/yyyy", { locale: ptBR })}
               </p>
             </div>
             <div>

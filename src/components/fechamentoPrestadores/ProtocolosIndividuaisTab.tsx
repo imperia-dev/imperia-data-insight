@@ -259,7 +259,7 @@ export function ProtocolosIndividuaisTab() {
                   <TableRow key={protocol.id}>
                     <TableCell className="font-mono text-sm">{protocol.protocol_number}</TableCell>
                     <TableCell>{protocol.provider_name}</TableCell>
-                    <TableCell>{format(new Date(protocol.competence_month), "MMM/yyyy", { locale: ptBR })}</TableCell>
+                    <TableCell>{format(new Date(protocol.competence_month + "T12:00:00"), "MMM/yyyy", { locale: ptBR })}</TableCell>
                     <TableCell>
                       <ProtocolStatusBadge status={protocol.status} />
                     </TableCell>
