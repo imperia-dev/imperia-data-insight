@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Construction } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useSidebarOffset } from "@/hooks/useSidebarOffset";
+import { DiagramacaoProtocolsTab } from "@/components/dashboardFinanceiro/DiagramacaoProtocolsTab";
+import { RevisaoProtocolsTab } from "@/components/dashboardFinanceiro/RevisaoProtocolsTab";
+import { DespesasProtocolsTab } from "@/components/dashboardFinanceiro/DespesasProtocolsTab";
 
 export default function DashboardFinanceiro() {
   const { user } = useAuth();
+  const { mainContainerClass } = useSidebarOffset();
   const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
 
@@ -33,25 +37,31 @@ export default function DashboardFinanceiro() {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
-      <div className="md:pl-64">
+      <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
         <main className="container mx-auto p-6">
           <h1 className="text-3xl font-bold mb-6 text-foreground">Dashboard Financeiro</h1>
           
-          <Card className="max-w-2xl mx-auto mt-12">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-center gap-2">
-                <Construction className="h-6 w-6 text-primary" />
-                Página em Construção
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-center text-muted-foreground">
-                Esta página está sendo desenvolvida e estará disponível em breve.
-              </p>
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="diagramacao" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="diagramacao">Diagramação</TabsTrigger>
+              <TabsTrigger value="revisao">Revisão</TabsTrigger>
+              <TabsTrigger value="despesas">Despesas</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="diagramacao">
+              <DiagramacaoProtocolsTab userRole={userRole} />
+            </TabsContent>
+
+            <TabsContent value="revisao">
+              <RevisaoProtocolsTab userRole={userRole} />
+            </TabsContent>
+
+            <TabsContent value="despesas">
+              <DespesasProtocolsTab userRole={userRole} />
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
     </div>
