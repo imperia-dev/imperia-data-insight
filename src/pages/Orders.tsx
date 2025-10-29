@@ -1140,13 +1140,26 @@ export function Orders() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex flex-wrap gap-1">
-                                    {order.tags && order.tags.length > 0 ? (
+                                    {order.urgency_tag && (
+                                      <Badge 
+                                        className={cn(
+                                          "text-xs",
+                                          order.urgency_tag === "1-dia-util" 
+                                            ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
+                                            : "bg-red-500 hover:bg-red-600 text-white"
+                                        )}
+                                      >
+                                        {order.urgency_tag === "1-dia-util" ? "🟨 1 dia útil" : "🟥 Mesmo dia"}
+                                      </Badge>
+                                    )}
+                                    {order.tags && order.tags.length > 0 && (
                                       order.tags.map((tag: string) => (
                                         <Badge key={tag} variant="secondary" className="text-xs">
                                           {tag}
                                         </Badge>
                                       ))
-                                    ) : (
+                                    )}
+                                    {!order.urgency_tag && (!order.tags || order.tags.length === 0) && (
                                       <span className="text-muted-foreground text-sm">-</span>
                                     )}
                                   </div>
