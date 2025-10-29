@@ -780,30 +780,37 @@ export default function Team() {
                         </div>
                       </div>
                       {memberProductivity?.performance_trend && (
-                        <TooltipProvider>
-                          <UITooltip>
-                            <TooltipTrigger asChild>
-                              <Badge 
-                                variant={
-                                  memberProductivity.performance_trend === 'improving' ? 'default' :
-                                  memberProductivity.performance_trend === 'declining' ? 'destructive' : 'secondary'
-                                }
-                                className="flex items-center gap-1 cursor-help"
-                              >
-                                {memberProductivity.performance_trend === 'improving' && <TrendingUp className="h-3 w-3" />}
-                                {memberProductivity.performance_trend === 'declining' && <TrendingUp className="h-3 w-3 rotate-180" />}
-                                {memberProductivity.performance_trend === 'improving' && 'Em crescimento'}
-                                {memberProductivity.performance_trend === 'stable' && 'Estável'}
-                                {memberProductivity.performance_trend === 'declining' && 'Em declínio'}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-sm">
-                                {memberProductivity.trend_reason || 'Comparando últimos 7 dias com período anterior'}
-                              </p>
-                            </TooltipContent>
-                          </UITooltip>
-                        </TooltipProvider>
+                        <div className="flex flex-col items-end gap-1">
+                          <TooltipProvider>
+                            <UITooltip>
+                              <TooltipTrigger asChild>
+                                <Badge 
+                                  variant={
+                                    memberProductivity.performance_trend === 'improving' ? 'default' :
+                                    memberProductivity.performance_trend === 'declining' ? 'destructive' : 'secondary'
+                                  }
+                                  className="flex items-center gap-1 cursor-help"
+                                >
+                                  {memberProductivity.performance_trend === 'improving' && <TrendingUp className="h-3 w-3" />}
+                                  {memberProductivity.performance_trend === 'declining' && <TrendingUp className="h-3 w-3 rotate-180" />}
+                                  {memberProductivity.performance_trend === 'improving' && 'Em crescimento'}
+                                  {memberProductivity.performance_trend === 'stable' && 'Estável'}
+                                  {memberProductivity.performance_trend === 'declining' && 'Em declínio'}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-sm">
+                                  {memberProductivity.trend_reason || 'Comparando últimos 7 dias com período anterior'}
+                                </p>
+                              </TooltipContent>
+                            </UITooltip>
+                          </TooltipProvider>
+                          {memberProductivity.trend_reason && (
+                            <p className="text-xs text-muted-foreground text-right">
+                              {memberProductivity.trend_reason}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </DialogTitle>
                   </DialogHeader>
