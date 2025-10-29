@@ -1135,7 +1135,7 @@ export function Orders() {
                     </DialogHeader>
                     
                     <div className="mt-4">
-                      {orders?.filter(order => order.customer === "Yellowling" && !order.delivered_at).length === 0 ? (
+                      {orders?.filter(order => order.customer === "Yellowling").length === 0 ? (
                         <p className="text-center text-muted-foreground py-8">
                           Nenhum pedido da Yellowling encontrado.
                         </p>
@@ -1151,7 +1151,7 @@ export function Orders() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {orders?.filter(order => order.customer === "Yellowling" && !order.delivered_at)
+                            {orders?.filter(order => order.customer === "Yellowling")
                               .sort((a, b) => {
                                 if (!a.attribution_date) return 1;
                                 if (!b.attribution_date) return -1;
