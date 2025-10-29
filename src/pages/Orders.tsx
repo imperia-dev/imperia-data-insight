@@ -398,10 +398,16 @@ export function Orders() {
         insertData.attribution_date = new Date(data.attribution_date).toISOString();
       }
       
-      // Add urgency_tag if provided
-      if (data.urgencyTag) {
-        insertData.urgency_tag = data.urgencyTag;
-      }
+      // Add urgency_tag if provided (ALWAYS add, even if null, to ensure field is set)
+      insertData.urgency_tag = data.urgencyTag || null;
+      
+      console.log('🔍 Creating order with data:', {
+        order_number: data.order_number,
+        urgencyTag: data.urgencyTag,
+        urgency_tag_in_insert: insertData.urgency_tag,
+        customer: data.customer,
+        attribution_date: data.attribution_date
+      });
       
       const { error } = await supabase.from("orders").insert(insertData);
       
@@ -742,7 +748,7 @@ export function Orders() {
       documents: documentsArray,
       totalDocuments: order.document_count?.toString() || "",
       driveDocuments: order.drive_document_count?.toString() || "",
-      urgencyTag: null,
+      urgencyTag: (order as any).urgency_tag || null,
     });
     setIsEditDialogOpen(true);
   };
@@ -784,10 +790,16 @@ export function Orders() {
       updates.attribution_date = new Date(editFormData.attribution_date).toISOString();
     }
     
-    // Add urgency_tag if provided
-    if (editFormData.urgencyTag) {
-      updates.urgency_tag = editFormData.urgencyTag;
-    }
+    // Add urgency_tag (ALWAYS add, even if null, to ensure field is set)
+    updates.urgency_tag = editFormData.urgencyTag || null;
+    
+    console.log('🔍 Updating order with data:', {
+      order_id: editingOrder.id,
+      urgencyTag: editFormData.urgencyTag,
+      urgency_tag_in_update: updates.urgency_tag,
+      customer: editFormData.customer,
+      attribution_date: editFormData.attribution_date
+    });
     
     if (editFormData.delivered_at) {
       updates.delivered_at = new Date(editFormData.delivered_at).toISOString();
