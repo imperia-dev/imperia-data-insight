@@ -2628,6 +2628,7 @@ export type Database = {
           status_order: string
           tags: string[] | null
           updated_at: string
+          urgency_tag: string | null
           urgent_document_count: number | null
         }
         Insert: {
@@ -2660,6 +2661,7 @@ export type Database = {
           status_order?: string
           tags?: string[] | null
           updated_at?: string
+          urgency_tag?: string | null
           urgent_document_count?: number | null
         }
         Update: {
@@ -2692,6 +2694,7 @@ export type Database = {
           status_order?: string
           tags?: string[] | null
           updated_at?: string
+          urgency_tag?: string | null
           urgent_document_count?: number | null
         }
         Relationships: [

@@ -398,6 +398,11 @@ export function Orders() {
         insertData.attribution_date = new Date(data.attribution_date).toISOString();
       }
       
+      // Add urgency_tag if provided
+      if (data.urgencyTag) {
+        insertData.urgency_tag = data.urgencyTag;
+      }
+      
       const { error } = await supabase.from("orders").insert(insertData);
       
       if (error) throw error;
@@ -779,6 +784,11 @@ export function Orders() {
       updates.attribution_date = new Date(editFormData.attribution_date).toISOString();
     }
     
+    // Add urgency_tag if provided
+    if (editFormData.urgencyTag) {
+      updates.urgency_tag = editFormData.urgencyTag;
+    }
+    
     if (editFormData.delivered_at) {
       updates.delivered_at = new Date(editFormData.delivered_at).toISOString();
       updates.status_order = "delivered";
@@ -1140,16 +1150,16 @@ export function Orders() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex flex-wrap gap-1">
-                                    {order.urgency_tag && (
+                                    {(order as any).urgency_tag && (
                                       <Badge 
                                         className={cn(
                                           "text-xs",
-                                          order.urgency_tag === "1-dia-util" 
+                                          (order as any).urgency_tag === "1-dia-util" 
                                             ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
                                             : "bg-red-500 hover:bg-red-600 text-white"
                                         )}
                                       >
-                                        {order.urgency_tag === "1-dia-util" ? "🟨 1 dia útil" : "🟥 Mesmo dia"}
+                                        {(order as any).urgency_tag === "1-dia-util" ? "🟨 1 dia útil" : "🟥 Mesmo dia"}
                                       </Badge>
                                     )}
                                     {order.tags && order.tags.length > 0 && (
@@ -1159,7 +1169,7 @@ export function Orders() {
                                         </Badge>
                                       ))
                                     )}
-                                    {!order.urgency_tag && (!order.tags || order.tags.length === 0) && (
+                                    {!(order as any).urgency_tag && (!order.tags || order.tags.length === 0) && (
                                       <span className="text-muted-foreground text-sm">-</span>
                                     )}
                                   </div>
