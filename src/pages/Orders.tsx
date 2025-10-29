@@ -105,6 +105,40 @@ export function Orders() {
     return format(tomorrow, "yyyy-MM-dd'T'HH:mm");
   };
 
+  // Utility function to get next business day
+  const getNextBusinessDay = (date: Date): Date => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + 1);
+    
+    // Se cair em sábado (6), pular para segunda
+    if (result.getDay() === 6) {
+      result.setDate(result.getDate() + 2);
+    }
+    // Se cair em domingo (0), pular para segunda
+    else if (result.getDay() === 0) {
+      result.setDate(result.getDate() + 1);
+    }
+    
+    result.setHours(18, 0, 0, 0);
+    return result;
+  };
+
+  // Calculate deadline based on urgency tag
+  const calculateDeadlineByTag = (attributionDate: string, tag: "1-dia-util" | "mesmo-dia"): string => {
+    const baseDate = new Date(attributionDate);
+    
+    if (tag === "mesmo-dia") {
+      // Mesmo dia às 18:00h
+      const deadline = new Date(baseDate);
+      deadline.setHours(18, 0, 0, 0);
+      return format(deadline, "yyyy-MM-dd'T'HH:mm");
+    } else {
+      // 1 dia útil - próximo dia útil às 18:00h
+      const deadline = getNextBusinessDay(baseDate);
+      return format(deadline, "yyyy-MM-dd'T'HH:mm");
+    }
+  };
+
   const [formData, setFormData] = useState({
     order_number: "",
     document_count: "",
@@ -117,6 +151,7 @@ export function Orders() {
     documents: [] as Array<{ quantity: string, pages: string }>,
     totalDocuments: "",
     driveDocuments: "",
+    urgencyTag: null as "1-dia-util" | "mesmo-dia" | null,
   });
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -134,6 +169,7 @@ export function Orders() {
     documents: [] as Array<{ quantity: string, pages: string }>,
     totalDocuments: "",
     driveDocuments: "",
+    urgencyTag: null as "1-dia-util" | "mesmo-dia" | null,
   });
 
   // Fetch user profile to get role
@@ -383,6 +419,7 @@ export function Orders() {
           documents: [],
           totalDocuments: "",
           driveDocuments: "",
+          urgencyTag: null,
         });
     },
     onError: (error: any) => {
@@ -698,6 +735,7 @@ export function Orders() {
       documents: documentsArray,
       totalDocuments: order.document_count?.toString() || "",
       driveDocuments: order.drive_document_count?.toString() || "",
+      urgencyTag: null,
     });
     setIsEditDialogOpen(true);
   };
@@ -1012,6 +1050,13 @@ export function Orders() {
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, sortBy]);
+
+  // Reset urgency tag when customer changes from Yellowling
+  useEffect(() => {
+    if (formData.customer !== "Yellowling" && formData.urgencyTag) {
+      setFormData(prev => ({ ...prev, urgencyTag: null }));
+    }
+  }, [formData.customer]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -1439,9 +1484,17 @@ export function Orders() {
                           id="attribution_date"
                           type="datetime-local"
                           value={formData.attribution_date}
-                          onChange={(e) =>
-                            setFormData({ ...formData, attribution_date: e.target.value })
-                          }
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setFormData({ 
+                              ...formData, 
+                              attribution_date: newValue,
+                              // Se mudar a data e já tinha tag selecionada, recalcular
+                              deadline: formData.urgencyTag && newValue 
+                                ? calculateDeadlineByTag(newValue, formData.urgencyTag)
+                                : formData.deadline
+                            });
+                          }}
                           className="flex-1"
                         />
                         <Button
@@ -1450,7 +1503,7 @@ export function Orders() {
                           size="sm"
                           onClick={() => {
                             const now = format(new Date(), "yyyy-MM-dd'T'HH:mm");
-                            setFormData({ ...formData, attribution_date: now });
+                            setFormData({ ...formData, attribution_date: now, urgencyTag: null });
                           }}
                           className="text-xs px-3 shrink-0"
                         >
@@ -1461,6 +1514,60 @@ export function Orders() {
                         Opcional - Data quando o pedido foi atribuído
                       </p>
                     </div>
+
+                    {/* Tags de Urgência - apenas para Yellowling */}
+                    {formData.customer === "Yellowling" && formData.attribution_date && (
+                      <div>
+                        <Label>Prazo de Entrega</Label>
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.urgencyTag === "1-dia-util" ? "default" : "outline"}
+                            className={cn(
+                              "flex-1",
+                              formData.urgencyTag === "1-dia-util" 
+                                ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
+                                : "border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+                            )}
+                            onClick={() => {
+                              const newDeadline = calculateDeadlineByTag(formData.attribution_date, "1-dia-util");
+                              setFormData({ 
+                                ...formData, 
+                                urgencyTag: "1-dia-util",
+                                deadline: newDeadline
+                              });
+                            }}
+                          >
+                            🟨 1 dia útil
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.urgencyTag === "mesmo-dia" ? "default" : "outline"}
+                            className={cn(
+                              "flex-1",
+                              formData.urgencyTag === "mesmo-dia" 
+                                ? "bg-red-500 hover:bg-red-600 text-white" 
+                                : "border-red-500 text-red-600 hover:bg-red-50"
+                            )}
+                            onClick={() => {
+                              const newDeadline = calculateDeadlineByTag(formData.attribution_date, "mesmo-dia");
+                              setFormData({ 
+                                ...formData, 
+                                urgencyTag: "mesmo-dia",
+                                deadline: newDeadline
+                              });
+                            }}
+                          >
+                            🟥 Mesmo dia
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Selecione o prazo para calcular a deadline automaticamente
+                        </p>
+                      </div>
+                    )}
                     
                     <div>
                       <Label htmlFor="deadline">Deadline *</Label>
@@ -1468,11 +1575,22 @@ export function Orders() {
                         id="deadline"
                         type="datetime-local"
                         value={formData.deadline}
-                        onChange={(e) =>
-                          setFormData({ ...formData, deadline: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setFormData({ 
+                            ...formData, 
+                            deadline: e.target.value,
+                            // Se editar manualmente, limpar a tag
+                            urgencyTag: null
+                          });
+                        }}
+                        disabled={!!formData.urgencyTag}
                         required
                       />
+                      {formData.urgencyTag && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Deadline calculada automaticamente baseada na tag selecionada
+                        </p>
+                      )}
                     </div>
                     
                     <Button type="submit" className="w-full" disabled={createOrderMutation.isPending}>
