@@ -36,7 +36,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock, Hammer, Eye } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock, Hammer, Eye, FileText, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
 import googleDriveLogo from "@/assets/google-drive-logo.png";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
@@ -1110,10 +1110,18 @@ export function Orders() {
                       Preview Yellowling
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
+                  <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader className="border-b pb-4">
                       <div className="flex items-center justify-between">
-                        <DialogTitle>Preview de Pedidos - Yellowling</DialogTitle>
+                        <div>
+                          <DialogTitle className="text-2xl font-bold">Preview de Pedidos - Yellowling</DialogTitle>
+                          {previewOpenedAt && (
+                            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Aberto em: {format(previewOpenedAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+                            </p>
+                          )}
+                        </div>
                         <div className="flex items-center gap-4">
                           <img 
                             src="/yellowling-logo.png" 
@@ -1127,58 +1135,40 @@ export function Orders() {
                           />
                         </div>
                       </div>
-                      {previewOpenedAt && (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Aberto em: {format(previewOpenedAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
-                        </p>
-                      )}
                     </DialogHeader>
                     
-                    <div className="mt-4">
+                    <div className="mt-6">
                       {orders?.filter(order => order.customer === "Yellowling").length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">
-                          Nenhum pedido da Yellowling encontrado.
-                        </p>
+                        <div className="text-center py-12">
+                          <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                          <p className="text-muted-foreground text-lg">
+                            Nenhum pedido da Yellowling encontrado.
+                          </p>
+                        </div>
                       ) : (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>ID Pedido</TableHead>
-                              <TableHead>Cliente</TableHead>
-                              <TableHead>Data de Atribuição</TableHead>
-                              <TableHead>Deadline</TableHead>
-                              <TableHead>Tags</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {orders?.filter(order => order.customer === "Yellowling")
-                              .sort((a, b) => {
-                                if (!a.attribution_date) return 1;
-                                if (!b.attribution_date) return -1;
-                                return new Date(b.attribution_date).getTime() - new Date(a.attribution_date).getTime();
-                              })
-                              .map((order) => (
-                              <TableRow key={order.id}>
-                                <TableCell className="font-medium">
-                                  {order.order_number}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline">{order.customer}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {order.attribution_date
-                                    ? format(new Date(order.attribution_date), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                                    : "-"}
-                                </TableCell>
-                                <TableCell>
-                                  {format(new Date(order.deadline), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex flex-wrap gap-1">
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {orders?.filter(order => order.customer === "Yellowling")
+                            .sort((a, b) => {
+                              if (!a.attribution_date) return 1;
+                              if (!b.attribution_date) return -1;
+                              return new Date(b.attribution_date).getTime() - new Date(a.attribution_date).getTime();
+                            })
+                            .map((order) => (
+                            <Card key={order.id} className="hover:shadow-lg transition-shadow duration-200">
+                              <CardContent className="p-5">
+                                <div className="space-y-4">
+                                  {/* Header do Card */}
+                                  <div className="flex items-start justify-between">
+                                    <div className="space-y-1">
+                                      <h3 className="font-bold text-lg">{order.order_number}</h3>
+                                      <Badge variant="outline" className="text-xs">
+                                        {order.customer}
+                                      </Badge>
+                                    </div>
                                     {(order as any).urgency_tag && (
                                       <Badge 
                                         className={cn(
-                                          "text-xs",
+                                          "text-xs font-semibold",
                                           (order as any).urgency_tag === "1-dia-util" 
                                             ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
                                             : "bg-red-500 hover:bg-red-600 text-white"
@@ -1187,22 +1177,50 @@ export function Orders() {
                                         {(order as any).urgency_tag === "1-dia-util" ? "🟨 1 dia útil" : "🟥 Mesmo dia"}
                                       </Badge>
                                     )}
-                                    {order.tags && order.tags.length > 0 && (
-                                      order.tags.map((tag: string) => (
-                                        <Badge key={tag} variant="secondary" className="text-xs">
-                                          {tag}
-                                        </Badge>
-                                      ))
-                                    )}
-                                    {!(order as any).urgency_tag && (!order.tags || order.tags.length === 0) && (
-                                      <span className="text-muted-foreground text-sm">-</span>
-                                    )}
                                   </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+
+                                  {/* Data de Atribuição */}
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                      <p className="text-muted-foreground text-xs">Data de Atribuição</p>
+                                      <p className="font-medium">
+                                        {order.attribution_date
+                                          ? format(new Date(order.attribution_date), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                                          : "Não atribuído"}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Deadline */}
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                      <p className="text-muted-foreground text-xs">Deadline</p>
+                                      <p className="font-medium">
+                                        {format(new Date(order.deadline), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Tags */}
+                                  {order.tags && order.tags.length > 0 && (
+                                    <div className="pt-2 border-t">
+                                      <p className="text-muted-foreground text-xs mb-2">Tags</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {order.tags.map((tag: string) => (
+                                          <Badge key={tag} variant="secondary" className="text-xs">
+                                            {tag}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </DialogContent>
