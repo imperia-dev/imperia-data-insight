@@ -33,6 +33,7 @@ import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, differenceInDays, differenceInMonths, startOfDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -108,6 +109,7 @@ interface ProductivityStats {
   
   // Performance trends
   performance_trend?: 'improving' | 'stable' | 'declining';
+  trend_reason?: string;
   monthly_stats?: Array<{
     month: string;
     documents: number;
@@ -331,8 +333,18 @@ export default function Team() {
         const previousAvg = previousDays.reduce((sum, day) => sum + (day.documents || 0), 0) / Math.max(previousDays.length, 1);
         
         let performanceTrend: 'improving' | 'stable' | 'declining' = 'stable';
-        if (recentAvg > previousAvg * 1.1) performanceTrend = 'improving';
-        else if (recentAvg < previousAvg * 0.9) performanceTrend = 'declining';
+        let trendReason = '';
+        if (recentAvg > previousAvg * 1.1) {
+          performanceTrend = 'improving';
+          const increase = ((recentAvg - previousAvg) / previousAvg * 100).toFixed(1);
+          trendReason = `Média subiu ${increase}% (${recentAvg.toFixed(1)} vs ${previousAvg.toFixed(1)} docs/dia)`;
+        } else if (recentAvg < previousAvg * 0.9) {
+          performanceTrend = 'declining';
+          const decrease = ((previousAvg - recentAvg) / previousAvg * 100).toFixed(1);
+          trendReason = `Média caiu ${decrease}% (${recentAvg.toFixed(1)} vs ${previousAvg.toFixed(1)} docs/dia)`;
+        } else {
+          trendReason = `Média estável (${recentAvg.toFixed(1)} docs/dia)`;
+        }
         
         // Analyze work hours patterns
         const deliveryHours = deliveredOrders
@@ -388,6 +400,7 @@ export default function Team() {
             weekly_hours: totalHours / weeksActive
           },
           performance_trend: performanceTrend,
+          trend_reason: trendReason,
           monthly_stats: monthlyStats,
           daily_activity: last30Days
         };
@@ -595,19 +608,30 @@ export default function Team() {
                         </div>
                       </div>
                       {memberProductivity?.performance_trend && (
-                        <Badge 
-                          variant={
-                            memberProductivity.performance_trend === 'improving' ? 'default' :
-                            memberProductivity.performance_trend === 'declining' ? 'destructive' : 'secondary'
-                          }
-                          className="flex items-center gap-1"
-                        >
-                          {memberProductivity.performance_trend === 'improving' && <TrendingUp className="h-3 w-3" />}
-                          {memberProductivity.performance_trend === 'declining' && <TrendingUp className="h-3 w-3 rotate-180" />}
-                          {memberProductivity.performance_trend === 'improving' && 'Em crescimento'}
-                          {memberProductivity.performance_trend === 'stable' && 'Estável'}
-                          {memberProductivity.performance_trend === 'declining' && 'Em declínio'}
-                        </Badge>
+                        <TooltipProvider>
+                          <UITooltip>
+                            <TooltipTrigger asChild>
+                              <Badge 
+                                variant={
+                                  memberProductivity.performance_trend === 'improving' ? 'default' :
+                                  memberProductivity.performance_trend === 'declining' ? 'destructive' : 'secondary'
+                                }
+                                className="flex items-center gap-1 cursor-help"
+                              >
+                                {memberProductivity.performance_trend === 'improving' && <TrendingUp className="h-3 w-3" />}
+                                {memberProductivity.performance_trend === 'declining' && <TrendingUp className="h-3 w-3 rotate-180" />}
+                                {memberProductivity.performance_trend === 'improving' && 'Em crescimento'}
+                                {memberProductivity.performance_trend === 'stable' && 'Estável'}
+                                {memberProductivity.performance_trend === 'declining' && 'Em declínio'}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">
+                                {memberProductivity.trend_reason || 'Comparando últimos 7 dias com período anterior'}
+                              </p>
+                            </TooltipContent>
+                          </UITooltip>
+                        </TooltipProvider>
                       )}
                     </DialogTitle>
                   </DialogHeader>
