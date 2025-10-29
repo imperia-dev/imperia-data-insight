@@ -1144,7 +1144,13 @@ export function Orders() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {orders?.filter(order => order.customer === "Yellowling").map((order) => (
+                            {orders?.filter(order => order.customer === "Yellowling")
+                              .sort((a, b) => {
+                                if (!a.attribution_date) return 1;
+                                if (!b.attribution_date) return -1;
+                                return new Date(b.attribution_date).getTime() - new Date(a.attribution_date).getTime();
+                              })
+                              .map((order) => (
                               <TableRow key={order.id}>
                                 <TableCell className="font-medium">
                                   {order.order_number}
