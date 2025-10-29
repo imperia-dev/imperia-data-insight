@@ -36,7 +36,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock, Hammer } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock, Hammer, Eye } from "lucide-react";
 import googleDriveLogo from "@/assets/google-drive-logo.png";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
@@ -82,6 +82,8 @@ export function Orders() {
   const [selectedAttentionOrders, setSelectedAttentionOrders] = useState<Set<string>>(new Set());
   const [isDelayMode, setIsDelayMode] = useState(false);
   const [selectedDelayOrders, setSelectedDelayOrders] = useState<Set<string>>(new Set());
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [previewOpenedAt, setPreviewOpenedAt] = useState<Date | null>(null);
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -1070,13 +1072,101 @@ export function Orders() {
             <h1 className="text-3xl font-bold text-foreground">Pedidos</h1>
             
             {(isAdmin || isMaster || isOwner) && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Novo Pedido
-                  </Button>
-                </DialogTrigger>
+              <div className="flex gap-2">
+                <Dialog 
+                  open={isPreviewDialogOpen} 
+                  onOpenChange={(open) => {
+                    setIsPreviewDialogOpen(open);
+                    if (open) {
+                      setPreviewOpenedAt(new Date());
+                    }
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Eye className="mr-2 h-4 w-4" />
+                      Preview Yellowling
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <div className="flex items-center justify-between">
+                        <DialogTitle>Preview de Pedidos - Yellowling</DialogTitle>
+                        <img 
+                          src="/imperia-logo.png" 
+                          alt="Imperia Logo" 
+                          className="h-10 object-contain"
+                        />
+                      </div>
+                      {previewOpenedAt && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Aberto em: {format(previewOpenedAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+                        </p>
+                      )}
+                    </DialogHeader>
+                    
+                    <div className="mt-4">
+                      {orders?.filter(order => order.customer === "Yellowling").length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">
+                          Nenhum pedido da Yellowling encontrado.
+                        </p>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>ID Pedido</TableHead>
+                              <TableHead>Cliente</TableHead>
+                              <TableHead>Data de Atribuição</TableHead>
+                              <TableHead>Deadline</TableHead>
+                              <TableHead>Tags</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {orders?.filter(order => order.customer === "Yellowling").map((order) => (
+                              <TableRow key={order.id}>
+                                <TableCell className="font-medium">
+                                  {order.order_number}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{order.customer}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {order.attribution_date
+                                    ? format(new Date(order.attribution_date), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                                    : "-"}
+                                </TableCell>
+                                <TableCell>
+                                  {format(new Date(order.deadline), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-wrap gap-1">
+                                    {order.tags && order.tags.length > 0 ? (
+                                      order.tags.map((tag: string) => (
+                                        <Badge key={tag} variant="secondary" className="text-xs">
+                                          {tag}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-muted-foreground text-sm">-</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Novo Pedido
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Criar Novo Pedido</DialogTitle>
@@ -1599,6 +1689,7 @@ export function Orders() {
                   </form>
                 </DialogContent>
               </Dialog>
+              </div>
             )}
           </div>
 
