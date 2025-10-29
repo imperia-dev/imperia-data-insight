@@ -137,6 +137,17 @@ export default function Team() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [memberProductivity, setMemberProductivity] = useState<ProductivityStats | null>(null);
   const [loadingProductivity, setLoadingProductivity] = useState(false);
+  
+  // Comparison mode states
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForComparison, setSelectedForComparison] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
+  const [comparisonData, setComparisonData] = useState<{
+    member1: TeamMember;
+    member2: TeamMember;
+    stats1: ProductivityStats | null;
+    stats2: ProductivityStats | null;
+  } | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -448,8 +459,128 @@ export default function Team() {
   };
 
   const handleMemberClick = async (member: TeamMember) => {
-    setSelectedMember(member);
-    await fetchMemberProductivity(member.id);
+    if (compareMode) {
+      handleCompareSelection(member.id);
+    } else {
+      setSelectedMember(member);
+      await fetchMemberProductivity(member.id);
+    }
+  };
+
+  const handleCompareSelection = (memberId: string) => {
+    setSelectedForComparison(prev => {
+      if (prev.includes(memberId)) {
+        return prev.filter(id => id !== memberId);
+      } else if (prev.length < 2) {
+        return [...prev, memberId];
+      }
+      return prev;
+    });
+  };
+
+  const handleCompare = async () => {
+    if (selectedForComparison.length !== 2) {
+      toast.error("Selecione exatamente 2 membros para comparar");
+      return;
+    }
+
+    const member1 = teamMembers.find(m => m.id === selectedForComparison[0]);
+    const member2 = teamMembers.find(m => m.id === selectedForComparison[1]);
+
+    if (!member1 || !member2) return;
+
+    try {
+      setLoadingProductivity(true);
+      
+      // Fetch productivity for both members separately
+      const fetchStats = async (memberId: string): Promise<ProductivityStats | null> => {
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('assigned_to', memberId)
+          .in('status_order', ['delivered', 'in_progress'])
+          .order('delivered_at', { ascending: false, nullsFirst: false });
+
+        if (ordersError) throw ordersError;
+
+        const deliveredOrders = ordersData?.filter(o => o.status_order === 'delivered') || [];
+        
+        if (deliveredOrders.length === 0) return null;
+
+        const totalDocs = deliveredOrders.reduce((sum, order) => sum + (order.document_count || 0), 0);
+        const totalEarnings = totalDocs * 1.30;
+        
+        const allDates = deliveredOrders
+          .map(o => o.delivered_at ? new Date(o.delivered_at) : null)
+          .filter(Boolean) as Date[];
+        
+        const firstDate = allDates.length > 0 
+          ? new Date(Math.min(...allDates.map(d => d.getTime())))
+          : new Date();
+        const lastDate = allDates.length > 0 
+          ? new Date(Math.max(...allDates.map(d => d.getTime())))
+          : new Date();
+        
+        const daysActive = differenceInDays(lastDate, firstDate) + 1;
+        const monthsActive = Math.max(differenceInMonths(lastDate, firstDate) + 1, 1);
+        
+        const avgDocsPerDay = totalDocs / Math.max(daysActive, 1);
+        const avgMonthlyEarnings = totalEarnings / monthsActive;
+        
+        const completionTimes = deliveredOrders
+          .filter(o => o.assigned_at && o.delivered_at)
+          .map(o => {
+            const start = new Date(o.assigned_at!).getTime();
+            const end = new Date(o.delivered_at!).getTime();
+            return (end - start) / (1000 * 60 * 60);
+          });
+        
+        const totalHours = completionTimes.reduce((sum, time) => sum + time, 0);
+        const completionRate = ((deliveredOrders.length / (ordersData?.length || 1)) * 100);
+
+        return {
+          total_days_worked: daysActive,
+          total_documents: totalDocs,
+          total_words: totalDocs * 250,
+          total_pages: totalDocs * 2,
+          total_earnings: totalEarnings,
+          avg_daily_earnings: totalEarnings / Math.max(daysActive, 1),
+          avg_monthly_earnings: avgMonthlyEarnings,
+          total_orders_completed: deliveredOrders.length,
+          avg_docs_per_day: avgDocsPerDay,
+          avg_docs_per_week: 0,
+          avg_docs_per_month: 0,
+          avg_minutes_per_document: 0,
+          avg_hours_per_order: 0,
+          total_hours_worked: totalHours,
+          urgent_documents_completed: 0,
+          completion_rate: completionRate,
+        };
+      };
+
+      const [stats1, stats2] = await Promise.all([
+        fetchStats(member1.id),
+        fetchStats(member2.id)
+      ]);
+      
+      setComparisonData({
+        member1,
+        member2,
+        stats1,
+        stats2
+      });
+      setShowComparison(true);
+    } catch (error) {
+      console.error("Error loading comparison data:", error);
+      toast.error("Erro ao carregar dados de comparação");
+    } finally {
+      setLoadingProductivity(false);
+    }
+  };
+
+  const toggleCompareMode = () => {
+    setCompareMode(!compareMode);
+    setSelectedForComparison([]);
   };
 
   const getStatusBadge = (status: string) => {
@@ -498,15 +629,40 @@ export default function Team() {
           {/* Search and Filters */}
           <Card className="mb-6">
             <CardContent className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome ou email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={compareMode ? "default" : "outline"}
+                    onClick={toggleCompareMode}
+                    className="flex items-center gap-2"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    {compareMode ? "Cancelar" : "Comparar"}
+                  </Button>
+                  {compareMode && selectedForComparison.length === 2 && (
+                    <Button
+                      onClick={handleCompare}
+                      className="flex items-center gap-2"
+                    >
+                      Ver Comparação
+                    </Button>
+                  )}
+                </div>
               </div>
+              {compareMode && (
+                <p className="text-sm text-muted-foreground mt-3">
+                  Selecione exatamente 2 membros para comparar ({selectedForComparison.length}/2 selecionados)
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -540,20 +696,36 @@ export default function Team() {
               {filteredMembers.map((member) => (
                 <Card 
                   key={member.id} 
-                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  className={`cursor-pointer hover:shadow-lg transition-all ${
+                    compareMode && selectedForComparison.includes(member.id) ? 'ring-2 ring-primary' : ''
+                  }`}
                   onClick={() => handleMemberClick(member)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
-                      <AnimatedAvatar
-                        src={member.avatar_url}
-                        fallback={member.full_name}
-                        size="lg"
-                        showStatus
-                        status={member.approval_status === 'approved' ? 'online' : member.approval_status === 'pending' ? 'busy' : 'offline'}
-                        animationLevel="normal"
-                        style={member.avatar_url ? "photo" : (member.avatar_style as any || "initials")}
-                      />
+                      <div className="flex items-center gap-3">
+                        {compareMode && (
+                          <input
+                            type="checkbox"
+                            checked={selectedForComparison.includes(member.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleCompareSelection(member.id);
+                            }}
+                            disabled={!selectedForComparison.includes(member.id) && selectedForComparison.length >= 2}
+                            className="h-4 w-4 rounded border-gray-300"
+                          />
+                        )}
+                        <AnimatedAvatar
+                          src={member.avatar_url}
+                          fallback={member.full_name}
+                          size="lg"
+                          showStatus
+                          status={member.approval_status === 'approved' ? 'online' : member.approval_status === 'pending' ? 'busy' : 'offline'}
+                          animationLevel="normal"
+                          style={member.avatar_url ? "photo" : (member.avatar_style as any || "initials")}
+                        />
+                      </div>
                       {getStatusBadge(member.approval_status)}
                     </div>
                     
@@ -1099,6 +1271,208 @@ export default function Team() {
                       )}
                     </TabsContent>
                   </Tabs>
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Comparison Dialog */}
+          <Dialog open={showComparison} onOpenChange={setShowComparison}>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              {comparisonData && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl">Comparação de Performance</DialogTitle>
+                  </DialogHeader>
+
+                  <div className="grid md:grid-cols-2 gap-6 mt-6">
+                    {/* Member 1 */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 pb-4 border-b">
+                        <AnimatedAvatar
+                          src={comparisonData.member1.avatar_url}
+                          fallback={comparisonData.member1.full_name}
+                          size="lg"
+                          showStatus
+                          status={comparisonData.member1.approval_status === 'approved' ? 'online' : 'offline'}
+                          animationLevel="normal"
+                          style={comparisonData.member1.avatar_url ? "photo" : "initials"}
+                        />
+                        <div>
+                          <h3 className="font-semibold text-lg">{comparisonData.member1.full_name}</h3>
+                          <p className="text-sm text-muted-foreground">{comparisonData.member1.email}</p>
+                        </div>
+                      </div>
+
+                      {comparisonData.stats1 ? (
+                        <div className="space-y-3">
+                          <Card>
+                            <CardContent className="pt-6">
+                              <div className="space-y-4">
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Total de Documentos</p>
+                                  <p className="text-2xl font-bold">{comparisonData.stats1.total_documents}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Total de Ganhos</p>
+                                  <p className="text-2xl font-bold text-green-600">{formatCurrency(comparisonData.stats1.total_earnings)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Média Diária</p>
+                                  <p className="text-xl font-semibold">{comparisonData.stats1.avg_docs_per_day.toFixed(1)} docs/dia</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Ganhos Mensais (Média)</p>
+                                  <p className="text-xl font-semibold">{formatCurrency(comparisonData.stats1.avg_monthly_earnings)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Taxa de Conclusão</p>
+                                  <div className="flex items-center gap-2">
+                                    <Progress value={comparisonData.stats1.completion_rate} className="flex-1" />
+                                    <span className="text-sm font-medium">{comparisonData.stats1.completion_rate.toFixed(0)}%</span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Pedidos Concluídos</p>
+                                  <p className="text-xl font-semibold">{comparisonData.stats1.total_orders_completed}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Dias Trabalhados</p>
+                                  <p className="text-xl font-semibold">{comparisonData.stats1.total_days_worked}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Horas Trabalhadas</p>
+                                  <p className="text-xl font-semibold">{comparisonData.stats1.total_hours_worked.toFixed(0)}h</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      ) : (
+                        <Card>
+                          <CardContent className="p-12 text-center">
+                            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">Sem dados de produtividade</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+
+                    {/* Member 2 */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 pb-4 border-b">
+                        <AnimatedAvatar
+                          src={comparisonData.member2.avatar_url}
+                          fallback={comparisonData.member2.full_name}
+                          size="lg"
+                          showStatus
+                          status={comparisonData.member2.approval_status === 'approved' ? 'online' : 'offline'}
+                          animationLevel="normal"
+                          style={comparisonData.member2.avatar_url ? "photo" : "initials"}
+                        />
+                        <div>
+                          <h3 className="font-semibold text-lg">{comparisonData.member2.full_name}</h3>
+                          <p className="text-sm text-muted-foreground">{comparisonData.member2.email}</p>
+                        </div>
+                      </div>
+
+                      {comparisonData.stats2 ? (
+                        <div className="space-y-3">
+                          <Card>
+                            <CardContent className="pt-6">
+                              <div className="space-y-4">
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Total de Documentos</p>
+                                  <p className="text-2xl font-bold">{comparisonData.stats2.total_documents}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Total de Ganhos</p>
+                                  <p className="text-2xl font-bold text-green-600">{formatCurrency(comparisonData.stats2.total_earnings)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Média Diária</p>
+                                  <p className="text-xl font-semibold">{comparisonData.stats2.avg_docs_per_day.toFixed(1)} docs/dia</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Ganhos Mensais (Média)</p>
+                                  <p className="text-xl font-semibold">{formatCurrency(comparisonData.stats2.avg_monthly_earnings)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Taxa de Conclusão</p>
+                                  <div className="flex items-center gap-2">
+                                    <Progress value={comparisonData.stats2.completion_rate} className="flex-1" />
+                                    <span className="text-sm font-medium">{comparisonData.stats2.completion_rate.toFixed(0)}%</span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Pedidos Concluídos</p>
+                                  <p className="text-xl font-semibold">{comparisonData.stats2.total_orders_completed}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Dias Trabalhados</p>
+                                  <p className="text-xl font-semibold">{comparisonData.stats2.total_days_worked}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Horas Trabalhadas</p>
+                                  <p className="text-xl font-semibold">{comparisonData.stats2.total_hours_worked.toFixed(0)}h</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      ) : (
+                        <Card>
+                          <CardContent className="p-12 text-center">
+                            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">Sem dados de produtividade</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Comparison Summary */}
+                  {comparisonData.stats1 && comparisonData.stats2 && (
+                    <Card className="mt-6 bg-muted/50">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Resumo da Comparação</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-2">Diferença de Documentos</p>
+                            <p className={`text-xl font-bold ${
+                              comparisonData.stats1.total_documents > comparisonData.stats2.total_documents ? 'text-green-600' : 
+                              comparisonData.stats1.total_documents < comparisonData.stats2.total_documents ? 'text-red-600' : 
+                              'text-gray-600'
+                            }`}>
+                              {Math.abs(comparisonData.stats1.total_documents - comparisonData.stats2.total_documents)} docs
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-2">Diferença de Ganhos</p>
+                            <p className={`text-xl font-bold ${
+                              comparisonData.stats1.total_earnings > comparisonData.stats2.total_earnings ? 'text-green-600' : 
+                              comparisonData.stats1.total_earnings < comparisonData.stats2.total_earnings ? 'text-red-600' : 
+                              'text-gray-600'
+                            }`}>
+                              {formatCurrency(Math.abs(comparisonData.stats1.total_earnings - comparisonData.stats2.total_earnings))}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-2">Diferença Taxa Conclusão</p>
+                            <p className={`text-xl font-bold ${
+                              comparisonData.stats1.completion_rate > comparisonData.stats2.completion_rate ? 'text-green-600' : 
+                              comparisonData.stats1.completion_rate < comparisonData.stats2.completion_rate ? 'text-red-600' : 
+                              'text-gray-600'
+                            }`}>
+                              {Math.abs(comparisonData.stats1.completion_rate - comparisonData.stats2.completion_rate).toFixed(1)}%
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </>
               )}
             </DialogContent>
