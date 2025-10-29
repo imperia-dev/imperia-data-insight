@@ -1114,11 +1114,18 @@ export function Orders() {
                     <DialogHeader>
                       <div className="flex items-center justify-between">
                         <DialogTitle>Preview de Pedidos - Yellowling</DialogTitle>
-                        <img 
-                          src="/imperia-logo.png" 
-                          alt="Imperia Logo" 
-                          className="h-10 object-contain"
-                        />
+                        <div className="flex items-center gap-4">
+                          <img 
+                            src="/yellowling-logo.png" 
+                            alt="Yellowling Logo" 
+                            className="h-8 object-contain"
+                          />
+                          <img 
+                            src="/imperia-logo.png" 
+                            alt="Imperia Logo" 
+                            className="h-10 object-contain"
+                          />
+                        </div>
                       </div>
                       {previewOpenedAt && (
                         <p className="text-sm text-muted-foreground mt-2">
