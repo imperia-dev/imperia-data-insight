@@ -1187,12 +1187,20 @@ export function Orders() {
                                         {(order as any).urgency_tag === "1-dia-util" ? "🟨 1 dia útil" : "🟥 Mesmo dia"}
                                       </Badge>
                                     )}
-                                    {order.tags && order.tags.length > 0 && (
-                                      order.tags.map((tag: string) => (
-                                        <Badge key={tag} variant="secondary" className="text-xs">
-                                          {tag}
-                                        </Badge>
-                                      ))
+                                    {order.tags && order.tags.includes("Carimbos") && (
+                                      <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 text-xs">
+                                        Carimbos
+                                      </Badge>
+                                    )}
+                                    {order.tags && order.tags.includes("Assinaturas") && (
+                                      <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
+                                        Assinaturas
+                                      </Badge>
+                                    )}
+                                    {order.tags && order.tags.includes("Apostila") && (
+                                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 text-xs">
+                                        Apostila
+                                      </Badge>
                                     )}
                                     {!(order as any).urgency_tag && (!order.tags || order.tags.length === 0) && (
                                       <span className="text-muted-foreground text-sm">-</span>
