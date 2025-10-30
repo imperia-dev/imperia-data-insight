@@ -146,18 +146,18 @@ export const AnnouncementBanner = ({
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl md:text-4xl font-bold mb-4 text-foreground drop-shadow-sm">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 text-foreground drop-shadow-lg leading-tight">
             {announcement.title}
           </h1>
 
           {/* Content */}
-          <p className="text-lg text-foreground/90 whitespace-pre-wrap leading-relaxed mb-6 max-w-4xl font-medium">
+          <p className="text-xl md:text-2xl text-foreground whitespace-pre-wrap leading-relaxed mb-8 max-w-4xl font-semibold">
             {announcement.content}
           </p>
 
           {/* Footer */}
-          <div className="flex items-center gap-2 text-sm text-foreground/80 font-medium">
-            <Calendar className="h-4 w-4" />
+          <div className="flex items-center gap-3 text-base md:text-lg text-foreground font-bold bg-background/50 backdrop-blur-sm px-4 py-3 rounded-lg inline-flex">
+            <Calendar className="h-5 w-5" />
             <span>
               Publicado em {format(new Date(announcement.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </span>
