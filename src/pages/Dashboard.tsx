@@ -910,115 +910,199 @@ export default function Dashboard() {
     fetchTranslatorPerformance();
   }, [selectedPeriod, customDateRange, selectedCustomer]);
 
-  const handleExportPDF = () => {
-    // Prepare indicators data with better labels
-    // Parse the pendency percentages from the description
-    const pendencyLines = pendencyPercentage.split('\n');
-    
-    const indicators = [
-      { label: 'Atribuídos', value: attributedDocuments.toLocaleString('pt-BR') },
-      { label: 'Em Andamento', value: documentsInProgress.toLocaleString('pt-BR') },
-      { label: 'Entregues', value: documentsDelivered.toLocaleString('pt-BR') },
-      { label: 'Urgências', value: urgencies.toLocaleString('pt-BR'), percentage: urgencyPercentage },
-      { label: 'Pendências', value: pendencies.toLocaleString('pt-BR') },
-      { label: 'Taxa Real de Erros', value: pendencyLines[1] || '0.0% - Erros' },
-      { label: 'Pendências - Total', value: pendencyLines[2] || '0.0% - Total' },
-      { label: 'Atrasos', value: delays.toLocaleString('pt-BR'), percentage: delayPercentage },
-      { label: 'Média IA', value: averageScore.toFixed(2) },
-    ];
+  const handleExportPDF = async () => {
+    try {
+      // Get current month dates
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
+      // Buscar pendências do mês para calcular taxa de erro
+      const { data: pendenciesMonth } = await supabase
+        .from('pendencies')
+        .select('*')
+        .gte('created_at', firstDayOfMonth.toISOString())
+        .lte('created_at', lastDayOfMonth.toISOString());
 
-    // Prepare pendencies table data - include all pendencies in export
-    const pendenciesTableRows = pendenciesList.map(pendency => {
-      const errorTypeLabel = {
-        "nao_e_erro": "Não é erro",
-        "falta_de_dados": "Falta de dados",
-        "apostila": "Apostila",
-        "erro_em_data": "Erro em data",
-        "nome_separado": "Nome separado",
-        "texto_sem_traduzir": "Texto sem traduzir",
-        "nome_incorreto": "Nome incorreto",
-        "texto_duplicado": "Texto duplicado",
-        "erro_em_crc": "Erro em CRC",
-        "nome_traduzido": "Nome traduzido",
-        "falta_parte_documento": "Falta parte do documento",
-        "erro_digitacao": "Erro de digitação",
-        "sem_assinatura_tradutor": "Sem assinatura do tradutor",
-        "nome_junto": "Nome junto",
-        "traducao_incompleta": "Tradução incompleta",
-        "titulo_incorreto": "Título incorreto",
-        "trecho_sem_traduzir": "Trecho sem traduzir",
-        "matricula_incorreta": "Matrícula incorreta",
-        "espacamento": "Espaçamento",
-        "sem_cabecalho": "Sem cabeçalho",
-      }[pendency.error_type] || pendency.error_type;
+      const { data: ordersMonth } = await supabase
+        .from('orders')
+        .select('*')
+        .gte('attribution_date', firstDayOfMonth.toISOString())
+        .lte('attribution_date', lastDayOfMonth.toISOString());
 
-      return [
-        pendency.c4u_id,
-        errorTypeLabel,
-        pendency.description.substring(0, 50) + (pendency.description.length > 50 ? '...' : ''),
-        pendency.treatment || '-',
-        pendency.status === 'pending' ? 'Pendente' : pendency.status === 'resolved' ? 'Resolvido' : pendency.status,
-        format(new Date(pendency.created_at), "dd/MM/yyyy", { locale: ptBR })
+      const monthlyErrorRate = ordersMonth?.length ? 
+        ((pendenciesMonth?.length || 0) / ordersMonth.length * 100) : 0;
+
+      // Agrupar documentos por cliente
+      const documentsByCustomer = ordersMonth?.reduce((acc: any, order: any) => {
+        const customer = order.customer || 'Sem cliente';
+        if (!acc[customer]) {
+          acc[customer] = 0;
+        }
+        acc[customer] += order.document_count || 0;
+        return acc;
+      }, {}) || {};
+
+      // Buscar gastos com prestadores de serviço
+      const todayFormatted = today.toISOString().split('T')[0];
+
+      const { data: expensesToday } = await supabase
+        .from('expenses')
+        .select('amount_original')
+        .eq('tipo_despesa', 'prestador')
+        .eq('data_competencia', todayFormatted);
+
+      const { data: expensesMonth } = await supabase
+        .from('expenses')
+        .select('amount_original')
+        .eq('tipo_despesa', 'prestador')
+        .gte('data_competencia', firstDayOfMonth.toISOString().split('T')[0])
+        .lte('data_competencia', lastDayOfMonth.toISOString().split('T')[0]);
+
+      const providerCostsToday = expensesToday?.reduce((sum, e) => sum + (e.amount_original || 0), 0) || 0;
+      const providerCostsMonth = expensesMonth?.reduce((sum, e) => sum + (e.amount_original || 0), 0) || 0;
+
+      // Formatar valores monetários
+      const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        }).format(value);
+      };
+
+      // Prepare indicators data with better labels
+      // Parse the pendency percentages from the description
+      const pendencyLines = pendencyPercentage.split('\n');
+      
+      const indicators = [
+        { label: 'Atribuídos', value: attributedDocuments.toLocaleString('pt-BR') },
+        { label: 'Em Andamento', value: documentsInProgress.toLocaleString('pt-BR') },
+        { label: 'Entregues', value: documentsDelivered.toLocaleString('pt-BR') },
+        { label: 'Urgências', value: urgencies.toLocaleString('pt-BR'), percentage: urgencyPercentage },
+        { label: 'Pendências', value: pendencies.toLocaleString('pt-BR') },
+        { label: 'Taxa Real de Erros', value: pendencyLines[1] || '0.0% - Erros' },
+        { label: 'Pendências - Total', value: pendencyLines[2] || '0.0% - Total' },
+        { label: 'Atrasos', value: delays.toLocaleString('pt-BR'), percentage: delayPercentage },
+        { label: 'Média IA', value: averageScore.toFixed(2) },
+        { label: 'Taxa de Erro do Mês', value: `${monthlyErrorRate.toFixed(2)}%` },
+        { label: 'Gasto Prestadores (Hoje)', value: formatCurrency(providerCostsToday) },
+        { label: 'Gasto Prestadores (Mês)', value: formatCurrency(providerCostsMonth) },
       ];
-    });
 
-    // Prepare chart data for evolution
-    const evolutionChartData = lineChartData.map(item => ({
-      label: item.label,
-      value: item.documentos,
-      formattedValue: item.documentos.toString()
-    }));
+      // Prepare pendencies table data - include all pendencies in export
+      const pendenciesTableRows = pendenciesList.map(pendency => {
+        const errorTypeLabel = {
+          "nao_e_erro": "Não é erro",
+          "falta_de_dados": "Falta de dados",
+          "apostila": "Apostila",
+          "erro_em_data": "Erro em data",
+          "nome_separado": "Nome separado",
+          "texto_sem_traduzir": "Texto sem traduzir",
+          "nome_incorreto": "Nome incorreto",
+          "texto_duplicado": "Texto duplicado",
+          "erro_em_crc": "Erro em CRC",
+          "nome_traduzido": "Nome traduzido",
+          "falta_parte_documento": "Falta parte do documento",
+          "erro_digitacao": "Erro de digitação",
+          "sem_assinatura_tradutor": "Sem assinatura do tradutor",
+          "nome_junto": "Nome junto",
+          "traducao_incompleta": "Tradução incompleta",
+          "titulo_incorreto": "Título incorreto",
+          "trecho_sem_traduzir": "Trecho sem traduzir",
+          "matricula_incorreta": "Matrícula incorreta",
+          "espacamento": "Espaçamento",
+          "sem_cabecalho": "Sem cabeçalho",
+        }[pendency.error_type] || pendency.error_type;
 
-    // Get period text for the title
-    const { startDate, endDate } = getDateRange();
-    const periodText = selectedPeriod === 'custom' && customDateRange.from && customDateRange.to
-      ? `${format(customDateRange.from, "dd/MM/yyyy", { locale: ptBR })} - ${format(customDateRange.to, "dd/MM/yyyy", { locale: ptBR })}`
-      : selectedPeriod === 'day' ? format(new Date(), "dd/MM/yyyy", { locale: ptBR })
-      : selectedPeriod === 'week' ? `Últimos 7 dias`
-      : selectedPeriod === 'month' ? `Últimos 30 dias`
-      : selectedPeriod === 'quarter' ? `Últimos 3 meses`
-      : `Últimos 12 meses`;
-    
-    const customerText = selectedCustomer === 'all' ? 'Todos os Clientes' : selectedCustomer;
+        return [
+          pendency.c4u_id,
+          errorTypeLabel,
+          pendency.description.substring(0, 50) + (pendency.description.length > 50 ? '...' : ''),
+          pendency.treatment || '-',
+          pendency.status === 'pending' ? 'Pendente' : pendency.status === 'resolved' ? 'Resolvido' : pendency.status,
+          format(new Date(pendency.created_at), "dd/MM/yyyy", { locale: ptBR })
+        ];
+      });
 
-    const exportData = {
-      title: `Dashboard Operacional - ${customerText}`,
-      subtitle: periodText,
-      headers: ['C4U ID', 'Tipo de Erro', 'Descrição', 'Tratativa', 'Status', 'Data'],
-      rows: pendenciesTableRows,
-      totals: indicators,
-      charts: [
-        {
-          title: `Evolução ${selectedPeriod === 'day' ? 'Horária' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'Diária' : selectedPeriod === 'quarter' ? 'Semanal' : 'Mensal'}`,
-          type: 'bar' as const,
-          data: evolutionChartData.slice(0, 10), // Limit to 10 items for better readability in landscape
-        },
-        {
-          title: "Distribuição de Tipos de Erro",
-          type: 'bar' as const,
-          data: pendencyTypesData.slice(0, 8).map(item => ({
-            label: item.type,
-            value: item.count,
-            formattedValue: item.count.toString()
-          }))
-        }
-      ],
-      additionalTables: [
-        {
-          title: "Tipos de Erro - Estatísticas",
-          headers: ["Tipo de Erro", "Quantidade", "Percentual"],
-          rows: pendencyTypesData.map(item => [
-            item.type,
-            item.count.toString(),
-            pendencies > 0 ? `${((item.count / pendencies) * 100).toFixed(1)}%` : '0%'
-          ])
-        }
-      ]
-    };
+      // Prepare chart data for evolution
+      const evolutionChartData = lineChartData.map(item => ({
+        label: item.label,
+        value: item.documentos,
+        formattedValue: item.documentos.toString()
+      }));
 
-    // Force landscape orientation for better layout
-    exportToPDF(exportData, 'landscape');
+      // Get period text for the title
+      const { startDate, endDate } = getDateRange();
+      const periodText = selectedPeriod === 'custom' && customDateRange.from && customDateRange.to
+        ? `${format(customDateRange.from, "dd/MM/yyyy", { locale: ptBR })} - ${format(customDateRange.to, "dd/MM/yyyy", { locale: ptBR })}`
+        : selectedPeriod === 'day' ? format(new Date(), "dd/MM/yyyy", { locale: ptBR })
+        : selectedPeriod === 'week' ? `Últimos 7 dias`
+        : selectedPeriod === 'month' ? `Últimos 30 dias`
+        : selectedPeriod === 'quarter' ? `Últimos 3 meses`
+        : `Últimos 12 meses`;
+      
+      const customerText = selectedCustomer === 'all' ? 'Todos os Clientes' : selectedCustomer;
+
+      // Criar tabela adicional com documentos por cliente
+      const customerDocsRows = Object.entries(documentsByCustomer)
+        .map(([customer, count]) => [customer, count.toString()])
+        .sort((a, b) => parseInt(b[1]) - parseInt(a[1])); // Ordenar por quantidade
+
+      const exportData = {
+        title: `Dashboard Operacional - ${customerText}`,
+        subtitle: periodText,
+        headers: ['C4U ID', 'Tipo de Erro', 'Descrição', 'Tratativa', 'Status', 'Data'],
+        rows: pendenciesTableRows,
+        totals: indicators,
+        charts: [
+          {
+            title: `Evolução ${selectedPeriod === 'day' ? 'Horária' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'Diária' : selectedPeriod === 'quarter' ? 'Semanal' : 'Mensal'}`,
+            type: 'bar' as const,
+            data: evolutionChartData.slice(0, 10), // Limit to 10 items for better readability in landscape
+          },
+          {
+            title: "Distribuição de Tipos de Erro",
+            type: 'bar' as const,
+            data: pendencyTypesData.slice(0, 8).map(item => ({
+              label: item.type,
+              value: item.count,
+              formattedValue: item.count.toString()
+            }))
+          }
+        ],
+        additionalTables: [
+          {
+            title: "Documentos Atribuídos no Mês por Cliente",
+            headers: ["Cliente", "Quantidade de Documentos"],
+            rows: customerDocsRows
+          },
+          {
+            title: "Tipos de Erro - Estatísticas",
+            headers: ["Tipo de Erro", "Quantidade", "Percentual"],
+            rows: pendencyTypesData.map(item => [
+              item.type,
+              item.count.toString(),
+              pendencies > 0 ? `${((item.count / pendencies) * 100).toFixed(1)}%` : '0%'
+            ])
+          }
+        ]
+      };
+
+      // Force landscape orientation for better layout
+      exportToPDF(exportData, 'landscape');
+      
+      toast({
+        title: "PDF exportado com sucesso!",
+        description: "O relatório operacional foi gerado.",
+      });
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      toast({
+        title: "Erro ao exportar PDF",
+        description: "Ocorreu um erro ao gerar o relatório.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

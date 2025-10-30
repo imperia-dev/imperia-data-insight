@@ -23,22 +23,12 @@ interface ProtocolData {
   document_count?: number;
 }
 
-interface AdditionalData {
-  errorRate: number;
-  documentsByCustomer: Record<string, number>;
-  providerCostsToday: number;
-  providerCostsMonth: number;
-}
 
 export async function exportFinancialDashboard(
   diagramacaoData: { metrics: MetricsData; protocols: ProtocolData[] },
   revisaoData: { metrics: MetricsData; protocols: ProtocolData[] },
-  despesasData: { metrics: MetricsData; protocols: ProtocolData[] },
-  additionalData: AdditionalData
+  despesasData: { metrics: MetricsData; protocols: ProtocolData[] }
 ) {
-  console.log('=== EXPORT FUNCTION ===');
-  console.log('Additional Data recebido:', additionalData);
-  
   const doc = new jsPDF();
   let yPosition = 20;
 
@@ -53,72 +43,6 @@ export async function exportFinancialDashboard(
   doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, yPosition);
   yPosition += 15;
 
-  // ========== INDICADORES GERAIS ==========
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Indicadores Gerais do Mês', 14, yPosition);
-  yPosition += 10;
-
-  console.log('Renderizando indicadores gerais...');
-  console.log('Error Rate:', additionalData.errorRate);
-  console.log('Provider Costs Today:', additionalData.providerCostsToday);
-  console.log('Provider Costs Month:', additionalData.providerCostsMonth);
-
-  const generalMetrics = [
-    ['Taxa de Erro', `${additionalData.errorRate.toFixed(2)}%`],
-    ['Gasto com Prestadores (Hoje)', formatCurrency(additionalData.providerCostsToday)],
-    ['Gasto com Prestadores (Mês)', formatCurrency(additionalData.providerCostsMonth)]
-  ];
-
-  console.log('General Metrics:', generalMetrics);
-
-  autoTable(doc, {
-    startY: yPosition,
-    head: [['Indicador', 'Valor']],
-    body: generalMetrics,
-    theme: 'grid',
-    headStyles: { fillColor: [147, 51, 234], fontSize: 10, fontStyle: 'bold' },
-    styles: { fontSize: 9 },
-    margin: { left: 14, right: 14 }
-  });
-
-  yPosition = (doc as any).lastAutoTable.finalY + 10;
-
-  // Documentos por Cliente
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Documentos Atribuídos no Mês por Cliente', 14, yPosition);
-  yPosition += 5;
-
-  console.log('Documentos por cliente:', additionalData.documentsByCustomer);
-  const customerRows = Object.entries(additionalData.documentsByCustomer).map(([customer, count]) => [
-    customer,
-    count.toString()
-  ]);
-  console.log('Customer Rows:', customerRows);
-
-  if (customerRows.length > 0) {
-    autoTable(doc, {
-      startY: yPosition,
-      head: [['Cliente', 'Quantidade']],
-      body: customerRows,
-      theme: 'striped',
-      headStyles: { fillColor: [147, 51, 234], fontSize: 9, fontStyle: 'bold' },
-      styles: { fontSize: 8 },
-      margin: { left: 14, right: 14 },
-      columnStyles: {
-        1: { halign: 'center' }
-      }
-    });
-
-    yPosition = (doc as any).lastAutoTable.finalY + 15;
-  }
-
-  // Nova página se necessário
-  if (yPosition > 200) {
-    doc.addPage();
-    yPosition = 20;
-  }
 
   // ========== ABA DIAGRAMAÇÃO ==========
   doc.setFontSize(14);

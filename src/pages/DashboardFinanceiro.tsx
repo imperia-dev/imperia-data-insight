@@ -99,70 +99,7 @@ export default function DashboardFinanceiro() {
         protocols: despesasProtocols || []
       };
 
-      // Buscar pendências do mês para calcular taxa de erro
-      const { data: pendenciesMonth } = await supabase
-        .from('pendencies')
-        .select('*')
-        .gte('created_at', firstDayOfMonth.toISOString())
-        .lte('created_at', lastDayOfMonth.toISOString());
-
-      const { data: ordersMonth } = await supabase
-        .from('orders')
-        .select('*')
-        .gte('attribution_date', firstDayOfMonth.toISOString())
-        .lte('attribution_date', lastDayOfMonth.toISOString());
-
-      const errorRate = ordersMonth?.length ? 
-        ((pendenciesMonth?.length || 0) / ordersMonth.length * 100) : 0;
-
-      // Agrupar documentos por cliente
-      const documentsByCustomer = ordersMonth?.reduce((acc: any, order: any) => {
-        const customer = order.customer || 'Sem cliente';
-        if (!acc[customer]) {
-          acc[customer] = 0;
-        }
-        acc[customer]++;
-        return acc;
-      }, {}) || {};
-
-      // Buscar gastos com prestadores de serviço hoje
-      const todayFormatted = today.toISOString().split('T')[0];
-
-      const { data: expensesToday } = await supabase
-        .from('expenses')
-        .select('amount_original')
-        .eq('tipo_despesa', 'prestador')
-        .eq('data_competencia', todayFormatted);
-
-      const { data: expensesMonth } = await supabase
-        .from('expenses')
-        .select('amount_original')
-        .eq('tipo_despesa', 'prestador')
-        .gte('data_competencia', firstDayOfMonth.toISOString().split('T')[0])
-        .lte('data_competencia', lastDayOfMonth.toISOString().split('T')[0]);
-
-      const providerCostsToday = expensesToday?.reduce((sum, e) => sum + (e.amount_original || 0), 0) || 0;
-      const providerCostsMonth = expensesMonth?.reduce((sum, e) => sum + (e.amount_original || 0), 0) || 0;
-
-      const additionalData = {
-        errorRate,
-        documentsByCustomer,
-        providerCostsToday,
-        providerCostsMonth
-      };
-
-      // Debug logs
-      console.log('=== DADOS ADICIONAIS ===');
-      console.log('Taxa de erro:', errorRate);
-      console.log('Documentos por cliente:', documentsByCustomer);
-      console.log('Gastos prestadores hoje:', providerCostsToday);
-      console.log('Gastos prestadores mês:', providerCostsMonth);
-      console.log('Pendências do mês:', pendenciesMonth?.length);
-      console.log('Pedidos do mês:', ordersMonth?.length);
-      console.log('Despesas de hoje:', expensesToday?.length);
-      console.log('Despesas do mês:', expensesMonth?.length);
-
-      await exportFinancialDashboard(diagramacaoData, revisaoData, despesasData, additionalData);
+      await exportFinancialDashboard(diagramacaoData, revisaoData, despesasData);
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
       console.error('Error exporting PDF:', error);
