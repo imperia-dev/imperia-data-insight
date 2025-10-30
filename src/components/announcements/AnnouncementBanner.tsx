@@ -64,9 +64,9 @@ export const AnnouncementBanner = ({
   const Icon = config.icon;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-background to-muted/30 border border-border/50 shadow-lg animate-pulse">
-      {/* Decorative gradient overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} pointer-events-none animate-pulse`} />
+    <div className="relative w-full overflow-hidden rounded-2xl bg-card border-2 border-primary/20 shadow-xl animate-[pulse-scale_2s_ease-in-out_infinite]">
+      {/* Decorative gradient overlay - removed opacity for clarity */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient.replace('/20', '/40').replace('/10', '/20')} pointer-events-none`} />
       
       {/* Content */}
       <div className="relative z-10">
@@ -85,7 +85,7 @@ export const AnnouncementBanner = ({
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-full bg-background/50 backdrop-blur-sm ${config.iconColor}`}>
+              <div className={`p-3 rounded-full bg-background backdrop-blur-sm ${config.iconColor}`}>
                 <Icon className="h-8 w-8" />
               </div>
               <div>
@@ -107,14 +107,14 @@ export const AnnouncementBanner = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => onEdit(announcement)}
-                  className="hover:bg-background/50"
+                  className="hover:bg-background"
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
                 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="hover:bg-background/50">
+                    <Button variant="ghost" size="sm" className="hover:bg-background">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </AlertDialogTrigger>

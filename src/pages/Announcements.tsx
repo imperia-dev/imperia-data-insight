@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import confetti from "canvas-confetti";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,20 @@ const Announcements = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const isOwner = userRole === "owner";
+
+  // Confetti effect on page load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6']
+      });
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const { data: announcements, isLoading, refetch } = useQuery({
     queryKey: ["announcements", typeFilter],
