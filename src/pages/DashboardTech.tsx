@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { TechDemandCard } from "@/components/tech/TechDemandCard";
 import { TechDemandDialog } from "@/components/tech/TechDemandDialog";
+import { DroppableColumn } from "@/components/tech/DroppableColumn";
 import { 
   DndContext, 
   DragEndEvent, 
@@ -275,14 +276,10 @@ export default function DashboardTech() {
                       </div>
 
                       {/* Column Content - Droppable area */}
-                      <SortableContext
-                        items={[status, ...columnDemands.map(d => d.id)]}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div 
-                          id={status}
-                          className="flex flex-col gap-3 flex-1 min-h-[400px]"
-                          style={{ position: 'relative' }}
+                      <DroppableColumn id={status}>
+                        <SortableContext
+                          items={columnDemands.map(d => d.id)}
+                          strategy={verticalListSortingStrategy}
                         >
                           {columnDemands.map((demand) => (
                             <TechDemandCard
@@ -295,11 +292,11 @@ export default function DashboardTech() {
                           ))}
                           {columnDemands.length === 0 && (
                             <div className="text-center text-muted-foreground text-sm py-8">
-                              Nenhuma demanda
+                              Arraste cards aqui
                             </div>
                           )}
-                        </div>
-                      </SortableContext>
+                        </SortableContext>
+                      </DroppableColumn>
                     </div>
                   );
                 })}
