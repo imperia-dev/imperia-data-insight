@@ -1,9 +1,11 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Edit, Trash2, AlertCircle, AlertTriangle, Clock, CheckCircle } from "lucide-react";
+import { ExternalLink, Edit, Trash2, AlertCircle, AlertTriangle, Clock, CheckCircle, GripVertical } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface TechDemand {
   id: string;
@@ -38,17 +40,45 @@ export const TechDemandCard = ({ demand, onEdit, onDelete, canManage }: TechDema
   const priorityInfo = priorityConfig[demand.priority as keyof typeof priorityConfig];
   const PriorityIcon = priorityInfo.icon;
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: demand.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
-    <Card className="p-4 hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing">
+    <Card 
+      ref={setNodeRef}
+      style={style}
+      className="p-4 hover:shadow-md transition-shadow"
+    >
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <Badge variant="outline" className="text-xs">
-          {demand.company}
-        </Badge>
-        <Badge className={`text-xs ${priorityInfo.color} flex items-center gap-1`}>
-          <PriorityIcon className="h-3 w-3" />
-          {priorityInfo.label}
-        </Badge>
+      <div className="flex items-start gap-2 mb-3">
+        <div 
+          {...attributes} 
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing mt-1"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="flex-1 flex items-start justify-between gap-2">
+          <Badge variant="outline" className="text-xs">
+            {demand.company}
+          </Badge>
+          <Badge className={`text-xs ${priorityInfo.color} flex items-center gap-1`}>
+            <PriorityIcon className="h-3 w-3" />
+            {priorityInfo.label}
+          </Badge>
+        </div>
       </div>
 
       {/* Title */}

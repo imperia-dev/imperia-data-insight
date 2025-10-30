@@ -10,7 +10,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { TechDemandCard } from "@/components/tech/TechDemandCard";
 import { TechDemandDialog } from "@/components/tech/TechDemandDialog";
-import { DndContext, DragEndEvent, DragOverlay, PointerSensor, useSensor, useSensors, DragStartEvent } from "@dnd-kit/core";
+import { 
+  DndContext, 
+  DragEndEvent, 
+  DragOverlay, 
+  PointerSensor, 
+  useSensor, 
+  useSensors, 
+  DragStartEvent,
+  DragOverEvent,
+  closestCorners
+} from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -149,6 +159,32 @@ export default function DashboardTech() {
     setActiveDemand(demand || null);
   };
 
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Check if we're dragging over a column (status)
+    if (Object.keys(statusConfig).includes(overId)) {
+      return;
+    }
+
+    // Find the containers (columns) of both active and over items
+    const activeContainer = Object.keys(demandsByStatus).find(key =>
+      demandsByStatus[key as keyof typeof demandsByStatus].some(d => d.id === activeId)
+    );
+    const overContainer = Object.keys(demandsByStatus).find(key =>
+      demandsByStatus[key as keyof typeof demandsByStatus].some(d => d.id === overId)
+    );
+
+    if (!activeContainer || !overContainer || activeContainer === overContainer) {
+      return;
+    }
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDemand(null);
@@ -156,11 +192,24 @@ export default function DashboardTech() {
     if (!over) return;
 
     const demandId = active.id as string;
-    const newStatus = over.id as string;
+    const overId = over.id as string;
 
-    const demand = demands.find(d => d.id === demandId);
-    if (demand && demand.status !== newStatus) {
-      updateStatusMutation.mutate({ id: demandId, status: newStatus });
+    // Check if dropped on a column
+    if (Object.keys(statusConfig).includes(overId)) {
+      const demand = demands.find(d => d.id === demandId);
+      if (demand && demand.status !== overId) {
+        updateStatusMutation.mutate({ id: demandId, status: overId });
+      }
+      return;
+    }
+
+    // Check if dropped on another card
+    const overDemand = demands.find(d => d.id === overId);
+    if (overDemand) {
+      const demand = demands.find(d => d.id === demandId);
+      if (demand && demand.status !== overDemand.status) {
+        updateStatusMutation.mutate({ id: demandId, status: overDemand.status });
+      }
     }
   };
 
@@ -229,7 +278,9 @@ export default function DashboardTech() {
             <DndContext
               sensors={sensors}
               onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
+              collisionDetection={closestCorners}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Object.entries(statusConfig).map(([status, config]) => {
@@ -238,7 +289,6 @@ export default function DashboardTech() {
                   return (
                     <div
                       key={status}
-                      id={status}
                       className="flex flex-col gap-3 bg-muted/30 p-4 rounded-lg min-h-[500px]"
                     >
                       {/* Column Header */}
@@ -250,21 +300,24 @@ export default function DashboardTech() {
                         <Badge variant="secondary">{columnDemands.length}</Badge>
                       </div>
 
-                      {/* Column Content */}
+                      {/* Column Content - Droppable area */}
                       <SortableContext
                         items={columnDemands.map(d => d.id)}
                         strategy={verticalListSortingStrategy}
+                        id={status}
                       >
-                        <div className="flex flex-col gap-3 flex-1">
+                        <div 
+                          id={status}
+                          className="flex flex-col gap-3 flex-1 min-h-[400px]"
+                        >
                           {columnDemands.map((demand) => (
-                            <div key={demand.id} id={demand.id}>
-                              <TechDemandCard
-                                demand={demand}
-                                onEdit={handleEdit}
-                                onDelete={handleDeleteClick}
-                                canManage={canManage}
-                              />
-                            </div>
+                            <TechDemandCard
+                              key={demand.id}
+                              demand={demand}
+                              onEdit={handleEdit}
+                              onDelete={handleDeleteClick}
+                              canManage={canManage}
+                            />
                           ))}
                           {columnDemands.length === 0 && (
                             <div className="text-center text-muted-foreground text-sm py-8">
