@@ -17,9 +17,7 @@ import {
   PointerSensor, 
   useSensor, 
   useSensors, 
-  DragStartEvent,
-  DragOverEvent,
-  closestCorners
+  DragStartEvent
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Card } from "@/components/ui/card";
@@ -159,32 +157,6 @@ export default function DashboardTech() {
     setActiveDemand(demand || null);
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    // Check if we're dragging over a column (status)
-    if (Object.keys(statusConfig).includes(overId)) {
-      return;
-    }
-
-    // Find the containers (columns) of both active and over items
-    const activeContainer = Object.keys(demandsByStatus).find(key =>
-      demandsByStatus[key as keyof typeof demandsByStatus].some(d => d.id === activeId)
-    );
-    const overContainer = Object.keys(demandsByStatus).find(key =>
-      demandsByStatus[key as keyof typeof demandsByStatus].some(d => d.id === overId)
-    );
-
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
-      return;
-    }
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDemand(null);
@@ -194,21 +166,25 @@ export default function DashboardTech() {
     const demandId = active.id as string;
     const overId = over.id as string;
 
-    // Check if dropped on a column
+    // Find which status the card was dropped on
+    let newStatus: string | null = null;
+
+    // Check if dropped directly on a column (droppable area)
     if (Object.keys(statusConfig).includes(overId)) {
-      const demand = demands.find(d => d.id === demandId);
-      if (demand && demand.status !== overId) {
-        updateStatusMutation.mutate({ id: demandId, status: overId });
+      newStatus = overId;
+    } else {
+      // Check if dropped on another card
+      const overDemand = demands.find(d => d.id === overId);
+      if (overDemand) {
+        newStatus = overDemand.status;
       }
-      return;
     }
 
-    // Check if dropped on another card
-    const overDemand = demands.find(d => d.id === overId);
-    if (overDemand) {
+    // Update status if changed
+    if (newStatus) {
       const demand = demands.find(d => d.id === demandId);
-      if (demand && demand.status !== overDemand.status) {
-        updateStatusMutation.mutate({ id: demandId, status: overDemand.status });
+      if (demand && demand.status !== newStatus) {
+        updateStatusMutation.mutate({ id: demandId, status: newStatus });
       }
     }
   };
@@ -278,9 +254,7 @@ export default function DashboardTech() {
             <DndContext
               sensors={sensors}
               onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
-              collisionDetection={closestCorners}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Object.entries(statusConfig).map(([status, config]) => {
@@ -302,13 +276,13 @@ export default function DashboardTech() {
 
                       {/* Column Content - Droppable area */}
                       <SortableContext
-                        items={columnDemands.map(d => d.id)}
+                        items={[status, ...columnDemands.map(d => d.id)]}
                         strategy={verticalListSortingStrategy}
-                        id={status}
                       >
                         <div 
                           id={status}
                           className="flex flex-col gap-3 flex-1 min-h-[400px]"
+                          style={{ position: 'relative' }}
                         >
                           {columnDemands.map((demand) => (
                             <TechDemandCard
