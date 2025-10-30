@@ -164,7 +164,9 @@ export default function Financial() {
           delivered_at,
           created_at,
           assigned_at,
-          status_order
+          status_order,
+          drive_value,
+          diagramming_value
         `)
         .in('status_order', ['delivered', 'in_progress'])
         .not('assigned_to', 'is', null);
@@ -231,9 +233,7 @@ export default function Financial() {
       
       console.log('Productivity - User names map:', Array.from(userNamesMap.entries()));
 
-      // Calculate payments based on R$ 1.30 per document
-      const PAYMENT_PER_DOCUMENT = 1.30;
-      
+      // Calculate payments using actual order values
       const dailyPaymentsMap = new Map<string, PaymentData>();
       const accumulatedMap = new Map<string, AccumulatedPayment>();
 
@@ -255,7 +255,10 @@ export default function Financial() {
         const date = new Date(dateToUse).toISOString().split('T')[0];
         const userId = order.assigned_to;
         const userName = userNamesMap.get(userId) || 'Unknown';
-        const amount = (order.document_count || 0) * PAYMENT_PER_DOCUMENT;
+        // Use actual order values instead of calculating by document count
+        const driveValue = order.drive_value || 0;
+        const diagrammingValue = order.diagramming_value || 0;
+        const amount = driveValue + diagrammingValue;
         
         // Daily payments aggregation
         const dailyKey = `${userId}-${date}`;
@@ -354,33 +357,26 @@ export default function Financial() {
 
       // Prepare data for PDF export
       // Daily payments will be the main table now
-      const dailyHeaders = ['Data', 'Prestador', 'Nº Pedido(s)', 'Documentos', 'Valor'];
+      const dailyHeaders = ['Data', 'Prestador', 'Nº Pedido(s)', 'Valor'];
       const dailyRows = dailyPayments
         .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
         .map(payment => {
-          const documents = Math.round(payment.amount / 1.30);
           const orderNumbersText = payment.order_numbers.join(', ');
           return [
             format(new Date(payment.date), 'dd/MM/yyyy'),
             payment.user_name,
             orderNumbersText,
-            documents.toString(),
             formatCurrency(payment.amount)
           ];
         });
 
       // Calculate daily totals
-      const dailyTotalDocuments = dailyRows.reduce((sum, row) => {
-        return sum + parseInt(row[3]);
-      }, 0);
-      
       const dailyTotalAmount = dailyRows.reduce((sum, row) => {
-        const amount = parseFloat(row[4].replace('R$', '').replace('.', '').replace(',', '.').trim());
+        const amount = parseFloat(row[3].replace('R$', '').replace('.', '').replace(',', '.').trim());
         return sum + amount;
       }, 0);
 
       const dailyTotals = [
-        { label: 'Total de Documentos:', value: dailyTotalDocuments.toString() },
         { label: 'Valor Total:', value: formatCurrency(dailyTotalAmount) }
       ];
 
