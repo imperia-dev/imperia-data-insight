@@ -271,7 +271,7 @@ export default function DashboardTech() {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="overflow-x-auto pb-4 relative z-10">
+              <div className="overflow-x-auto pb-4 relative z-0 isolate">
                 <div className="flex gap-4 min-w-max">
                   {Object.entries(statusConfig).map(([status, config]) => {
                     const columnDemands = demandsByStatus[status as keyof typeof demandsByStatus];
