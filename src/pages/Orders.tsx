@@ -172,6 +172,8 @@ export function Orders() {
     totalDocuments: "",
     driveDocuments: "",
     urgencyTag: null as "1-dia-util" | "mesmo-dia" | null,
+    drive_value: "",
+    diagramming_value: "",
   });
 
   // Fetch user profile to get role
@@ -749,6 +751,8 @@ export function Orders() {
       totalDocuments: order.document_count?.toString() || "",
       driveDocuments: order.drive_document_count?.toString() || "",
       urgencyTag: (order as any).urgency_tag || null,
+      drive_value: order.drive_value?.toString() || "",
+      diagramming_value: order.diagramming_value?.toString() || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -804,6 +808,14 @@ export function Orders() {
     if (editFormData.delivered_at) {
       updates.delivered_at = new Date(editFormData.delivered_at).toISOString();
       updates.status_order = "delivered";
+    }
+    
+    // Allow manual override of drive_value and diagramming_value
+    if (editFormData.drive_value) {
+      updates.drive_value = parseFloat(editFormData.drive_value);
+    }
+    if (editFormData.diagramming_value) {
+      updates.diagramming_value = parseFloat(editFormData.diagramming_value);
     }
     
     updateOrderMutation.mutate({
@@ -2519,6 +2531,73 @@ export function Orders() {
                   <p className="text-xs text-muted-foreground">
                     Preencher a data de entrega marcará o pedido como entregue
                   </p>
+                </div>
+
+                {/* Manual Value Override Section for Old Orders */}
+                <div className="border-t pt-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                    <Label className="text-base font-semibold">Edição Manual de Valores (Pedidos Antigos)</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use esta seção para ajustar manualmente os valores de pedidos antigos que não tinham o cálculo correto de Drive e Diagramação.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-drive-value">Valor Drive (R$)</Label>
+                      <Input
+                        id="edit-drive-value"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={editFormData.drive_value}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, drive_value: e.target.value })
+                        }
+                        placeholder="0.00"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe vazio para manter o valor atual
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-diagramming-value">Valor Diagramação (R$)</Label>
+                      <Input
+                        id="edit-diagramming-value"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={editFormData.diagramming_value}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, diagramming_value: e.target.value })
+                        }
+                        placeholder="0.00"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe vazio para manter o valor atual
+                      </p>
+                    </div>
+                  </div>
+
+                  {(editFormData.drive_value || editFormData.diagramming_value) && (
+                    <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded border border-green-200 dark:border-green-800">
+                      <div className="text-sm font-medium text-green-800 dark:text-green-200">
+                        💰 Novo Valor Total Calculado:
+                      </div>
+                      <div className="text-lg font-bold text-green-700 dark:text-green-300 mt-1">
+                        R$ {(
+                          (parseFloat(editFormData.drive_value) || 0) + 
+                          (parseFloat(editFormData.diagramming_value) || 0)
+                        ).toFixed(2)}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Drive: R$ {(parseFloat(editFormData.drive_value) || 0).toFixed(2)} + 
+                        Diagramação: R$ {(parseFloat(editFormData.diagramming_value) || 0).toFixed(2)}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <DialogFooter>
