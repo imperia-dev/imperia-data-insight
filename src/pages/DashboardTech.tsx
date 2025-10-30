@@ -271,50 +271,52 @@ export default function DashboardTech() {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                {Object.entries(statusConfig).map(([status, config]) => {
-                  const columnDemands = demandsByStatus[status as keyof typeof demandsByStatus];
-                  
-                  return (
-                    <div
-                      key={status}
-                      className="flex flex-col gap-3 bg-muted/30 p-4 rounded-lg min-h-[500px]"
-                    >
-                      {/* Column Header */}
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${config.color}`} />
-                          <h3 className="font-semibold">{config.label}</h3>
+              <div className="overflow-x-auto pb-4">
+                <div className="flex gap-4 min-w-max">
+                  {Object.entries(statusConfig).map(([status, config]) => {
+                    const columnDemands = demandsByStatus[status as keyof typeof demandsByStatus];
+                    
+                    return (
+                      <div
+                        key={status}
+                        className="flex flex-col gap-3 bg-muted/30 p-4 rounded-lg min-h-[500px] w-[350px]"
+                      >
+                        {/* Column Header */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${config.color}`} />
+                            <h3 className="font-semibold">{config.label}</h3>
+                          </div>
+                          <Badge variant="secondary">{columnDemands.length}</Badge>
                         </div>
-                        <Badge variant="secondary">{columnDemands.length}</Badge>
-                      </div>
 
-                      {/* Column Content - Droppable area */}
-                      <DroppableColumn id={status}>
-                        <SortableContext
-                          items={columnDemands.map(d => d.id)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          {columnDemands.map((demand) => (
-                            <TechDemandCard
-                              key={demand.id}
-                              demand={demand}
-                              onEdit={handleEdit}
-                              onDelete={handleDeleteClick}
-                              onView={handleView}
-                              canManage={canManage}
-                            />
-                          ))}
-                          {columnDemands.length === 0 && (
-                            <div className="text-center text-muted-foreground text-sm py-8">
-                              Arraste cards aqui
-                            </div>
-                          )}
-                        </SortableContext>
-                      </DroppableColumn>
-                    </div>
-                  );
-                })}
+                        {/* Column Content - Droppable area */}
+                        <DroppableColumn id={status}>
+                          <SortableContext
+                            items={columnDemands.map(d => d.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {columnDemands.map((demand) => (
+                              <TechDemandCard
+                                key={demand.id}
+                                demand={demand}
+                                onEdit={handleEdit}
+                                onDelete={handleDeleteClick}
+                                onView={handleView}
+                                canManage={canManage}
+                              />
+                            ))}
+                            {columnDemands.length === 0 && (
+                              <div className="text-center text-muted-foreground text-sm py-8">
+                                Arraste cards aqui
+                              </div>
+                            )}
+                          </SortableContext>
+                        </DroppableColumn>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <DragOverlay>
