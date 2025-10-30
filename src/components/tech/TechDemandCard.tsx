@@ -75,24 +75,21 @@ export const TechDemandCard = ({ demand, onEdit, onDelete, onView, canManage }: 
         </div>
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <Badge variant="outline" className="text-xs">
-              {demand.company}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={demand.type === 'bug' ? 'destructive' : 'default'} className="text-xs flex items-center gap-1">
+                {demand.type === 'bug' ? <Bug className="h-3 w-3" /> : <Lightbulb className="h-3 w-3" />}
+                {demand.type === 'bug' ? 'Bug' : 'Melhoria'}
+              </Badge>
+              {demand.jira_id && (
+                <Badge variant="secondary" className="text-xs">
+                  {demand.jira_id}
+                </Badge>
+              )}
+            </div>
             <Badge className={`text-xs ${priorityInfo.color} flex items-center gap-1`}>
               <PriorityIcon className="h-3 w-3" />
               {priorityInfo.label}
             </Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={demand.type === 'bug' ? 'destructive' : 'default'} className="text-xs flex items-center gap-1">
-              {demand.type === 'bug' ? <Bug className="h-3 w-3" /> : <Lightbulb className="h-3 w-3" />}
-              {demand.type === 'bug' ? 'Bug' : 'Melhoria'}
-            </Badge>
-            {demand.jira_id && (
-              <Badge variant="secondary" className="text-xs">
-                {demand.jira_id}
-              </Badge>
-            )}
           </div>
         </div>
       </div>
