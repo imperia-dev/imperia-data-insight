@@ -26,6 +26,7 @@ interface PaymentData {
   user_name: string;
   date: string;
   amount: number;
+  order_ids: string[];
 }
 
 interface AccumulatedPayment {
@@ -260,12 +261,14 @@ export default function Financial() {
         if (dailyPaymentsMap.has(dailyKey)) {
           const existing = dailyPaymentsMap.get(dailyKey)!;
           existing.amount += amount;
+          existing.order_ids.push(order.id);
         } else {
           dailyPaymentsMap.set(dailyKey, {
             user_id: userId,
             user_name: userName,
             date: date,
-            amount: amount
+            amount: amount,
+            order_ids: [order.id]
           });
         }
         
@@ -350,14 +353,16 @@ export default function Financial() {
 
       // Prepare data for PDF export
       // Daily payments will be the main table now
-      const dailyHeaders = ['Data', 'Prestador', 'Documentos', 'Valor'];
+      const dailyHeaders = ['Data', 'Prestador', 'ID(s) Pedido', 'Documentos', 'Valor'];
       const dailyRows = dailyPayments
         .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
         .map(payment => {
           const documents = Math.round(payment.amount / 1.30);
+          const orderIdsText = payment.order_ids.map(id => id.substring(0, 8)).join(', ');
           return [
             format(new Date(payment.date), 'dd/MM/yyyy'),
             payment.user_name,
+            orderIdsText,
             documents.toString(),
             formatCurrency(payment.amount)
           ];
@@ -365,11 +370,11 @@ export default function Financial() {
 
       // Calculate daily totals
       const dailyTotalDocuments = dailyRows.reduce((sum, row) => {
-        return sum + parseInt(row[2]);
+        return sum + parseInt(row[3]);
       }, 0);
       
       const dailyTotalAmount = dailyRows.reduce((sum, row) => {
-        const amount = parseFloat(row[3].replace('R$', '').replace('.', '').replace(',', '.').trim());
+        const amount = parseFloat(row[4].replace('R$', '').replace('.', '').replace(',', '.').trim());
         return sum + amount;
       }, 0);
 
@@ -744,6 +749,7 @@ export default function Financial() {
                       <TableRow>
                         <TableHead>Data</TableHead>
                         <TableHead>Prestador</TableHead>
+                        <TableHead>ID(s) do Pedido</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -754,6 +760,15 @@ export default function Financial() {
                             {payment.date ? format(new Date(payment.date), "dd/MM/yyyy", { locale: ptBR }) : '-'}
                           </TableCell>
                           <TableCell>{payment.user_name}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {payment.order_ids.map((orderId, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {orderId.substring(0, 8)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right font-medium">
                             {formatCurrency(payment.amount)}
                           </TableCell>
