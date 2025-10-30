@@ -50,9 +50,11 @@ interface TechDemand {
 }
 
 const statusConfig = {
-  backlog: { label: "Backlog", color: "bg-gray-500" },
+  novo: { label: "Novo", color: "bg-slate-500" },
+  assigned: { label: "Direcionado", color: "bg-indigo-500" },
   in_progress: { label: "Em Progresso", color: "bg-blue-500" },
-  review: { label: "Em Revisão", color: "bg-yellow-500" },
+  validation: { label: "Validação", color: "bg-yellow-500" },
+  fix: { label: "Corrigir", color: "bg-orange-500" },
   done: { label: "Concluído", color: "bg-green-500" },
 };
 
@@ -214,9 +216,11 @@ export default function DashboardTech() {
   const canManage = ["owner", "master", "admin"].includes(userRole);
 
   const demandsByStatus = {
-    backlog: demands.filter(d => d.status === "backlog"),
+    novo: demands.filter(d => d.status === "novo"),
+    assigned: demands.filter(d => d.status === "assigned"),
     in_progress: demands.filter(d => d.status === "in_progress"),
-    review: demands.filter(d => d.status === "review"),
+    validation: demands.filter(d => d.status === "validation"),
+    fix: demands.filter(d => d.status === "fix"),
     done: demands.filter(d => d.status === "done"),
   };
 
@@ -257,7 +261,7 @@ export default function DashboardTech() {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 {Object.entries(statusConfig).map(([status, config]) => {
                   const columnDemands = demandsByStatus[status as keyof typeof demandsByStatus];
                   
