@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { TechDemandCard } from "@/components/tech/TechDemandCard";
 import { TechDemandDialog } from "@/components/tech/TechDemandDialog";
+import { TechDemandViewDialog } from "@/components/tech/TechDemandViewDialog";
 import { DroppableColumn } from "@/components/tech/DroppableColumn";
 import { 
   DndContext, 
@@ -70,6 +71,8 @@ export default function DashboardTech() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [demandToDelete, setDemandToDelete] = useState<string | null>(null);
   const [activeDemand, setActiveDemand] = useState<TechDemand | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewDemand, setViewDemand] = useState<TechDemand | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -213,6 +216,11 @@ export default function DashboardTech() {
     }
   };
 
+  const handleView = (demand: TechDemand) => {
+    setViewDemand(demand);
+    setViewDialogOpen(true);
+  };
+
   const canManage = ["owner", "master", "admin"].includes(userRole);
 
   const demandsByStatus = {
@@ -291,6 +299,7 @@ export default function DashboardTech() {
                               demand={demand}
                               onEdit={handleEdit}
                               onDelete={handleDeleteClick}
+                              onView={handleView}
                               canManage={canManage}
                             />
                           ))}
@@ -313,6 +322,7 @@ export default function DashboardTech() {
                       demand={activeDemand}
                       onEdit={() => {}}
                       onDelete={() => {}}
+                      onView={() => {}}
                       canManage={false}
                     />
                   </Card>
@@ -329,6 +339,12 @@ export default function DashboardTech() {
         onOpenChange={setDialogOpen}
         demand={selectedDemand}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["tech-demands"] })}
+      />
+
+      <TechDemandViewDialog
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        demand={viewDemand}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

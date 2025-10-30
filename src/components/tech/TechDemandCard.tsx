@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Edit, Trash2, AlertCircle, AlertTriangle, Clock, CheckCircle, GripVertical } from "lucide-react";
+import { ExternalLink, Edit, Trash2, AlertCircle, AlertTriangle, Clock, CheckCircle, GripVertical, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSortable } from "@dnd-kit/sortable";
@@ -26,6 +26,7 @@ interface TechDemandCardProps {
   demand: TechDemand;
   onEdit: (demand: TechDemand) => void;
   onDelete: (id: string) => void;
+  onView: (demand: TechDemand) => void;
   canManage: boolean;
 }
 
@@ -36,7 +37,7 @@ const priorityConfig = {
   urgent: { label: "Urgente", color: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300", icon: AlertTriangle },
 };
 
-export const TechDemandCard = ({ demand, onEdit, onDelete, canManage }: TechDemandCardProps) => {
+export const TechDemandCard = ({ demand, onEdit, onDelete, onView, canManage }: TechDemandCardProps) => {
   const priorityInfo = priorityConfig[demand.priority as keyof typeof priorityConfig];
   const PriorityIcon = priorityInfo.icon;
 
@@ -114,6 +115,14 @@ export const TechDemandCard = ({ demand, onEdit, onDelete, canManage }: TechDema
           {format(new Date(demand.created_at), "dd/MM/yy", { locale: ptBR })}
         </span>
         <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onView(demand)}
+          >
+            <Eye className="h-3 w-3" />
+          </Button>
           {demand.url && (
             <Button
               variant="ghost"
