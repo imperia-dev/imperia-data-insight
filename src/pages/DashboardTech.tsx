@@ -347,6 +347,9 @@ export default function DashboardTech() {
         open={viewDialogOpen}
         onOpenChange={setViewDialogOpen}
         demand={viewDemand}
+        onEdit={handleEdit}
+        onDelete={handleDeleteClick}
+        canManage={canManage}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

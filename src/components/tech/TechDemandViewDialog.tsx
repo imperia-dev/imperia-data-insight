@@ -1,6 +1,6 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, AlertTriangle, Clock, ExternalLink, Bug, Lightbulb } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock, ExternalLink, Bug, Lightbulb, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,9 @@ interface TechDemandViewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   demand: TechDemand | null;
+  onEdit: (demand: TechDemand) => void;
+  onDelete: (id: string) => void;
+  canManage: boolean;
 }
 
 const priorityConfig = {
@@ -35,7 +38,7 @@ const priorityConfig = {
   urgent: { label: "Urgente", color: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300", icon: AlertTriangle },
 };
 
-export const TechDemandViewDialog = ({ open, onOpenChange, demand }: TechDemandViewDialogProps) => {
+export const TechDemandViewDialog = ({ open, onOpenChange, demand, onEdit, onDelete, canManage }: TechDemandViewDialogProps) => {
   if (!demand) return null;
 
   const priorityInfo = priorityConfig[demand.priority as keyof typeof priorityConfig];
@@ -115,12 +118,7 @@ export const TechDemandViewDialog = ({ open, onOpenChange, demand }: TechDemandV
           {demand.url && (
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-1">Link</h3>
-              <Button variant="outline" size="sm" asChild>
-                <a href={demand.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  <ExternalLink className="h-4 w-4" />
-                  Abrir documento original
-                </a>
-              </Button>
+              <p className="text-sm text-primary">{demand.url}</p>
             </div>
           )}
 
@@ -132,6 +130,45 @@ export const TechDemandViewDialog = ({ open, onOpenChange, demand }: TechDemandV
             </p>
           </div>
         </div>
+
+        <DialogFooter className="flex items-center justify-between sm:justify-between">
+          <div className="flex gap-2">
+            {demand.url && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={demand.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir documento
+                </a>
+              </Button>
+            )}
+          </div>
+          {canManage && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onEdit(demand);
+                  onOpenChange(false);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  onDelete(demand.id);
+                  onOpenChange(false);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </Button>
+            </div>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

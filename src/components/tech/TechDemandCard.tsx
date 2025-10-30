@@ -126,48 +126,14 @@ export const TechDemandCard = ({ demand, onEdit, onDelete, onView, canManage }: 
         <span className="text-xs text-muted-foreground">
           {format(new Date(demand.created_at), "dd/MM/yy", { locale: ptBR })}
         </span>
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => onView(demand)}
-          >
-            <Eye className="h-3 w-3" />
-          </Button>
-          {demand.url && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              asChild
-            >
-              <a href={demand.url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-          )}
-          {canManage && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => onEdit(demand)}
-              >
-                <Edit className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => onDelete(demand.id)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </>
-          )}
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => onView(demand)}
+        >
+          <Eye className="h-3 w-3" />
+        </Button>
       </div>
     </Card>
   );
