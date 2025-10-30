@@ -2,12 +2,17 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter } from "lucide-react";
+import { Plus, Filter, Lightbulb } from "lucide-react";
 import { AnnouncementCard } from "@/components/announcements/AnnouncementCard";
 import { AnnouncementDialog } from "@/components/announcements/AnnouncementDialog";
+import { SuggestionsDialog } from "@/components/announcements/SuggestionsDialog";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePageLayout } from "@/hooks/usePageLayout";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
 import {
   Select,
   SelectContent,
@@ -35,9 +40,12 @@ export interface Announcement {
 
 const Announcements = () => {
   const location = useLocation();
+  const { user } = useAuth();
   const { userRole } = useRoleAccess(location.pathname);
+  const { mainContainerClass } = usePageLayout();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [suggestionsDialogOpen, setSuggestionsDialogOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
@@ -119,37 +127,45 @@ const Announcements = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Avisos</h1>
-          <p className="text-muted-foreground mt-1">
-            Informações e atualizações importantes para a equipe
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[180px]">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filtrar por tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
-              <SelectItem value="info">Informativo</SelectItem>
-              <SelectItem value="warning">Atenção</SelectItem>
-              <SelectItem value="success">Sucesso</SelectItem>
-              <SelectItem value="error">Urgente</SelectItem>
-            </SelectContent>
-          </Select>
-          {isOwner && (
-            <Button onClick={handleCreateNew}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Aviso
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="min-h-screen flex w-full">
+      <Sidebar userRole={userRole} />
+      <div className={mainContainerClass}>
+        <Header userName={user?.user_metadata?.full_name || "Usuário"} userRole={userRole} />
+        <div className="container mx-auto p-6 space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Avisos</h1>
+              <p className="text-muted-foreground mt-1">
+                Informações e atualizações importantes para a equipe
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filtrar por tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="info">Informativo</SelectItem>
+                  <SelectItem value="warning">Atenção</SelectItem>
+                  <SelectItem value="success">Sucesso</SelectItem>
+                  <SelectItem value="error">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={() => setSuggestionsDialogOpen(true)}>
+                <Lightbulb className="h-4 w-4 mr-2" />
+                Sugestões
+              </Button>
+              {isOwner && (
+                <Button onClick={handleCreateNew}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Aviso
+                </Button>
+              )}
+            </div>
+          </div>
 
       {/* Announcements Grid */}
       {isLoading ? (
@@ -179,14 +195,22 @@ const Announcements = () => {
         </div>
       )}
 
-      {/* Dialog */}
-      {isOwner && (
-        <AnnouncementDialog
-          open={dialogOpen}
-          onOpenChange={handleDialogClose}
-          announcement={selectedAnnouncement}
-        />
-      )}
+          {/* Dialog */}
+          {isOwner && (
+            <AnnouncementDialog
+              open={dialogOpen}
+              onOpenChange={handleDialogClose}
+              announcement={selectedAnnouncement}
+            />
+          )}
+
+          {/* Suggestions Dialog */}
+          <SuggestionsDialog
+            open={suggestionsDialogOpen}
+            onOpenChange={setSuggestionsDialogOpen}
+          />
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Announcement } from "@/pages/Announcements";
+import { uploadAnnouncementImage, deleteAnnouncementImage } from "@/utils/uploadAnnouncementImage";
 import {
   Dialog,
   DialogContent,
@@ -14,15 +16,12 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -30,25 +29,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CalendarIcon, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Announcement } from "@/pages/Announcements";
 
 const formSchema = z.object({
-  title: z.string().min(3, "O título deve ter no mínimo 3 caracteres"),
-  content: z.string().min(10, "O conteúdo deve ter no mínimo 10 caracteres"),
+  title: z.string().min(3, "O título deve ter pelo menos 3 caracteres"),
+  content: z.string().min(10, "O conteúdo deve ter pelo menos 10 caracteres"),
   type: z.enum(["info", "warning", "success", "error"]),
   priority: z.number().min(1).max(10),
   is_active: z.boolean(),
   start_date: z.date().optional(),
   end_date: z.date().optional(),
-  image_url: z.string().url("URL inválida").optional().or(z.literal("")),
 });
+
+type FormData = z.infer<typeof formSchema>;
 
 interface AnnouncementDialogProps {
   open: boolean;
@@ -56,25 +62,25 @@ interface AnnouncementDialogProps {
   announcement?: Announcement | null;
 }
 
-export const AnnouncementDialog = ({
-  open,
-  onOpenChange,
-  announcement,
-}: AnnouncementDialogProps) => {
+export function AnnouncementDialog({ open, onOpenChange, announcement }: AnnouncementDialogProps) {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const isEditing = !!announcement;
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
       content: "",
       type: "info",
-      priority: 1,
+      priority: 5,
       is_active: true,
       start_date: undefined,
       end_date: undefined,
-      image_url: "",
     },
   });
 
@@ -83,44 +89,123 @@ export const AnnouncementDialog = ({
       form.reset({
         title: announcement.title,
         content: announcement.content,
-        type: announcement.type as "info" | "warning" | "success" | "error",
+        type: announcement.type,
         priority: announcement.priority,
         is_active: announcement.is_active,
         start_date: announcement.start_date ? new Date(announcement.start_date) : undefined,
         end_date: announcement.end_date ? new Date(announcement.end_date) : undefined,
-        image_url: announcement.image_url || "",
       });
+      setCurrentImageUrl(announcement.image_url);
+      setImagePreview(announcement.image_url);
+      setImageFile(null);
     } else {
       form.reset({
         title: "",
         content: "",
         type: "info",
-        priority: 1,
+        priority: 5,
         is_active: true,
         start_date: undefined,
         end_date: undefined,
-        image_url: "",
       });
+      setCurrentImageUrl(null);
+      setImagePreview(null);
+      setImageFile(null);
     }
   }, [announcement, form]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tamanho
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "A imagem deve ter no máximo 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar formato
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Formato não suportado",
+        description: "Use JPG, PNG, WEBP ou GIF",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImageFile(file);
+    
+    // Criar preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setCurrentImageUrl(null);
+  };
+
+  const onSubmit = async (data: FormData) => {
+    setIsSubmitting(true);
     try {
-      const data = {
-        title: values.title,
-        content: values.content,
-        type: values.type,
-        priority: values.priority,
-        is_active: values.is_active,
-        start_date: values.start_date?.toISOString() || null,
-        end_date: values.end_date?.toISOString() || null,
-        image_url: values.image_url || null,
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      let finalImageUrl = currentImageUrl;
+
+      // Se há um novo arquivo para upload
+      if (imageFile) {
+        setIsUploading(true);
+        try {
+          // Se está editando e já tinha uma imagem, deletar a antiga
+          if (isEditing && currentImageUrl) {
+            await deleteAnnouncementImage(currentImageUrl);
+          }
+          
+          // Upload da nova imagem
+          finalImageUrl = await uploadAnnouncementImage(imageFile);
+        } catch (uploadError) {
+          console.error("Upload error:", uploadError);
+          toast({
+            title: "Erro no upload",
+            description: "Não foi possível fazer upload da imagem. O aviso será salvo sem imagem.",
+            variant: "destructive",
+          });
+          finalImageUrl = null;
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
+      const announcementData = {
+        title: data.title,
+        content: data.content,
+        type: data.type,
+        priority: data.priority,
+        is_active: data.is_active,
+        start_date: data.start_date?.toISOString() || null,
+        end_date: data.end_date?.toISOString() || null,
+        image_url: finalImageUrl,
+        created_by: user.id,
       };
 
       if (isEditing) {
         const { error } = await supabase
           .from("announcements")
-          .update(data)
+          .update(announcementData)
           .eq("id", announcement.id);
 
         if (error) throw error;
@@ -132,7 +217,7 @@ export const AnnouncementDialog = ({
       } else {
         const { error } = await supabase
           .from("announcements")
-          .insert([data]);
+          .insert(announcementData);
 
         if (error) throw error;
 
@@ -142,7 +227,7 @@ export const AnnouncementDialog = ({
         });
       }
 
-      onOpenChange(true); // Pass true to trigger refetch
+      onOpenChange(true); // Trigger refetch
     } catch (error) {
       console.error("Error saving announcement:", error);
       toast({
@@ -150,6 +235,8 @@ export const AnnouncementDialog = ({
         description: "Não foi possível salvar o aviso.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -192,7 +279,7 @@ export const AnnouncementDialog = ({
                   <FormControl>
                     <Textarea
                       placeholder="Digite o conteúdo do aviso"
-                      className="min-h-[120px]"
+                      className="min-h-[120px] resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -250,19 +337,69 @@ export const AnnouncementDialog = ({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="image_url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>URL da Imagem (opcional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            {/* Upload de Imagem */}
+            <div className="space-y-2">
+              <FormLabel>Imagem (opcional)</FormLabel>
+              <FormDescription>
+                JPG, PNG, WEBP ou GIF - Máx. 5MB
+              </FormDescription>
+              
+              {!imagePreview ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("image-upload")?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Escolher Imagem
+                  </Button>
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="relative w-full h-48 border rounded-lg overflow-hidden bg-muted">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("image-upload")?.click()}
+                    className="w-full"
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Trocar Imagem
+                  </Button>
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
+                </div>
               )}
-            />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -372,11 +509,13 @@ export const AnnouncementDialog = ({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={isSubmitting || isUploading}
               >
                 Cancelar
               </Button>
-              <Button type="submit">
-                {isEditing ? "Salvar Alterações" : "Criar Aviso"}
+              <Button type="submit" disabled={isSubmitting || isUploading}>
+                {(isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isUploading ? "Enviando imagem..." : isEditing ? "Salvar Alterações" : "Criar Aviso"}
               </Button>
             </div>
           </form>
@@ -384,4 +523,4 @@ export const AnnouncementDialog = ({
       </DialogContent>
     </Dialog>
   );
-};
+}
