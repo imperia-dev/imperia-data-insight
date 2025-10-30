@@ -7,6 +7,8 @@ import { ErrorTypesChart } from "@/components/dashboard/ErrorTypesChart";
 import { PendencyGoalChart } from "@/components/dashboard/PendencyGoalChart";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 import { WhatsAppOperationalReportModal } from "@/components/dashboard/WhatsAppOperationalReportModal";
+import { AnnouncementNotificationModal } from "@/components/announcements/AnnouncementNotificationModal";
+import { useUnreadAnnouncements } from "@/hooks/useUnreadAnnouncements";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,6 +183,9 @@ export default function Dashboard() {
     to: undefined,
   });
   
+  // Announcements hook
+  const { unreadAnnouncements, markAsRead, isMarkingAsRead } = useUnreadAnnouncements();
+  
   // Store IDs for each metric
   const [attributedOrderIds, setAttributedOrderIds] = useState<OrderSummary[]>([]);
   const [inProgressOrderIds, setInProgressOrderIds] = useState<OrderSummary[]>([]);
@@ -204,6 +209,24 @@ export default function Dashboard() {
   }
   const [dialogContentData, setDialogContentData] = useState<string[] | OrderSummary[]>([]);
   const [isGroupedDialog, setIsGroupedDialog] = useState(false);
+
+  const handleDismissAnnouncement = (announcementId: string) => {
+    markAsRead(announcementId, {
+      onSuccess: () => {
+        toast({
+          title: "Aviso dispensado",
+          description: "Você pode ver todos os avisos na página de Avisos.",
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Erro",
+          description: "Não foi possível dispensar o aviso.",
+          variant: "destructive",
+        });
+      },
+    });
+  };
 
   const showDetails = (title: string, data: string[] | OrderSummary[], isGrouped: boolean = false) => {
     setDialogTitle(title);
@@ -1682,6 +1705,15 @@ export default function Dashboard() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+      
+      {/* Modal de avisos não lidos */}
+      {unreadAnnouncements.length > 0 && (
+        <AnnouncementNotificationModal
+          announcements={unreadAnnouncements}
+          onDismiss={handleDismissAnnouncement}
+          isLoading={isMarkingAsRead}
+        />
+      )}
       
       {/* WhatsApp Report Modal */}
       <WhatsAppOperationalReportModal

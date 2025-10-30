@@ -101,6 +101,35 @@ export type Database = {
         }
         Relationships: []
       }
+      announcement_views: {
+        Row: {
+          announcement_id: string
+          id: string
+          user_id: string
+          viewed_at: string | null
+        }
+        Insert: {
+          announcement_id: string
+          id?: string
+          user_id: string
+          viewed_at?: string | null
+        }
+        Update: {
+          announcement_id?: string
+          id?: string
+          user_id?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_views_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           content: string
