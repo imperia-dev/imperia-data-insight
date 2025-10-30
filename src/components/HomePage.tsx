@@ -18,11 +18,13 @@ export function HomePage() {
         case "customer":
           navigate("/customer-dashboard", { replace: true });
           break;
-        case "translator":
+        case "owner":
+        case "master":
         case "operation":
-          navigate("/my-orders", { replace: true });
+        case "translator":
+          navigate("/announcements", { replace: true });
           break;
-        // owner, master, admin - stay on main dashboard
+        // admin - stay on main dashboard
         default:
           break;
       }
