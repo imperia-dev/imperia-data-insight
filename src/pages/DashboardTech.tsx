@@ -240,9 +240,9 @@ export default function DashboardTech() {
       <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
-        <main className="p-4 md:p-6 lg:p-8 relative">
+        <main className="p-4 md:p-6 lg:p-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6 relative z-10">
+          <div className="flex items-center justify-between mb-6 bg-background sticky top-16 z-30 py-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
                 <Bug className="h-6 w-6 text-purple-600" />
@@ -271,7 +271,7 @@ export default function DashboardTech() {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="overflow-x-auto pb-4">
+              <div className="overflow-x-auto pb-4 relative z-10">
                 <div className="flex gap-4 min-w-max">
                   {Object.entries(statusConfig).map(([status, config]) => {
                     const columnDemands = demandsByStatus[status as keyof typeof demandsByStatus];
