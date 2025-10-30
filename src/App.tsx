@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { ErrorBoundary } from "./components/security/ErrorBoundary";
 import { MFAEnforcement } from "./components/security/MFAEnforcement";
+import { MainAnnouncementModal } from "./components/announcements/MainAnnouncementModal";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ProtectedRouteWithApproval } from "./components/ProtectedRouteWithApproval";
 import { HomePage } from "./components/HomePage";
@@ -76,6 +77,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <MFAEnforcement />
+            <MainAnnouncementModal />
             <SidebarProvider>
             <Routes>
             <Route path="/auth" element={<Auth />} />

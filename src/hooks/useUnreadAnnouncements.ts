@@ -50,6 +50,49 @@ export function useUnreadAnnouncements() {
     enabled: !!user?.id,
   });
 
+  // Buscar apenas o aviso principal não lido
+  const { data: mainAnnouncement, isLoading: isLoadingMain } = useQuery({
+    queryKey: ["main-announcement", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      // Buscar o aviso principal (priority = 1)
+      const { data: announcements, error: announcementsError } = await supabase
+        .from("announcements")
+        .select("*")
+        .eq("is_active", true)
+        .eq("priority", 1)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (announcementsError) throw announcementsError;
+      if (!announcements || announcements.length === 0) return null;
+
+      const mainAnnouncement = announcements[0];
+
+      // Verificar se já foi visualizado
+      const { data: viewedAnnouncements, error: viewedError } = await supabase
+        .from("announcement_views")
+        .select("announcement_id")
+        .eq("user_id", user.id)
+        .eq("announcement_id", mainAnnouncement.id);
+
+      if (viewedError) throw viewedError;
+      if (viewedAnnouncements && viewedAnnouncements.length > 0) return null;
+
+      // Verificar data
+      const now = new Date();
+      const startDate = mainAnnouncement.start_date ? new Date(mainAnnouncement.start_date) : null;
+      const endDate = mainAnnouncement.end_date ? new Date(mainAnnouncement.end_date) : null;
+
+      if (startDate && startDate > now) return null;
+      if (endDate && endDate < now) return null;
+
+      return mainAnnouncement as Announcement;
+    },
+    enabled: !!user?.id,
+  });
+
   // Marcar aviso como lido
   const markAsReadMutation = useMutation({
     mutationFn: async (announcementId: string) => {
@@ -67,12 +110,15 @@ export function useUnreadAnnouncements() {
     onSuccess: () => {
       // Atualizar a lista de avisos não lidos
       queryClient.invalidateQueries({ queryKey: ["unread-announcements", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["main-announcement", user?.id] });
     },
   });
 
   return {
     unreadAnnouncements: unreadAnnouncements || [],
+    mainAnnouncement: mainAnnouncement || null,
     isLoading,
+    isLoadingMain,
     markAsRead: markAsReadMutation.mutate,
     isMarkingAsRead: markAsReadMutation.isPending,
   };
