@@ -336,10 +336,11 @@ const navigationGroups: NavigationGroup[] = [
 // Itens que ficam fora dos grupos (sempre visíveis)
 const standaloneItems: NavigationItem[] = [
   {
-    title: "Chat",
-    icon: MessageSquare,
-    href: "/chat",
-    roles: ["owner", "master", "admin", "operation"],
+    title: "Aprovação de Cadastros",
+    icon: UserCheck,
+    href: "/registration-approvals",
+    roles: ["owner", "master"],
+    badge: true,
   },
   {
     title: "Avisos",
@@ -348,17 +349,16 @@ const standaloneItems: NavigationItem[] = [
     roles: ["owner", "master", "operation", "translator"],
   },
   {
+    title: "Chat",
+    icon: MessageSquare,
+    href: "/chat",
+    roles: ["owner", "master", "admin", "operation"],
+  },
+  {
     title: "Segurança",
     icon: Shield,
     href: "/security-dashboard",
     roles: ["owner"],
-  },
-  {
-    title: "Aprovação de Cadastros",
-    icon: UserCheck,
-    href: "/registration-approvals",
-    roles: ["owner", "master"],
-    badge: true,
   },
   {
     title: "Configurações",
