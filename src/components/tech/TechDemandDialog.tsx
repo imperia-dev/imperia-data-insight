@@ -116,7 +116,11 @@ export const TechDemandDialog = ({ open, onOpenChange, demand, onSuccess }: Tech
       } else {
         const { error } = await supabase
           .from("tech_demands")
-          .insert([{ ...formData, created_by: (await supabase.auth.getUser()).data.user?.id }]);
+          .insert([{ 
+            ...formData, 
+            status: 'novo',
+            created_by: (await supabase.auth.getUser()).data.user?.id 
+          }]);
 
         if (error) throw error;
         toast({ title: "Demanda criada com sucesso" });
