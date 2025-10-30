@@ -240,9 +240,9 @@ export default function DashboardTech() {
       <div className={mainContainerClass}>
         <Header userName={userName} userRole={userRole} />
         
-        <main className="p-4 md:p-6 lg:p-8">
+        <main className="p-4 md:p-6 lg:p-8 relative">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 relative z-10">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
                 <Bug className="h-6 w-6 text-purple-600" />
