@@ -73,11 +73,11 @@ export const AnnouncementBanner = ({
       <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} pointer-events-none`} />
       
       {/* Animated color spots */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-0 right-0 w-64 h-64 bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-0 left-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-64 h-64 bg-accent/20 rounded-full blur-3xl animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
       
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-20">
         {announcement.image_url && (
           <div className="w-full h-[300px] overflow-hidden">
             <img 
@@ -85,7 +85,7 @@ export const AnnouncementBanner = ({
               alt={announcement.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent pointer-events-none" />
           </div>
         )}
         
@@ -110,7 +110,7 @@ export const AnnouncementBanner = ({
             </div>
             
             {isOwner && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 z-30 relative">
                 <Button
                   variant="ghost"
                   size="sm"
