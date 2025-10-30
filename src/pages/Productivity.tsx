@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon, FileDown, FileText } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon, FileDown, FileText, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +58,7 @@ export default function Financial() {
   const [loading, setLoading] = useState(true);
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+  const [orderSearchFilter, setOrderSearchFilter] = useState("");
   const [customStartTime, setCustomStartTime] = useState("00:00");
   const [customEndTime, setCustomEndTime] = useState("23:59");
   const [observations, setObservations] = useState("");
@@ -756,10 +757,23 @@ export default function Financial() {
           {userRole !== 'operation' && (
             <Card className="mb-8">
               <CardHeader>
-                <CardTitle>Pagamentos por Dia por Prestador</CardTitle>
-                <CardDescription>
-                  Detalhamento diário dos pagamentos realizados
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Pagamentos por Dia por Prestador</CardTitle>
+                    <CardDescription>
+                      Detalhamento diário dos pagamentos realizados
+                    </CardDescription>
+                  </div>
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nº do pedido..."
+                      value={orderSearchFilter}
+                      onChange={(e) => setOrderSearchFilter(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -783,7 +797,14 @@ export default function Financial() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {dailyPayments.map((payment, index) => (
+                      {dailyPayments
+                        .filter(payment => 
+                          !orderSearchFilter || 
+                          payment.order_numbers.some(orderNum => 
+                            orderNum.toLowerCase().includes(orderSearchFilter.toLowerCase())
+                          )
+                        )
+                        .map((payment, index) => (
                         <TableRow key={`${payment.user_id}-${payment.date}-${index}`}>
                           <TableCell>
                             {payment.date ? format(new Date(payment.date), "dd/MM/yyyy", { locale: ptBR }) : '-'}
