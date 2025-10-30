@@ -64,9 +64,9 @@ export const AnnouncementBanner = ({
   const Icon = config.icon;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-background to-muted/30 border border-border/50 shadow-lg">
+    <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-background to-muted/30 border border-border/50 shadow-lg animate-pulse">
       {/* Decorative gradient overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} pointer-events-none`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} pointer-events-none animate-pulse`} />
       
       {/* Content */}
       <div className="relative z-10">
