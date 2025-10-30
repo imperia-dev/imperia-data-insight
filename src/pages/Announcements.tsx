@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Lightbulb, Megaphone } from "lucide-react";
+import { Plus, Filter, Lightbulb, Megaphone, Eye } from "lucide-react";
 import { AnnouncementCard } from "@/components/announcements/AnnouncementCard";
 import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
 import { AnnouncementDialog } from "@/components/announcements/AnnouncementDialog";
 import { SuggestionsDialog } from "@/components/announcements/SuggestionsDialog";
+import { ViewSuggestionsDialog } from "@/components/announcements/ViewSuggestionsDialog";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
@@ -48,10 +49,12 @@ const Announcements = () => {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [suggestionsDialogOpen, setSuggestionsDialogOpen] = useState(false);
+  const [viewSuggestionsDialogOpen, setViewSuggestionsDialogOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const isOwner = userRole === "owner";
+  const canViewSuggestions = userRole === "owner" || userRole === "master";
 
   // Confetti effect on page load
   useEffect(() => {
@@ -183,8 +186,14 @@ const Announcements = () => {
                   </Select>
                   <Button variant="outline" onClick={() => setSuggestionsDialogOpen(true)}>
                     <Lightbulb className="h-4 w-4 mr-2" />
-                    Sugestões
+                    Enviar Sugestão
                   </Button>
+                  {canViewSuggestions && (
+                    <Button variant="outline" onClick={() => setViewSuggestionsDialogOpen(true)}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Ver Sugestões
+                    </Button>
+                  )}
                   {isOwner && (
                     <Button onClick={handleCreateNew}>
                       <Plus className="h-4 w-4 mr-2" />
@@ -260,6 +269,14 @@ const Announcements = () => {
             open={suggestionsDialogOpen}
             onOpenChange={setSuggestionsDialogOpen}
           />
+
+          {/* View Suggestions Dialog */}
+          {canViewSuggestions && (
+            <ViewSuggestionsDialog
+              open={viewSuggestionsDialogOpen}
+              onOpenChange={setViewSuggestionsDialogOpen}
+            />
+          )}
       </div>
     </div>
   );
