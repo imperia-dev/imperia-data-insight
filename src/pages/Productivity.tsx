@@ -26,7 +26,7 @@ interface PaymentData {
   user_name: string;
   date: string;
   amount: number;
-  order_ids: string[];
+  order_numbers: string[];
 }
 
 interface AccumulatedPayment {
@@ -158,6 +158,7 @@ export default function Financial() {
         .from('orders')
         .select(`
           id,
+          order_number,
           assigned_to,
           document_count,
           delivered_at,
@@ -261,14 +262,14 @@ export default function Financial() {
         if (dailyPaymentsMap.has(dailyKey)) {
           const existing = dailyPaymentsMap.get(dailyKey)!;
           existing.amount += amount;
-          existing.order_ids.push(order.id);
+          existing.order_numbers.push(order.order_number || order.id);
         } else {
           dailyPaymentsMap.set(dailyKey, {
             user_id: userId,
             user_name: userName,
             date: date,
             amount: amount,
-            order_ids: [order.id]
+            order_numbers: [order.order_number || order.id]
           });
         }
         
@@ -353,16 +354,16 @@ export default function Financial() {
 
       // Prepare data for PDF export
       // Daily payments will be the main table now
-      const dailyHeaders = ['Data', 'Prestador', 'ID(s) Pedido', 'Documentos', 'Valor'];
+      const dailyHeaders = ['Data', 'Prestador', 'Nº Pedido(s)', 'Documentos', 'Valor'];
       const dailyRows = dailyPayments
         .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
         .map(payment => {
           const documents = Math.round(payment.amount / 1.30);
-          const orderIdsText = payment.order_ids.map(id => id.substring(0, 8)).join(', ');
+          const orderNumbersText = payment.order_numbers.join(', ');
           return [
             format(new Date(payment.date), 'dd/MM/yyyy'),
             payment.user_name,
-            orderIdsText,
+            orderNumbersText,
             documents.toString(),
             formatCurrency(payment.amount)
           ];
@@ -749,7 +750,7 @@ export default function Financial() {
                       <TableRow>
                         <TableHead>Data</TableHead>
                         <TableHead>Prestador</TableHead>
-                        <TableHead>ID(s) do Pedido</TableHead>
+                        <TableHead>Nº Pedido(s)</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -762,9 +763,9 @@ export default function Financial() {
                           <TableCell>{payment.user_name}</TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {payment.order_ids.map((orderId, idx) => (
+                              {payment.order_numbers.map((orderNumber, idx) => (
                                 <Badge key={idx} variant="outline" className="text-xs">
-                                  {orderId.substring(0, 8)}
+                                  {orderNumber}
                                 </Badge>
                               ))}
                             </div>
