@@ -27,30 +27,34 @@ const typeConfig = {
   info: {
     icon: Info,
     label: "Informativo",
-    gradient: "from-blue-500/20 via-blue-400/10 to-transparent",
-    badgeClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
+    gradient: "from-blue-500/60 via-cyan-400/40 to-purple-500/30",
+    badgeClass: "bg-blue-500 text-white dark:bg-blue-600 dark:text-white",
     iconColor: "text-blue-500",
+    glowColor: "shadow-[0_0_30px_rgba(59,130,246,0.5)]",
   },
   warning: {
     icon: AlertTriangle,
     label: "Atenção",
-    gradient: "from-yellow-500/20 via-yellow-400/10 to-transparent",
-    badgeClass: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300",
+    gradient: "from-yellow-500/60 via-orange-400/40 to-red-500/30",
+    badgeClass: "bg-yellow-500 text-white dark:bg-yellow-600 dark:text-white",
     iconColor: "text-yellow-500",
+    glowColor: "shadow-[0_0_30px_rgba(234,179,8,0.5)]",
   },
   success: {
     icon: CheckCircle,
     label: "Sucesso",
-    gradient: "from-green-500/20 via-green-400/10 to-transparent",
-    badgeClass: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
+    gradient: "from-green-500/60 via-emerald-400/40 to-teal-500/30",
+    badgeClass: "bg-green-500 text-white dark:bg-green-600 dark:text-white",
     iconColor: "text-green-500",
+    glowColor: "shadow-[0_0_30px_rgba(34,197,94,0.5)]",
   },
   error: {
     icon: AlertCircle,
     label: "Urgente",
-    gradient: "from-red-500/20 via-red-400/10 to-transparent",
-    badgeClass: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
+    gradient: "from-red-500/60 via-pink-500/40 to-rose-500/30",
+    badgeClass: "bg-red-500 text-white dark:bg-red-600 dark:text-white",
     iconColor: "text-red-500",
+    glowColor: "shadow-[0_0_30px_rgba(239,68,68,0.5)]",
   },
 };
 
@@ -64,9 +68,13 @@ export const AnnouncementBanner = ({
   const Icon = config.icon;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl bg-card border-2 border-primary/20 shadow-xl animate-[pulse-scale_2s_ease-in-out_infinite]">
-      {/* Decorative gradient overlay - removed opacity for clarity */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient.replace('/20', '/40').replace('/10', '/20')} pointer-events-none`} />
+    <div className={`relative w-full overflow-hidden rounded-2xl bg-card border-2 border-primary/30 shadow-xl animate-[pulse-scale_2s_ease-in-out_infinite] ${config.glowColor}`}>
+      {/* Decorative gradient overlay - vibrant colors */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} pointer-events-none`} />
+      
+      {/* Animated color spots */}
+      <div className="absolute top-0 left-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-0 right-0 w-64 h-64 bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       
       {/* Content */}
       <div className="relative z-10">
@@ -85,16 +93,16 @@ export const AnnouncementBanner = ({
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-full bg-background backdrop-blur-sm ${config.iconColor}`}>
+              <div className={`p-3 rounded-full bg-gradient-to-br from-background to-muted backdrop-blur-sm ${config.iconColor} shadow-lg`}>
                 <Icon className="h-8 w-8" />
               </div>
               <div>
-                <Badge className={`${config.badgeClass} mb-2`}>
+                <Badge className={`${config.badgeClass} mb-2 shadow-md font-semibold`}>
                   <Sparkles className="h-3 w-3 mr-1" />
                   {config.label}
                 </Badge>
                 {announcement.priority === 1 && (
-                  <Badge variant="outline" className="ml-2 border-primary text-primary">
+                  <Badge variant="outline" className="ml-2 border-2 border-primary text-primary bg-primary/10 font-semibold shadow-md">
                     Alta Prioridade
                   </Badge>
                 )}
