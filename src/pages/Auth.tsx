@@ -317,7 +317,7 @@ export default function Auth() {
           title: "Login realizado com sucesso!",
           description: "Redirecionando...",
         });
-        navigate("/delivered-orders");
+        navigate("/");
       }
     } catch (error: any) {
       toast({
