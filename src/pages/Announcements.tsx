@@ -138,7 +138,7 @@ const Announcements = () => {
         <div className="w-full space-y-8">
           {/* Header com gradiente */}
           <div className="bg-gradient-to-br from-primary/5 via-background to-background border-b">
-            <div className="container mx-auto px-6 py-8">
+            <div className="w-full px-6 py-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-3 rounded-2xl bg-primary/10 text-primary">
@@ -208,7 +208,7 @@ const Announcements = () => {
 
           {/* Other Announcements - Cards Grid */}
           {!isLoading && otherAnnouncements.length > 0 && (
-            <div className="container mx-auto px-6 pb-8">
+            <div className="w-full px-6 pb-8">
               <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
                 <span>Mais Avisos</span>
                 <span className="text-muted-foreground text-base font-normal">
