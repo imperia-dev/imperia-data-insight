@@ -43,10 +43,9 @@ export default function DashboardFinanceiro() {
   const handleExportPDF = async () => {
     setExporting(true);
     try {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
       // Buscar dados de Diagramação
       const { data: diagramacaoProtocols } = await supabase
@@ -127,13 +126,15 @@ export default function DashboardFinanceiro() {
       }, {}) || {};
 
       // Buscar gastos com prestadores de serviço hoje
-      const todayFormatted = today.toISOString().split('T')[0];
+      const todayStart = new Date(today.setHours(0, 0, 0, 0));
+      const todayEnd = new Date(today.setHours(23, 59, 59, 999));
 
       const { data: expensesToday } = await supabase
         .from('expenses')
         .select('amount_original')
         .eq('tipo_despesa', 'prestador')
-        .eq('data_competencia', todayFormatted);
+        .gte('data_competencia', todayStart.toISOString().split('T')[0])
+        .lte('data_competencia', todayEnd.toISOString().split('T')[0]);
 
       const { data: expensesMonth } = await supabase
         .from('expenses')
