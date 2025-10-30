@@ -594,14 +594,19 @@ export function Sidebar({ userRole }: SidebarProps) {
               </div>
             ) : (
               <>
-                {/* Standalone items first (Aprovação de Cadastros) */}
+                {/* Standalone items first (Aprovação de Cadastros e Avisos) */}
                 {filteredStandaloneItems
-                  .filter(item => item.href === '/registration-approvals')
+                  .filter(item => item.href === '/registration-approvals' || item.href === '/announcements')
                   .map(item => (
-                    <div key={item.href} className="mb-4">
+                    <div key={item.href} className="mb-1">
                       {renderNavItem(item)}
                     </div>
                   ))}
+                
+                {/* Separator after top items */}
+                {filteredStandaloneItems.some(item => item.href === '/registration-approvals' || item.href === '/announcements') && (
+                  <div className="my-4 border-t" />
+                )}
 
                 {/* Navigation Groups */}
                 <div className="space-y-4">
@@ -652,10 +657,10 @@ export function Sidebar({ userRole }: SidebarProps) {
                   })}
                 </div>
 
-                {/* Other standalone items (Configurações) */}
+                {/* Other standalone items (Chat, Segurança, Configurações) */}
                 <div className="mt-4 pt-4 border-t">
                   {filteredStandaloneItems
-                    .filter(item => item.href !== '/registration-approvals')
+                    .filter(item => item.href !== '/registration-approvals' && item.href !== '/announcements')
                     .map(item => renderNavItem(item))}
                 </div>
               </>
