@@ -36,6 +36,9 @@ export async function exportFinancialDashboard(
   despesasData: { metrics: MetricsData; protocols: ProtocolData[] },
   additionalData: AdditionalData
 ) {
+  console.log('=== EXPORT FUNCTION ===');
+  console.log('Additional Data recebido:', additionalData);
+  
   const doc = new jsPDF();
   let yPosition = 20;
 
@@ -56,11 +59,18 @@ export async function exportFinancialDashboard(
   doc.text('Indicadores Gerais do Mês', 14, yPosition);
   yPosition += 10;
 
+  console.log('Renderizando indicadores gerais...');
+  console.log('Error Rate:', additionalData.errorRate);
+  console.log('Provider Costs Today:', additionalData.providerCostsToday);
+  console.log('Provider Costs Month:', additionalData.providerCostsMonth);
+
   const generalMetrics = [
     ['Taxa de Erro', `${additionalData.errorRate.toFixed(2)}%`],
     ['Gasto com Prestadores (Hoje)', formatCurrency(additionalData.providerCostsToday)],
     ['Gasto com Prestadores (Mês)', formatCurrency(additionalData.providerCostsMonth)]
   ];
+
+  console.log('General Metrics:', generalMetrics);
 
   autoTable(doc, {
     startY: yPosition,
@@ -80,10 +90,12 @@ export async function exportFinancialDashboard(
   doc.text('Documentos Atribuídos no Mês por Cliente', 14, yPosition);
   yPosition += 5;
 
+  console.log('Documentos por cliente:', additionalData.documentsByCustomer);
   const customerRows = Object.entries(additionalData.documentsByCustomer).map(([customer, count]) => [
     customer,
     count.toString()
   ]);
+  console.log('Customer Rows:', customerRows);
 
   if (customerRows.length > 0) {
     autoTable(doc, {

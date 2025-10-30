@@ -151,6 +151,17 @@ export default function DashboardFinanceiro() {
         providerCostsMonth
       };
 
+      // Debug logs
+      console.log('=== DADOS ADICIONAIS ===');
+      console.log('Taxa de erro:', errorRate);
+      console.log('Documentos por cliente:', documentsByCustomer);
+      console.log('Gastos prestadores hoje:', providerCostsToday);
+      console.log('Gastos prestadores mês:', providerCostsMonth);
+      console.log('Pendências do mês:', pendenciesMonth?.length);
+      console.log('Pedidos do mês:', ordersMonth?.length);
+      console.log('Despesas de hoje:', expensesToday?.length);
+      console.log('Despesas do mês:', expensesMonth?.length);
+
       await exportFinancialDashboard(diagramacaoData, revisaoData, despesasData, additionalData);
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
