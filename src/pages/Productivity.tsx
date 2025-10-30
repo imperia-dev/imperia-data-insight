@@ -27,6 +27,8 @@ interface PaymentData {
   date: string;
   amount: number;
   order_numbers: string[];
+  drive_value: number;
+  diagramming_value: number;
 }
 
 interface AccumulatedPayment {
@@ -34,6 +36,8 @@ interface AccumulatedPayment {
   user_name: string;
   total_amount: number;
   total_documents: number;
+  drive_value: number;
+  diagramming_value: number;
 }
 
 interface TopPerformer {
@@ -166,7 +170,8 @@ export default function Financial() {
           assigned_at,
           status_order,
           drive_value,
-          diagramming_value
+          diagramming_value,
+          custom_value_diagramming
         `)
         .in('status_order', ['delivered', 'in_progress'])
         .not('assigned_to', 'is', null);
@@ -255,9 +260,9 @@ export default function Financial() {
         const date = new Date(dateToUse).toISOString().split('T')[0];
         const userId = order.assigned_to;
         const userName = userNamesMap.get(userId) || 'Unknown';
-        // Use actual order values instead of calculating by document count
+        // Use actual order values with priority: custom_value_diagramming > diagramming_value
         const driveValue = order.drive_value || 0;
-        const diagrammingValue = order.diagramming_value || 0;
+        const diagrammingValue = order.custom_value_diagramming || order.diagramming_value || 0;
         const amount = driveValue + diagrammingValue;
         
         // Daily payments aggregation
@@ -265,6 +270,8 @@ export default function Financial() {
         if (dailyPaymentsMap.has(dailyKey)) {
           const existing = dailyPaymentsMap.get(dailyKey)!;
           existing.amount += amount;
+          existing.drive_value += driveValue;
+          existing.diagramming_value += diagrammingValue;
           existing.order_numbers.push(order.order_number || order.id);
         } else {
           dailyPaymentsMap.set(dailyKey, {
@@ -272,6 +279,8 @@ export default function Financial() {
             user_name: userName,
             date: date,
             amount: amount,
+            drive_value: driveValue,
+            diagramming_value: diagrammingValue,
             order_numbers: [order.order_number || order.id]
           });
         }
@@ -280,12 +289,16 @@ export default function Financial() {
         if (accumulatedMap.has(userId)) {
           const existing = accumulatedMap.get(userId)!;
           existing.total_amount += amount;
+          existing.drive_value += driveValue;
+          existing.diagramming_value += diagrammingValue;
           existing.total_documents += order.document_count || 0;
         } else {
           accumulatedMap.set(userId, {
             user_id: userId,
             user_name: userName,
             total_amount: amount,
+            drive_value: driveValue,
+            diagramming_value: diagrammingValue,
             total_documents: order.document_count || 0
           });
         }
@@ -357,7 +370,7 @@ export default function Financial() {
 
       // Prepare data for PDF export
       // Daily payments will be the main table now
-      const dailyHeaders = ['Data', 'Prestador', 'Nº Pedido(s)', 'Valor'];
+      const dailyHeaders = ['Data', 'Prestador', 'Nº Pedido(s)', 'Valor Drive', 'Valor Diagramação', 'Valor Total'];
       const dailyRows = dailyPayments
         .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
         .map(payment => {
@@ -366,22 +379,33 @@ export default function Financial() {
             format(new Date(payment.date), 'dd/MM/yyyy'),
             payment.user_name,
             orderNumbersText,
+            formatCurrency(payment.drive_value),
+            formatCurrency(payment.diagramming_value),
             formatCurrency(payment.amount)
           ];
         });
 
       // Calculate daily totals
-      const dailyTotalAmount = dailyRows.reduce((sum, row) => {
-        const amount = parseFloat(row[3].replace('R$', '').replace('.', '').replace(',', '.').trim());
-        return sum + amount;
-      }, 0);
+      const dailyTotalDrive = dailyPayments
+        .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
+        .reduce((sum, payment) => sum + payment.drive_value, 0);
+      
+      const dailyTotalDiagramming = dailyPayments
+        .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
+        .reduce((sum, payment) => sum + payment.diagramming_value, 0);
+      
+      const dailyTotalAmount = dailyPayments
+        .filter(payment => userRole !== 'operation' || payment.user_name !== 'Hellem Coelho')
+        .reduce((sum, payment) => sum + payment.amount, 0);
 
       const dailyTotals = [
+        { label: 'Total Drive:', value: formatCurrency(dailyTotalDrive) },
+        { label: 'Total Diagramação:', value: formatCurrency(dailyTotalDiagramming) },
         { label: 'Valor Total:', value: formatCurrency(dailyTotalAmount) }
       ];
 
       // Prepare accumulated data for additional table
-      const accumulatedHeaders = ['Prestador', 'Documentos', 'Valor Total'];
+      const accumulatedHeaders = ['Prestador', 'Documentos', 'Valor Drive', 'Valor Diagramação', 'Valor Total'];
       
       // Filter data based on user role
       const dataToExport = userRole === 'operation' 
@@ -391,11 +415,15 @@ export default function Financial() {
       const accumulatedRows = dataToExport.map(payment => [
         payment.user_name,
         payment.total_documents.toString(),
+        formatCurrency(payment.drive_value),
+        formatCurrency(payment.diagramming_value),
         formatCurrency(payment.total_amount)
       ]);
 
       // Calculate accumulated totals
       const totalDocuments = dataToExport.reduce((sum, payment) => sum + payment.total_documents, 0);
+      const totalDrive = dataToExport.reduce((sum, payment) => sum + payment.drive_value, 0);
+      const totalDiagramming = dataToExport.reduce((sum, payment) => sum + payment.diagramming_value, 0);
       const totalAmount = dataToExport.reduce((sum, payment) => sum + payment.total_amount, 0);
 
       // Prepare chart data for top performers
@@ -421,9 +449,11 @@ export default function Financial() {
           headers: accumulatedHeaders,
           rows: [
             ...accumulatedRows,
-            ['', '', ''],
-            ['Total de Documentos:', totalDocuments.toString(), ''],
-            ['Valor Total:', '', formatCurrency(totalAmount)]
+            ['', '', '', '', ''],
+            ['Total de Documentos:', totalDocuments.toString(), '', '', ''],
+            ['Total Drive:', '', formatCurrency(totalDrive), '', ''],
+            ['Total Diagramação:', '', '', formatCurrency(totalDiagramming), ''],
+            ['Valor Total:', '', '', '', formatCurrency(totalAmount)]
           ]
         }] : undefined,
         observations: normalizedObservations
@@ -747,7 +777,9 @@ export default function Financial() {
                         <TableHead>Data</TableHead>
                         <TableHead>Prestador</TableHead>
                         <TableHead>Nº Pedido(s)</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="text-right">Valor Drive</TableHead>
+                        <TableHead className="text-right">Valor Diagramação</TableHead>
+                        <TableHead className="text-right">Valor Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -765,6 +797,12 @@ export default function Financial() {
                                 </Badge>
                               ))}
                             </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(payment.drive_value)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(payment.diagramming_value)}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {formatCurrency(payment.amount)}
@@ -802,6 +840,8 @@ export default function Financial() {
                       <TableRow>
                         <TableHead>Prestador</TableHead>
                         <TableHead className="text-center">Documentos</TableHead>
+                        <TableHead className="text-right">Valor Drive</TableHead>
+                        <TableHead className="text-right">Valor Diagramação</TableHead>
                         <TableHead className="text-right">Total Acumulado</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -810,6 +850,12 @@ export default function Financial() {
                         <TableRow key={payment.user_id}>
                           <TableCell className="font-medium">{payment.user_name}</TableCell>
                           <TableCell className="text-center">{payment.total_documents}</TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(payment.drive_value)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(payment.diagramming_value)}
+                          </TableCell>
                           <TableCell className="text-right font-bold text-primary">
                             {formatCurrency(payment.total_amount)}
                           </TableCell>
