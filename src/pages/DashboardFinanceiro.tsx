@@ -43,6 +43,10 @@ export default function DashboardFinanceiro() {
   const handleExportPDF = async () => {
     setExporting(true);
     try {
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
       // Buscar dados de Diagramação
       const { data: diagramacaoProtocols } = await supabase
         .from('service_provider_protocols')
@@ -95,7 +99,61 @@ export default function DashboardFinanceiro() {
         protocols: despesasProtocols || []
       };
 
-      await exportFinancialDashboard(diagramacaoData, revisaoData, despesasData);
+      // Buscar pendências do mês para calcular taxa de erro
+      const { data: pendenciesMonth } = await supabase
+        .from('pendencies')
+        .select('*')
+        .gte('created_at', firstDayOfMonth.toISOString())
+        .lte('created_at', lastDayOfMonth.toISOString());
+
+      const { data: ordersMonth } = await supabase
+        .from('orders')
+        .select('*')
+        .gte('attribution_date', firstDayOfMonth.toISOString())
+        .lte('attribution_date', lastDayOfMonth.toISOString());
+
+      const errorRate = ordersMonth?.length ? 
+        ((pendenciesMonth?.length || 0) / ordersMonth.length * 100) : 0;
+
+      // Agrupar documentos por cliente
+      const documentsByCustomer = ordersMonth?.reduce((acc: any, order: any) => {
+        const customer = order.customer || 'Sem cliente';
+        if (!acc[customer]) {
+          acc[customer] = 0;
+        }
+        acc[customer]++;
+        return acc;
+      }, {}) || {};
+
+      // Buscar gastos com prestadores de serviço hoje
+      const todayStart = new Date(today.setHours(0, 0, 0, 0));
+      const todayEnd = new Date(today.setHours(23, 59, 59, 999));
+
+      const { data: expensesToday } = await supabase
+        .from('expenses')
+        .select('amount_original')
+        .eq('tipo_despesa', 'prestador')
+        .gte('data_competencia', todayStart.toISOString().split('T')[0])
+        .lte('data_competencia', todayEnd.toISOString().split('T')[0]);
+
+      const { data: expensesMonth } = await supabase
+        .from('expenses')
+        .select('amount_original')
+        .eq('tipo_despesa', 'prestador')
+        .gte('data_competencia', firstDayOfMonth.toISOString().split('T')[0])
+        .lte('data_competencia', lastDayOfMonth.toISOString().split('T')[0]);
+
+      const providerCostsToday = expensesToday?.reduce((sum, e) => sum + (e.amount_original || 0), 0) || 0;
+      const providerCostsMonth = expensesMonth?.reduce((sum, e) => sum + (e.amount_original || 0), 0) || 0;
+
+      const additionalData = {
+        errorRate,
+        documentsByCustomer,
+        providerCostsToday,
+        providerCostsMonth
+      };
+
+      await exportFinancialDashboard(diagramacaoData, revisaoData, despesasData, additionalData);
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
       console.error('Error exporting PDF:', error);
