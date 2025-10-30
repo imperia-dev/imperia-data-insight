@@ -342,6 +342,12 @@ const standaloneItems: NavigationItem[] = [
     roles: ["owner", "master", "admin", "operation"],
   },
   {
+    title: "Avisos",
+    icon: Megaphone,
+    href: "/announcements",
+    roles: ["owner", "master", "operation", "translator"],
+  },
+  {
     title: "Segurança",
     icon: Shield,
     href: "/security-dashboard",

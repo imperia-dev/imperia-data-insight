@@ -63,6 +63,7 @@ import CompanyAssets from "./pages/CompanyAssets";
 import ContasAPagar from "./pages/ContasAPagar";
 import ContasAReceber from "./pages/ContasAReceber";
 import DashboardControleFinanceiro from "./pages/DashboardControleFinanceiro";
+import Announcements from "./pages/Announcements";
 
 const queryClient = new QueryClient();
 
@@ -316,6 +317,11 @@ const App = () => (
           <Route path="/contas-a-receber" element={
             <ProtectedRouteWithApproval>
               <ContasAReceber />
+            </ProtectedRouteWithApproval>
+          } />
+          <Route path="/announcements" element={
+            <ProtectedRouteWithApproval>
+              <Announcements />
             </ProtectedRouteWithApproval>
           } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
