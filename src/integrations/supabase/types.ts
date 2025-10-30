@@ -4283,6 +4283,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tech_demands: {
+        Row: {
+          assigned_to: string | null
+          company: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string
+          error_message: string | null
+          id: string
+          image_url: string | null
+          priority: string
+          status: string
+          steps: string | null
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description: string
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          priority?: string
+          status?: string
+          steps?: string | null
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          priority?: string
+          status?: string
+          steps?: string | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       translation_orders: {
         Row: {
           created_at: string
