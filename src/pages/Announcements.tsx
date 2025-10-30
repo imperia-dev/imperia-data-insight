@@ -11,7 +11,7 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePageLayout } from "@/hooks/usePageLayout";
+import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import {
@@ -43,7 +43,7 @@ const Announcements = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { userRole } = useRoleAccess(location.pathname);
-  const { mainContainerClass } = usePageLayout();
+  const { mainContainerClass } = useSidebarOffset();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [suggestionsDialogOpen, setSuggestionsDialogOpen] = useState(false);
@@ -135,10 +135,11 @@ const Announcements = () => {
       <Sidebar userRole={userRole} />
       <div className={mainContainerClass}>
         <Header userName={user?.user_metadata?.full_name || "Usuário"} userRole={userRole} />
-        <div className="w-full space-y-8">
+        
+        <main className="p-4 md:p-6 lg:p-8 space-y-8">
           {/* Header com gradiente */}
           <div className="bg-gradient-to-br from-primary/5 via-background to-background border-b">
-            <div className="w-full px-6 py-8">
+            <div className="w-full py-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-3 rounded-2xl bg-primary/10 text-primary">
@@ -182,11 +183,11 @@ const Announcements = () => {
 
           {/* Main Banner - Full Width */}
           {isLoading ? (
-            <div className="w-full px-6">
+            <div className="w-full">
               <div className="h-[400px] bg-muted animate-pulse rounded-2xl" />
             </div>
           ) : mainAnnouncement ? (
-            <div className="w-full px-6">
+            <div className="w-full">
               <AnnouncementBanner
                 announcement={mainAnnouncement}
                 isOwner={isOwner}
@@ -195,7 +196,7 @@ const Announcements = () => {
               />
             </div>
           ) : (
-            <div className="w-full px-6">
+            <div className="w-full">
               <div className="text-center py-20 bg-muted/30 rounded-2xl border-2 border-dashed">
                 <Megaphone className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
                 <p className="text-lg text-muted-foreground">
@@ -208,7 +209,7 @@ const Announcements = () => {
 
           {/* Other Announcements - Cards Grid */}
           {!isLoading && otherAnnouncements.length > 0 && (
-            <div className="w-full px-6 pb-8">
+            <div className="w-full pb-8">
               <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
                 <span>Mais Avisos</span>
                 <span className="text-muted-foreground text-base font-normal">
@@ -228,6 +229,7 @@ const Announcements = () => {
               </div>
             </div>
           )}
+        </main>
 
           {/* Dialog */}
           {isOwner && (
@@ -243,7 +245,6 @@ const Announcements = () => {
             open={suggestionsDialogOpen}
             onOpenChange={setSuggestionsDialogOpen}
           />
-        </div>
       </div>
     </div>
   );
