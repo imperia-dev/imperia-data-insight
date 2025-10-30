@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, AlertTriangle, Clock, ExternalLink } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock, ExternalLink, Bug, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ interface TechDemand {
   priority: string;
   created_at: string;
   assigned_to: string | null;
+  type: string;
+  jira_id: string | null;
 }
 
 interface TechDemandViewDialogProps {
@@ -49,9 +51,20 @@ export const TechDemandViewDialog = ({ open, onOpenChange, demand }: TechDemandV
         <div className="space-y-6">
           {/* Header Info */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            <Badge variant="outline" className="text-sm">
-              {demand.company}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-sm">
+                {demand.company}
+              </Badge>
+              <Badge variant={demand.type === 'bug' ? 'destructive' : 'default'} className="text-sm flex items-center gap-2">
+                {demand.type === 'bug' ? <Bug className="h-4 w-4" /> : <Lightbulb className="h-4 w-4" />}
+                {demand.type === 'bug' ? 'Bug' : 'Melhoria'}
+              </Badge>
+              {demand.jira_id && (
+                <Badge variant="secondary" className="text-sm">
+                  Jira: {demand.jira_id}
+                </Badge>
+              )}
+            </div>
             <Badge className={`text-sm ${priorityInfo.color} flex items-center gap-2`}>
               <PriorityIcon className="h-4 w-4" />
               Prioridade: {priorityInfo.label}

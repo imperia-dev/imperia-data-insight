@@ -19,6 +19,8 @@ interface TechDemand {
   url: string;
   image_url: string | null;
   priority: string;
+  type: string;
+  jira_id: string;
 }
 
 interface TechDemandDialogProps {
@@ -41,6 +43,8 @@ export const TechDemandDialog = ({ open, onOpenChange, demand, onSuccess }: Tech
     url: "",
     image_url: null,
     priority: "medium",
+    type: "bug",
+    jira_id: "",
   });
 
   useEffect(() => {
@@ -56,6 +60,8 @@ export const TechDemandDialog = ({ open, onOpenChange, demand, onSuccess }: Tech
         url: "",
         image_url: null,
         priority: "medium",
+        type: "bug",
+        jira_id: "",
       });
     }
   }, [demand, open]);
@@ -137,6 +143,34 @@ export const TechDemandDialog = ({ open, onOpenChange, demand, onSuccess }: Tech
           <DialogTitle>{demand ? "Editar Demanda" : "Nova Demanda"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="type">Tipo</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bug">Bug</SelectItem>
+                  <SelectItem value="improvement">Melhoria/Task</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="jira_id">ID Jira</Label>
+              <Input
+                id="jira_id"
+                value={formData.jira_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, jira_id: e.target.value }))}
+                placeholder="Ex: PROJ-123"
+              />
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="company">Empresa</Label>
             <Input
@@ -148,13 +182,13 @@ export const TechDemandDialog = ({ open, onOpenChange, demand, onSuccess }: Tech
           </div>
 
           <div>
-            <Label htmlFor="title">Bug/Título</Label>
+            <Label htmlFor="title">Título</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               required
-              placeholder="Descrição breve do problema"
+              placeholder={formData.type === 'bug' ? 'Descrição breve do bug' : 'Descrição da melhoria'}
             />
           </div>
 
@@ -165,7 +199,7 @@ export const TechDemandDialog = ({ open, onOpenChange, demand, onSuccess }: Tech
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               required
-              placeholder="Descreva o bug em detalhes..."
+              placeholder={formData.type === 'bug' ? 'Descreva o bug em detalhes...' : 'Descreva a melhoria em detalhes...'}
               rows={4}
             />
           </div>

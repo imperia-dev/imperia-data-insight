@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Edit, Trash2, AlertCircle, AlertTriangle, Clock, CheckCircle, GripVertical, Eye } from "lucide-react";
+import { ExternalLink, Edit, Trash2, AlertCircle, AlertTriangle, Clock, CheckCircle, GripVertical, Eye, Bug, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSortable } from "@dnd-kit/sortable";
@@ -20,6 +20,8 @@ interface TechDemand {
   priority: string;
   created_at: string;
   assigned_to: string | null;
+  type: string;
+  jira_id: string | null;
 }
 
 interface TechDemandCardProps {
@@ -71,14 +73,27 @@ export const TechDemandCard = ({ demand, onEdit, onDelete, onView, canManage }: 
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
-        <div className="flex-1 flex items-start justify-between gap-2">
-          <Badge variant="outline" className="text-xs">
-            {demand.company}
-          </Badge>
-          <Badge className={`text-xs ${priorityInfo.color} flex items-center gap-1`}>
-            <PriorityIcon className="h-3 w-3" />
-            {priorityInfo.label}
-          </Badge>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Badge variant="outline" className="text-xs">
+              {demand.company}
+            </Badge>
+            <Badge className={`text-xs ${priorityInfo.color} flex items-center gap-1`}>
+              <PriorityIcon className="h-3 w-3" />
+              {priorityInfo.label}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={demand.type === 'bug' ? 'destructive' : 'default'} className="text-xs flex items-center gap-1">
+              {demand.type === 'bug' ? <Bug className="h-3 w-3" /> : <Lightbulb className="h-3 w-3" />}
+              {demand.type === 'bug' ? 'Bug' : 'Melhoria'}
+            </Badge>
+            {demand.jira_id && (
+              <Badge variant="secondary" className="text-xs">
+                {demand.jira_id}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 

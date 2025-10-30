@@ -4294,10 +4294,12 @@ export type Database = {
           error_message: string | null
           id: string
           image_url: string | null
+          jira_id: string | null
           priority: string
           status: string
           steps: string | null
           title: string
+          type: string
           updated_at: string
           url: string | null
         }
@@ -4311,10 +4313,12 @@ export type Database = {
           error_message?: string | null
           id?: string
           image_url?: string | null
+          jira_id?: string | null
           priority?: string
           status?: string
           steps?: string | null
           title: string
+          type?: string
           updated_at?: string
           url?: string | null
         }
@@ -4328,10 +4332,12 @@ export type Database = {
           error_message?: string | null
           id?: string
           image_url?: string | null
+          jira_id?: string | null
           priority?: string
           status?: string
           steps?: string | null
           title?: string
+          type?: string
           updated_at?: string
           url?: string | null
         }

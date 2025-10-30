@@ -48,6 +48,8 @@ interface TechDemand {
   priority: string;
   created_at: string;
   assigned_to: string | null;
+  type: string;
+  jira_id: string | null;
 }
 
 const statusConfig = {
