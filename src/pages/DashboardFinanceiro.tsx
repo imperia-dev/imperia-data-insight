@@ -126,15 +126,13 @@ export default function DashboardFinanceiro() {
       }, {}) || {};
 
       // Buscar gastos com prestadores de serviço hoje
-      const todayStart = new Date(today.setHours(0, 0, 0, 0));
-      const todayEnd = new Date(today.setHours(23, 59, 59, 999));
+      const todayFormatted = today.toISOString().split('T')[0];
 
       const { data: expensesToday } = await supabase
         .from('expenses')
         .select('amount_original')
         .eq('tipo_despesa', 'prestador')
-        .gte('data_competencia', todayStart.toISOString().split('T')[0])
-        .lte('data_competencia', todayEnd.toISOString().split('T')[0]);
+        .eq('data_competencia', todayFormatted);
 
       const { data: expensesMonth } = await supabase
         .from('expenses')
