@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Lightbulb } from "lucide-react";
+import { Plus, Filter, Lightbulb, Megaphone } from "lucide-react";
 import { AnnouncementCard } from "@/components/announcements/AnnouncementCard";
+import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
 import { AnnouncementDialog } from "@/components/announcements/AnnouncementDialog";
 import { SuggestionsDialog } from "@/components/announcements/SuggestionsDialog";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
@@ -126,74 +127,107 @@ const Announcements = () => {
     }
   };
 
+  const mainAnnouncement = announcements && announcements.length > 0 ? announcements[0] : null;
+  const otherAnnouncements = announcements && announcements.length > 1 ? announcements.slice(1) : [];
+
   return (
     <div className="min-h-screen flex w-full">
       <Sidebar userRole={userRole} />
       <div className={mainContainerClass}>
         <Header userName={user?.user_metadata?.full_name || "Usuário"} userRole={userRole} />
-        <div className="container mx-auto p-6 space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold">Avisos</h1>
-              <p className="text-muted-foreground mt-1">
-                Informações e atualizações importantes para a equipe
-              </p>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filtrar por tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  <SelectItem value="info">Informativo</SelectItem>
-                  <SelectItem value="warning">Atenção</SelectItem>
-                  <SelectItem value="success">Sucesso</SelectItem>
-                  <SelectItem value="error">Urgente</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" onClick={() => setSuggestionsDialogOpen(true)}>
-                <Lightbulb className="h-4 w-4 mr-2" />
-                Sugestões
-              </Button>
-              {isOwner && (
-                <Button onClick={handleCreateNew}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Aviso
-                </Button>
-              )}
+        <div className="w-full space-y-8">
+          {/* Header com gradiente */}
+          <div className="bg-gradient-to-br from-primary/5 via-background to-background border-b">
+            <div className="container mx-auto px-6 py-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                    <Megaphone className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold">Avisos</h1>
+                    <p className="text-muted-foreground mt-1">
+                      Fique por dentro das novidades e informações importantes
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filtrar por tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os tipos</SelectItem>
+                      <SelectItem value="info">Informativo</SelectItem>
+                      <SelectItem value="warning">Atenção</SelectItem>
+                      <SelectItem value="success">Sucesso</SelectItem>
+                      <SelectItem value="error">Urgente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" onClick={() => setSuggestionsDialogOpen(true)}>
+                    <Lightbulb className="h-4 w-4 mr-2" />
+                    Sugestões
+                  </Button>
+                  {isOwner && (
+                    <Button onClick={handleCreateNew}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Aviso
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-      {/* Announcements Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-64 bg-muted animate-pulse rounded-lg" />
-          ))}
-        </div>
-      ) : announcements && announcements.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {announcements.map((announcement) => (
-            <AnnouncementCard
-              key={announcement.id}
-              announcement={announcement}
-              isOwner={isOwner}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            Nenhum aviso encontrado
-            {typeFilter !== "all" && " para este filtro"}.
-          </p>
-        </div>
-      )}
+          {/* Main Banner - Full Width */}
+          {isLoading ? (
+            <div className="w-full px-6">
+              <div className="h-[400px] bg-muted animate-pulse rounded-2xl" />
+            </div>
+          ) : mainAnnouncement ? (
+            <div className="w-full px-6">
+              <AnnouncementBanner
+                announcement={mainAnnouncement}
+                isOwner={isOwner}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </div>
+          ) : (
+            <div className="w-full px-6">
+              <div className="text-center py-20 bg-muted/30 rounded-2xl border-2 border-dashed">
+                <Megaphone className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-lg text-muted-foreground">
+                  Nenhum aviso encontrado
+                  {typeFilter !== "all" && " para este filtro"}.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Other Announcements - Cards Grid */}
+          {!isLoading && otherAnnouncements.length > 0 && (
+            <div className="container mx-auto px-6 pb-8">
+              <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+                <span>Mais Avisos</span>
+                <span className="text-muted-foreground text-base font-normal">
+                  ({otherAnnouncements.length})
+                </span>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {otherAnnouncements.map((announcement) => (
+                  <AnnouncementCard
+                    key={announcement.id}
+                    announcement={announcement}
+                    isOwner={isOwner}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Dialog */}
           {isOwner && (
