@@ -204,12 +204,11 @@ export default function Wallet() {
   const filteredOrders = orders.filter(order => {
     if (!startDate && !endDate) return true;
     
-    const orderDate = new Date(order.delivered_at);
-    const start = startDate ? new Date(startDate) : null;
-    const end = endDate ? new Date(endDate) : null;
+    // Compare only the date part (YYYY-MM-DD) to avoid timezone issues
+    const orderDateStr = order.delivered_at.split('T')[0];
     
-    if (start && orderDate < start) return false;
-    if (end && orderDate > end) return false;
+    if (startDate && orderDateStr < startDate) return false;
+    if (endDate && orderDateStr > endDate) return false;
     
     return true;
   });
