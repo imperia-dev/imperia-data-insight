@@ -97,15 +97,11 @@ export default function Wallet() {
 
       if (error) throw error;
 
-      const PAYMENT_PER_DOCUMENT = 1.30;
       const ordersWithPayment = data?.map(order => {
-        // Calcular valor baseado no tipo de serviço
-        let paymentAmount: number;
-        if (order.service_type === 'Diagramação' && (order as any).custom_value_diagramming) {
-          paymentAmount = (order as any).custom_value_diagramming;
-        } else {
-          paymentAmount = (order.document_count || 0) * PAYMENT_PER_DOCUMENT;
-        }
+        // Calculate payment using the new structure with separate drive and diagramming values
+        const driveValue = Number(order.drive_value) || 0;
+        const diagrammingValue = Number(order.diagramming_value) || 0;
+        const paymentAmount = driveValue + diagrammingValue;
 
         return {
           id: order.id,
