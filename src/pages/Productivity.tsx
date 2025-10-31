@@ -148,17 +148,14 @@ export default function Financial() {
         }
       }
       
-      // Convert local time to UTC (Brazil is UTC-3, so we subtract 3 hours)
-      const timezoneOffset = -3 * 60 * 60 * 1000; // -3 hours in milliseconds
-      const startDateUTC = new Date(startDate.getTime() + timezoneOffset);
-      const endDateUTC = new Date(endDate.getTime() + timezoneOffset);
+      // Convert dates to São Paulo timezone for proper comparison
+      const startDateSP = toSaoPauloTime(startDate);
+      const endDateSP = toSaoPauloTime(endDate);
       
       console.log('Productivity - Date filter:', {
         period: selectedPeriod,
-        localStart: format(startDate, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
-        localEnd: format(endDate, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
-        utcStart: startDateUTC.toISOString(),
-        utcEnd: endDateUTC.toISOString()
+        startSP: format(startDateSP, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
+        endSP: format(endDateSP, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })
       });
       
       // Fetch orders from service providers with date filter
@@ -203,7 +200,7 @@ export default function Financial() {
           dateToCheck = toSaoPauloTime(order.created_at);
         }
         
-        const isInRange = dateToCheck >= startDate && dateToCheck <= endDate;
+        const isInRange = dateToCheck >= startDateSP && dateToCheck <= endDateSP;
         
         if (isInRange && selectedPeriod === 'day') {
           console.log('Order in today\'s range:', {
