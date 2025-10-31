@@ -1159,7 +1159,7 @@ export function Orders() {
                       Preview Yellowling
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" key={isPreviewEditMode ? "edit-mode" : "view-mode"}>
                     <DialogHeader>
                       <div className="flex items-center justify-between">
                         <DialogTitle>Preview de Pedidos - Yellowling</DialogTitle>
