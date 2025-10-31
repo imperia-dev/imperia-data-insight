@@ -953,8 +953,10 @@ export default function Dashboard() {
         .gte('attribution_date', firstDayOfMonth.toISOString())
         .lte('attribution_date', lastDayOfMonth.toISOString());
 
-      const monthlyErrorRate = ordersMonth?.length ? 
-        ((pendenciesMonth?.length || 0) / ordersMonth.length * 100) : 0;
+      // Calculate monthly error rate based on documents, not orders
+      const totalDocumentsMonth = ordersMonth?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+      const monthlyErrorRate = totalDocumentsMonth > 0 ? 
+        ((pendenciesMonth?.length || 0) / totalDocumentsMonth * 100) : 0;
 
       // Agrupar documentos por cliente
       const documentsByCustomer = ordersMonth?.reduce((acc: any, order: any) => {
@@ -966,24 +968,20 @@ export default function Dashboard() {
         return acc;
       }, {}) || {};
 
-      // Buscar gastos com prestadores de serviço
-      const todayFormatted = today.toISOString().split('T')[0];
+      // Buscar pedidos entregues do mês para calcular gastos com prestadores
+      const { data: deliveredOrdersMonth } = await supabase
+        .from('orders')
+        .select('drive_value, diagramming_value, custom_value_diagramming')
+        .eq('status_order', 'delivered')
+        .gte('delivered_at', firstDayOfMonth.toISOString())
+        .lte('delivered_at', lastDayOfMonth.toISOString());
 
-      const { data: expensesToday } = await supabase
-        .from('expenses')
-        .select('amount_original')
-        .eq('tipo_despesa', 'prestador')
-        .eq('data_competencia', todayFormatted);
-
-      const { data: expensesMonth } = await supabase
-        .from('expenses')
-        .select('amount_original')
-        .eq('tipo_despesa', 'prestador')
-        .gte('data_competencia', firstDayOfMonth.toISOString().split('T')[0])
-        .lte('data_competencia', lastDayOfMonth.toISOString().split('T')[0]);
-
-      const providerCostsToday = expensesToday?.reduce((sum, e) => sum + (e.amount_original || 0), 0) || 0;
-      const providerCostsMonth = expensesMonth?.reduce((sum, e) => sum + (e.amount_original || 0), 0) || 0;
+      // Calculate provider costs from delivered orders (drive + diagramming)
+      const providerCostsMonth = deliveredOrdersMonth?.reduce((sum, order) => {
+        const driveValue = order.drive_value || 0;
+        const diagrammingValue = order.custom_value_diagramming || order.diagramming_value || 0;
+        return sum + driveValue + diagrammingValue;
+      }, 0) || 0;
 
       // Formatar valores monetários
       const formatCurrency = (value: number) => {
@@ -1008,7 +1006,6 @@ export default function Dashboard() {
         { label: 'Atrasos', value: delays.toLocaleString('pt-BR'), percentage: delayPercentage },
         { label: 'Média IA', value: averageScore.toFixed(2) },
         { label: 'Taxa de Erro do Mês', value: `${monthlyErrorRate.toFixed(2)}%` },
-        { label: 'Gasto Prestadores (Hoje)', value: formatCurrency(providerCostsToday) },
         { label: 'Gasto Prestadores (Mês)', value: formatCurrency(providerCostsMonth) },
       ];
 
