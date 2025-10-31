@@ -2704,6 +2704,8 @@ export type Database = {
           updated_at: string
           urgency_tag: string | null
           urgent_document_count: number | null
+          yellowling_id: string | null
+          yellowling_status: string | null
         }
         Insert: {
           account_ID?: string | null
@@ -2737,6 +2739,8 @@ export type Database = {
           updated_at?: string
           urgency_tag?: string | null
           urgent_document_count?: number | null
+          yellowling_id?: string | null
+          yellowling_status?: string | null
         }
         Update: {
           account_ID?: string | null
@@ -2770,6 +2774,8 @@ export type Database = {
           updated_at?: string
           urgency_tag?: string | null
           urgent_document_count?: number | null
+          yellowling_id?: string | null
+          yellowling_status?: string | null
         }
         Relationships: [
           {

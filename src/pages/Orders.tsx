@@ -84,6 +84,8 @@ export function Orders() {
   const [selectedDelayOrders, setSelectedDelayOrders] = useState<Set<string>>(new Set());
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
   const [previewOpenedAt, setPreviewOpenedAt] = useState<Date | null>(null);
+  const [isPreviewEditMode, setIsPreviewEditMode] = useState(false);
+  const [previewEditData, setPreviewEditData] = useState<Record<string, { status: string; id: string }>>({});
   const [filters, setFilters] = useState<OrderFiltersType>({
     orderNumber: "",
     status: "all",
@@ -682,6 +684,41 @@ export function Orders() {
     },
   });
 
+  // Update Yellowling preview data mutation
+  const updateYellowlingDataMutation = useMutation({
+    mutationFn: async (updates: Record<string, { status: string; id: string }>) => {
+      // Update each order with its yellowling data
+      const promises = Object.entries(updates).map(([orderId, data]) => 
+        supabase
+          .from("orders")
+          .update({
+            yellowling_status: data.status || null,
+            yellowling_id: data.id || null,
+          })
+          .eq("id", orderId)
+      );
+      
+      const results = await Promise.all(promises);
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) throw errors[0].error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setIsPreviewEditMode(false);
+      toast({
+        title: "Dados salvos",
+        description: "As informações do Yellowling foram atualizadas com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete order mutation
   const deleteOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
@@ -1127,6 +1164,40 @@ export function Orders() {
                       <div className="flex items-center justify-between">
                         <DialogTitle>Preview de Pedidos - Yellowling</DialogTitle>
                         <div className="flex items-center gap-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (isPreviewEditMode) {
+                                // Cancelar edição
+                                setIsPreviewEditMode(false);
+                                setPreviewEditData({});
+                              } else {
+                                // Iniciar edição - carregar dados existentes
+                                const initialData: Record<string, { status: string; id: string }> = {};
+                                orders?.filter(order => order.customer === "Yellowling").forEach(order => {
+                                  initialData[order.id] = {
+                                    status: (order as any).yellowling_status || "",
+                                    id: (order as any).yellowling_id || "",
+                                  };
+                                });
+                                setPreviewEditData(initialData);
+                                setIsPreviewEditMode(true);
+                              }
+                            }}
+                          >
+                            {isPreviewEditMode ? "Cancelar" : <><Edit className="mr-2 h-4 w-4" />Editar</>}
+                          </Button>
+                          {isPreviewEditMode && (
+                            <Button
+                              size="sm"
+                              onClick={() => updateYellowlingDataMutation.mutate(previewEditData)}
+                              disabled={updateYellowlingDataMutation.isPending}
+                            >
+                              <Save className="mr-2 h-4 w-4" />
+                              Salvar
+                            </Button>
+                          )}
                           <img 
                             src="/yellowling-logo.png" 
                             alt="Yellowling Logo" 
@@ -1160,6 +1231,12 @@ export function Orders() {
                               <TableHead>Data de Atribuição</TableHead>
                               <TableHead>Deadline</TableHead>
                               <TableHead>Tags</TableHead>
+                              {isPreviewEditMode && (
+                                <>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>ID Yellowling</TableHead>
+                                </>
+                              )}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1219,6 +1296,49 @@ export function Orders() {
                                     )}
                                   </div>
                                 </TableCell>
+                                {isPreviewEditMode && (
+                                  <>
+                                    <TableCell>
+                                      <Select
+                                        value={previewEditData[order.id]?.status || ""}
+                                        onValueChange={(value) => {
+                                          setPreviewEditData({
+                                            ...previewEditData,
+                                            [order.id]: {
+                                              status: value,
+                                              id: previewEditData[order.id]?.id || "",
+                                            }
+                                          });
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-[140px]">
+                                          <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="Finalizado">Finalizado</SelectItem>
+                                          <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Input
+                                        type="text"
+                                        placeholder="ID Yellowling"
+                                        value={previewEditData[order.id]?.id || ""}
+                                        onChange={(e) => {
+                                          setPreviewEditData({
+                                            ...previewEditData,
+                                            [order.id]: {
+                                              status: previewEditData[order.id]?.status || "",
+                                              id: e.target.value,
+                                            }
+                                          });
+                                        }}
+                                        className="w-[150px]"
+                                      />
+                                    </TableCell>
+                                  </>
+                                )}
                               </TableRow>
                             ))}
                           </TableBody>
