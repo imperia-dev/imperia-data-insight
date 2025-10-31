@@ -44,6 +44,8 @@ interface TopPerformer {
   user_name: string;
   document_count: number;
   total_amount: number;
+  drive_value: number;
+  diagramming_value: number;
 }
 
 export default function Financial() {
@@ -491,7 +493,9 @@ export default function Financial() {
     .map(payment => ({
       user_name: payment.user_name,
       document_count: payment.total_documents,
-      total_amount: payment.total_amount
+      total_amount: payment.total_amount,
+      drive_value: payment.drive_value,
+      diagramming_value: payment.diagramming_value
     }));
   
   console.log('Productivity - Top performers count:', topPerformers.length);
@@ -741,9 +745,19 @@ export default function Financial() {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg text-primary">{formatCurrency(performer.total_amount)}</p>
-                        <p className="text-xs text-muted-foreground">Total ganho</p>
+                      <div className="text-right space-y-1">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-xs text-muted-foreground">Drive:</span>
+                          <span className="font-semibold text-sm">{formatCurrency(performer.drive_value)}</span>
+                        </div>
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-xs text-muted-foreground">Diagramação:</span>
+                          <span className="font-semibold text-sm">{formatCurrency(performer.diagramming_value)}</span>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1 border-t">
+                          <span className="text-xs font-medium text-muted-foreground">Total:</span>
+                          <span className="font-bold text-lg text-primary">{formatCurrency(performer.total_amount)}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
