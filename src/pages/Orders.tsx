@@ -36,7 +36,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock, Hammer, Eye } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock, Hammer, Eye, Flame, CheckCircle } from "lucide-react";
 import googleDriveLogo from "@/assets/google-drive-logo.png";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
@@ -1338,7 +1338,18 @@ export function Orders() {
                                   <>
                                     <TableCell>
                                       {(order as any).yellowling_status ? (
-                                        <Badge variant="outline">{(order as any).yellowling_status}</Badge>
+                                        <Badge 
+                                          variant="outline"
+                                          className={cn(
+                                            "flex items-center gap-1",
+                                            (order as any).yellowling_status === "Em Andamento" && "bg-orange-100 text-orange-700 border-orange-300",
+                                            (order as any).yellowling_status === "Finalizado" && "bg-green-100 text-green-700 border-green-300"
+                                          )}
+                                        >
+                                          {(order as any).yellowling_status === "Em Andamento" && <Flame className="h-3 w-3" />}
+                                          {(order as any).yellowling_status === "Finalizado" && <CheckCircle className="h-3 w-3" />}
+                                          {(order as any).yellowling_status}
+                                        </Badge>
                                       ) : (
                                         <span className="text-muted-foreground text-sm">-</span>
                                       )}
