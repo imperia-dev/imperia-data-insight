@@ -9,6 +9,7 @@ import { ProtocolWorkflowTimeline } from "./ProtocolWorkflowTimeline";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDateBR, formatDateOnlyBR } from "@/lib/dateUtils";
 import { Building, Mail, Phone, CreditCard, FileText, Calendar, CheckCircle, XCircle, Clock, User, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,12 +41,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
   }, [open, protocol]);
 
   const formatDate = (date: string | null | undefined, formatString: string = "dd/MM/yyyy 'às' HH:mm") => {
-    if (!date) return "N/A";
-    try {
-      return format(new Date(date), formatString, { locale: ptBR });
-    } catch {
-      return "Data inválida";
-    }
+    return formatDateBR(date, formatString);
   };
 
   const getUserInfo = async (userId: string | null) => {
@@ -211,7 +207,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
             <div>
               <DialogTitle className="text-2xl">{protocol.protocol_number}</DialogTitle>
               <DialogDescription>
-                Competência: {formatDate(protocol.competence_month, "MMMM 'de' yyyy")}
+                Competência: {formatDateBR(protocol.competence_month, "MMMM 'de' yyyy")}
               </DialogDescription>
             </div>
             <ProtocolStatusBadge status={protocol.status} />
@@ -333,7 +329,7 @@ export function ProtocolDetailsDialog({ protocol, open, onOpenChange }: Protocol
                           <TableCell className="font-medium">{expense.expense_id}</TableCell>
                           <TableCell>{expense.description}</TableCell>
                           <TableCell>{expense.document_count || 0} docs</TableCell>
-                          <TableCell>{formatDate(expense.delivered_at, "dd/MM/yyyy HH:mm")}</TableCell>
+                          <TableCell>{formatDateBR(expense.delivered_at)}</TableCell>
                           <TableCell className="text-right">{formatCurrency(expense.amount || 0)}</TableCell>
                         </TableRow>
                       ))

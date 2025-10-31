@@ -9,6 +9,7 @@ import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDateBR, formatDateOnlyBR, toSaoPauloTime } from "@/lib/dateUtils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -204,8 +205,9 @@ export default function Wallet() {
   const filteredOrders = orders.filter(order => {
     if (!startDate && !endDate) return true;
     
-    // Compare only the date part (YYYY-MM-DD) to avoid timezone issues
-    const orderDateStr = order.delivered_at.split('T')[0];
+    // Convert UTC to São Paulo time and compare dates
+    const orderDate = toSaoPauloTime(order.delivered_at);
+    const orderDateStr = format(orderDate, 'yyyy-MM-dd');
     
     if (startDate && orderDateStr < startDate) return false;
     if (endDate && orderDateStr > endDate) return false;
@@ -234,11 +236,11 @@ export default function Wallet() {
     doc.text(`Email: ${userEmail}`, 14, 36);
     
     if (startDate || endDate) {
-      const periodText = `Período: ${startDate ? format(new Date(startDate), 'dd/MM/yyyy') : 'Início'} a ${endDate ? format(new Date(endDate), 'dd/MM/yyyy') : 'Hoje'}`;
+      const periodText = `Período: ${startDate ? formatDateOnlyBR(startDate) : 'Início'} a ${endDate ? formatDateOnlyBR(endDate) : 'Hoje'}`;
       doc.text(periodText, 14, 42);
     }
     
-    doc.text(`Data do Relatório: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, startDate || endDate ? 48 : 42);
+    doc.text(`Data do Relatório: ${formatDateBR(new Date())}`, 14, startDate || endDate ? 48 : 42);
     
     // Table
     const tableData = filteredOrders.map(order => [
@@ -246,8 +248,8 @@ export default function Wallet() {
       formatCurrency(order.drive_value),
       formatCurrency(order.diagramming_value),
       formatCurrency(order.payment_amount),
-      order.attribution_date ? format(new Date(order.attribution_date), 'dd/MM/yyyy') : '-',
-      format(new Date(order.delivered_at), 'dd/MM/yyyy')
+      order.attribution_date ? formatDateOnlyBR(order.attribution_date) : '-',
+      formatDateOnlyBR(order.delivered_at)
     ]);
     
     autoTable(doc, {
@@ -443,11 +445,9 @@ export default function Wallet() {
                       <TableBody>
                         {filteredOrders.map((order) => (
                           <TableRow key={order.id}>
-                            <TableCell className="font-medium">{order.order_number}</TableCell>
-                            <TableCell>
-                              {format(new Date(order.delivered_at), "dd/MM/yyyy", { locale: ptBR })}
-                            </TableCell>
-                            <TableCell className="text-center">{order.document_count}</TableCell>
+                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                        <TableCell>{formatDateBR(order.delivered_at)}</TableCell>
+                        <TableCell className="text-center">{order.document_count}</TableCell>
                             <TableCell className="text-right font-bold text-primary">
                               {formatCurrency(order.payment_amount)}
                             </TableCell>

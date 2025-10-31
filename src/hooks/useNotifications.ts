@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toSaoPauloTime } from '@/lib/dateUtils';
 
 export interface Notification {
   id: string;
@@ -331,17 +332,16 @@ export function useNotifications() {
   }
 
   function getTimeAgo(timestamp: string) {
-    const now = new Date();
-    const date = new Date(timestamp);
-    const minutes = differenceInMinutes(now, date);
-    const hours = differenceInHours(now, date);
-    const days = differenceInDays(now, date);
-
-    if (minutes < 1) return 'agora';
-    if (minutes < 60) return `${minutes} min atrás`;
-    if (hours < 24) return `${hours}h atrás`;
-    if (days < 7) return `${days}d atrás`;
-    return date.toLocaleDateString('pt-BR');
+    try {
+      // Convert UTC notification date to São Paulo time
+      const notificationDate = toSaoPauloTime(timestamp);
+      return formatDistanceToNow(notificationDate, { 
+        addSuffix: true, 
+        locale: ptBR 
+      });
+    } catch {
+      return 'Data inválida';
+    }
   }
 
   return {

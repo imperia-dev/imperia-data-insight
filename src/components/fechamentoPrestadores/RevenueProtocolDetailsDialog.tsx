@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/currency";
+import { formatDateBR } from "@/lib/dateUtils";
 
 interface RevenueProtocol {
   id: string;
@@ -52,16 +53,13 @@ export function RevenueProtocolDetailsDialog({
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Competência</p>
                 <p className="text-sm">
-                  {new Date(protocol.competence_month).toLocaleDateString('pt-BR', { 
-                    month: 'long', 
-                    year: 'numeric' 
-                  })}
+                  {formatDateBR(protocol.competence_month, "MMMM 'de' yyyy")}
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Data de Criação</p>
                 <p className="text-sm">
-                  {new Date(protocol.created_at).toLocaleDateString('pt-BR')}
+                  {formatDateBR(protocol.created_at)}
                 </p>
               </div>
               <div>
@@ -126,14 +124,14 @@ export function RevenueProtocolDetailsDialog({
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Pagamento Solicitado em</p>
                   <p className="text-sm">
-                    {new Date(protocol.payment_requested_at).toLocaleString('pt-BR')}
+                    {formatDateBR(protocol.payment_requested_at)}
                   </p>
                 </div>
                 {protocol.payment_received_at && (
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Pagamento Recebido em</p>
                     <p className="text-sm">
-                      {new Date(protocol.payment_received_at).toLocaleString('pt-BR')}
+                      {formatDateBR(protocol.payment_received_at)}
                     </p>
                   </div>
                 )}

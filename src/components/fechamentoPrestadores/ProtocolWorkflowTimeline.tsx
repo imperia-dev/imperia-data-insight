@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDateBR } from "@/lib/dateUtils";
 import { CheckCircle, Clock, AlertCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -81,16 +82,16 @@ export function ProtocolWorkflowTimeline({ steps }: ProtocolWorkflowTimelineProp
 
               <div className="text-right space-y-1">
                 <p className="text-xs text-muted-foreground">
-                  Iniciado: {format(new Date(step.started_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  Iniciado: {formatDateBR(step.started_at)}
                 </p>
                 {step.completed_at && (
                   <p className="text-xs text-green-600">
-                    Concluído: {format(new Date(step.completed_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                    Concluído: {formatDateBR(step.completed_at)}
                   </p>
                 )}
                 {step.due_date && !step.completed_at && (
                   <p className="text-xs text-orange-600">
-                    Prazo: {format(new Date(step.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                    Prazo: {formatDateBR(step.due_date, "dd/MM/yyyy")}
                   </p>
                 )}
               </div>

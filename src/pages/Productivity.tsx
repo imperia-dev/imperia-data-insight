@@ -12,6 +12,7 @@ import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDateBR, formatDateOnlyBR, toSaoPauloTime } from "@/lib/dateUtils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -189,20 +190,20 @@ export default function Financial() {
       
       console.log('Productivity - Raw orders fetched:', ordersData?.length, 'orders');
       
-      // Filter orders based on date
+      // Filter orders based on date (using São Paulo timezone)
       const filteredOrders = ordersData?.filter(order => {
         // For delivered orders, use delivered_at
         // For in_progress orders, use assigned_at or created_at
         let dateToCheck;
         if (order.status_order === 'delivered' && order.delivered_at) {
-          dateToCheck = new Date(order.delivered_at);
+          dateToCheck = toSaoPauloTime(order.delivered_at);
         } else if (order.assigned_at) {
-          dateToCheck = new Date(order.assigned_at);
+          dateToCheck = toSaoPauloTime(order.assigned_at);
         } else {
-          dateToCheck = new Date(order.created_at);
+          dateToCheck = toSaoPauloTime(order.created_at);
         }
         
-        const isInRange = dateToCheck >= startDateUTC && dateToCheck <= endDateUTC;
+        const isInRange = dateToCheck >= startDate && dateToCheck <= endDate;
         
         if (isInRange && selectedPeriod === 'day') {
           console.log('Order in today\'s range:', {
@@ -251,17 +252,17 @@ export default function Financial() {
       filteredOrders.forEach(order => {
         if (!order.assigned_to) return;
         
-        // Use the appropriate date based on order status
+        // Use the appropriate date based on order status (convert to São Paulo time)
         let dateToUse;
         if (order.status_order === 'delivered' && order.delivered_at) {
-          dateToUse = order.delivered_at;
+          dateToUse = toSaoPauloTime(order.delivered_at);
         } else if (order.assigned_at) {
-          dateToUse = order.assigned_at;
+          dateToUse = toSaoPauloTime(order.assigned_at);
         } else {
-          dateToUse = order.created_at;
+          dateToUse = toSaoPauloTime(order.created_at);
         }
         
-        const date = new Date(dateToUse).toISOString().split('T')[0];
+        const date = format(dateToUse, 'yyyy-MM-dd');
         const userId = order.assigned_to;
         const userName = userNamesMap.get(userId) || 'Unknown';
         // Use actual order values with priority: custom_value_diagramming > diagramming_value
