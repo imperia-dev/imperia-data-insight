@@ -2795,6 +2795,45 @@ export type Database = {
           },
         ]
       }
+      orders_backup_correction_20251031: {
+        Row: {
+          backed_up_at: string | null
+          created_at: string | null
+          diagramming_document_count: number | null
+          diagramming_pages_total: number | null
+          diagramming_value: number | null
+          document_count: number | null
+          drive_document_count: number | null
+          drive_value: number | null
+          id: string
+          service_type: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          created_at?: string | null
+          diagramming_document_count?: number | null
+          diagramming_pages_total?: number | null
+          diagramming_value?: number | null
+          document_count?: number | null
+          drive_document_count?: number | null
+          drive_value?: number | null
+          id: string
+          service_type?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          created_at?: string | null
+          diagramming_document_count?: number | null
+          diagramming_pages_total?: number | null
+          diagramming_value?: number | null
+          document_count?: number | null
+          drive_document_count?: number | null
+          drive_value?: number | null
+          id?: string
+          service_type?: string | null
+        }
+        Relationships: []
+      }
       password_reset_tokens: {
         Row: {
           created_at: string | null
