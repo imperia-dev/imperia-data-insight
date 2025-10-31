@@ -1231,12 +1231,8 @@ export function Orders() {
                               <TableHead>Data de Atribuição</TableHead>
                               <TableHead>Deadline</TableHead>
                               <TableHead>Tags</TableHead>
-                              {isPreviewEditMode && (
-                                <>
-                                  <TableHead>Status</TableHead>
-                                  <TableHead>ID Yellowling</TableHead>
-                                </>
-                              )}
+                              <TableHead>Status</TableHead>
+                              <TableHead>ID Yellowling</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1296,7 +1292,7 @@ export function Orders() {
                                     )}
                                   </div>
                                 </TableCell>
-                                {isPreviewEditMode && (
+                                {isPreviewEditMode ? (
                                   <>
                                     <TableCell>
                                       <Select
@@ -1336,6 +1332,19 @@ export function Orders() {
                                         }}
                                         className="w-[150px]"
                                       />
+                                    </TableCell>
+                                  </>
+                                ) : (
+                                  <>
+                                    <TableCell>
+                                      {(order as any).yellowling_status ? (
+                                        <Badge variant="outline">{(order as any).yellowling_status}</Badge>
+                                      ) : (
+                                        <span className="text-muted-foreground text-sm">-</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      {(order as any).yellowling_id || <span className="text-muted-foreground text-sm">-</span>}
                                     </TableCell>
                                   </>
                                 )}
