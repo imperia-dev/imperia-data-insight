@@ -64,6 +64,7 @@ export default function Financial() {
   const [customStartTime, setCustomStartTime] = useState("00:00");
   const [customEndTime, setCustomEndTime] = useState("23:59");
   const [observations, setObservations] = useState("");
+  const [showAllPerformers, setShowAllPerformers] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -489,7 +490,7 @@ export default function Financial() {
   console.log('Productivity - Current userRole for filtering:', userRole);
   
   const topPerformers: TopPerformer[] = filteredPayments
-    .slice(0, 5)
+    .slice(0, showAllPerformers ? filteredPayments.length : 5)
     .map(payment => ({
       user_name: payment.user_name,
       document_count: payment.total_documents,
@@ -708,12 +709,21 @@ export default function Financial() {
             <Card className="mb-8">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Top 5 Prestadores</CardTitle>
+                  <CardTitle>{showAllPerformers ? 'Todos os Prestadores' : 'Top 5 Prestadores'}</CardTitle>
                   <CardDescription>
                     Ranking dos prestadores com mais documentos traduzidos
                   </CardDescription>
                 </div>
-                <Trophy className="h-5 w-5 text-primary" />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllPerformers(!showAllPerformers)}
+                  >
+                    {showAllPerformers ? 'Ver Top 5' : 'Ver Todos'}
+                  </Button>
+                  <Trophy className="h-5 w-5 text-primary" />
+                </div>
               </CardHeader>
               <CardContent>
               {loading ? (
