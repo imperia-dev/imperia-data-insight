@@ -126,9 +126,12 @@ export default function Financial() {
             endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
             break;
           case 'month':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            endDate = new Date(now.getFullYear(), now.getMonth(), lastDay, 23, 59, 59, 999);
+            // Create dates for the first and last day of the month in São Paulo timezone
+            const firstDayOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00-03:00`;
+            const lastDayNum = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const lastDayOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDayNum).padStart(2, '0')}T23:59:59.999-03:00`;
+            startDate = new Date(firstDayOfMonth);
+            endDate = new Date(lastDayOfMonth);
             break;
           case 'quarter':
             const quarter = Math.floor(now.getMonth() / 3);
