@@ -3,7 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Wallet as WalletIcon, TrendingUp, FileText, Clock, CheckCircle, AlertCircle, Info, FileEdit } from "lucide-react";
+import { Wallet as WalletIcon, TrendingUp, FileText, Clock, CheckCircle, AlertCircle, Info, FileEdit, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,13 +18,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface OrderPayment {
   id: string;
   order_number: string;
   document_count: number;
   delivered_at: string;
+  attribution_date: string;
   payment_amount: number;
+  drive_value: number;
+  diagramming_value: number;
 }
 
 interface ServiceProviderProtocol {
@@ -54,6 +59,8 @@ export default function Wallet() {
   const [filterCompetence, setFilterCompetence] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterProtocolNumber, setFilterProtocolNumber] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -108,7 +115,10 @@ export default function Wallet() {
           order_number: order.order_number,
           document_count: order.document_count || 0,
           delivered_at: order.delivered_at,
-          payment_amount: paymentAmount
+          attribution_date: order.attribution_date,
+          payment_amount: paymentAmount,
+          drive_value: driveValue,
+          diagramming_value: diagrammingValue
         };
       }) || [];
 
@@ -191,9 +201,82 @@ export default function Wallet() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const totalEarnings = orders.reduce((sum, order) => sum + order.payment_amount, 0);
-  const totalDocuments = orders.reduce((sum, order) => sum + order.document_count, 0);
-  const averagePerOrder = orders.length > 0 ? totalEarnings / orders.length : 0;
+  const filteredOrders = orders.filter(order => {
+    if (!startDate && !endDate) return true;
+    
+    const orderDate = new Date(order.delivered_at);
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    
+    if (start && orderDate < start) return false;
+    if (end && orderDate > end) return false;
+    
+    return true;
+  });
+
+  const totalEarnings = filteredOrders.reduce((sum, order) => sum + order.payment_amount, 0);
+  const totalDocuments = filteredOrders.reduce((sum, order) => sum + order.document_count, 0);
+  const averagePerOrder = filteredOrders.length > 0 ? totalEarnings / filteredOrders.length : 0;
+
+  const exportToPDF = () => {
+    if (filteredOrders.length === 0) {
+      toast.error("Nenhum pedido para exportar");
+      return;
+    }
+
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(18);
+    doc.text('Relatório de Pedidos - Carteira', 14, 20);
+    
+    doc.setFontSize(11);
+    doc.text(`Prestador: ${userName}`, 14, 30);
+    doc.text(`Email: ${userEmail}`, 14, 36);
+    
+    if (startDate || endDate) {
+      const periodText = `Período: ${startDate ? format(new Date(startDate), 'dd/MM/yyyy') : 'Início'} a ${endDate ? format(new Date(endDate), 'dd/MM/yyyy') : 'Hoje'}`;
+      doc.text(periodText, 14, 42);
+    }
+    
+    doc.text(`Data do Relatório: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, startDate || endDate ? 48 : 42);
+    
+    // Table
+    const tableData = filteredOrders.map(order => [
+      order.order_number,
+      formatCurrency(order.drive_value),
+      formatCurrency(order.diagramming_value),
+      formatCurrency(order.payment_amount),
+      order.attribution_date ? format(new Date(order.attribution_date), 'dd/MM/yyyy') : '-',
+      format(new Date(order.delivered_at), 'dd/MM/yyyy')
+    ]);
+    
+    autoTable(doc, {
+      startY: startDate || endDate ? 54 : 48,
+      head: [['Pedido', 'Drive', 'Diagramação', 'Total', 'Dt. Atribuição', 'Dt. Entrega']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [41, 128, 185] },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        1: { halign: 'right' },
+        2: { halign: 'right' },
+        3: { halign: 'right' }
+      }
+    });
+    
+    // Footer with totals
+    const finalY = (doc as any).lastAutoTable.finalY || 54;
+    doc.setFontSize(10);
+    doc.text(`Total de Pedidos: ${filteredOrders.length}`, 14, finalY + 10);
+    doc.text(`Total de Documentos: ${totalDocuments}`, 14, finalY + 16);
+    doc.text(`Total Geral: ${formatCurrency(totalEarnings)}`, 14, finalY + 22);
+    
+    const fileName = `carteira-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`;
+    doc.save(fileName);
+    
+    toast.success("PDF exportado com sucesso!");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -219,6 +302,46 @@ export default function Wallet() {
             </TabsList>
 
             <TabsContent value="earnings" className="space-y-6">
+              {/* Date Filters */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="startDate">Data Inicial</Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="endDate">Data Final</Label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        setStartDate("");
+                        setEndDate("");
+                      }}
+                      variant="outline"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Limpar
+                    </Button>
+                    <Button onClick={exportToPDF}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
@@ -304,9 +427,9 @@ export default function Wallet() {
                     <div className="text-center py-8 text-muted-foreground">
                       Carregando dados...
                     </div>
-                  ) : orders.length === 0 ? (
+                  ) : filteredOrders.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      Nenhum pedido entregue ainda
+                      Nenhum pedido encontrado para o período selecionado
                     </div>
                   ) : (
                     <Table>
@@ -319,7 +442,7 @@ export default function Wallet() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {orders.map((order) => (
+                        {filteredOrders.map((order) => (
                           <TableRow key={order.id}>
                             <TableCell className="font-medium">{order.order_number}</TableCell>
                             <TableCell>
