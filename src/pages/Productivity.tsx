@@ -478,6 +478,8 @@ export default function Financial() {
   };
 
   const totalPayments = accumulatedPayments.reduce((sum, payment) => sum + payment.total_amount, 0);
+  const totalDriveValue = accumulatedPayments.reduce((sum, payment) => sum + (payment.drive_value || 0), 0);
+  const totalDiagrammingValue = accumulatedPayments.reduce((sum, payment) => sum + (payment.diagramming_value || 0), 0);
   
   // Get top 5 performers
   // Only filter "Hellem Coelho" for operation role
@@ -660,7 +662,7 @@ export default function Financial() {
 
           {/* Summary Cards - Hide for operation role */}
           {userRole !== 'operation' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total de Pagamentos</CardTitle>
@@ -670,6 +672,32 @@ export default function Financial() {
                   <div className="text-2xl font-bold">{formatCurrency(totalPayments)}</div>
                   <p className="text-xs text-muted-foreground">
                     Período selecionado
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Drive</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(totalDriveValue)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Somente Drive
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Diagramação</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(totalDiagrammingValue)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Somente Diagramação
                   </p>
                 </CardContent>
               </Card>
