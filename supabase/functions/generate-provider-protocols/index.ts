@@ -103,7 +103,9 @@ serve(async (req) => {
       // Usar novos campos separados se disponíveis
       if (order.drive_value !== null || order.diagramming_value !== null) {
         // NOVO SISTEMA: Usar campos separados
-        orderValue = (order.drive_value || 0) + (order.diagramming_value || 0);
+        // Priority: custom_value_diagramming > diagramming_value (same as Productivity page)
+        const diagrammingValue = order.custom_value_diagramming || order.diagramming_value || 0;
+        orderValue = (order.drive_value || 0) + diagrammingValue;
         orderDriveDocs = order.drive_document_count || 0;
         orderDiagrammingDocs = order.diagramming_document_count || 0;
         orderDiagrammingPages = order.diagramming_pages_total || 0;
