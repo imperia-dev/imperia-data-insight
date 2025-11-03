@@ -181,6 +181,9 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
         case "cancel":
           await cancelProtocol(protocol);
           break;
+        case "delete":
+          await deleteProtocol(protocol);
+          break;
         case "resend_link":
           await resendLink(protocol);
           break;
@@ -232,6 +235,16 @@ export function DiagramacaoProtocolsTab({ userRole }: DiagramacaoProtocolsTabPro
 
     if (error) throw error;
     toast.success("Protocolo cancelado");
+  };
+
+  const deleteProtocol = async (protocol: any) => {
+    const { error } = await supabase
+      .from('service_provider_protocols')
+      .delete()
+      .eq('id', protocol.id);
+
+    if (error) throw error;
+    toast.success("Protocolo deletado com sucesso");
   };
 
   const resendLink = async (protocol: any) => {

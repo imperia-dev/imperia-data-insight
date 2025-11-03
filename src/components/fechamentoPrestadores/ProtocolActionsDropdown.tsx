@@ -1,4 +1,4 @@
-import { MoreHorizontal, Send, CheckCircle, DollarSign, XCircle, Mail, Eye } from "lucide-react";
+import { MoreHorizontal, Send, CheckCircle, DollarSign, XCircle, Mail, Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -89,6 +89,15 @@ export function ProtocolActionsDropdown({ protocol, onAction }: ProtocolActionsD
             </DropdownMenuItem>
           </>
         )}
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem 
+          onClick={() => onAction("delete", protocol)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Deletar Protocolo
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
