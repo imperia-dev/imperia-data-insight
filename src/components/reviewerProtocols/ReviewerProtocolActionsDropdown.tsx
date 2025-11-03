@@ -1,4 +1,4 @@
-import { MoreVertical, CheckCircle, XCircle, DollarSign, FileText } from "lucide-react";
+import { MoreVertical, CheckCircle, XCircle, DollarSign, FileText, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +39,7 @@ export const ReviewerProtocolActionsDropdown = ({
   const canSendToFinance = protocol.status === 'owner_approval' && userRole === 'owner' && protocol.centro_custo_id;
   const canMarkAsPaid = protocol.status === 'sent_to_finance' && userRole === 'owner';
   const canCancel = protocol.status === 'draft' && userRole === 'owner';
+  const canDelete = userRole === 'owner';
 
   const handleAction = async (action: string) => {
     // Aprovação master inicial abre dialog especial para vincular usuário operation
@@ -115,6 +116,19 @@ export const ReviewerProtocolActionsDropdown = ({
             status: 'cancelled',
           };
           break;
+        case 'delete':
+          // Delete protocol permanently
+          const { error: deleteError } = await supabase
+            .from('reviewer_protocols')
+            .delete()
+            .eq('id', protocol.id);
+
+          if (deleteError) throw deleteError;
+
+          toast.success("Protocolo deletado com sucesso!");
+          onUpdate();
+          setConfirmOpen(false);
+          return;
       }
 
       const { error } = await supabase
@@ -152,6 +166,8 @@ export const ReviewerProtocolActionsDropdown = ({
         return 'Marcar como Pago';
       case 'cancel':
         return 'Cancelar Protocolo';
+      case 'delete':
+        return 'Deletar Protocolo';
       default:
         return '';
     }
@@ -220,6 +236,15 @@ export const ReviewerProtocolActionsDropdown = ({
               </DropdownMenuItem>
             </>
           )}
+          {canDelete && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleAction('delete')} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Deletar Protocolo
+              </DropdownMenuItem>
+            </>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem>
             <FileText className="mr-2 h-4 w-4" />
@@ -234,7 +259,7 @@ export const ReviewerProtocolActionsDropdown = ({
             <AlertDialogTitle>Confirmar Ação</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja executar: <strong>{getActionLabel()}</strong>?
-              {actionType === 'cancel' && " Esta ação não pode ser desfeita."}
+              {(actionType === 'cancel' || actionType === 'delete') && " Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
