@@ -9,9 +9,10 @@ import { ptBR } from "date-fns/locale";
 import { ReviewerProtocolStatusBadge } from "./ReviewerProtocolStatusBadge";
 import { ReviewerProtocolActionsDropdown } from "./ReviewerProtocolActionsDropdown";
 import { ReviewerProtocolDetailsDialog } from "./ReviewerProtocolDetailsDialog";
-import { FileText, DollarSign, Clock, CheckCircle } from "lucide-react";
+import { FileText, DollarSign, Clock, CheckCircle, ExternalLink } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface ReviewerProtocolsTabProps {
   userRole: string;
@@ -180,6 +181,7 @@ export const ReviewerProtocolsTab = ({ userRole }: ReviewerProtocolsTabProps) =>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   {userRole === 'owner' && <TableHead>Centro de Custo</TableHead>}
+                  {userRole === 'owner' && <TableHead className="text-center">Nota Fiscal</TableHead>}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -236,6 +238,21 @@ export const ReviewerProtocolsTab = ({ userRole }: ReviewerProtocolsTabProps) =>
                               ))}
                             </SelectContent>
                           </Select>
+                        </TableCell>
+                      )}
+                      {userRole === 'owner' && (
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          {protocol.invoice_url ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(protocol.invoice_url, '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Sem NF</span>
+                          )}
                         </TableCell>
                       )}
                       <TableCell onClick={(e) => e.stopPropagation()}>
