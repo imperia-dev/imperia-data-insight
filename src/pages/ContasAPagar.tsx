@@ -53,11 +53,11 @@ export default function ContasAPagar() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
+    if (user && userRole) {
       fetchUserProfile();
       fetchContas();
     }
-  }, [user]);
+  }, [user, userRole]);
 
   const fetchUserProfile = async () => {
     try {
@@ -76,6 +76,8 @@ export default function ContasAPagar() {
 
   const fetchContas = async () => {
     try {
+      console.log('🔍 [ContasAPagar] Fetching contas com role:', userRole);
+      
       // Buscar protocolos de fechamento de despesas
       const { data: despesas, error: despesasError } = await supabase
         .from('expense_closing_protocols')
@@ -92,6 +94,7 @@ export default function ContasAPagar() {
 
       // Financeiro e Master só veem protocolos após aprovação do owner
       if (userRole === 'financeiro' || userRole === 'master') {
+        console.log('🔒 [ContasAPagar] Aplicando filtro de status para prestadores (role:', userRole, ')');
         providerQuery = providerQuery.in('status', [
           'approved',
           'awaiting_payment',
@@ -116,6 +119,7 @@ export default function ContasAPagar() {
 
       // Aplicar filtro de status baseado no role do usuário
       if (userRole === 'financeiro' || userRole === 'master') {
+        console.log('🔒 [ContasAPagar] Aplicando filtro de status para revisores (role:', userRole, ')');
         reviewerQuery = reviewerQuery.in('status', [
           'sent_to_finance',
           'awaiting_payment',
