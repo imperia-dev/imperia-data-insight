@@ -91,6 +91,7 @@ export default function ContasAReceber() {
       const { data, error } = await supabase
         .from('closing_protocols')
         .select('*')
+        .neq('status', 'archived')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
