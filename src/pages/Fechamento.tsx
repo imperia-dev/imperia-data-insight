@@ -79,6 +79,7 @@ export default function Fechamento() {
       const { data, error } = await supabase
         .from("closing_protocols")
         .select("*")
+        .neq("status", "archived")
         .order("created_at", { ascending: false })
         .limit(10);
 
