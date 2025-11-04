@@ -93,13 +93,26 @@ export default function ContasAPagar() {
       if (prestadoresError) throw prestadoresError;
 
       // Buscar protocolos de revisores com centro de custo
-      const { data: revisores, error: revisoresError } = await supabase
+      // Financeiro e Master só veem protocolos após aprovação do owner
+      let reviewerQuery = supabase
         .from('reviewer_protocols')
         .select(`
           *,
           cost_centers(name)
         `)
         .order('created_at', { ascending: false });
+
+      // Aplicar filtro de status baseado no role do usuário
+      if (userRole === 'financeiro' || userRole === 'master') {
+        reviewerQuery = reviewerQuery.in('status', [
+          'sent_to_finance',
+          'awaiting_payment',
+          'paid',
+          'completed'
+        ]);
+      }
+
+      const { data: revisores, error: revisoresError } = await reviewerQuery;
 
       if (revisoresError) throw revisoresError;
 
