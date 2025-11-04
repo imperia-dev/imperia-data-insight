@@ -290,7 +290,9 @@ export default function Fechamento() {
 
       const { error: uploadError } = await supabase.storage
         .from('documents')
-        .upload(filePath, attachmentFile);
+        .upload(filePath, attachmentFile, {
+          upsert: true
+        });
 
       if (uploadError) throw uploadError;
 
@@ -308,7 +310,7 @@ export default function Fechamento() {
         .from('documents')
         .upload(pdfFilePath, pdfBlob, {
           contentType: 'application/pdf',
-          upsert: false,
+          upsert: true,
         });
 
       if (pdfUploadError) throw pdfUploadError;
