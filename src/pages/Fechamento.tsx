@@ -237,8 +237,8 @@ export default function Fechamento() {
     doc.text(`Total de Páginas: ${analysisData.totalPages}`, 20, 68);
     doc.text(`Valor Total: ${formatCurrency(analysisData.totalValue)}`, 20, 76);
     doc.text(`Média por Documento: ${formatCurrency(analysisData.avgValuePerDocument)}`, 20, 84);
-    doc.text(`Produto 1 (≤4 páginas): ${analysisData.product1Count} documentos`, 20, 92);
-    doc.text(`Produto 2 (>4 páginas): ${analysisData.product2Count} documentos`, 20, 100);
+    doc.text(`Produto 1 (≤3 páginas): ${analysisData.product1Count} documentos`, 20, 92);
+    doc.text(`Produto 2 (>3 páginas): ${analysisData.product2Count} documentos`, 20, 100);
     
     // Document details table
     doc.setFontSize(14);
@@ -247,8 +247,8 @@ export default function Fechamento() {
     const tableData = analysisData.documents.map((doc: CSVData) => [
       doc.id,
       doc.pages.toString(),
-      doc.pages <= 4 ? 'Produto 1' : 'Produto 2',
-      formatCurrency(doc.pages <= 4 ? 50 : 30)
+      doc.pages <= 3 ? 'Produto 1' : 'Produto 2',
+      formatCurrency(doc.pages <= 3 ? 50 : doc.pages * 30)
     ]);
     
     autoTable(doc, {
@@ -520,8 +520,8 @@ export default function Fechamento() {
                             <TableRow key={index}>
                               <TableCell>{doc.id}</TableCell>
                               <TableCell>{doc.pages}</TableCell>
-                              <TableCell>{doc.pages <= 4 ? "Produto 1" : "Produto 2"}</TableCell>
-                              <TableCell>{formatCurrency(doc.pages <= 4 ? 50 : 30)}</TableCell>
+                              <TableCell>{doc.pages <= 3 ? "Produto 1" : "Produto 2"}</TableCell>
+                              <TableCell>{formatCurrency(doc.pages <= 3 ? 50 : doc.pages * 30)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
