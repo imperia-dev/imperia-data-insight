@@ -44,7 +44,7 @@ export default function ContasAPagar() {
   const [loadingData, setLoadingData] = useState(true);
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
   const [notaFiscal, setNotaFiscal] = useState<File | null>(null);
-  const [activeTab, setActiveTab] = useState("novos");
+  const [activeTab, setActiveTab] = useState("aguardando");
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedContaForDetails, setSelectedContaForDetails] = useState<ContaPagar | null>(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -630,18 +630,15 @@ export default function ContasAPagar() {
                 <CardContent>
                   <div className="text-2xl font-bold">
                     {formatCurrency(
-                      (activeTab === 'novos' ? contasNovos :
-                       activeTab === 'aguardando' ? contasAguardandoPagamento :
+                      (activeTab === 'aguardando' ? contasAguardandoPagamento :
                        activeTab === 'nf' ? contasAguardandoNF :
                        contasFinalizados).reduce((sum, c) => sum + c.valor_total, 0)
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {(activeTab === 'novos' ? contasNovos :
-                      activeTab === 'aguardando' ? contasAguardandoPagamento :
+                    {(activeTab === 'aguardando' ? contasAguardandoPagamento :
                       activeTab === 'nf' ? contasAguardandoNF :
-                      contasFinalizados).length} conta{(activeTab === 'novos' ? contasNovos :
-                        activeTab === 'aguardando' ? contasAguardandoPagamento :
+                      contasFinalizados).length} conta{(activeTab === 'aguardando' ? contasAguardandoPagamento :
                         activeTab === 'nf' ? contasAguardandoNF :
                         contasFinalizados).length !== 1 ? 's' : ''}
                   </p>
@@ -655,15 +652,13 @@ export default function ContasAPagar() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {(activeTab === 'novos' ? contasNovos :
-                      activeTab === 'aguardando' ? contasAguardandoPagamento :
+                    {(activeTab === 'aguardando' ? contasAguardandoPagamento :
                       activeTab === 'nf' ? contasAguardandoNF :
                       contasFinalizados).filter(c => c.tipo === 'despesas').length}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {formatCurrency(
-                      (activeTab === 'novos' ? contasNovos :
-                        activeTab === 'aguardando' ? contasAguardandoPagamento :
+                      (activeTab === 'aguardando' ? contasAguardandoPagamento :
                         activeTab === 'nf' ? contasAguardandoNF :
                         contasFinalizados).filter(c => c.tipo === 'despesas').reduce((sum, c) => sum + c.valor_total, 0)
                     )}
@@ -678,15 +673,13 @@ export default function ContasAPagar() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {(activeTab === 'novos' ? contasNovos :
-                      activeTab === 'aguardando' ? contasAguardandoPagamento :
+                    {(activeTab === 'aguardando' ? contasAguardandoPagamento :
                       activeTab === 'nf' ? contasAguardandoNF :
                       contasFinalizados).filter(c => c.tipo === 'prestadores').length}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {formatCurrency(
-                      (activeTab === 'novos' ? contasNovos :
-                        activeTab === 'aguardando' ? contasAguardandoPagamento :
+                      (activeTab === 'aguardando' ? contasAguardandoPagamento :
                         activeTab === 'nf' ? contasAguardandoNF :
                         contasFinalizados).filter(c => c.tipo === 'prestadores').reduce((sum, c) => sum + c.valor_total, 0)
                     )}
@@ -701,15 +694,13 @@ export default function ContasAPagar() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {(activeTab === 'novos' ? contasNovos :
-                      activeTab === 'aguardando' ? contasAguardandoPagamento :
+                    {(activeTab === 'aguardando' ? contasAguardandoPagamento :
                       activeTab === 'nf' ? contasAguardandoNF :
                       contasFinalizados).filter(c => c.tipo === 'revisores').length}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {formatCurrency(
-                      (activeTab === 'novos' ? contasNovos :
-                        activeTab === 'aguardando' ? contasAguardandoPagamento :
+                      (activeTab === 'aguardando' ? contasAguardandoPagamento :
                         activeTab === 'nf' ? contasAguardandoNF :
                         contasFinalizados).filter(c => c.tipo === 'revisores').reduce((sum, c) => sum + c.valor_total, 0)
                     )}
@@ -720,9 +711,6 @@ export default function ContasAPagar() {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList>
-                <TabsTrigger value="novos">
-                  Novos ({contasNovos.length})
-                </TabsTrigger>
                 <TabsTrigger value="aguardando">
                   Aguardando Pagamento ({contasAguardandoPagamento.length})
                 </TabsTrigger>
@@ -734,65 +722,6 @@ export default function ContasAPagar() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="novos" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Itens Novos</CardTitle>
-                    <CardDescription>Contas que ainda não iniciaram o processo de pagamento</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Protocolo</TableHead>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead>Prestador</TableHead>
-                          <TableHead>Centro de Custo</TableHead>
-                          <TableHead>Competência</TableHead>
-                          <TableHead>Valor</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {contasNovos.map((conta) => (
-                          <TableRow key={conta.id}>
-                            <TableCell className="font-mono">{conta.protocolo}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">
-                                {conta.tipo === 'despesas' ? 'Despesas' : conta.tipo === 'prestadores' ? 'Prestadores' : 'Revisores'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{conta.prestador_nome}</p>
-                                {conta.prestador_detalhe && (
-                                  <p className="text-xs text-muted-foreground">{conta.prestador_detalhe}</p>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>{conta.centro_custo_nome || '-'}</TableCell>
-                            <TableCell>
-                              {conta.competencia ? new Date(conta.competencia).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '-'}
-                            </TableCell>
-                            <TableCell>{formatCurrency(conta.valor_total)}</TableCell>
-                            <TableCell>{renderStatusBadge(conta.status)}</TableCell>
-                            <TableCell>
-                              <Button
-                                size="sm"
-                                onClick={() => iniciarProcessoPagamento(conta.id)}
-                              >
-                                <PlayCircle className="h-4 w-4 mr-2" />
-                                Iniciar Processo
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
               <TabsContent value="aguardando" className="space-y-4">
                 <Card>
