@@ -154,11 +154,11 @@ export default function Fechamento() {
     let product2Count = 0;
 
     data.forEach(doc => {
-      if (doc.pages <= 4) {
-        totalValue += 50; // R$ 50 for documents <= 4 pages
+      if (doc.pages <= 3) {
+        totalValue += 50; // R$ 50 for documents with up to 3 pages
         product1Count++;
       } else {
-        totalValue += 30; // R$ 30 for documents > 4 pages
+        totalValue += doc.pages * 30; // R$ 30 per page for documents with 4+ pages
         product2Count++;
       }
     });
