@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Download, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Plus, Download, CheckCircle, XCircle, AlertCircle, FileText, ExternalLink } from "lucide-react";
 
 export function ProtocolosIndividuaisTab() {
   const [protocols, setProtocols] = useState<any[]>([]);
@@ -262,6 +262,7 @@ export function ProtocolosIndividuaisTab() {
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead>Qtd Pedidos</TableHead>
+                  <TableHead className="text-center">Nota Fiscal</TableHead>
                   <TableHead className="text-center">Aprovado?</TableHead>
                   <TableHead className="text-center">Pago?</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -280,6 +281,24 @@ export function ProtocolosIndividuaisTab() {
                       {formatCurrency(protocol.total_amount || 0)}
                     </TableCell>
                     <TableCell>{protocol.expense_count || 0}</TableCell>
+                    <TableCell className="text-center">
+                      {protocol.receipt_url ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(protocol.receipt_url, '_blank');
+                          }}
+                          title="Ver nota fiscal"
+                        >
+                          <FileText className="h-4 w-4 text-primary" />
+                        </Button>
+                      ) : (
+                        <FileText className="h-4 w-4 text-muted-foreground mx-auto" />
+                      )}
+                    </TableCell>
                     <TableCell className="text-center">
                       {protocol.provider_approved_at ? (
                         <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
