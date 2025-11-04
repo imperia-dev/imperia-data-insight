@@ -84,11 +84,23 @@ export default function ContasAPagar() {
 
       if (despesasError) throw despesasError;
 
-      // Buscar protocolos de prestadores
-      const { data: prestadores, error: prestadoresError } = await supabase
+      // Buscar protocolos de prestadores com filtro baseado no role
+      let providerQuery = supabase
         .from('service_provider_protocols')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Financeiro e Master só veem protocolos após aprovação do owner
+      if (userRole === 'financeiro' || userRole === 'master') {
+        providerQuery = providerQuery.in('status', [
+          'approved',
+          'awaiting_payment',
+          'paid',
+          'completed'
+        ]);
+      }
+
+      const { data: prestadores, error: prestadoresError } = await providerQuery;
 
       if (prestadoresError) throw prestadoresError;
 
