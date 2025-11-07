@@ -10,6 +10,7 @@ import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon, F
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatDateBR, formatDateOnlyBR, toSaoPauloTime } from "@/lib/dateUtils";
@@ -53,7 +54,6 @@ export default function Financial() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { mainContainerClass } = usePageLayout();
-  const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [dailyPayments, setDailyPayments] = useState<PaymentData[]>([]);
@@ -67,19 +67,20 @@ export default function Financial() {
   const [observations, setObservations] = useState("");
   const [showAllPerformers, setShowAllPerformers] = useState(false);
 
+  const { userRole, loading: roleLoading } = useUserRole();
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
-          console.log('Productivity - User role loaded:', data.role, 'User name:', data.full_name);
+          console.log('Productivity - User name loaded:', data.full_name);
         } else {
           console.error('Productivity - Error loading user profile:', error);
         }

@@ -11,6 +11,7 @@ import { AnnouncementNotificationModal } from "@/components/announcements/Announ
 import { useUnreadAnnouncements } from "@/hooks/useUnreadAnnouncements";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { exportToPDF } from "@/utils/exportUtils";
@@ -154,7 +155,6 @@ const mockDocuments = [
 export default function Dashboard() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
-  const [userRole, setUserRole] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedCustomer, setSelectedCustomer] = useState<string>("all");
@@ -235,18 +235,19 @@ export default function Dashboard() {
     setDialogOpen(true);
   };
 
+  const { userRole, loading: roleLoading } = useUserRole();
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
         }
       }
     };

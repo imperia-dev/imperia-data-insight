@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCustomerContext } from "@/hooks/useCustomerContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { RequestStatusBadge } from "@/components/customer/RequestStatusBadge";
 import { PriorityBadge } from "@/components/customer/PriorityBadge";
 import { Header } from "@/components/layout/Header";
@@ -20,20 +21,19 @@ export default function CustomerDashboard() {
   const { session, user } = useAuth();
   const { customerName, loading: customerLoading } = useCustomerContext();
   const [userName, setUserName] = useState("");
-  const [userRole, setUserRole] = useState("customer");
+  const { userRole, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
         }
       }
     };
@@ -72,7 +72,7 @@ export default function CustomerDashboard() {
 
   const recentRequests = requests?.slice(0, 5) || [];
 
-  if (customerLoading || isLoading) {
+  if (customerLoading || isLoading || roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -85,7 +85,7 @@ export default function CustomerDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar userRole={userRole} />
+      <Sidebar userRole={userRole || "customer"} />
       <div className="md:pl-64">
         <Header userName={userName} userRole={userRole} />
         <main className="container mx-auto py-8 px-4">

@@ -8,3 +8,4 @@ export { useRoleAccess } from './useRoleAccess';
 export { useSidebarOffset } from './useSidebarOffset';
 export { useCustomerContext } from './useCustomerContext';
 export { useMFARequired } from './useMFARequired';
+export { useUserRole } from './useUserRole';

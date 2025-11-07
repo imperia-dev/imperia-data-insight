@@ -7,6 +7,7 @@ import { Wallet as WalletIcon, TrendingUp, FileText, Clock, CheckCircle, AlertCi
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatDateBR, formatDateOnlyBR, toSaoPauloTime } from "@/lib/dateUtils";
@@ -48,7 +49,7 @@ interface ServiceProviderProtocol {
 export default function Wallet() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
-  const [userRole, setUserRole] = useState<string>("");
+  const { userRole, loading: roleLoading } = useUserRole();
   const [userName, setUserName] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");
   const [orders, setOrders] = useState<OrderPayment[]>([]);
@@ -68,13 +69,12 @@ export default function Wallet() {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role, email')
+          .select('full_name, email')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
           setUserEmail(data.email);
         }
       }
