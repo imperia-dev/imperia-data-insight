@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, PlayCircle, Upload, FileText, CheckCircle, Eye, TrendingUp, Receipt, Calendar } from "lucide-react";
+import { Loader2, PlayCircle, Upload, FileText, CheckCircle, Eye, TrendingUp, Receipt, Calendar, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/currency";
@@ -511,6 +511,60 @@ export default function ContasAPagar() {
     }
   };
 
+  const retornarParaAguardandoPagamento = async (contaId: string) => {
+    try {
+      const conta = contas.find(c => c.id === contaId);
+      if (!conta) return;
+
+      let error = null;
+      
+      if (conta.tipo === 'despesas') {
+        const result = await supabase
+          .from('expense_closing_protocols')
+          .update({ 
+            paid_at: null,
+            status: 'approved'
+          })
+          .eq('id', contaId);
+        error = result.error;
+      } else if (conta.tipo === 'prestadores') {
+        const result = await supabase
+          .from('service_provider_protocols')
+          .update({ 
+            paid_at: null,
+            status: 'awaiting_payment'
+          })
+          .eq('id', contaId);
+        error = result.error;
+      } else if (conta.tipo === 'revisores') {
+        const result = await supabase
+          .from('reviewer_protocols')
+          .update({ 
+            paid_at: null,
+            status: 'awaiting_payment'
+          })
+          .eq('id', contaId);
+        error = result.error;
+      }
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Protocolo retornado para aguardando pagamento",
+      });
+
+      fetchContas();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao retornar protocolo",
+        variant: "destructive",
+      });
+    }
+  };
+
   const uploadNotaFiscal = async () => {
     if (!selectedConta || !notaFiscal) return;
 
@@ -847,6 +901,14 @@ export default function ContasAPagar() {
                                   }}
                                 >
                                   <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => retornarParaAguardandoPagamento(conta.id)}
+                                >
+                                  <ArrowLeft className="h-4 w-4 mr-2" />
+                                  Retornar
                                 </Button>
                                 {!conta.nota_fiscal_url ? (
                                   <Button
