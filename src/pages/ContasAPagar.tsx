@@ -523,6 +523,7 @@ export default function ContasAPagar() {
           .from('expense_closing_protocols')
           .update({ 
             paid_at: null,
+            payment_receipt_url: null,
             status: 'approved'
           })
           .eq('id', contaId);
@@ -532,6 +533,7 @@ export default function ContasAPagar() {
           .from('service_provider_protocols')
           .update({ 
             paid_at: null,
+            payment_receipt_url: null,
             status: 'approved'
           })
           .eq('id', contaId);
@@ -541,6 +543,7 @@ export default function ContasAPagar() {
           .from('reviewer_protocols')
           .update({ 
             paid_at: null,
+            payment_receipt_url: null,
             status: 'sent_to_finance'
           })
           .eq('id', contaId);
@@ -551,7 +554,7 @@ export default function ContasAPagar() {
 
       toast({
         title: "Sucesso",
-        description: "Protocolo retornado para aguardando pagamento",
+        description: "Comprovante removido e protocolo retornado para aguardando pagamento",
       });
 
       fetchContas();
