@@ -6,6 +6,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,7 @@ interface Event {
 export default function Calendar() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
-  const [userRole, setUserRole] = useState<string>("");
+  const { userRole, loading: roleLoading } = useUserRole();
   const [userName, setUserName] = useState<string>("");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<Event[]>([]);
@@ -34,13 +35,12 @@ export default function Calendar() {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
         }
       }
     };

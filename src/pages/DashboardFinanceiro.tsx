@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { DiagramacaoProtocolsTab } from "@/components/dashboardFinanceiro/DiagramacaoProtocolsTab";
@@ -17,7 +18,7 @@ import { toast } from "sonner";
 export default function DashboardFinanceiro() {
   const { user } = useAuth();
   const { mainContainerClass } = useSidebarOffset();
-  const [userRole, setUserRole] = useState<string>("");
+  const { userRole, loading: roleLoading } = useUserRole();
   const [userName, setUserName] = useState<string>("");
   const [exporting, setExporting] = useState(false);
 
@@ -26,13 +27,12 @@ export default function DashboardFinanceiro() {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
         }
       }
     };

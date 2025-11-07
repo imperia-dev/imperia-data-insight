@@ -13,6 +13,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useCustomerContext } from "@/hooks/useCustomerContext";
 import { customerPendencyRequestSchema, type CustomerPendencyRequestInput } from "@/lib/validations/customerPendency";
 import { Upload, X, FileText } from "lucide-react";
@@ -23,23 +24,22 @@ export default function CustomerPendencyRequest() {
   const { toast } = useToast();
   const { session, user } = useAuth();
   const { customerName, loading: customerLoading } = useCustomerContext();
+  const { userRole, loading: roleLoading } = useUserRole();
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ url: string; name: string; size: number; type: string }>>([]);
   const [userName, setUserName] = useState("");
-  const [userRole, setUserRole] = useState("customer");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
         }
       }
     };

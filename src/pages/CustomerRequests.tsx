@@ -9,6 +9,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useCustomerContext } from "@/hooks/useCustomerContext";
 import { RequestStatusBadge } from "@/components/customer/RequestStatusBadge";
 import { PriorityBadge } from "@/components/customer/PriorityBadge";
@@ -40,24 +41,23 @@ export default function CustomerRequests() {
   const navigate = useNavigate();
   const { session, user } = useAuth();
   const { customerName } = useCustomerContext();
+  const { userRole, loading: roleLoading } = useUserRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [userName, setUserName] = useState("");
-  const [userRole, setUserRole] = useState("customer");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
         }
       }
     };

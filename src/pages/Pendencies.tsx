@@ -35,6 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useToast } from "@/hooks/use-toast";
@@ -60,7 +61,7 @@ export default function Pendencies() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
   const { toast } = useToast();
-  const [userRole, setUserRole] = useState<string>("");
+  const { userRole, loading: roleLoading } = useUserRole();
   const [userName, setUserName] = useState<string>("");
   const [loading, setLoading] = useState(false);
   
@@ -118,13 +119,12 @@ export default function Pendencies() {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
         }
       }
     };

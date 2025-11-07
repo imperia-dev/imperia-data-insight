@@ -4,11 +4,12 @@ import { Construction } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AIAnalytics() {
   const { user } = useAuth();
-  const [userRole, setUserRole] = useState<string>("");
+  const { userRole, loading: roleLoading } = useUserRole();
   const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
@@ -16,13 +17,12 @@ export default function AIAnalytics() {
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role')
+          .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (data && !error) {
           setUserName(data.full_name);
-          setUserRole(data.role);
         }
       }
     };
