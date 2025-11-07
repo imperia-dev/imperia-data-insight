@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useCustomerContext } from "@/hooks/useCustomerContext";
 import { RequestStatusBadge } from "@/components/customer/RequestStatusBadge";
 import { PriorityBadge } from "@/components/customer/PriorityBadge";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Eye, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,7 +23,19 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 type Request = {
   id: string;
@@ -42,9 +54,13 @@ export default function CustomerRequests() {
   const { session, user } = useAuth();
   const { customerName } = useCustomerContext();
   const { userRole, loading: roleLoading } = useUserRole();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [deleteRequestId, setDeleteRequestId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
@@ -78,6 +94,40 @@ export default function CustomerRequests() {
     },
     enabled: !!session?.user?.id && !!customerName
   });
+
+  const handleDeleteRequest = async () => {
+    if (!deleteRequestId) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('customer_pendency_requests')
+        .delete()
+        .eq('id', deleteRequestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Solicitação deletada",
+        description: "A solicitação foi removida com sucesso.",
+      });
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['customer-pendency-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-dashboard'] });
+      
+      setDeleteRequestId(null);
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast({
+        title: "Erro ao deletar",
+        description: "Não foi possível deletar a solicitação. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const filteredRequests = requests?.filter(request => {
     const matchesSearch = request.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -172,14 +222,25 @@ export default function CustomerRequests() {
                       <RequestStatusBadge status={request.status} />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedRequest(request)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Ver Detalhes
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedRequest(request)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver Detalhes
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteRequestId(request.id)}
+                          disabled={request.status === 'converted'}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -257,6 +318,27 @@ export default function CustomerRequests() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteRequestId} onOpenChange={() => setDeleteRequestId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja deletar esta solicitação? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteRequest}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deletando..." : "Deletar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </main>
       </div>
     </div>
