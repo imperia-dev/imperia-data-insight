@@ -1068,47 +1068,87 @@ export default function ContasAPagar() {
                 <div className="border-t pt-4">
                   <h3 className="text-sm font-semibold mb-3">Dados para Pagamento</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    {selectedContaForDetails.original_data.pix_key && (
+                    {(selectedContaForDetails.tipo === 'prestadores' ? 
+                      selectedContaForDetails.original_data.provider_pix_key : 
+                      selectedContaForDetails.original_data.pix_key) && (
                       <div className="col-span-2">
                         <Label className="text-sm font-medium text-muted-foreground">Chave PIX</Label>
-                        <p className="text-sm mt-1 font-mono">{selectedContaForDetails.original_data.pix_key}</p>
+                        <p className="text-sm mt-1 font-mono">
+                          {selectedContaForDetails.tipo === 'prestadores' ? 
+                            selectedContaForDetails.original_data.provider_pix_key : 
+                            selectedContaForDetails.original_data.pix_key}
+                        </p>
                       </div>
                     )}
-                    {selectedContaForDetails.original_data.cpf && (
+                    {(selectedContaForDetails.tipo === 'prestadores' ? 
+                      selectedContaForDetails.original_data.provider_cpf : 
+                      selectedContaForDetails.original_data.cpf) && (
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">CPF</Label>
-                        <p className="text-sm mt-1 font-mono">{selectedContaForDetails.original_data.cpf}</p>
+                        <p className="text-sm mt-1 font-mono">
+                          {selectedContaForDetails.tipo === 'prestadores' ? 
+                            selectedContaForDetails.original_data.provider_cpf : 
+                            selectedContaForDetails.original_data.cpf}
+                        </p>
                       </div>
                     )}
-                    {selectedContaForDetails.original_data.cnpj && (
+                    {(selectedContaForDetails.tipo === 'prestadores' ? 
+                      selectedContaForDetails.original_data.provider_cnpj : 
+                      selectedContaForDetails.original_data.cnpj) && (
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">CNPJ</Label>
-                        <p className="text-sm mt-1 font-mono">{selectedContaForDetails.original_data.cnpj}</p>
+                        <p className="text-sm mt-1 font-mono">
+                          {selectedContaForDetails.tipo === 'prestadores' ? 
+                            selectedContaForDetails.original_data.provider_cnpj : 
+                            selectedContaForDetails.original_data.cnpj}
+                        </p>
                       </div>
                     )}
-                    {selectedContaForDetails.original_data.bank_name && (
+                    {(selectedContaForDetails.tipo === 'prestadores' ? 
+                      selectedContaForDetails.original_data.provider_banco : 
+                      selectedContaForDetails.original_data.bank_name) && (
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Banco</Label>
-                        <p className="text-sm mt-1">{selectedContaForDetails.original_data.bank_name}</p>
+                        <p className="text-sm mt-1">
+                          {selectedContaForDetails.tipo === 'prestadores' ? 
+                            selectedContaForDetails.original_data.provider_banco : 
+                            selectedContaForDetails.original_data.bank_name}
+                        </p>
                       </div>
                     )}
-                    {selectedContaForDetails.original_data.bank_agency && (
+                    {(selectedContaForDetails.tipo === 'prestadores' ? 
+                      selectedContaForDetails.original_data.provider_agencia : 
+                      selectedContaForDetails.original_data.bank_agency) && (
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Agência</Label>
-                        <p className="text-sm mt-1 font-mono">{selectedContaForDetails.original_data.bank_agency}</p>
+                        <p className="text-sm mt-1 font-mono">
+                          {selectedContaForDetails.tipo === 'prestadores' ? 
+                            selectedContaForDetails.original_data.provider_agencia : 
+                            selectedContaForDetails.original_data.bank_agency}
+                        </p>
                       </div>
                     )}
-                    {selectedContaForDetails.original_data.bank_account && (
+                    {(selectedContaForDetails.tipo === 'prestadores' ? 
+                      selectedContaForDetails.original_data.provider_conta : 
+                      selectedContaForDetails.original_data.bank_account) && (
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Conta</Label>
-                        <p className="text-sm mt-1 font-mono">{selectedContaForDetails.original_data.bank_account}</p>
+                        <p className="text-sm mt-1 font-mono">
+                          {selectedContaForDetails.tipo === 'prestadores' ? 
+                            selectedContaForDetails.original_data.provider_conta : 
+                            selectedContaForDetails.original_data.bank_account}
+                        </p>
                       </div>
                     )}
-                    {selectedContaForDetails.original_data.account_type && (
+                    {(selectedContaForDetails.tipo === 'prestadores' ? 
+                      selectedContaForDetails.original_data.provider_tipo_conta : 
+                      selectedContaForDetails.original_data.account_type) && (
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Tipo de Conta</Label>
                         <p className="text-sm mt-1">
-                          {selectedContaForDetails.original_data.account_type === 'checking' ? 'Corrente' : 'Poupança'}
+                          {selectedContaForDetails.tipo === 'prestadores' ? 
+                            (selectedContaForDetails.original_data.provider_tipo_conta === 'corrente' ? 'Corrente' : 'Poupança') :
+                            (selectedContaForDetails.original_data.account_type === 'checking' ? 'Corrente' : 'Poupança')}
                         </p>
                       </div>
                     )}
