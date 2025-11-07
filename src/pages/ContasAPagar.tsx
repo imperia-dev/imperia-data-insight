@@ -532,7 +532,7 @@ export default function ContasAPagar() {
           .from('service_provider_protocols')
           .update({ 
             paid_at: null,
-            status: 'awaiting_payment'
+            status: 'approved'
           })
           .eq('id', contaId);
         error = result.error;
@@ -541,7 +541,7 @@ export default function ContasAPagar() {
           .from('reviewer_protocols')
           .update({ 
             paid_at: null,
-            status: 'awaiting_payment'
+            status: 'sent_to_finance'
           })
           .eq('id', contaId);
         error = result.error;
