@@ -18,6 +18,11 @@ export function ProtocolStatusBadge({ status, className }: ProtocolStatusBadgePr
       variant: "default" as const,
       className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/50"
     },
+    awaiting_provider_data: {
+      label: "Aguard. Dados Prestador",
+      variant: "default" as const,
+      className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/50"
+    },
     provider_approved: {
       label: "Aprovado Prestador",
       variant: "default" as const,

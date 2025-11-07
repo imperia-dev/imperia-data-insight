@@ -43,7 +43,7 @@ export function ProtocolActionsDropdown({ protocol, onAction }: ProtocolActionsD
           </>
         )}
 
-        {status === "awaiting_provider" && (
+        {(status === "awaiting_provider" || status === "awaiting_provider_data") && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onAction("resend_link", protocol)}>
