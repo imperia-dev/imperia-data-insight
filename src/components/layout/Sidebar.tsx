@@ -395,6 +395,12 @@ const customerNavigationItems: NavigationItem[] = [
     roles: ["customer"],
   },
   {
+    title: "Notícias Ruins",
+    icon: AlertCircle,
+    href: "/bad-news",
+    roles: ["customer"],
+  },
+  {
     title: "Configurações",
     icon: Settings,
     href: "/settings",
@@ -420,6 +426,12 @@ const financeiroNavigationItems: NavigationItem[] = [
     title: "Contas a Receber",
     icon: TrendingUp,
     href: "/contas-a-receber",
+    roles: ["financeiro"],
+  },
+  {
+    title: "Notícias Ruins",
+    icon: AlertCircle,
+    href: "/bad-news",
     roles: ["financeiro"],
   },
   {
