@@ -355,6 +355,12 @@ const standaloneItems: NavigationItem[] = [
     roles: ["owner", "master", "admin", "operation"],
   },
   {
+    title: "Notícias Ruins",
+    icon: AlertCircle,
+    href: "/bad-news",
+    roles: ["owner", "master", "admin", "operation", "translator", "customer", "financeiro"],
+  },
+  {
     title: "Segurança",
     icon: Shield,
     href: "/security-dashboard",

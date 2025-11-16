@@ -264,6 +264,27 @@ export type Database = {
           },
         ]
       }
+      bad_news_reports: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          problem_type: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          problem_type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          problem_type?: string
+        }
+        Relationships: []
+      }
       balance_sheet_items: {
         Row: {
           amount: number
