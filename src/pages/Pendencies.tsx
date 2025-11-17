@@ -824,20 +824,19 @@ export default function Pendencies() {
                           ) : (
                             <div className="flex items-center gap-2">
                               <Input
-                                placeholder={pendency.treatment || "Inserir tratativa..."}
-                                value={editingTreatment[pendency.id] || ''}
+                                placeholder="Inserir tratativa..."
+                                value={editingTreatment[pendency.id] !== undefined ? editingTreatment[pendency.id] : (pendency.treatment || '')}
                                 onChange={(e) => setEditingTreatment(prev => ({
                                   ...prev,
                                   [pendency.id]: e.target.value
                                 }))}
                                 className="w-40"
-                                title={pendency.treatment ? `Atual: ${pendency.treatment}` : ''}
                               />
                               <Button
                                 size="sm"
                                 variant="secondary"
                                 onClick={() => handleSaveTreatment(pendency.id)}
-                                disabled={!editingTreatment[pendency.id]}
+                                disabled={editingTreatment[pendency.id] !== undefined && editingTreatment[pendency.id] === (pendency.treatment || '')}
                               >
                                 <Save className="h-4 w-4" />
                               </Button>
