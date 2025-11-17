@@ -47,7 +47,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/dashboard-financeiro',
     '/contas-a-pagar',
     '/contas-a-receber',
-    '/announcements'
+    '/announcements',
+    '/bad-news'
   ],
   financeiro: [
     '/dashboard-controle-financeiro',
@@ -77,7 +78,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/translation-orders',
     '/registration-approvals',
     '/announcements',
-    '/dashboard-tech'
+    '/dashboard-tech',
+    '/bad-news'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
     // Removed: '/team'
@@ -93,7 +95,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/calendar',
     '/timesheet',
     '/settings',
-    '/notifications'
+    '/notifications',
+    '/bad-news'
     // Removed: '/team'
     // Removed: '/reports'
     // Removed: '/ai-analytics'
@@ -108,7 +111,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/chat',
     '/settings',
     '/operation-protocol-data',
-    '/announcements'
+    '/announcements',
+    '/bad-news'
   ],
   translator: [
     '/my-orders',
@@ -116,7 +120,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/notifications',
     '/settings',
     '/operation-protocol-data',
-    '/announcements'
+    '/announcements',
+    '/bad-news'
   ],
   customer: [
     '/customer-dashboard',
