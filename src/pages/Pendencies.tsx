@@ -445,8 +445,20 @@ export default function Pendencies() {
 
   const handleResolve = async (pendencyId: string) => {
     try {
+      // Busca a pendência para verificar a origem
+      const pendency = pendencies.find(p => p.id === pendencyId);
+      
+      if (!pendency) {
+        throw new Error('Pendência não encontrada');
+      }
+
+      // Determina a tabela correta baseada na origem
+      const tableName = pendency.source === 'customer_request' 
+        ? 'customer_pendency_requests' 
+        : 'pendencies';
+
       const { error } = await supabase
-        .from('pendencies')
+        .from(tableName)
         .update({ status: 'resolved' })
         .eq('id', pendencyId);
 
