@@ -355,7 +355,7 @@ const standaloneItems: NavigationItem[] = [
     roles: ["owner", "master", "admin", "operation"],
   },
   {
-    title: "Notícias Ruins",
+    title: "Departamento de Notícias Ruins",
     icon: AlertCircle,
     href: "/bad-news",
     roles: ["owner", "master", "admin", "operation", "translator", "customer", "financeiro"],
@@ -395,7 +395,7 @@ const customerNavigationItems: NavigationItem[] = [
     roles: ["customer"],
   },
   {
-    title: "Notícias Ruins",
+    title: "Departamento de Notícias Ruins",
     icon: AlertCircle,
     href: "/bad-news",
     roles: ["customer"],
@@ -429,7 +429,7 @@ const financeiroNavigationItems: NavigationItem[] = [
     roles: ["financeiro"],
   },
   {
-    title: "Notícias Ruins",
+    title: "Departamento de Notícias Ruins",
     icon: AlertCircle,
     href: "/bad-news",
     roles: ["financeiro"],
