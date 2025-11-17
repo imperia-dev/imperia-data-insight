@@ -32,6 +32,7 @@ export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFilt
   const [errorType, setErrorType] = useState("all");
   const [orderNumber, setOrderNumber] = useState("");
   const [c4uId, setC4uId] = useState("");
+  const [clientName, setClientName] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
 
@@ -64,6 +65,7 @@ export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFilt
       errorType,
       orderNumber,
       c4uId,
+      clientName,
       startDate,
       endDate,
     };
@@ -75,6 +77,7 @@ export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFilt
     setErrorType("all");
     setOrderNumber("");
     setC4uId("");
+    setClientName("");
     setStartDate(undefined);
     setEndDate(undefined);
     onClearFilters();
@@ -144,6 +147,16 @@ export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFilt
             placeholder="Digite o ID C4U"
             value={c4uId}
             onChange={(e) => setC4uId(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="clientName">Cliente</Label>
+          <Input
+            id="clientName"
+            placeholder="Nome do cliente"
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
           />
         </div>
 
