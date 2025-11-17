@@ -1235,6 +1235,44 @@ export type Database = {
           },
         ]
       }
+      customer_pendency_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          request_id: string
+          status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          request_id: string
+          status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          request_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_pendency_status_history_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "customer_pendency_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           assigned_to: string | null
