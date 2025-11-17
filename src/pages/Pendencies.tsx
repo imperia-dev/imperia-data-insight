@@ -248,6 +248,13 @@ export default function Pendencies() {
       );
     }
 
+    // Filter by client name
+    if (appliedFilters.clientName) {
+      filtered = filtered.filter(p => 
+        p.orders?.client_name?.toLowerCase().includes(appliedFilters.clientName.toLowerCase())
+      );
+    }
+
     // Filter by date range
     if (appliedFilters.startDate) {
       filtered = filtered.filter(p => 
