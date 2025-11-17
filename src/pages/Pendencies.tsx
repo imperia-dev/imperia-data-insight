@@ -819,28 +819,55 @@ export default function Pendencies() {
                           {pendency.description}
                         </TableCell>
                         <TableCell>
-                          {pendency.treatment && (userRole !== 'owner' && userRole !== 'master') ? (
-                            <span className="text-sm">{pendency.treatment}</span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                placeholder="Inserir tratativa..."
-                                value={editingTreatment[pendency.id] !== undefined ? editingTreatment[pendency.id] : (pendency.treatment || '')}
-                                onChange={(e) => setEditingTreatment(prev => ({
-                                  ...prev,
-                                  [pendency.id]: e.target.value
-                                }))}
-                                className="w-40"
-                              />
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => handleSaveTreatment(pendency.id)}
-                                disabled={editingTreatment[pendency.id] !== undefined && editingTreatment[pendency.id] === (pendency.treatment || '')}
-                              >
-                                <Save className="h-4 w-4" />
-                              </Button>
+                          {pendency.treatment ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm font-medium">{pendency.treatment}</span>
+                              {(userRole === 'owner' || userRole === 'master') && (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    placeholder="Atualizar tratativa..."
+                                    value={editingTreatment[pendency.id] !== undefined ? editingTreatment[pendency.id] : ''}
+                                    onChange={(e) => setEditingTreatment(prev => ({
+                                      ...prev,
+                                      [pendency.id]: e.target.value
+                                    }))}
+                                    className="w-40 text-xs"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => handleSaveTreatment(pendency.id)}
+                                    disabled={!editingTreatment[pendency.id] || editingTreatment[pendency.id] === pendency.treatment}
+                                  >
+                                    <Save className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
+                          ) : (
+                            (userRole === 'owner' || userRole === 'master') ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  placeholder="Inserir tratativa..."
+                                  value={editingTreatment[pendency.id] || ''}
+                                  onChange={(e) => setEditingTreatment(prev => ({
+                                    ...prev,
+                                    [pendency.id]: e.target.value
+                                  }))}
+                                  className="w-40"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => handleSaveTreatment(pendency.id)}
+                                  disabled={!editingTreatment[pendency.id]}
+                                >
+                                  <Save className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )
                           )}
                         </TableCell>
                         <TableCell>{getStatusBadge(pendency.status)}</TableCell>
