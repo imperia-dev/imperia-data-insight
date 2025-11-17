@@ -13,6 +13,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useCustomerContext } from "@/hooks/useCustomerContext";
 import { RequestStatusBadge } from "@/components/customer/RequestStatusBadge";
 import { PriorityBadge } from "@/components/customer/PriorityBadge";
+import { RequestTimeline } from "@/components/customer/RequestTimeline";
 import { Plus, Search, Eye, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -62,6 +63,7 @@ export default function CustomerRequests() {
   const [deleteRequestId, setDeleteRequestId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [userName, setUserName] = useState("");
+  const [statusHistory, setStatusHistory] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -94,6 +96,32 @@ export default function CustomerRequests() {
     },
     enabled: !!session?.user?.id && !!customerName
   });
+
+  // Fetch status history when a request is selected
+  useEffect(() => {
+    const fetchStatusHistory = async () => {
+      if (!selectedRequest) {
+        setStatusHistory([]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('customer_pendency_status_history')
+          .select('*')
+          .eq('request_id', selectedRequest.id)
+          .order('changed_at', { ascending: true });
+
+        if (error) throw error;
+        setStatusHistory(data || []);
+      } catch (error) {
+        console.error('Error fetching status history:', error);
+        setStatusHistory([]);
+      }
+    };
+
+    fetchStatusHistory();
+  }, [selectedRequest]);
 
   const handleDeleteRequest = async () => {
     if (!deleteRequestId) return;
@@ -314,6 +342,10 @@ export default function CustomerRequests() {
                   <p className="text-sm">{selectedRequest.rejection_reason}</p>
                 </div>
               )}
+
+              <div className="border-t pt-4 mt-4">
+                <RequestTimeline history={statusHistory} />
+              </div>
             </div>
           )}
         </DialogContent>
