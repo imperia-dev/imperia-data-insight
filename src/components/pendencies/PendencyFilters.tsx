@@ -25,14 +25,15 @@ import { cn } from "@/lib/utils";
 interface PendencyFiltersProps {
   onApplyFilters: (filters: any) => void;
   onClearFilters: () => void;
+  clients: string[];
 }
 
-export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFiltersProps) {
+export function PendencyFilters({ onApplyFilters, onClearFilters, clients }: PendencyFiltersProps) {
   const [status, setStatus] = useState("all");
   const [errorType, setErrorType] = useState("all");
   const [orderNumber, setOrderNumber] = useState("");
   const [c4uId, setC4uId] = useState("");
-  const [clientName, setClientName] = useState("");
+  const [clientName, setClientName] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
 
@@ -77,7 +78,7 @@ export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFilt
     setErrorType("all");
     setOrderNumber("");
     setC4uId("");
-    setClientName("");
+    setClientName("all");
     setStartDate(undefined);
     setEndDate(undefined);
     onClearFilters();
@@ -152,12 +153,19 @@ export function PendencyFilters({ onApplyFilters, onClearFilters }: PendencyFilt
 
         <div className="space-y-2">
           <Label htmlFor="clientName">Cliente</Label>
-          <Input
-            id="clientName"
-            placeholder="Nome do cliente"
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-          />
+          <Select value={clientName} onValueChange={setClientName}>
+            <SelectTrigger id="clientName">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {clients.map((client) => (
+                <SelectItem key={client} value={client}>
+                  {client}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">

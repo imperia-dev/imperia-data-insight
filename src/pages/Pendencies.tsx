@@ -83,6 +83,7 @@ export default function Pendencies() {
   const [orders, setOrders] = useState<any[]>([]);
   const [pendencies, setPendencies] = useState<any[]>([]);
   const [filteredPendencies, setFilteredPendencies] = useState<any[]>([]);
+  const [availableClients, setAvailableClients] = useState<string[]>([]);
   const [openOrderSearch, setOpenOrderSearch] = useState(false);
   const [orderSearchValue, setOrderSearchValue] = useState("");
   const [editingTreatment, setEditingTreatment] = useState<{ [key: string]: string }>({});
@@ -209,6 +210,16 @@ export default function Pendencies() {
 
       setPendencies(allPendencies);
       setFilteredPendencies(allPendencies);
+      
+      // Extract unique client names
+      const clientsSet = new Set<string>();
+      allPendencies.forEach((p: any) => {
+        const clientName = p.orders?.client_name || p.customer;
+        if (clientName) {
+          clientsSet.add(clientName);
+        }
+      });
+      setAvailableClients(Array.from(clientsSet).sort());
     } catch (error) {
       console.error('Error fetching pendencies:', error);
       toast({
@@ -249,9 +260,10 @@ export default function Pendencies() {
     }
 
     // Filter by client name
-    if (appliedFilters.clientName) {
+    if (appliedFilters.clientName && appliedFilters.clientName !== 'all') {
       filtered = filtered.filter(p => 
-        p.orders?.client_name?.toLowerCase().includes(appliedFilters.clientName.toLowerCase())
+        (p.orders?.client_name === appliedFilters.clientName) ||
+        (p.customer === appliedFilters.clientName)
       );
     }
 
@@ -558,6 +570,7 @@ export default function Pendencies() {
           <PendencyFilters 
             onApplyFilters={handleApplyFilters}
             onClearFilters={handleClearFilters}
+            clients={availableClients}
           />
 
           {/* Form Card */}
