@@ -400,10 +400,23 @@ export default function Pendencies() {
     }
 
     try {
-      const { error } = await supabase
-        .from('pendencies')
-        .update({ treatment })
-        .eq('id', pendencyId);
+      // Find the pendency to check its source
+      const pendency = pendencies.find(p => p.id === pendencyId);
+      
+      if (!pendency) {
+        throw new Error('Pendência não encontrada');
+      }
+
+      // Save to the correct table based on source
+      const { error } = pendency.source === 'customer_request'
+        ? await supabase
+            .from('customer_pendency_requests')
+            .update({ internal_notes: treatment })
+            .eq('id', pendencyId)
+        : await supabase
+            .from('pendencies')
+            .update({ treatment })
+            .eq('id', pendencyId);
 
       if (error) throw error;
 
