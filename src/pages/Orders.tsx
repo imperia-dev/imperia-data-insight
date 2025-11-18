@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
+import { useCustomerContext } from "@/hooks/useCustomerContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -64,6 +65,7 @@ export function Orders() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
   const queryClient = useQueryClient();
+  const { customerName } = useCustomerContext();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [lastOrderId, setLastOrderId] = useState("");
   const [isEditingLastOrder, setIsEditingLastOrder] = useState(false);
@@ -962,6 +964,7 @@ export function Orders() {
   const isMaster = profile?.role === "master";
   const isOwner = profile?.role === "owner";
   const isOperation = profile?.role === "operation";
+  const isYellowlingCustomer = profile?.role === "customer" && customerName?.toLowerCase() === "yellowling";
 
   // Apply filters and sorting
   const filteredOrders = useMemo(() => {
@@ -1142,7 +1145,7 @@ export function Orders() {
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-foreground">Pedidos</h1>
             
-            {(isAdmin || isMaster || isOwner) && (
+            {(isAdmin || isMaster || isOwner || isYellowlingCustomer) && (
               <div className="flex gap-2">
                 <Dialog 
                   open={isPreviewDialogOpen} 
