@@ -39,7 +39,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle, CalendarIcon } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle, CalendarIcon, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit2, X } from "lucide-react";
@@ -812,6 +812,7 @@ export default function Pendencies() {
                     <TableHead>Tipo de Erro</TableHead>
                     <TableHead>Qtd. Documentos</TableHead>
                     <TableHead>Descrição</TableHead>
+                    <TableHead>Anexos</TableHead>
                     <TableHead>Tratativa</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Data de Criação</TableHead>
@@ -821,7 +822,7 @@ export default function Pendencies() {
                 <TableBody>
                    {filteredPendencies.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center text-muted-foreground">
+                      <TableCell colSpan={11} className="text-center text-muted-foreground">
                         Nenhuma pendência registrada
                       </TableCell>
                     </TableRow>
@@ -840,10 +841,30 @@ export default function Pendencies() {
                          </TableCell>
                          <TableCell>{getErrorTypeLabel(pendency.error_type)}</TableCell>
                          <TableCell>{pendency.error_document_count || '-'}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {pendency.description}
-                        </TableCell>
-                        <TableCell>
+                         <TableCell className="max-w-xs truncate">
+                           {pendency.description}
+                         </TableCell>
+                         <TableCell>
+                           {pendency.attachments && Array.isArray(pendency.attachments) && pendency.attachments.length > 0 ? (
+                             <div className="flex flex-col gap-1">
+                               {pendency.attachments.map((file: any, index: number) => (
+                                 <a
+                                   key={index}
+                                   href={file.url}
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   className="flex items-center gap-1 text-xs text-primary hover:underline"
+                                 >
+                                   <Paperclip className="h-3 w-3" />
+                                   <span className="truncate max-w-[150px]">{file.name}</span>
+                                 </a>
+                               ))}
+                             </div>
+                           ) : (
+                             <span className="text-xs text-muted-foreground">-</span>
+                           )}
+                         </TableCell>
+                         <TableCell>
                           {pendency.treatment ? (
                             <span className="text-sm font-medium">{pendency.treatment}</span>
                           ) : (
