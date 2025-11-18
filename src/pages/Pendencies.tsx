@@ -191,6 +191,7 @@ export default function Pendencies() {
                 request.status === 'rejected' ? 'resolved' : 'pending',
         created_at: request.created_at,
         created_by: request.created_by,
+        attachments: request.attachments || [],
         // Mark as customer request for identification
         source: 'customer_request',
         priority: request.priority,
