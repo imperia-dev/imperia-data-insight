@@ -91,13 +91,13 @@ export default function CustomerPendencyRequest() {
         const filePath = `${session?.user?.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('customer-pendency-attachments')
+          .from('pendency-attachments')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
-          .from('customer-pendency-attachments')
+          .from('pendency-attachments')
           .getPublicUrl(filePath);
 
         newFiles.push({
