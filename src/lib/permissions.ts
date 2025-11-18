@@ -127,6 +127,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/customer-dashboard',
     '/customer-pendency-request',
     '/customer-requests',
+    '/orders',
     '/settings',
     '/notifications'
   ]
