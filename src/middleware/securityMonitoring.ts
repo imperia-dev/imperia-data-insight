@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 interface SecurityEvent {
   type: 'login_attempt' | 'failed_login' | 'suspicious_activity' | 'rate_limit' | 'unauthorized_access';
@@ -94,7 +95,7 @@ class SecurityMonitor {
         .single();
 
       if (alertError) {
-        console.error('Error creating security alert:', alertError);
+        logger.error('Error creating security alert');
         return;
       }
 
@@ -107,7 +108,7 @@ class SecurityMonitor {
         .single();
 
       if (!config) {
-        console.log('No alert configuration found for:', alertType);
+        logger.debug('No alert configuration found');
         return;
       }
 
@@ -124,9 +125,9 @@ class SecurityMonitor {
         }
       });
 
-      console.log('Automatic security alert triggered:', alert.id);
+      logger.info('Automatic security alert triggered');
     } catch (error) {
-      console.error('Error triggering automatic alert:', error);
+      logger.error('Error triggering automatic alert');
     }
   }
 
@@ -162,12 +163,12 @@ class SecurityMonitor {
         .insert(eventsToInsert);
 
       if (error) {
-        console.error('Failed to log security events:', error);
+        logger.error('Failed to log security events');
         // Re-add events to queue on failure
         this.eventQueue.push(...events);
       }
     } catch (error) {
-      console.error('Error flushing security events:', error);
+      logger.error('Error flushing security events');
       // Re-add events to queue on failure
       this.eventQueue.push(...events);
     }
