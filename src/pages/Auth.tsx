@@ -16,6 +16,7 @@ import { BackupCodeChallenge } from "@/components/mfa/BackupCodeChallenge";
 import { ForgotPasswordModal } from "@/components/auth/ForgotPasswordModal";
 import { PhoneInput } from "@/components/auth/PhoneInput";
 import { useMFA } from "@/hooks";
+import { logger } from "@/utils/logger";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -212,7 +213,7 @@ export default function Auth() {
             .eq('id', data.user.id);
           
           if (profileError) {
-            console.error('Error updating phone:', profileError);
+            logger.error('Error updating phone number');
           }
         }
         
@@ -356,7 +357,7 @@ export default function Auth() {
       if (success) {
         // Play login success sound
         const audio = new Audio('/login-success.mp3');
-        audio.play().catch(e => console.log('Could not play audio:', e));
+        audio.play().catch(() => logger.debug('Could not play audio'));
         
         toast({
           title: "Login realizado com sucesso!",
@@ -369,7 +370,7 @@ export default function Auth() {
       
       return false;
     } catch (error: any) {
-      console.error('MFA verification error:', error);
+      logger.error('MFA verification failed');
       return false;
     } finally {
       setLoading(false);
@@ -392,7 +393,7 @@ export default function Auth() {
         if (!error) {
           // Play login success sound
           const audio = new Audio('/login-success.mp3');
-          audio.play().catch(e => console.log('Could not play audio:', e));
+          audio.play().catch(() => logger.debug('Could not play audio'));
           
           toast({
             title: "Login realizado com sucesso!",
@@ -406,7 +407,7 @@ export default function Auth() {
       
       return false;
     } catch (error: any) {
-      console.error('Backup code verification error:', error);
+      logger.error('Backup code verification failed');
       return false;
     } finally {
       setLoading(false);
