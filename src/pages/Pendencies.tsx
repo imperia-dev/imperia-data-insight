@@ -39,7 +39,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle, CalendarIcon, Paperclip } from "lucide-react";
+import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle, CalendarIcon, Paperclip, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit2, X } from "lucide-react";
@@ -52,6 +52,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PendencyFilters } from "@/components/pendencies/PendencyFilters";
+import { PendencyViewDialog } from "@/components/pendencies/PendencyViewDialog";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -90,6 +91,8 @@ export default function Pendencies() {
   const [editingPendency, setEditingPendency] = useState<any | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [filters, setFilters] = useState<any>(null);
+  const [viewingPendency, setViewingPendency] = useState<any | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
 
   const errorTypes = [
     { value: "nao_e_erro", label: "Não é erro" },
@@ -905,6 +908,17 @@ export default function Pendencies() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setViewingPendency(pendency);
+                                setViewModalOpen(true);
+                              }}
+                              title="Visualizar detalhes"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                             {(userRole === 'owner' || userRole === 'master' || userRole === 'admin') && (
                               <Button
                                 variant="outline"
@@ -1156,6 +1170,13 @@ export default function Pendencies() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View Pendency Dialog */}
+      <PendencyViewDialog
+        open={viewModalOpen}
+        onOpenChange={setViewModalOpen}
+        pendency={viewingPendency}
+      />
     </div>
   );
 }
