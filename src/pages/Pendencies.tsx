@@ -39,6 +39,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/utils/logger";
 import { ChevronsUpDown, Check, AlertCircle, ChevronLeft, ChevronRight, Save, CheckCircle, CalendarIcon, Paperclip, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -498,14 +499,25 @@ export default function Pendencies() {
     if (!editingPendency) return;
 
     try {
+      // Determine the correct table based on source
+      const tableName = editingPendency.source === 'customer_request' 
+        ? 'customer_pendency_requests' 
+        : 'pendencies';
+
       const updateData: any = {
         c4u_id: editingPendency.c4u_id,
         description: editingPendency.description,
         error_type: editingPendency.error_type,
         error_document_count: editingPendency.error_document_count,
         customer: editingPendency.customer,
-        treatment: editingPendency.treatment,
       };
+
+      // For customer requests, update internal_notes instead of treatment
+      if (editingPendency.source === 'customer_request') {
+        updateData.internal_notes = editingPendency.treatment;
+      } else {
+        updateData.treatment = editingPendency.treatment;
+      }
 
       // If created_at was edited, update it
       if (editingPendency.created_at) {
@@ -513,7 +525,7 @@ export default function Pendencies() {
       }
 
       const { error } = await supabase
-        .from('pendencies')
+        .from(tableName)
         .update(updateData)
         .eq('id', editingPendency.id);
 
@@ -528,7 +540,7 @@ export default function Pendencies() {
       setEditingPendency(null);
       fetchPendencies();
     } catch (error) {
-      console.error('Error updating pendency:', error);
+      logger.error('Error updating pendency:', error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar a pendência.",
