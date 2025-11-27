@@ -499,37 +499,45 @@ export default function Pendencies() {
     if (!editingPendency) return;
 
     try {
-      // Determine the correct table based on source
-      const tableName = editingPendency.source === 'customer_request' 
-        ? 'customer_pendency_requests' 
-        : 'pendencies';
-
-      const updateData: any = {
-        c4u_id: editingPendency.c4u_id,
-        description: editingPendency.description,
-        error_type: editingPendency.error_type,
-        error_document_count: editingPendency.error_document_count,
-        customer: editingPendency.customer,
-      };
-
-      // For customer requests, update internal_notes instead of treatment
+      // Determine the correct table and fields based on source
       if (editingPendency.source === 'customer_request') {
-        updateData.internal_notes = editingPendency.treatment;
+        // For customer requests, only update fields that exist in that table
+        const updateData: any = {
+          order_id: editingPendency.order_id || editingPendency.old_order_text_id,
+          description: editingPendency.description,
+          priority: editingPendency.priority,
+          internal_notes: editingPendency.treatment,
+        };
+
+        const { error } = await supabase
+          .from('customer_pendency_requests')
+          .update(updateData)
+          .eq('id', editingPendency.id);
+
+        if (error) throw error;
       } else {
-        updateData.treatment = editingPendency.treatment;
+        // For regular pendencies, update all fields
+        const updateData: any = {
+          c4u_id: editingPendency.c4u_id,
+          description: editingPendency.description,
+          error_type: editingPendency.error_type,
+          error_document_count: editingPendency.error_document_count,
+          customer: editingPendency.customer,
+          treatment: editingPendency.treatment,
+        };
+
+        // If created_at was edited, update it
+        if (editingPendency.created_at) {
+          updateData.created_at = editingPendency.created_at;
+        }
+
+        const { error } = await supabase
+          .from('pendencies')
+          .update(updateData)
+          .eq('id', editingPendency.id);
+
+        if (error) throw error;
       }
-
-      // If created_at was edited, update it
-      if (editingPendency.created_at) {
-        updateData.created_at = editingPendency.created_at;
-      }
-
-      const { error } = await supabase
-        .from(tableName)
-        .update(updateData)
-        .eq('id', editingPendency.id);
-
-      if (error) throw error;
 
       toast({
         title: "Sucesso",
