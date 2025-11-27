@@ -1,8 +1,5 @@
 project_id = "agttqqaampznczkyfvkf"
 
-[functions.n8n-webhook-proxy]
-verify_jwt = true
-
 [functions.send-payment-email]
 verify_jwt = false
 
