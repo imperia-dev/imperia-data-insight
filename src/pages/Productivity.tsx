@@ -101,80 +101,59 @@ export default function Financial() {
     setLoading(true);
     try {
       const now = new Date();
-      let startDate: Date;
-      let endDate: Date;
+      
+      // Trabalhar sempre no fuso horário de São Paulo para evitar erros de conversão
+      let startSP: Date;
+      let endSP: Date;
       
       if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
-        // Custom period - convert São Paulo time to UTC for proper filtering
-        // São Paulo is UTC-3, so we add 3 hours to convert local time to UTC
+        // Período personalizado: usar exatamente as datas/horas escolhidas no horário de São Paulo
         const [startHour, startMinute] = customStartTime.split(':').map(Number);
-        startDate = new Date(Date.UTC(
-          customStartDate.getFullYear(),
-          customStartDate.getMonth(),
-          customStartDate.getDate(),
-          startHour + 3, // Convert SP time to UTC
-          startMinute,
-          0,
-          0
-        ));
-        
         const [endHour, endMinute] = customEndTime.split(':').map(Number);
-        endDate = new Date(Date.UTC(
-          customEndDate.getFullYear(),
-          customEndDate.getMonth(),
-          customEndDate.getDate(),
-          endHour + 3, // Convert SP time to UTC
-          endMinute,
-          59,
-          999
-        ));
+
+        startSP = new Date(customStartDate);
+        startSP.setHours(startHour, startMinute, 0, 0);
+
+        endSP = new Date(customEndDate);
+        endSP.setHours(endHour, endMinute, 59, 999);
       } else {
-        // For predefined periods, create UTC dates representing São Paulo timezone boundaries
+        // Períodos pré-definidos: baseados no horário atual de São Paulo
+        const nowSP = toSaoPauloTime(now);
+
         switch (selectedPeriod) {
           case 'day':
-            // Today 00:00:00 in SP = 03:00:00 UTC
-            startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 3, 0, 0, 0));
-            // Today 23:59:59.999 in SP = 02:59:59.999 UTC (next day)
-            endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1, 2, 59, 59, 999));
+            startSP = startOfDay(nowSP);
+            endSP = endOfDay(nowSP);
             break;
           case 'week':
-            const dayOfWeek = now.getDay();
-            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), diff, 3, 0, 0, 0));
-            endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), diff + 7, 2, 59, 59, 999));
+            startSP = startOfWeek(nowSP, { weekStartsOn: 1 });
+            endSP = endOfWeek(nowSP, { weekStartsOn: 1 });
             break;
           case 'month':
-            // First day of month 00:00:00 in SP = 03:00:00 UTC
-            startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 3, 0, 0, 0));
-            const lastDayNumMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            // Last day of month 23:59:59.999 in SP = 02:59:59.999 UTC (next day)
-            endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), lastDayNumMonth + 1, 2, 59, 59, 999));
+            startSP = startOfMonth(nowSP);
+            endSP = endOfMonth(nowSP);
             break;
           case 'quarter':
-            const quarter = Math.floor(now.getMonth() / 3);
-            startDate = new Date(Date.UTC(now.getFullYear(), quarter * 3, 1, 3, 0, 0, 0));
-            const endMonth = quarter * 3 + 2;
-            const lastDayOfQuarter = new Date(now.getFullYear(), endMonth + 1, 0).getDate();
-            endDate = new Date(Date.UTC(now.getFullYear(), endMonth, lastDayOfQuarter + 1, 2, 59, 59, 999));
+            startSP = startOfQuarter(nowSP);
+            endSP = endOfQuarter(nowSP);
             break;
           case 'year':
-            startDate = new Date(Date.UTC(now.getFullYear(), 0, 1, 3, 0, 0, 0));
-            endDate = new Date(Date.UTC(now.getFullYear(), 11, 32, 2, 59, 59, 999));
+            startSP = startOfYear(nowSP);
+            endSP = endOfYear(nowSP);
             break;
           default:
-            startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 3, 0, 0, 0));
-            const lastDayDefault = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), lastDayDefault + 1, 2, 59, 59, 999));
+            startSP = startOfMonth(nowSP);
+            endSP = endOfMonth(nowSP);
         }
       }
       
-      // Log dates for debugging
+      // Log de datas em UTC e em São Paulo para depuração
       logger.info('Productivity - Date filter:', {
         period: selectedPeriod,
-        startUTC: startDate.toISOString(),
-        endUTC: endDate.toISOString(),
-        startSP: format(toSaoPauloTime(startDate), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
-        endSP: format(toSaoPauloTime(endDate), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })
+        startUTC: startSP.toISOString(),
+        endUTC: endSP.toISOString(),
+        startSP: format(startSP, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
+        endSP: format(endSP, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })
       });
       
       // Fetch orders from service providers with date filter
@@ -206,20 +185,20 @@ export default function Financial() {
       
       logger.info('Productivity - Raw orders fetched:', { count: ordersData?.length });
       
-      // Filter orders based on date - compare UTC timestamps directly
-      const startTimestamp = startDate.getTime();
-      const endTimestamp = endDate.getTime();
+      // Filtrar pedidos com base nas datas em horário de São Paulo
+      const startTimestamp = startSP.getTime();
+      const endTimestamp = endSP.getTime();
       
       const filteredOrders = ordersData?.filter(order => {
-        // For delivered orders, use delivered_at
-        // For in_progress orders, use assigned_at or created_at
+        // Para pedidos entregues, usar delivered_at
+        // Para in_progress, usar assigned_at ou created_at
         let dateToCheck: Date;
         if (order.status_order === 'delivered' && order.delivered_at) {
-          dateToCheck = new Date(order.delivered_at);
+          dateToCheck = toSaoPauloTime(order.delivered_at);
         } else if (order.assigned_at) {
-          dateToCheck = new Date(order.assigned_at);
+          dateToCheck = toSaoPauloTime(order.assigned_at);
         } else {
-          dateToCheck = new Date(order.created_at);
+          dateToCheck = toSaoPauloTime(order.created_at);
         }
         
         const orderTimestamp = dateToCheck.getTime();
@@ -508,9 +487,9 @@ export default function Financial() {
     ? accumulatedPayments.filter(payment => payment.user_name !== 'Hellem Coelho')
     : accumulatedPayments;
   
-  console.log('Productivity - Accumulated payments before filter:', accumulatedPayments.length);
-  console.log('Productivity - Filtered payments (after removing Hellem if operation):', filteredPayments.length);
-  console.log('Productivity - Current userRole for filtering:', userRole);
+  logger.info('Productivity - Accumulated payments before filter:', accumulatedPayments.length);
+  logger.info('Productivity - Filtered payments (after removing Hellem if operation):', filteredPayments.length);
+  logger.info('Productivity - Current userRole for filtering:', userRole);
   
   const topPerformers: TopPerformer[] = filteredPayments
     .slice(0, showAllPerformers ? filteredPayments.length : 5)
@@ -522,12 +501,12 @@ export default function Financial() {
       diagramming_value: payment.diagramming_value
     }));
   
-  console.log('Productivity - Top performers count:', topPerformers.length);
+  logger.info('Productivity - Top performers count:', topPerformers.length);
   
   // Check if ranking should be visible (owner, master and operation can see it)
   // Only check after userRole is loaded
   const canSeeRanking = userRole && (userRole === 'owner' || userRole === 'master' || userRole === 'operation');
-  console.log('Productivity - Can see ranking:', canSeeRanking, 'Role:', userRole);
+  logger.info('Productivity - Can see ranking:', canSeeRanking, 'Role:', userRole);
 
   return (
     <div className="min-h-screen bg-background">
