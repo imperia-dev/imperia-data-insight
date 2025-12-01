@@ -156,8 +156,10 @@ export default function Financial() {
         endSP: format(endSP, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })
       });
       
-      // Fetch orders from service providers with date filter
-      // Include delivered, in_progress and available orders (that might be picked up today)
+      // Buscar pedidos já filtrando por período e somente os entregues (pagamentos realizados)
+      const startTimestamp = startSP.getTime();
+      const endTimestamp = endSP.getTime();
+
       let query = supabase
         .from('orders')
         .select(`
@@ -173,8 +175,10 @@ export default function Financial() {
           diagramming_value,
           custom_value_diagramming
         `)
-        .in('status_order', ['delivered', 'in_progress'])
-        .not('assigned_to', 'is', null);
+        .eq('status_order', 'delivered')
+        .not('assigned_to', 'is', null)
+        .gte('delivered_at', new Date(startTimestamp).toISOString())
+        .lte('delivered_at', new Date(endTimestamp).toISOString());
 
       const { data: ordersData, error: ordersError } = await query;
 
@@ -183,29 +187,10 @@ export default function Financial() {
         throw ordersError;
       }
       
-      logger.info('Productivity - Raw orders fetched:', { count: ordersData?.length });
+      logger.info('Productivity - Raw orders fetched (after DB date filter):', { count: ordersData?.length });
       
-      // Filtrar pedidos com base nas datas em horário de São Paulo
-      const startTimestamp = startSP.getTime();
-      const endTimestamp = endSP.getTime();
-      
-      const filteredOrders = ordersData?.filter(order => {
-        // Para pedidos entregues, usar delivered_at
-        // Para in_progress, usar assigned_at ou created_at
-        let dateToCheck: Date;
-        if (order.status_order === 'delivered' && order.delivered_at) {
-          dateToCheck = toSaoPauloTime(order.delivered_at);
-        } else if (order.assigned_at) {
-          dateToCheck = toSaoPauloTime(order.assigned_at);
-        } else {
-          dateToCheck = toSaoPauloTime(order.created_at);
-        }
-        
-        const orderTimestamp = dateToCheck.getTime();
-        const isInRange = orderTimestamp >= startTimestamp && orderTimestamp <= endTimestamp;
-        
-        return isInRange;
-      }) || [];
+      // Como o filtro de datas já foi aplicado no banco, usamos diretamente os pedidos retornados
+      const filteredOrders = ordersData || [];
       
       logger.info('Productivity - Filtered orders:', { 
         count: filteredOrders.length,
