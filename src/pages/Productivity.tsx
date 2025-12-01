@@ -14,6 +14,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatDateBR, formatDateOnlyBR, toSaoPauloTime } from "@/lib/dateUtils";
+import { logger } from "@/utils/logger";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -80,9 +81,9 @@ export default function Financial() {
 
         if (data && !error) {
           setUserName(data.full_name);
-          console.log('Productivity - User name loaded:', data.full_name);
+          logger.info('Productivity - User name loaded:', { userName: data.full_name });
         } else {
-          console.error('Productivity - Error loading user profile:', error);
+          logger.error('Productivity - Error loading user profile:', error);
         }
       }
     };
@@ -104,62 +105,76 @@ export default function Financial() {
       let endDate: Date;
       
       if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
-        // Custom period with time
-        startDate = new Date(customStartDate);
+        // Custom period - convert São Paulo time to UTC for proper filtering
+        // São Paulo is UTC-3, so we add 3 hours to convert local time to UTC
         const [startHour, startMinute] = customStartTime.split(':').map(Number);
-        startDate.setHours(startHour, startMinute, 0, 0);
+        startDate = new Date(Date.UTC(
+          customStartDate.getFullYear(),
+          customStartDate.getMonth(),
+          customStartDate.getDate(),
+          startHour + 3, // Convert SP time to UTC
+          startMinute,
+          0,
+          0
+        ));
         
-        endDate = new Date(customEndDate);
         const [endHour, endMinute] = customEndTime.split(':').map(Number);
-        endDate.setHours(endHour, endMinute, 59, 999);
+        endDate = new Date(Date.UTC(
+          customEndDate.getFullYear(),
+          customEndDate.getMonth(),
+          customEndDate.getDate(),
+          endHour + 3, // Convert SP time to UTC
+          endMinute,
+          59,
+          999
+        ));
       } else {
-        // For predefined periods, use local date boundaries
+        // For predefined periods, create UTC dates representing São Paulo timezone boundaries
         switch (selectedPeriod) {
           case 'day':
-            // Today at 00:00:00 local time
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+            // Today 00:00:00 in SP = 03:00:00 UTC
+            startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 3, 0, 0, 0));
+            // Today 23:59:59.999 in SP = 02:59:59.999 UTC (next day)
+            endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1, 2, 59, 59, 999));
             break;
           case 'week':
             const dayOfWeek = now.getDay();
             const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            startDate = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-            endDate = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
+            startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), diff, 3, 0, 0, 0));
+            endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), diff + 7, 2, 59, 59, 999));
             break;
           case 'month':
-            // Create dates in UTC representing the first and last moments of the month in São Paulo
-            const firstDayMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 3, 0, 0, 0)); // 00:00:00 in SP = 03:00:00 UTC
+            // First day of month 00:00:00 in SP = 03:00:00 UTC
+            startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 3, 0, 0, 0));
             const lastDayNumMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const lastDayMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), lastDayNumMonth, 2, 59, 59, 999)); // 23:59:59.999 in SP = 02:59:59.999 UTC (next day)
-            startDate = firstDayMonth;
-            endDate = lastDayMonth;
+            // Last day of month 23:59:59.999 in SP = 02:59:59.999 UTC (next day)
+            endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), lastDayNumMonth + 1, 2, 59, 59, 999));
             break;
           case 'quarter':
             const quarter = Math.floor(now.getMonth() / 3);
-            startDate = new Date(now.getFullYear(), quarter * 3, 1, 0, 0, 0, 0);
+            startDate = new Date(Date.UTC(now.getFullYear(), quarter * 3, 1, 3, 0, 0, 0));
             const endMonth = quarter * 3 + 2;
             const lastDayOfQuarter = new Date(now.getFullYear(), endMonth + 1, 0).getDate();
-            endDate = new Date(now.getFullYear(), endMonth, lastDayOfQuarter, 23, 59, 59, 999);
+            endDate = new Date(Date.UTC(now.getFullYear(), endMonth, lastDayOfQuarter + 1, 2, 59, 59, 999));
             break;
           case 'year':
-            startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-            endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+            startDate = new Date(Date.UTC(now.getFullYear(), 0, 1, 3, 0, 0, 0));
+            endDate = new Date(Date.UTC(now.getFullYear(), 11, 32, 2, 59, 59, 999));
             break;
           default:
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+            startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 3, 0, 0, 0));
             const lastDayDefault = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            endDate = new Date(now.getFullYear(), now.getMonth(), lastDayDefault, 23, 59, 59, 999);
+            endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), lastDayDefault + 1, 2, 59, 59, 999));
         }
       }
       
-      // Convert dates to São Paulo timezone for proper comparison
-      const startDateSP = toSaoPauloTime(startDate);
-      const endDateSP = toSaoPauloTime(endDate);
-      
-      console.log('Productivity - Date filter:', {
+      // Log dates for debugging
+      logger.info('Productivity - Date filter:', {
         period: selectedPeriod,
-        startSP: format(startDateSP, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
-        endSP: format(endDateSP, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })
+        startUTC: startDate.toISOString(),
+        endUTC: endDate.toISOString(),
+        startSP: format(toSaoPauloTime(startDate), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
+        endSP: format(toSaoPauloTime(endDate), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })
       });
       
       // Fetch orders from service providers with date filter
@@ -185,45 +200,46 @@ export default function Financial() {
       const { data: ordersData, error: ordersError } = await query;
 
       if (ordersError) {
-        console.error('Productivity - Error fetching orders:', ordersError);
+        logger.error('Productivity - Error fetching orders:', ordersError);
         throw ordersError;
       }
       
-      console.log('Productivity - Raw orders fetched:', ordersData?.length, 'orders');
+      logger.info('Productivity - Raw orders fetched:', { count: ordersData?.length });
       
-      // Filter orders based on date (using São Paulo timezone)
+      // Filter orders based on date - compare UTC timestamps directly
+      const startTimestamp = startDate.getTime();
+      const endTimestamp = endDate.getTime();
+      
       const filteredOrders = ordersData?.filter(order => {
         // For delivered orders, use delivered_at
         // For in_progress orders, use assigned_at or created_at
-        let dateToCheck;
+        let dateToCheck: Date;
         if (order.status_order === 'delivered' && order.delivered_at) {
-          dateToCheck = toSaoPauloTime(order.delivered_at);
+          dateToCheck = new Date(order.delivered_at);
         } else if (order.assigned_at) {
-          dateToCheck = toSaoPauloTime(order.assigned_at);
+          dateToCheck = new Date(order.assigned_at);
         } else {
-          dateToCheck = toSaoPauloTime(order.created_at);
+          dateToCheck = new Date(order.created_at);
         }
         
-        const isInRange = dateToCheck >= startDateSP && dateToCheck <= endDateSP;
-        
-        if (isInRange && selectedPeriod === 'day') {
-          console.log('Order in today\'s range:', {
-            id: order.id,
-            status: order.status_order,
-            assigned_to: order.assigned_to,
-            dateUsed: dateToCheck.toISOString(),
-            documents: order.document_count
-          });
-        }
+        const orderTimestamp = dateToCheck.getTime();
+        const isInRange = orderTimestamp >= startTimestamp && orderTimestamp <= endTimestamp;
         
         return isInRange;
       }) || [];
       
-      console.log('Productivity - Filtered orders:', filteredOrders.length, 'orders after date filtering');
+      logger.info('Productivity - Filtered orders:', { 
+        count: filteredOrders.length,
+        sampleOrders: filteredOrders.slice(0, 3).map(o => ({
+          id: o.id,
+          status: o.status_order,
+          date: o.delivered_at || o.assigned_at || o.created_at
+        }))
+      });
 
       // Fetch all user profiles for the assigned users
       const userIds = [...new Set(filteredOrders.map(order => order.assigned_to).filter(Boolean) || [])];
-      console.log('Productivity - User IDs to fetch profiles for:', userIds);
+      logger.info('Productivity - User IDs to fetch profiles for:', { userIds });
       
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -231,24 +247,22 @@ export default function Financial() {
         .in('id', userIds);
       
       if (profilesError) {
-        console.error('Productivity - Error fetching profiles:', profilesError);
+        logger.error('Productivity - Error fetching profiles:', profilesError);
       }
       
-      console.log('Productivity - Profiles fetched:', profilesData);
+      logger.info('Productivity - Profiles fetched:', { count: profilesData?.length });
       
       // Create a map of user IDs to names
       const userNamesMap = new Map<string, string>();
       profilesData?.forEach(profile => {
         userNamesMap.set(profile.id, profile.full_name);
       });
-      
-      console.log('Productivity - User names map:', Array.from(userNamesMap.entries()));
 
       // Calculate payments using actual order values
       const dailyPaymentsMap = new Map<string, PaymentData>();
       const accumulatedMap = new Map<string, AccumulatedPayment>();
 
-      console.log('Productivity - Processing orders for payments...');
+      logger.info('Productivity - Processing orders for payments...', { orderCount: filteredOrders.length });
       
       filteredOrders.forEach(order => {
         if (!order.assigned_to) return;
@@ -310,8 +324,13 @@ export default function Financial() {
         }
       });
       
-      console.log('Productivity - Accumulated payments map size:', accumulatedMap.size);
-      console.log('Productivity - User role during data processing:', userRole);
+      logger.info('Productivity - Payment processing complete:', { 
+        accumulatedPaymentsCount: accumulatedMap.size,
+        dailyPaymentsCount: dailyPaymentsMap.size,
+        totalDriveValue: Array.from(accumulatedMap.values()).reduce((sum, p) => sum + p.drive_value, 0),
+        totalDiagrammingValue: Array.from(accumulatedMap.values()).reduce((sum, p) => sum + p.diagramming_value, 0),
+        userRole 
+      });
 
       setDailyPayments(Array.from(dailyPaymentsMap.values()).sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -321,7 +340,7 @@ export default function Financial() {
         b.total_amount - a.total_amount
       ));
     } catch (error) {
-      console.error('Error fetching payment data:', error);
+      logger.error('Error fetching payment data:', error);
     } finally {
       setLoading(false);
     }
