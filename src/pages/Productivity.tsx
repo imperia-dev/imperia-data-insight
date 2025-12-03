@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatDateBR, formatDateOnlyBR, toSaoPauloTime } from "@/lib/dateUtils";
 import { logger } from "@/utils/logger";
@@ -132,6 +132,11 @@ export default function Financial() {
           case 'month':
             startSP = startOfMonth(nowSP);
             endSP = endOfMonth(nowSP);
+            break;
+          case 'lastMonth':
+            const lastMonth = subMonths(nowSP, 1);
+            startSP = startOfMonth(lastMonth);
+            endSP = endOfMonth(lastMonth);
             break;
           case 'quarter':
             startSP = startOfQuarter(nowSP);
@@ -531,6 +536,7 @@ export default function Financial() {
                     <SelectItem value="day">Hoje</SelectItem>
                     <SelectItem value="week">Esta Semana</SelectItem>
                     <SelectItem value="month">Este Mês</SelectItem>
+                    <SelectItem value="lastMonth">Último Mês</SelectItem>
                     <SelectItem value="quarter">Este Trimestre</SelectItem>
                     <SelectItem value="year">Este Ano</SelectItem>
                     <SelectItem value="custom">Personalizado</SelectItem>
