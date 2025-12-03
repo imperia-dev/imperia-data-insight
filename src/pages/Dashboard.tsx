@@ -347,6 +347,9 @@ export default function Dashboard() {
     } else if (selectedPeriod === 'month') {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (selectedPeriod === 'lastMonth') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     } else if (selectedPeriod === 'quarter') {
       const quarter = Math.floor(now.getMonth() / 3);
       startDate = new Date(now.getFullYear(), quarter * 3, 1);
@@ -791,6 +794,12 @@ export default function Dashboard() {
           endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
           interval = eachDayOfInterval({ start: startDate, end: endDate });
           break;
+        case 'lastMonth':
+          // Show daily data for last month
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+          interval = eachDayOfInterval({ start: startDate, end: endDate });
+          break;
         case 'quarter':
           // Show weekly data for this quarter
           const quarter = Math.floor(now.getMonth() / 3);
@@ -1194,6 +1203,7 @@ export default function Dashboard() {
                     <SelectItem value="day">Hoje</SelectItem>
                     <SelectItem value="week">Esta Semana</SelectItem>
                     <SelectItem value="month">Este Mês</SelectItem>
+                    <SelectItem value="lastMonth">Último Mês</SelectItem>
                     <SelectItem value="quarter">Este Trimestre</SelectItem>
                     <SelectItem value="year">Este Ano</SelectItem>
                     <SelectItem value="custom">Personalizado</SelectItem>
