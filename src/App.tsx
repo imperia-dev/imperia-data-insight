@@ -48,6 +48,7 @@ import SecurityDashboard from "./pages/SecurityDashboard";
 import PasswordReset from "./pages/PasswordReset";
 import Leads from "./pages/Leads";
 import CollaboratorsKPI from "./pages/CollaboratorsKPI";
+import MyKPIs from "./pages/MyKPIs";
 import Chat from "./pages/Chat";
 import TranslationOrders from "./pages/TranslationOrders";
 import FechamentoPrestadores from "./pages/FechamentoPrestadores";
@@ -133,6 +134,11 @@ const App = () => (
             <Route path="/collaborators-kpi" element={
               <ProtectedRouteWithApproval>
                 <CollaboratorsKPI />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/my-kpis" element={
+              <ProtectedRouteWithApproval>
+                <MyKPIs />
               </ProtectedRouteWithApproval>
             } />
             <Route path="/wallet" element={

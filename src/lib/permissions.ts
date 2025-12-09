@@ -112,7 +112,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/settings',
     '/operation-protocol-data',
     '/announcements',
-    '/bad-news'
+    '/bad-news',
+    '/my-kpis'
   ],
   translator: [
     '/my-orders',
@@ -121,7 +122,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/settings',
     '/operation-protocol-data',
     '/announcements',
-    '/bad-news'
+    '/bad-news',
+    '/my-kpis'
   ],
   customer: [
     '/customer-dashboard',
