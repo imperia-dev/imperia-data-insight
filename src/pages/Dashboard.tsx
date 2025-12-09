@@ -957,11 +957,18 @@ export default function Dashboard() {
         .gte('created_at', firstDayOfMonth.toISOString())
         .lte('created_at', lastDayOfMonth.toISOString());
 
-      const { data: ordersMonth } = await supabase
+      let ordersMonthQuery = supabase
         .from('orders')
         .select('*')
         .gte('attribution_date', firstDayOfMonth.toISOString())
         .lte('attribution_date', lastDayOfMonth.toISOString());
+      
+      // Apply customer filter if not "all"
+      if (selectedCustomer !== "all") {
+        ordersMonthQuery = ordersMonthQuery.eq('customer', selectedCustomer);
+      }
+      
+      const { data: ordersMonth } = await ordersMonthQuery;
 
       // Calculate monthly error rate based on documents, not orders
       const totalDocumentsMonth = ordersMonth?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
