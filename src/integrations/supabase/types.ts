@@ -889,8 +889,10 @@ export type Database = {
           display_order: number | null
           id: string
           is_active: boolean | null
+          is_manual: boolean | null
           kpi_label: string
           kpi_name: string
+          manual_value: number | null
           target_operator: string
           target_value: number
           unit: string
@@ -903,8 +905,10 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean | null
+          is_manual?: boolean | null
           kpi_label: string
           kpi_name: string
+          manual_value?: number | null
           target_operator: string
           target_value: number
           unit?: string
@@ -917,8 +921,10 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean | null
+          is_manual?: boolean | null
           kpi_label?: string
           kpi_name?: string
+          manual_value?: number | null
           target_operator?: string
           target_value?: number
           unit?: string

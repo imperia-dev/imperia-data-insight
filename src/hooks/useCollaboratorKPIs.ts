@@ -12,6 +12,8 @@ interface CollaboratorKPI {
   unit: string;
   calculation_type: string;
   display_order: number;
+  manual_value: number | null;
+  is_manual: boolean;
 }
 
 interface CollaboratorWithKPIs {
@@ -185,21 +187,11 @@ async function calculateKPI(
       break;
     }
 
-    case 'revision_percentage': {
-      // Count orders with product_type = 'produto_2' (Revisão) assigned to this user
-      // Use match() to avoid TypeScript deep instantiation error with multiple eq()
-      const revisionResult = await supabase
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .match({ assigned_to: userId, product_type: 'produto_2' })
-        .gte('attribution_date', startStr)
-        .lte('attribution_date', endStr + 'T23:59:59');
-
-      totalCount = revisionResult.count || 0;
-      const totalOrdersForRevision = allOrders?.length || 0;
-      actualValue = totalOrdersForRevision > 0 ? (totalCount / totalOrdersForRevision) * 100 : 0;
+    case 'manual':
+      // For manual KPIs, use the manual_value set by the owner
+      actualValue = kpi.manual_value || 0;
+      totalCount = 0;
       break;
-    }
 
     default:
       break;
