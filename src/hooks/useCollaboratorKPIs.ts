@@ -170,6 +170,37 @@ async function calculateKPI(
       actualValue = totalBase > 0 ? (totalCount / totalBase) * 100 : 0;
       break;
 
+    case 'orders_percentage': {
+      // Count orders assigned to this user in the period
+      const { count: userOrdersCount } = await (supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('assigned_to', userId)
+        .gte('attribution_date', startStr)
+        .lte('attribution_date', endStr + 'T23:59:59') as any);
+
+      totalCount = userOrdersCount || 0;
+      const totalOrdersCount = allOrders?.length || 0;
+      actualValue = totalOrdersCount > 0 ? (totalCount / totalOrdersCount) * 100 : 0;
+      break;
+    }
+
+    case 'revision_percentage': {
+      // Count orders with product_type = 'produto_2' (Revisão) assigned to this user
+      // Use match() to avoid TypeScript deep instantiation error with multiple eq()
+      const revisionResult = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .match({ assigned_to: userId, product_type: 'produto_2' })
+        .gte('attribution_date', startStr)
+        .lte('attribution_date', endStr + 'T23:59:59');
+
+      totalCount = revisionResult.count || 0;
+      const totalOrdersForRevision = allOrders?.length || 0;
+      actualValue = totalOrdersForRevision > 0 ? (totalCount / totalOrdersForRevision) * 100 : 0;
+      break;
+    }
+
     default:
       break;
   }
