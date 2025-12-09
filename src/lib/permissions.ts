@@ -79,7 +79,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/registration-approvals',
     '/announcements',
     '/dashboard-tech',
-    '/bad-news'
+    '/bad-news',
+    '/my-kpis'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
     // Removed: '/team'
