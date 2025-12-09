@@ -356,12 +356,6 @@ const standaloneItems: NavigationItem[] = [
     roles: ["owner", "master", "operation", "translator"],
   },
   {
-    title: "Chat",
-    icon: MessageSquare,
-    href: "/chat",
-    roles: ["owner", "master", "admin", "operation"],
-  },
-  {
     title: "Departamento de Notícias Ruins",
     icon: AlertCircle,
     href: "/bad-news",
