@@ -13,12 +13,15 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePageLayout } from '@/hooks/usePageLayout';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { 
   Target, 
   TrendingUp, 
@@ -27,7 +30,10 @@ import {
   XCircle, 
   Calendar,
   FileText,
-  BarChart3
+  BarChart3,
+  Edit3,
+  Save,
+  X
 } from 'lucide-react';
 import { 
   useCollaboratorsWithKPIs, 
@@ -46,6 +52,7 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts';
+import { useQueryClient } from '@tanstack/react-query';
 
 type PeriodType = 'current_month' | 'last_month' | 'last_3_months' | 'last_6_months' | 'year';
 
@@ -252,9 +259,16 @@ export default function CollaboratorsKPI() {
                   ))}
                 </div>
               ) : calculatedKPIs && calculatedKPIs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {calculatedKPIs.map(result => (
-                    <KPICard key={result.kpi.id} result={result} />
+                    <KPICard 
+                      key={result.kpi.id} 
+                      result={result} 
+                      onManualValueUpdate={() => {
+                        // Invalidate queries to refresh data
+                        window.location.reload();
+                      }}
+                    />
                   ))}
                 </div>
               ) : (
@@ -376,6 +390,8 @@ interface KPICardProps {
       target_operator: string;
       unit: string;
       calculation_type: string;
+      is_manual?: boolean;
+      manual_value?: number | null;
     };
     actualValue: number;
     targetValue: number;
@@ -384,32 +400,117 @@ interface KPICardProps {
     totalCount: number;
     percentOfTarget: number;
   };
+  onManualValueUpdate?: () => void;
 }
 
-function KPICard({ result }: KPICardProps) {
+function KPICard({ result, onManualValueUpdate }: KPICardProps) {
   const { kpi, actualValue, targetValue, isWithinTarget, percentOfTarget } = result;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState<string>(String(kpi.manual_value || 0));
+  const [isSaving, setIsSaving] = useState(false);
   
   const operatorLabel = kpi.target_operator === 'lte' ? '≤' : kpi.target_operator === 'gte' ? '≥' : '=';
-  const progressValue = Math.min(percentOfTarget, 150); // Cap at 150% for visual
+  const progressValue = Math.min(percentOfTarget, 150);
+
+  const handleSave = async () => {
+    const numValue = parseFloat(editValue);
+    if (isNaN(numValue) || numValue < 0 || numValue > 100) {
+      toast.error('Valor deve ser entre 0 e 100');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('collaborator_kpis')
+        .update({ manual_value: numValue })
+        .eq('id', kpi.id);
+
+      if (error) throw error;
+
+      toast.success('Valor atualizado com sucesso');
+      setIsEditing(false);
+      onManualValueUpdate?.();
+    } catch (error) {
+      console.error('Error updating manual value:', error);
+      toast.error('Erro ao atualizar valor');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditValue(String(kpi.manual_value || 0));
+    setIsEditing(false);
+  };
 
   return (
     <Card className={`border-2 transition-colors ${isWithinTarget ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-medium">{kpi.kpi_label}</CardTitle>
-          {isWithinTarget ? (
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-          ) : (
-            <XCircle className="h-5 w-5 text-red-600" />
-          )}
+          <div className="flex items-center gap-2">
+            {kpi.calculation_type === 'manual' && !isEditing && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setIsEditing(true)}
+                title="Editar valor"
+              >
+                <Edit3 className="h-4 w-4" />
+              </Button>
+            )}
+            {isWithinTarget ? (
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            ) : (
+              <XCircle className="h-5 w-5 text-red-600" />
+            )}
+          </div>
         </div>
+        {kpi.calculation_type === 'manual' && (
+          <Badge variant="outline" className="w-fit text-xs">Manual</Badge>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Main Value */}
         <div className="text-center py-2">
-          <span className={`text-4xl font-bold ${isWithinTarget ? 'text-green-600' : 'text-red-600'}`}>
-            {actualValue.toFixed(2)}{kpi.unit}
-          </span>
+          {isEditing ? (
+            <div className="flex items-center justify-center gap-2">
+              <Input
+                type="number"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                className="w-24 text-center text-lg"
+                min={0}
+                max={100}
+                step={0.01}
+              />
+              <span className="text-lg font-medium">{kpi.unit}</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="h-8 w-8 text-green-600 hover:text-green-700"
+              >
+                <Save className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleCancel}
+                disabled={isSaving}
+                className="h-8 w-8 text-red-600 hover:text-red-700"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <span className={`text-4xl font-bold ${isWithinTarget ? 'text-green-600' : 'text-red-600'}`}>
+              {actualValue.toFixed(2)}{kpi.unit}
+            </span>
+          )}
         </div>
 
         {/* Target */}
