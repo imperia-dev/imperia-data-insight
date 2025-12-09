@@ -167,11 +167,11 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
     subtitleY += 8;
   }
   
-  // Add date
+  // Add date with Brasília time
   doc.setFontSize(10);
   doc.setTextColor(127, 140, 141); // Gray
   doc.text(
-    `Exportado em ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
+    `Exportado em ${format(new Date(), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })} (Horário de Brasília)`,
     doc.internal.pageSize.getWidth() / 2,
     subtitleY,
     { align: 'center' }
