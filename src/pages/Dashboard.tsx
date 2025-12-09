@@ -1026,8 +1026,6 @@ export default function Dashboard() {
         { label: 'Pendências', value: pendencies.toLocaleString('pt-BR') },
         { label: 'Não é Erro', value: pendencyLines[0] || '0.0% - Não é erro' },
         { label: 'Taxa Real de Erros', value: pendencyLines[1] || '0.0% - Erros' },
-        { label: 'Pendências - Total', value: pendencyLines[2] || '0.0% - Total' },
-        { label: 'Taxa de Erro do Mês', value: `${monthlyErrorRate.toFixed(2)}%` },
         { label: 'Atrasos', value: delays.toLocaleString('pt-BR'), percentage: delayPercentage },
       ];
 
