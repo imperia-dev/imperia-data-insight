@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toZonedTime } from 'date-fns-tz';
 import imperiaLogoVertical from '@/assets/imperia-logo-vertical.png';
 import imperiaLogoIcon from '@/assets/imperia-logo-icon.png';
 
@@ -171,7 +172,7 @@ export const exportToPDF = (data: ExportData, forceOrientation?: 'portrait' | 'l
   doc.setFontSize(10);
   doc.setTextColor(127, 140, 141); // Gray
   doc.text(
-    `Exportado em ${format(new Date(), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })} (Horário de Brasília)`,
+    `Exportado em ${format(toZonedTime(new Date(), 'America/Sao_Paulo'), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })} (Horário de Brasília)`,
     doc.internal.pageSize.getWidth() / 2,
     subtitleY,
     { align: 'center' }
