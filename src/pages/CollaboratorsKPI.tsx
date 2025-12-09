@@ -17,6 +17,8 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { usePageLayout } from '@/hooks/usePageLayout';
+import { cn } from '@/lib/utils';
 import { 
   Target, 
   TrendingUp, 
@@ -57,6 +59,7 @@ const periodOptions = [
 
 export default function CollaboratorsKPI() {
   const { user } = useAuth();
+  const { mainContainerClass } = usePageLayout();
   const [userRole, setUserRole] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -162,11 +165,13 @@ export default function CollaboratorsKPI() {
   }, [history]);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <Sidebar userRole={userRole} />
-      <div className="flex-1 flex flex-col">
+      
+      <div className={cn(mainContainerClass, "pt-16")}>
         <Header userName={userName} userRole={userRole} />
-        <main className="flex-1 p-6 space-y-6 overflow-auto">
+        
+        <main className="p-4 md:p-6 lg:p-8 space-y-6">
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
