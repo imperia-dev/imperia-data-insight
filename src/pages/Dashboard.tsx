@@ -1078,6 +1078,7 @@ export default function Dashboard() {
         : selectedPeriod === 'day' ? format(new Date(), "dd/MM/yyyy", { locale: ptBR })
         : selectedPeriod === 'week' ? `Últimos 7 dias`
         : selectedPeriod === 'month' ? `Últimos 30 dias`
+        : selectedPeriod === 'lastMonth' ? `Último mês`
         : selectedPeriod === 'quarter' ? `Últimos 3 meses`
         : `Últimos 12 meses`;
       
