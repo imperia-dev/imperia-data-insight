@@ -835,6 +835,106 @@ export type Database = {
         }
         Relationships: []
       }
+      collaborator_kpi_history: {
+        Row: {
+          actual_value: number
+          created_at: string | null
+          id: string
+          kpi_id: string
+          metadata: Json | null
+          period_end: string
+          period_start: string
+          target_value: number
+          total_base: number | null
+          total_count: number | null
+        }
+        Insert: {
+          actual_value: number
+          created_at?: string | null
+          id?: string
+          kpi_id: string
+          metadata?: Json | null
+          period_end: string
+          period_start: string
+          target_value: number
+          total_base?: number | null
+          total_count?: number | null
+        }
+        Update: {
+          actual_value?: number
+          created_at?: string | null
+          id?: string
+          kpi_id?: string
+          metadata?: Json | null
+          period_end?: string
+          period_start?: string
+          target_value?: number
+          total_base?: number | null
+          total_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_kpi_history_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "collaborator_kpis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaborator_kpis: {
+        Row: {
+          calculation_type: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          kpi_label: string
+          kpi_name: string
+          target_operator: string
+          target_value: number
+          unit: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          calculation_type: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          kpi_label: string
+          kpi_name: string
+          target_operator: string
+          target_value: number
+          unit?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          calculation_type?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          kpi_label?: string
+          kpi_name?: string
+          target_operator?: string
+          target_value?: number
+          unit?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_kpis_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_costs: {
         Row: {
           amount: number
