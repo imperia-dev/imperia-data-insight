@@ -1012,18 +1012,22 @@ export default function Dashboard() {
       // Parse the pendency percentages from the description
       const pendencyLines = pendencyPercentage.split('\n');
       
+      // Calculate urgency percentage
+      const urgencyPercent = attributedDocuments > 0 
+        ? ((urgencies / attributedDocuments) * 100).toFixed(1) 
+        : '0.0';
+
       const indicators = [
         { label: 'Atribuídos', value: attributedDocuments.toLocaleString('pt-BR') },
         { label: 'Em Andamento', value: documentsInProgress.toLocaleString('pt-BR') },
         { label: 'Entregues', value: documentsDelivered.toLocaleString('pt-BR') },
-        { label: 'Urgências', value: urgencies.toLocaleString('pt-BR'), percentage: urgencyPercentage },
+        { label: 'Urgências', value: urgencies.toLocaleString('pt-BR') },
+        { label: '% Urgências', value: `${urgencyPercent}%` },
         { label: 'Pendências', value: pendencies.toLocaleString('pt-BR') },
         { label: 'Taxa Real de Erros', value: pendencyLines[1] || '0.0% - Erros' },
         { label: 'Pendências - Total', value: pendencyLines[2] || '0.0% - Total' },
         { label: 'Atrasos', value: delays.toLocaleString('pt-BR'), percentage: delayPercentage },
-        { label: 'Média IA', value: averageScore.toFixed(2) },
         { label: 'Taxa de Erro do Mês', value: `${monthlyErrorRate.toFixed(2)}%` },
-        { label: 'Gasto Prestadores (Mês)', value: formatCurrency(providerCostsMonth) },
       ];
 
       // Prepare pendencies table data - include all pendencies in export
