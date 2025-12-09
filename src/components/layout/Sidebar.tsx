@@ -42,6 +42,7 @@ import {
   UserPlus,
   MessageSquare,
   Image,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -191,6 +192,12 @@ const navigationGroups: NavigationGroup[] = [
         icon: BarChart3,
         href: "/collaborators-kpi",
         roles: ["owner"],
+      },
+      {
+        title: "Meus KPIs",
+        icon: Target,
+        href: "/my-kpis",
+        roles: ["operation", "translator"],
       },
       {
         title: "Controle de Demanda",
