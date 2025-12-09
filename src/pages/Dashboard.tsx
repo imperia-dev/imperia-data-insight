@@ -1093,11 +1093,6 @@ export default function Dashboard() {
         totals: indicators,
         charts: [
           {
-            title: `Evolução ${selectedPeriod === 'day' ? 'Horária' : selectedPeriod === 'week' || selectedPeriod === 'month' ? 'Diária' : selectedPeriod === 'quarter' ? 'Semanal' : 'Mensal'}`,
-            type: 'bar' as const,
-            data: evolutionChartData.slice(0, 10), // Limit to 10 items for better readability in landscape
-          },
-          {
             title: "Distribuição de Tipos de Erro",
             type: 'bar' as const,
             data: pendencyTypesData.slice(0, 8).map(item => ({
