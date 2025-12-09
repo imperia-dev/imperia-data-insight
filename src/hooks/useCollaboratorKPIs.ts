@@ -118,19 +118,17 @@ async function calculateKPI(
   let totalCount = 0;
   let actualValue = 0;
 
-  // Get all order IDs assigned to this user in the period
-  const { data: userOrders } = await supabase
+  // Get ALL orders in the period (general rate, not per collaborator)
+  const { data: allOrders } = await supabase
     .from('orders')
     .select('id')
-    .eq('assigned_to', userId)
     .gte('created_at', startStr)
     .lte('created_at', endStr + 'T23:59:59');
 
-  const orderIds = userOrders?.map(o => o.id) || [];
+  const orderIds = allOrders?.map(o => o.id) || [];
   totalBase = orderIds.length;
 
   if (orderIds.length === 0) {
-    // No orders assigned to this user - return zero values
     return {
       kpi,
       actualValue: 0,
