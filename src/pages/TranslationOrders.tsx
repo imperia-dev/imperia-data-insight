@@ -44,6 +44,7 @@ import { Header } from "@/components/layout/Header";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { cn } from "@/lib/utils";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface TranslationOrder {
   id: string;
@@ -69,6 +70,7 @@ interface TranslationOrder {
 }
 
 const TranslationOrders = () => {
+  const { userRole } = useUserRole();
   const [orders, setOrders] = useState<TranslationOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -715,9 +717,9 @@ const TranslationOrders = () => {
   return (
     <SidebarProvider>
       <div className="flex w-full min-h-screen bg-background">
-        <Sidebar userRole={userProfile?.role || 'operation'} />
+        <Sidebar userRole={userRole || ''} />
         <div className={cn("flex-1 flex flex-col", mainContainerClass)}>
-          <Header userName={userProfile?.name || ''} userRole={userProfile?.role || 'operation'} />
+          <Header userName={userProfile?.name || ''} userRole={userRole} />
           <main className="flex-1 overflow-y-auto p-6">
             <div className="max-w-[1600px] mx-auto space-y-6">
               <Tabs defaultValue="orders" className="w-full">
@@ -1146,7 +1148,7 @@ const TranslationOrders = () => {
                 </TabsContent>
 
                 <TabsContent value="protocols" className="mt-6">
-                  <ReviewerProtocolsTab userRole={userProfile?.role || 'operation'} />
+                  <ReviewerProtocolsTab userRole={userRole || ''} />
                 </TabsContent>
               </Tabs>
             </div>

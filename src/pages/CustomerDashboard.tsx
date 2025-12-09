@@ -85,7 +85,7 @@ export default function CustomerDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar userRole={userRole || "customer"} />
+      <Sidebar userRole={userRole || ""} />
       <div className="md:pl-64">
         <Header userName={userName} userRole={userRole} />
         <main className="container mx-auto py-8 px-4">
