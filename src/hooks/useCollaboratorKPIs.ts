@@ -118,57 +118,56 @@ async function calculateKPI(
   let totalCount = 0;
   let actualValue = 0;
 
+  // Get all order IDs assigned to this user in the period
+  const { data: userOrders } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('assigned_to', userId)
+    .gte('created_at', startStr)
+    .lte('created_at', endStr + 'T23:59:59');
+
+  const orderIds = userOrders?.map(o => o.id) || [];
+  totalBase = orderIds.length;
+
+  if (orderIds.length === 0) {
+    // No orders assigned to this user - return zero values
+    return {
+      kpi,
+      actualValue: 0,
+      targetValue: kpi.target_value,
+      isWithinTarget: true,
+      totalBase: 0,
+      totalCount: 0,
+      percentOfTarget: 0
+    };
+  }
+
   switch (kpi.calculation_type) {
     case 'error_rate':
-      // Total de documentos processados no período (base)
-      const { count: docsCount } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('assigned_to', userId)
-        .gte('created_at', startStr)
-        .lte('created_at', endStr + 'T23:59:59');
-
-      totalBase = docsCount || 0;
-
-      // Pendências com erro real (error_type != 'nao_e_erro')
+      // Pendencies with real errors for orders assigned to this user
       const { count: errorsCount } = await supabase
         .from('pendencies')
         .select('*', { count: 'exact', head: true })
-        .eq('created_by', userId)
-        .neq('error_type', 'nao_e_erro')
-        .gte('created_at', startStr)
-        .lte('created_at', endStr + 'T23:59:59');
+        .in('order_id', orderIds)
+        .neq('error_type', 'nao_e_erro');
 
       totalCount = errorsCount || 0;
       actualValue = totalBase > 0 ? (totalCount / totalBase) * 100 : 0;
       break;
 
     case 'not_error_rate':
-      // Total de documentos processados no período (base)
-      const { count: docsCount2 } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('assigned_to', userId)
-        .gte('created_at', startStr)
-        .lte('created_at', endStr + 'T23:59:59');
-
-      totalBase = docsCount2 || 0;
-
-      // Pendências "não é erro"
+      // Pendencies marked as "not an error" for orders assigned to this user
       const { count: notErrorCount } = await supabase
         .from('pendencies')
         .select('*', { count: 'exact', head: true })
-        .eq('created_by', userId)
-        .eq('error_type', 'nao_e_erro')
-        .gte('created_at', startStr)
-        .lte('created_at', endStr + 'T23:59:59');
+        .in('order_id', orderIds)
+        .eq('error_type', 'nao_e_erro');
 
       totalCount = notErrorCount || 0;
       actualValue = totalBase > 0 ? (totalCount / totalBase) * 100 : 0;
       break;
 
     default:
-      // Placeholder for future KPI types
       break;
   }
 
