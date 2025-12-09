@@ -945,38 +945,38 @@ export default function Dashboard() {
 
   const handleExportPDF = async () => {
     try {
-      // Get current month dates
-      const today = new Date();
-      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      // Use the selected period's date range instead of current month
+      const exportDateRange = getDateRange();
+      const exportStartDate = exportDateRange.startDate;
+      const exportEndDate = exportDateRange.endDate;
 
-      // Buscar pendências do mês para calcular taxa de erro
-      const { data: pendenciesMonth } = await supabase
+      // Buscar pendências do período selecionado para calcular taxa de erro
+      const { data: pendenciesPeriod } = await supabase
         .from('pendencies')
         .select('*')
-        .gte('created_at', firstDayOfMonth.toISOString())
-        .lte('created_at', lastDayOfMonth.toISOString());
+        .gte('created_at', exportStartDate.toISOString())
+        .lte('created_at', exportEndDate.toISOString());
 
-      let ordersMonthQuery = supabase
+      let ordersPeriodQuery = supabase
         .from('orders')
         .select('*')
-        .gte('attribution_date', firstDayOfMonth.toISOString())
-        .lte('attribution_date', lastDayOfMonth.toISOString());
+        .gte('attribution_date', exportStartDate.toISOString())
+        .lte('attribution_date', exportEndDate.toISOString());
       
       // Apply customer filter if not "all"
       if (selectedCustomer !== "all") {
-        ordersMonthQuery = ordersMonthQuery.eq('customer', selectedCustomer);
+        ordersPeriodQuery = ordersPeriodQuery.eq('customer', selectedCustomer);
       }
       
-      const { data: ordersMonth } = await ordersMonthQuery;
+      const { data: ordersPeriod } = await ordersPeriodQuery;
 
-      // Calculate monthly error rate based on documents, not orders
-      const totalDocumentsMonth = ordersMonth?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
-      const monthlyErrorRate = totalDocumentsMonth > 0 ? 
-        ((pendenciesMonth?.length || 0) / totalDocumentsMonth * 100) : 0;
+      // Calculate error rate based on documents, not orders
+      const totalDocumentsPeriod = ordersPeriod?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
+      const periodErrorRate = totalDocumentsPeriod > 0 ? 
+        ((pendenciesPeriod?.length || 0) / totalDocumentsPeriod * 100) : 0;
 
       // Agrupar documentos por cliente
-      const documentsByCustomer = ordersMonth?.reduce((acc: any, order: any) => {
+      const documentsByCustomer = ordersPeriod?.reduce((acc: any, order: any) => {
         const customer = order.customer || 'Sem cliente';
         if (!acc[customer]) {
           acc[customer] = 0;
@@ -985,16 +985,16 @@ export default function Dashboard() {
         return acc;
       }, {}) || {};
 
-      // Buscar pedidos entregues do mês para calcular gastos com prestadores
-      const { data: deliveredOrdersMonth } = await supabase
+      // Buscar pedidos entregues do período para calcular gastos com prestadores
+      const { data: deliveredOrdersPeriod } = await supabase
         .from('orders')
         .select('drive_value, diagramming_value, custom_value_diagramming')
         .eq('status_order', 'delivered')
-        .gte('delivered_at', firstDayOfMonth.toISOString())
-        .lte('delivered_at', lastDayOfMonth.toISOString());
+        .gte('delivered_at', exportStartDate.toISOString())
+        .lte('delivered_at', exportEndDate.toISOString());
 
       // Calculate provider costs from delivered orders (drive + diagramming)
-      const providerCostsMonth = deliveredOrdersMonth?.reduce((sum, order) => {
+      const providerCostsPeriod = deliveredOrdersPeriod?.reduce((sum, order) => {
         const driveValue = order.drive_value || 0;
         const diagrammingValue = order.custom_value_diagramming || order.diagramming_value || 0;
         return sum + driveValue + diagrammingValue;
@@ -1107,7 +1107,7 @@ export default function Dashboard() {
         ],
         additionalTables: [
           {
-            title: "Documentos Atribuídos no Mês por Cliente",
+            title: `Documentos Atribuídos por Cliente (${periodText})`,
             headers: ["Cliente", "Quantidade de Documentos"],
             rows: customerDocsRows
           },
