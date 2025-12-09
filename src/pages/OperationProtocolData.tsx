@@ -68,15 +68,23 @@ export default function OperationProtocolData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Get profile info
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, role")
+        .select("full_name")
         .eq("id", user.id)
         .single();
 
+      // Get role from user_roles table via RPC
+      const { data: roleData } = await supabase
+        .rpc("get_user_role", { user_id: user.id });
+
       if (profile) {
         setUserName(profile.full_name || user.email || "");
-        setUserRole(profile.role || "");
+      }
+      
+      if (roleData) {
+        setUserRole(roleData);
       }
     } catch (error) {
       console.error("Error fetching user info:", error);
