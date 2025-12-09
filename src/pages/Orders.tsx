@@ -5,6 +5,7 @@ import { usePageLayout } from "@/hooks/usePageLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +65,7 @@ export function Orders() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
   const queryClient = useQueryClient();
+  const { userRole } = useUserRole();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [lastOrderId, setLastOrderId] = useState("");
   const [isEditingLastOrder, setIsEditingLastOrder] = useState(false);
@@ -958,10 +960,10 @@ export function Orders() {
     createOrderMutation.mutate(formData);
   };
 
-  const isAdmin = profile?.role === "admin";
-  const isMaster = profile?.role === "master";
-  const isOwner = profile?.role === "owner";
-  const isOperation = profile?.role === "operation";
+  const isAdmin = userRole === "admin";
+  const isMaster = userRole === "master";
+  const isOwner = userRole === "owner";
+  const isOperation = userRole === "operation";
 
   // Apply filters and sorting
   const filteredOrders = useMemo(() => {
@@ -1133,10 +1135,10 @@ export function Orders() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar userRole={profile?.role || "operation"} />
+      <Sidebar userRole={userRole || ""} />
       
       <div className={mainContainerClass}>
-        <Header userName={profile?.full_name || user?.email || ""} userRole={profile?.role || "operation"} />
+        <Header userName={profile?.full_name || user?.email || ""} userRole={userRole} />
         
         <main className="p-4 md:p-6 lg:p-8">
           <div className="flex justify-between items-center mb-6">
@@ -1958,7 +1960,7 @@ export function Orders() {
                       setIsEditingLastOrder(true);
                       setTempLastOrderId(lastOrderId);
                     }}
-                    disabled={!isAdmin && !isMaster && profile?.role !== "owner"}
+                    disabled={!isAdmin && !isMaster && !isOwner}
                   >
                     <Edit className="h-4 w-4 mr-1" />
                     Editar

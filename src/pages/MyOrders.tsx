@@ -4,6 +4,7 @@ import { usePageLayout } from "@/hooks/usePageLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ export function MyOrders() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
   const queryClient = useQueryClient();
+  const { userRole } = useUserRole();
 
   // Fetch user profile with operation_account_id and avatar data
   const { data: profile } = useQuery({
@@ -381,10 +383,10 @@ export function MyOrders() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar userRole={profile?.role || "operation"} />
+      <Sidebar userRole={userRole || ""} />
       
       <div className={mainContainerClass}>
-        <Header userName={profile?.full_name || user?.email || ""} userRole={profile?.role || "operation"} />
+        <Header userName={profile?.full_name || user?.email || ""} userRole={userRole} />
         
         <main className="p-4 md:p-6 lg:p-8">
           {/* User Profile Section */}

@@ -5,6 +5,7 @@ import { usePageLayout } from "@/hooks/usePageLayout";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -38,6 +39,7 @@ import { cn } from "@/lib/utils";
 export function DeliveredOrders() {
   const { user } = useAuth();
   const { mainContainerClass } = usePageLayout();
+  const { userRole } = useUserRole();
   const [sortBy, setSortBy] = useState("delivered_desc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -67,7 +69,7 @@ export function DeliveredOrders() {
 
   // Fetch delivered orders based on user role
   const { data: deliveredOrders, isLoading } = useQuery({
-    queryKey: ["delivered-orders", user?.id, profile?.role],
+    queryKey: ["delivered-orders", user?.id, userRole],
     queryFn: async () => {
       let query = supabase
         .from("orders")
@@ -80,7 +82,7 @@ export function DeliveredOrders() {
         .order("delivered_at", { ascending: false });
       
       // If user is operation, only show their delivered orders
-      if (profile?.role === "operation") {
+      if (userRole === "operation") {
         query = query.eq("assigned_to", user?.id);
       }
       
@@ -92,7 +94,7 @@ export function DeliveredOrders() {
     enabled: !!user?.id && !!profile,
   });
 
-  const isAdminOrMaster = profile?.role === "admin" || profile?.role === "master";
+  const isAdminOrMaster = userRole === "admin" || userRole === "master";
 
   // Apply sorting to delivered orders
   const sortedOrders = useMemo(() => {
@@ -228,10 +230,10 @@ export function DeliveredOrders() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar userRole={profile?.role || "operation"} />
+      <Sidebar userRole={userRole || ""} />
       
       <div className={mainContainerClass}>
-        <Header userName={profile?.full_name || user?.email || ""} userRole={profile?.role || "operation"} />
+        <Header userName={profile?.full_name || user?.email || ""} userRole={userRole} />
         
         <main className="p-4 md:p-6 lg:p-8">
           <div className="mb-6">
