@@ -118,17 +118,18 @@ async function calculateKPI(
   let totalCount = 0;
   let actualValue = 0;
 
-  // Get ALL orders in the period (general rate, not per collaborator)
+  // Get ALL orders with document_count in the period (based on attribution_date like Dashboard)
   const { data: allOrders } = await supabase
     .from('orders')
-    .select('id')
-    .gte('created_at', startStr)
-    .lte('created_at', endStr + 'T23:59:59');
+    .select('id, document_count')
+    .gte('attribution_date', startStr)
+    .lte('attribution_date', endStr + 'T23:59:59');
 
   const orderIds = allOrders?.map(o => o.id) || [];
-  totalBase = orderIds.length;
+  // Use total DOCUMENTS as base (not order count) - same as Dashboard Operação
+  totalBase = allOrders?.reduce((sum, o) => sum + (o.document_count || 0), 0) || 0;
 
-  if (orderIds.length === 0) {
+  if (orderIds.length === 0 || totalBase === 0) {
     return {
       kpi,
       actualValue: 0,
@@ -142,26 +143,30 @@ async function calculateKPI(
 
   switch (kpi.calculation_type) {
     case 'error_rate':
-      // Pendencies with real errors for orders assigned to this user
+      // Count pendencies with REAL errors (excludes 'nao_e_erro')
       const { count: errorsCount } = await supabase
         .from('pendencies')
         .select('*', { count: 'exact', head: true })
-        .in('order_id', orderIds)
+        .gte('created_at', startStr)
+        .lte('created_at', endStr + 'T23:59:59')
         .neq('error_type', 'nao_e_erro');
 
       totalCount = errorsCount || 0;
+      // Calculate percentage based on total documents
       actualValue = totalBase > 0 ? (totalCount / totalBase) * 100 : 0;
       break;
 
     case 'not_error_rate':
-      // Pendencies marked as "not an error" for orders assigned to this user
+      // Count pendencies marked as "not an error"
       const { count: notErrorCount } = await supabase
         .from('pendencies')
         .select('*', { count: 'exact', head: true })
-        .in('order_id', orderIds)
+        .gte('created_at', startStr)
+        .lte('created_at', endStr + 'T23:59:59')
         .eq('error_type', 'nao_e_erro');
 
       totalCount = notErrorCount || 0;
+      // Calculate percentage based on total documents
       actualValue = totalBase > 0 ? (totalCount / totalBase) * 100 : 0;
       break;
 
