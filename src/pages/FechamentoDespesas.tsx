@@ -48,6 +48,7 @@ import {
   Info
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
+import { DespesaProtocolDetailsDialog } from "@/components/dashboardFinanceiro/DespesaProtocolDetailsDialog";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -117,6 +118,10 @@ function FechamentoDespesasContent() {
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showDetailedView, setShowDetailedView] = useState(false);
+  
+  // State for protocol details dialog
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedProtocolDetails, setSelectedProtocolDetails] = useState<any>(null);
 
   useEffect(() => {
     fetchUserProfile();
@@ -1392,6 +1397,24 @@ function FechamentoDespesasContent() {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={async () => {
+                                    // Fetch full protocol data with closing_data
+                                    const { data } = await supabase
+                                      .from('expense_closing_protocols')
+                                      .select('*')
+                                      .eq('id', protocol.id)
+                                      .single();
+                                    if (data) {
+                                      setSelectedProtocolDetails(data);
+                                      setDetailsDialogOpen(true);
+                                    }
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
                                 {protocol.status === 'draft' && (
                                   <Button
                                     size="sm"
@@ -1528,6 +1551,13 @@ function FechamentoDespesasContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog para visualizar detalhes do protocolo */}
+      <DespesaProtocolDetailsDialog
+        protocol={selectedProtocolDetails}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
         </main>
       </div>
     </div>
