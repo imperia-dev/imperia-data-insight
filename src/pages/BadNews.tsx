@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { useSidebarOffset } from "@/hooks/useSidebarOffset";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,10 +25,28 @@ const problemTypes = [
 
 const BadNews = () => {
   const { user } = useAuth();
+  const { mainContainerClass } = useSidebarOffset();
   const [problemType, setProblemType] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userRole, setUserRole] = useState<string>("user");
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user?.id) {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (data?.role) {
+          setUserRole(data.role);
+        }
+      }
+    };
+    fetchUserRole();
+  }, [user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,12 +102,15 @@ const BadNews = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header 
-        userName={user?.user_metadata?.full_name || user?.email || "Usuário"}
-        userRole={user?.user_metadata?.role || "user"}
-      />
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
+    <div className="min-h-screen bg-background flex w-full">
+      <Sidebar userRole={userRole} />
+      
+      <div className={mainContainerClass}>
+        <Header 
+          userName={user?.user_metadata?.full_name || user?.email || "Usuário"}
+          userRole={userRole}
+        />
+        <main className="container mx-auto px-4 py-8 max-w-3xl">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -154,7 +177,8 @@ const BadNews = () => {
             </form>
           </CardContent>
         </Card>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };
