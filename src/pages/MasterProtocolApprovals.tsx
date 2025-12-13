@@ -17,6 +17,7 @@ import { usePageLayout } from "@/hooks/usePageLayout";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { AssignOperationUserDialog } from "@/components/reviewerProtocols/AssignOperationUserDialog";
 import { cn } from "@/lib/utils";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface Protocol {
   id: string;
@@ -224,7 +225,7 @@ export default function MasterProtocolApprovals() {
         .update({
           status: "returned_for_adjustment",
           returned_to_provider_at: new Date().toISOString(),
-          return_reason: returnReason,
+          return_reason: sanitizeInput(returnReason),
         })
         .eq("id", selectedProtocol.id);
 

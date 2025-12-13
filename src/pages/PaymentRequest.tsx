@@ -672,11 +672,11 @@ Alex - Admin.`);
           .from('payment_receipts')
           .insert({
             protocol_id: selectedProtocolForPayment.id,
-            receipt_number: receiptNumber || null,
+            receipt_number: receiptNumber ? sanitizeInput(receiptNumber) : null,
             receipt_date: paymentDate,
             amount: parseFloat(paymentAmount),
             payment_method: paymentMethod,
-            bank_reference: bankReference || null,
+            bank_reference: bankReference ? sanitizeInput(bankReference) : null,
             file_url: publicUrl,
             validated: true,
             validated_at: new Date().toISOString(),

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.0';
+import { sanitizeInput } from "../_shared/sanitization.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,7 +66,7 @@ serve(async (req) => {
       .from('facebook_accounts')
       .upsert({
         account_id: accountId,
-        account_name: accountData.name,
+        account_name: sanitizeInput(accountData.name),
         currency: accountData.currency,
         timezone: null // timezone field removed from API request
       }, {
@@ -93,7 +94,7 @@ serve(async (req) => {
           .from('facebook_campaigns')
           .upsert({
             campaign_id: campaign.id,
-            campaign_name: campaign.name,
+            campaign_name: sanitizeInput(campaign.name),
             status: campaign.status,
             objective: campaign.objective,
             start_time: campaign.start_time,
@@ -120,7 +121,7 @@ serve(async (req) => {
               .from('facebook_ad_sets')
               .upsert({
                 adset_id: adSet.id,
-                adset_name: adSet.name,
+                adset_name: sanitizeInput(adSet.name),
                 status: adSet.status,
                 daily_budget: adSet.daily_budget,
                 lifetime_budget: adSet.lifetime_budget,
@@ -147,7 +148,7 @@ serve(async (req) => {
                   .from('facebook_ads')
                   .upsert({
                     ad_id: ad.id,
-                    ad_name: ad.name,
+                    ad_name: sanitizeInput(ad.name),
                     status: ad.status,
                     creative: ad.creative,
                     adset_id: adSetRecord.id

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Upload } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface ProviderDataFormDialogProps {
   open: boolean;
@@ -108,12 +109,12 @@ export function ProviderDataFormDialog({
       const { error } = await supabase
         .from("service_provider_protocols")
         .update({
-          provider_cpf: formData.cpf || null,
-          provider_cnpj: formData.cnpj || null,
-          provider_pix_key: formData.pix_key || null,
-          provider_banco: formData.banco || null,
-          provider_agencia: formData.agencia || null,
-          provider_conta: formData.conta || null,
+          provider_cpf: formData.cpf ? sanitizeInput(formData.cpf) : null,
+          provider_cnpj: formData.cnpj ? sanitizeInput(formData.cnpj) : null,
+          provider_pix_key: formData.pix_key ? sanitizeInput(formData.pix_key) : null,
+          provider_banco: formData.banco ? sanitizeInput(formData.banco) : null,
+          provider_agencia: formData.agencia ? sanitizeInput(formData.agencia) : null,
+          provider_conta: formData.conta ? sanitizeInput(formData.conta) : null,
           provider_tipo_conta: formData.tipo_conta,
           invoice_amount: parseFloat(formData.invoice_amount),
           invoice_file_url: invoiceUrl,

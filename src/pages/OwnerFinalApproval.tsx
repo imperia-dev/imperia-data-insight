@@ -17,6 +17,7 @@ import { useLocation, Navigate } from "react-router-dom";
 import { CheckCircle, XCircle, Eye, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface Protocol {
   id: string;
@@ -172,7 +173,7 @@ export default function OwnerFinalApproval() {
           .from("reviewer_protocols")
           .update({
             status: "master_initial",
-            return_reason: returnReason,
+            return_reason: sanitizeInput(returnReason),
           })
           .eq("id", selectedProtocol.id);
 
@@ -183,7 +184,7 @@ export default function OwnerFinalApproval() {
           .from("service_provider_protocols")
           .update({
             status: "returned_for_adjustment",
-            return_reason: returnReason,
+            return_reason: sanitizeInput(returnReason),
           })
           .eq("id", selectedProtocol.id);
 
