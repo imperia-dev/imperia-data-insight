@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 import {
   Select,
   SelectContent,
@@ -318,13 +319,13 @@ export default function Pendencies() {
     setLoading(true);
     try {
       const insertData: any = {
-        order_id: isOldOrder ? null : selectedOrderId, // Set order_id to NULL if it's an old order
-        old_order_text_id: isOldOrder ? oldOrderId : null, // Save oldOrderId in the new column
-        c4u_id: c4uId,
-        description,
+        order_id: isOldOrder ? null : selectedOrderId,
+        old_order_text_id: isOldOrder ? sanitizeInput(oldOrderId) : null,
+        c4u_id: sanitizeInput(c4uId),
+        description: sanitizeInput(description),
         error_type: errorType,
         error_document_count: parseInt(errorDocumentCount),
-        customer,
+        customer: sanitizeInput(customer),
         created_by: user?.id,
       };
 
@@ -412,15 +413,16 @@ export default function Pendencies() {
         throw new Error('Pendência não encontrada');
       }
 
-      // Save to the correct table based on source
+      // Save to the correct table based on source (sanitized)
+      const sanitizedTreatment = sanitizeInput(treatment);
       const { error } = pendency.source === 'customer_request'
         ? await supabase
             .from('customer_pendency_requests')
-            .update({ internal_notes: treatment })
+            .update({ internal_notes: sanitizedTreatment })
             .eq('id', pendencyId)
         : await supabase
             .from('pendencies')
-            .update({ treatment })
+            .update({ treatment: sanitizedTreatment })
             .eq('id', pendencyId);
 
       if (error) throw error;
@@ -501,12 +503,12 @@ export default function Pendencies() {
     try {
       // Determine the correct table and fields based on source
       if (editingPendency.source === 'customer_request') {
-        // For customer requests, only update fields that exist in that table
+        // For customer requests, only update fields that exist in that table (sanitized)
         const updateData: any = {
-          order_id: editingPendency.order_id || editingPendency.old_order_text_id,
-          description: editingPendency.description,
+          order_id: sanitizeInput(editingPendency.order_id || editingPendency.old_order_text_id),
+          description: sanitizeInput(editingPendency.description),
           priority: editingPendency.priority,
-          internal_notes: editingPendency.treatment,
+          internal_notes: sanitizeInput(editingPendency.treatment),
         };
 
         const { error } = await supabase
@@ -516,14 +518,14 @@ export default function Pendencies() {
 
         if (error) throw error;
       } else {
-        // For regular pendencies, update all fields
+        // For regular pendencies, update all fields (sanitized)
         const updateData: any = {
-          c4u_id: editingPendency.c4u_id,
-          description: editingPendency.description,
+          c4u_id: sanitizeInput(editingPendency.c4u_id),
+          description: sanitizeInput(editingPendency.description),
           error_type: editingPendency.error_type,
           error_document_count: editingPendency.error_document_count,
-          customer: editingPendency.customer,
-          treatment: editingPendency.treatment,
+          customer: sanitizeInput(editingPendency.customer),
+          treatment: sanitizeInput(editingPendency.treatment),
         };
 
         // If created_at was edited, update it

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Upload, X } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface TechDemand {
   id?: string;
@@ -104,11 +105,22 @@ export const TechDemandDialog = ({ open, onOpenChange, demand, onSuccess }: Tech
     e.preventDefault();
     setLoading(true);
 
+    // Sanitize text fields before submission
+    const sanitizedData = {
+      ...formData,
+      company: sanitizeInput(formData.company),
+      title: sanitizeInput(formData.title),
+      description: sanitizeInput(formData.description),
+      steps: sanitizeInput(formData.steps),
+      error_message: sanitizeInput(formData.error_message),
+      jira_id: sanitizeInput(formData.jira_id),
+    };
+
     try {
       if (demand?.id) {
         const { error } = await supabase
           .from("tech_demands")
-          .update(formData)
+          .update(sanitizedData)
           .eq("id", demand.id);
 
         if (error) throw error;
@@ -117,7 +129,7 @@ export const TechDemandDialog = ({ open, onOpenChange, demand, onSuccess }: Tech
         const { error } = await supabase
           .from("tech_demands")
           .insert([{ 
-            ...formData, 
+            ...sanitizedData, 
             status: 'novo',
             created_by: (await supabase.auth.getUser()).data.user?.id 
           }]);

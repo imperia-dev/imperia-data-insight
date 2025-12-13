@@ -9,6 +9,7 @@ import { Plus, DollarSign, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { sanitizeInput } from '@/lib/validations/sanitized';
 
 interface RevenueEntryFormProps {
   onSuccess?: () => void;
@@ -92,10 +93,10 @@ export function RevenueEntryForm({ onSuccess }: RevenueEntryFormProps) {
         date: formData.date,
         type: 'revenue',
         category: formData.category,
-        subcategory: formData.subcategory || null,
-        description: formData.description,
+        subcategory: sanitizeInput(formData.subcategory) || null,
+        description: sanitizeInput(formData.description),
         amount: parseFloat(formData.amount),
-        document_ref: formData.document_ref || null,
+        document_ref: sanitizeInput(formData.document_ref) || null,
         payment_method: formData.payment_method,
         accounting_method: formData.accounting_method,
         status: 'confirmed',

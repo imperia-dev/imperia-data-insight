@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Settings, Plus, Trash2, Edit2, Save, X } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface RecipientEmail {
   id: string;
@@ -77,9 +78,9 @@ export function ManageRecipientsDialog() {
       const { error } = await supabase
         .from('payment_recipient_emails')
         .insert({
-          email: newRecipient.email,
-          name: newRecipient.name || null,
-          company: newRecipient.company || null,
+          email: newRecipient.email.trim(),
+          name: sanitizeInput(newRecipient.name) || null,
+          company: sanitizeInput(newRecipient.company) || null,
           created_by: (await supabase.auth.getUser()).data.user?.id
         });
 
@@ -127,9 +128,9 @@ export function ManageRecipientsDialog() {
       const { error } = await supabase
         .from('payment_recipient_emails')
         .update({
-          email: editForm.email,
-          name: editForm.name || null,
-          company: editForm.company || null
+          email: editForm.email.trim(),
+          name: sanitizeInput(editForm.name) || null,
+          company: sanitizeInput(editForm.company) || null
         })
         .eq('id', id);
 

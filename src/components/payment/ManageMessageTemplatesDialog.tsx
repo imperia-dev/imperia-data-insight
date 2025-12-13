@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Trash2, Edit, FileText, Star } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { sanitizeInput, sanitizeRichTextInput } from "@/lib/validations/sanitized";
 
 interface MessageTemplate {
   id: string;
@@ -81,9 +82,9 @@ export function ManageMessageTemplatesDialog() {
         const { error } = await supabase
           .from('payment_message_templates')
           .update({
-            name,
-            subject,
-            message,
+            name: sanitizeInput(name),
+            subject: sanitizeInput(subject),
+            message: sanitizeRichTextInput(message),
             is_default: isDefault,
           })
           .eq('id', editingTemplate.id);
@@ -99,9 +100,9 @@ export function ManageMessageTemplatesDialog() {
         const { error } = await supabase
           .from('payment_message_templates')
           .insert({
-            name,
-            subject,
-            message,
+            name: sanitizeInput(name),
+            subject: sanitizeInput(subject),
+            message: sanitizeRichTextInput(message),
             is_default: isDefault,
             created_by: user?.id,
           });

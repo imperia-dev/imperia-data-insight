@@ -22,6 +22,7 @@ import { CompanyCostFilters } from "@/components/companyCosts/CompanyCostFilters
 import { CategoryChart } from "@/components/companyCosts/CategoryChart";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 import { formatCurrency } from "@/lib/currency";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface ExportData {
   headers: string[];
@@ -162,8 +163,8 @@ export default function CompanyCostsRefactored() {
         tipo_lancamento: 'empresa' as 'empresa',
         conta_contabil_id: formData.conta_contabil_id,
         centro_custo_id: formData.centro_custo_id || null,
-        description: formData.description,
-        notes: formData.notes || null,
+        description: sanitizeInput(formData.description),
+        notes: sanitizeInput(formData.notes) || null,
         amount_original: parseFloat(formData.amount_original),
         currency: formData.currency,
         exchange_rate: 1, // Default for BRL
