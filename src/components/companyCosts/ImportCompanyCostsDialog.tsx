@@ -18,6 +18,7 @@ import { parse as parseCSV } from "papaparse";
 import * as XLSX from "xlsx";
 import { format, parse, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface ImportCompanyCostsDialogProps {
   open: boolean;
@@ -329,9 +330,9 @@ export function ImportCompanyCostsDialog({
             batch.map(row => ({
               date: row.date,
               category: row.category,
-              sub_category: row.sub_category || null,
-              description: row.description,
-              observations: row.observations || null,
+              sub_category: row.sub_category ? sanitizeInput(row.sub_category) : null,
+              description: sanitizeInput(row.description),
+              observations: row.observations ? sanitizeInput(row.observations) : null,
               amount: row.amount,
             }))
           );

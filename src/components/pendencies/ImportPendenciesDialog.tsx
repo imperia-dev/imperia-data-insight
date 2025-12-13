@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface ImportPendenciesDialogProps {
   open: boolean;
@@ -203,9 +204,9 @@ export function ImportPendenciesDialog({
         const validRow = validateRow(row, index);
         if (validRow) {
           const pendencyData: any = {
-            c4u_id: validRow.c4u_id,
+            c4u_id: sanitizeInput(validRow.c4u_id),
             error_type: validRow.error_type,
-            description: validRow.description,
+            description: sanitizeInput(validRow.description),
             created_by: user.id,
             status: validRow.status || 'pending',
             error_document_count: 0,

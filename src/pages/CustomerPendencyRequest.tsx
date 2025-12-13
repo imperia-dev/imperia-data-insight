@@ -17,6 +17,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useCustomerContext } from "@/hooks/useCustomerContext";
 import { customerPendencyRequestSchema, type CustomerPendencyRequestInput } from "@/lib/validations/customerPendency";
 import { Upload, X, FileText } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function CustomerPendencyRequest() {
@@ -143,9 +144,9 @@ export default function CustomerPendencyRequest() {
       const { error } = await supabase
         .from('customer_pendency_requests')
         .insert({
-          order_id: data.order_id,
-          customer_name: customerName,
-          description: data.description,
+          order_id: sanitizeInput(data.order_id),
+          customer_name: sanitizeInput(customerName),
+          description: sanitizeInput(data.description),
           priority: data.priority,
           attachments: uploadedFiles,
           created_by: session?.user?.id

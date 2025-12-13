@@ -22,6 +22,7 @@ import { CompanyCostFilters } from "@/components/companyCosts/CompanyCostFilters
 import { CategoryChart } from "@/components/companyCosts/CategoryChart";
 import { ImportCompanyCostsDialog } from "@/components/companyCosts/ImportCompanyCostsDialog";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface CompanyCost {
   id: string;
@@ -261,10 +262,10 @@ export default function CompanyCosts() {
         amount_original: parseFloat(formData.amount),
         currency: 'BRL',
         exchange_rate: 1,
-        description: formData.description,
-        sub_category: formData.sub_category || formData.category,
-        observations: formData.observations || null,
-        notes: formData.observations || null,
+        description: sanitizeInput(formData.description),
+        sub_category: formData.sub_category ? sanitizeInput(formData.sub_category) : formData.category,
+        observations: formData.observations ? sanitizeInput(formData.observations) : null,
+        notes: formData.observations ? sanitizeInput(formData.observations) : null,
         status: 'lancado' as const,
       };
 
