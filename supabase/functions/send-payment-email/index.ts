@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { sanitizeInput } from "../_shared/sanitization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -285,8 +286,8 @@ const handler = async (req: Request): Promise<Response> => {
                 protocol_ids: requestData.protocol_ids,
                 recipient_email: requestData.recipient_email,
                 cc_emails: requestData.cc_emails || [],
-                subject: requestData.subject,
-                message: requestData.message,
+                subject: sanitizeInput(requestData.subject),
+                message: sanitizeInput(requestData.message),
                 total_amount: requestData.total_amount,
                 status: "sent",
                 sent_at: new Date().toISOString(),

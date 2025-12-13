@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface AssignOperationUserDialogProps {
   open: boolean;
@@ -77,7 +78,7 @@ export const AssignOperationUserDialog = ({
           master_initial_approved_at: new Date().toISOString(),
           master_initial_approved_by: (await supabase.auth.getUser()).data.user?.id,
           assigned_operation_user_id: selectedUserId,
-          master_initial_notes: notes || null,
+          master_initial_notes: notes ? sanitizeInput(notes) : null,
         })
         .eq('id', protocolId);
 

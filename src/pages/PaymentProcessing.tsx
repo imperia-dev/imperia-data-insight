@@ -21,6 +21,7 @@ import { ProtocolStatusBadge } from "@/components/fechamentoPrestadores/Protocol
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface Protocol {
   id: string;
@@ -382,7 +383,7 @@ export default function PaymentProcessing() {
         .from(tableName)
         .update({ 
           status: "cancelled",
-          cancelled_reason: deleteReason.trim()
+          cancelled_reason: sanitizeInput(deleteReason)
         })
         .eq("id", protocolToDelete.id);
 

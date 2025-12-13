@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { crypto } from 'https://deno.land/std@0.168.0/crypto/mod.ts';
+import { sanitizeInput } from '../_shared/sanitization.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -240,7 +241,7 @@ async function approveProtocol(supabase: any, payload: any, userId: string) {
     .update({
       [updateField]: new Date().toISOString(),
       [approverField]: userId,
-      approval_notes: notes
+      approval_notes: sanitizeInput(notes)
     })
     .eq('id', protocol_id)
     .select()
