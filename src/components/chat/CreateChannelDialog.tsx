@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +23,9 @@ export function CreateChannelDialog() {
       const { data, error } = await supabase
         .from("chat_channels")
         .insert({
-          name: name.trim(),
-          description: description.trim() || null,
-          icon: icon,
+          name: sanitizeInput(name.trim()),
+          description: description.trim() ? sanitizeInput(description.trim()) : null,
+          icon: sanitizeInput(icon),
           type: "public",
         })
         .select()

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
@@ -39,7 +40,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock, Hammer, Eye, Flame, CheckCircle } from "lucide-react";
 import googleDriveLogo from "@/assets/google-drive-logo.png";
-import { sanitizeInput } from "@/lib/validations/sanitized";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
 import {
@@ -565,7 +565,7 @@ export function Orders() {
 
         // Save service_order_link if returned (check all possible keys)
         if (webhookData?.ServiceOrderLink || webhookData?.serviceOrderLink || webhookData?.service_order_link) {
-          const linkToSave = webhookData.ServiceOrderLink || webhookData.serviceOrderLink || webhookData.service_order_link;
+          const linkToSave = sanitizeInput(webhookData.ServiceOrderLink || webhookData.serviceOrderLink || webhookData.service_order_link);
           
           console.log('=== SALVANDO SERVICE_ORDER_LINK ===');
           console.log('Link a salvar:', linkToSave);

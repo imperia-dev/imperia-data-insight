@@ -10,6 +10,7 @@ import { Phone, Shield, Loader2, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { phoneSchema } from '@/lib/validations/auth';
+import { sanitizeInput } from '@/lib/validations/sanitized';
 
 interface PhoneVerificationProps {
   userId: string;
@@ -174,7 +175,7 @@ export function PhoneVerification({
         .from('sms_verification_logs')
         .insert({
           user_id: userId,
-          phone_number: storedPhone,
+          phone_number: sanitizeInput(storedPhone || ''),
           verification_type: 'phone_verification',
           status: 'verified',
         });
