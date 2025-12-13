@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Send } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 const problemTypes = [
   { value: "technical", label: "Problema Técnico" },
@@ -72,11 +73,14 @@ const BadNews = () => {
     setIsSubmitting(true);
 
     try {
+      // Sanitize description to prevent XSS
+      const sanitizedDescription = sanitizeInput(description);
+
       const { error } = await supabase
         .from("bad_news_reports")
         .insert({
           problem_type: problemType,
-          description: description.trim(),
+          description: sanitizedDescription,
         });
 
       if (error) throw error;
@@ -86,11 +90,9 @@ const BadNews = () => {
         description: "Sua notificação foi registrada anonimamente. Obrigado pelo feedback!",
       });
 
-      // Reset form
       setProblemType("");
       setDescription("");
     } catch (error) {
-      console.error("Error submitting bad news report:", error);
       toast({
         title: "Erro ao enviar",
         description: "Não foi possível enviar o relatório. Tente novamente.",

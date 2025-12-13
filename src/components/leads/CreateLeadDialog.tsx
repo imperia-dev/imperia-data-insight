@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -32,34 +33,49 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
+// Helper para sanitizar texto - remove todo HTML
+const sanitizeText = (text: string): string => {
+  return DOMPurify.sanitize(text, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+    KEEP_CONTENT: true,
+  }).trim();
+};
+
 const leadSchema = z.object({
   name: z.string()
     .trim()
     .min(2, { message: "Nome deve ter pelo menos 2 caracteres" })
-    .max(100, { message: "Nome deve ter no máximo 100 caracteres" }),
+    .max(100, { message: "Nome deve ter no máximo 100 caracteres" })
+    .transform(sanitizeText),
   email: z.string()
     .trim()
     .email({ message: "Email inválido" })
-    .max(255, { message: "Email deve ter no máximo 255 caracteres" }),
+    .max(255, { message: "Email deve ter no máximo 255 caracteres" })
+    .toLowerCase(),
   phone: z.string()
     .trim()
     .max(20, { message: "Telefone deve ter no máximo 20 caracteres" })
+    .transform(sanitizeText)
     .optional()
     .or(z.literal("")),
   company: z.string()
     .trim()
     .max(100, { message: "Empresa deve ter no máximo 100 caracteres" })
+    .transform(sanitizeText)
     .optional()
     .or(z.literal("")),
   source: z.string().optional(),
   message: z.string()
     .trim()
     .max(1000, { message: "Mensagem deve ter no máximo 1000 caracteres" })
+    .transform(sanitizeText)
     .optional()
     .or(z.literal("")),
   monthly_revenue: z.string()
     .trim()
     .max(50, { message: "Receita mensal deve ter no máximo 50 caracteres" })
+    .transform(sanitizeText)
     .optional()
     .or(z.literal("")),
   interest_level: z.string().optional(),
