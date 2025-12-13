@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 import {
   Dialog,
   DialogContent,
@@ -35,8 +36,8 @@ const formSchema = z.object({
   type: z.enum(["improvement", "bug", "tip"], {
     required_error: "Selecione o tipo da sugestão",
   }),
-  title: z.string().min(3, "O título deve ter pelo menos 3 caracteres"),
-  description: z.string().min(20, "A descrição deve ter pelo menos 20 caracteres"),
+  title: z.string().min(3, "O título deve ter pelo menos 3 caracteres").transform(sanitizeInput),
+  description: z.string().min(20, "A descrição deve ter pelo menos 20 caracteres").transform(sanitizeInput),
 });
 
 type FormData = z.infer<typeof formSchema>;

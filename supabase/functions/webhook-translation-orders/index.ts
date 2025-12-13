@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeInput, sanitizeEmail } from "../_shared/sanitization.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -56,17 +57,17 @@ serve(async (req) => {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Prepare data for insertion
+    // Prepare data for insertion (with sanitization)
     const translationOrder = {
-      pedido_id: body.pedido_id,
-      pedido_status: body.pedido_status,
+      pedido_id: sanitizeInput(body.pedido_id),
+      pedido_status: sanitizeInput(body.pedido_status),
       pedido_data: body.pedido_data,
       valor_pedido: parseFloat(body.valor_pedido) || 0,
       valor_pago: parseFloat(body.valor_pago) || 0,
-      status_pagamento: body.status_pagamento,
+      status_pagamento: sanitizeInput(body.status_pagamento),
       review_id: body.review_id || null,
-      review_name: body.review_name || null,
-      review_email: body.review_email || null,
+      review_name: sanitizeInput(body.review_name) || null,
+      review_email: sanitizeEmail(body.review_email) || null,
       quantidade_documentos: parseInt(body.quantidade_documentos) || 0,
       valor_total_pago_servico: body.valor_total_pago_servico ? parseFloat(body.valor_total_pago_servico) : null,
       sync_status: 'success',

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Upload, FileText, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface ReviewerProtocol {
   id: string;
@@ -223,17 +224,17 @@ export default function OperationProtocolData() {
         throw new Error("Falha ao fazer upload da nota fiscal");
       }
 
-      // Atualizar protocolo com os dados
+      // Atualizar protocolo com os dados (sanitizados)
       const { error } = await supabase
         .from("reviewer_protocols")
         .update({
-          cpf: cpf || null,
-          cnpj: cnpj || null,
-          pix_key: pixKey,
-          bank_name: bankName || null,
-          bank_agency: bankAgency || null,
-          bank_account: bankAccount || null,
-          account_type: accountType || null,
+          cpf: sanitizeInput(cpf) || null,
+          cnpj: sanitizeInput(cnpj) || null,
+          pix_key: sanitizeInput(pixKey),
+          bank_name: sanitizeInput(bankName) || null,
+          bank_agency: sanitizeInput(bankAgency) || null,
+          bank_account: sanitizeInput(bankAccount) || null,
+          account_type: sanitizeInput(accountType) || null,
           invoice_amount: parseFloat(invoiceAmount),
           invoice_url: invoiceUrl,
           status: "operation_data_filled",

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.2';
+import { sanitizeInput, sanitizeEmail, sanitizePhone } from "../_shared/sanitization.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -95,12 +96,12 @@ serve(async (req) => {
           .from('suppliers')
           .upsert({
             btg_id: supplier.id,
-            name: supplier.name,
-            cnpj: supplier.cnpj,
-            email: supplier.email,
-            phone: supplier.phone,
+            name: sanitizeInput(supplier.name),
+            cnpj: sanitizeInput(supplier.cnpj),
+            email: sanitizeEmail(supplier.email),
+            phone: sanitizePhone(supplier.phone),
             status: supplier.status || 'active',
-            category: supplier.category,
+            category: sanitizeInput(supplier.category),
             btg_data: supplier, // Store full BTG data
             synced_at: new Date().toISOString()
           }, {
