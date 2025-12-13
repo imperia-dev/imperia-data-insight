@@ -14,6 +14,7 @@ import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ChannelMembersModal } from "@/components/chat/ChannelMembersModal";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface Channel {
   id: string;
@@ -163,7 +164,7 @@ export default function Chat() {
         .insert({
           channel_id: selectedChannel,
           user_id: user.id,
-          content,
+          content: sanitizeInput(content),
         });
       
       if (error) throw error;
