@@ -512,8 +512,8 @@ Alex - Admin.`);
         .from('payment_requests')
         .insert({
           protocol_ids: selectedProtocols,
-          recipient_email: recipientEmail.trim(),
-          cc_emails: ccEmails ? ccEmails.split(',').map(e => e.trim()) : [],
+          recipient_email: sanitizeInput(recipientEmail.trim()),
+          cc_emails: ccEmails ? ccEmails.split(',').map(e => sanitizeInput(e.trim())) : [],
           subject: sanitizeInput(subject),
           message: sanitizeRichTextInput(message),
           total_amount: calculateTotals().totalValue,
