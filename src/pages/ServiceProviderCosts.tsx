@@ -20,6 +20,7 @@ import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Shield, AlertTriangle, Lock } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface ServiceProviderCost {
   id: string;
@@ -267,15 +268,15 @@ export default function ServiceProviderCosts() {
         amount_original: parseFloat(formData.amount),
         currency: 'BRL',
         exchange_rate: 1,
-        description: 'Pagamento para ' + formData.name,
-        email: formData.email,
-        cpf: formData.cpf || null,
-        cnpj: formData.cnpj || null,
-        phone: formData.phone || null,
-        pix_key: formData.pix_key || null,
+        description: sanitizeInput('Pagamento para ' + formData.name),
+        email: formData.email.trim(),
+        cpf: formData.cpf ? sanitizeInput(formData.cpf) : null,
+        cnpj: formData.cnpj ? sanitizeInput(formData.cnpj) : null,
+        phone: formData.phone ? sanitizeInput(formData.phone) : null,
+        pix_key: formData.pix_key ? sanitizeInput(formData.pix_key) : null,
         days_worked: formData.days_worked ? parseInt(formData.days_worked) : null,
         tipo_fornecedor: formData.type,
-        invoice_number: formData.invoice_number || null,
+        invoice_number: formData.invoice_number ? sanitizeInput(formData.invoice_number) : null,
         competence: formData.competence,
         status: (formData.status === 'Pago' ? 'pago' : 'lancado') as 'pago' | 'lancado',
       };
@@ -372,15 +373,15 @@ export default function ServiceProviderCosts() {
         amount_original: costData.amount,
         currency: 'BRL',
         exchange_rate: 1,
-        description: 'Pagamento para ' + costData.name,
-        email: costData.email,
-        cpf: costData.cpf,
-        cnpj: costData.cnpj,
-        phone: costData.phone,
-        pix_key: costData.pix_key,
+        description: sanitizeInput('Pagamento para ' + costData.name),
+        email: costData.email.trim(),
+        cpf: costData.cpf ? sanitizeInput(costData.cpf) : null,
+        cnpj: costData.cnpj ? sanitizeInput(costData.cnpj) : null,
+        phone: costData.phone ? sanitizeInput(costData.phone) : null,
+        pix_key: costData.pix_key ? sanitizeInput(costData.pix_key) : null,
         days_worked: costData.days_worked,
         tipo_fornecedor: costData.type,
-        invoice_number: costData.invoice_number,
+        invoice_number: costData.invoice_number ? sanitizeInput(costData.invoice_number) : null,
         competence: costData.competence,
         status: (costData.status === 'Pago' ? 'pago' : 'lancado') as 'pago' | 'lancado',
       };

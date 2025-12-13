@@ -80,8 +80,8 @@ export function SuggestionsDialog({ open, onOpenChange }: SuggestionsDialogProps
         .insert({
           user_id: user.id,
           type: data.type,
-          title: data.title,
-          description: data.description,
+          title: sanitizeInput(data.title),
+          description: sanitizeInput(data.description),
         });
 
       if (error) throw error;

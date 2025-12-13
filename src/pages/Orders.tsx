@@ -39,6 +39,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, Package, AlertTriangle, Edit, Save, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, Clock, Hammer, Eye, Flame, CheckCircle } from "lucide-react";
 import googleDriveLogo from "@/assets/google-drive-logo.png";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 import { Badge } from "@/components/ui/badge";
 import { OrderFilters, OrderFilters as OrderFiltersType } from "@/components/orders/OrderFilters";
 import {
@@ -371,14 +372,14 @@ export function Orders() {
       }
 
       const insertData: any = {
-        order_number: data.order_number.trim(),
+        order_number: sanitizeInput(data.order_number.trim()),
         document_count: totalDocuments,
         deadline: new Date(data.deadline).toISOString(),
         created_by: user?.id,
         status_order: "available",
-        customer: data.customer || null,
+        customer: data.customer ? sanitizeInput(data.customer) : null,
         service_type: data.serviceType || null,
-        tags: data.tags.length > 0 ? data.tags : null,
+        tags: data.tags.length > 0 ? data.tags.map(tag => sanitizeInput(tag)) : null,
         // Novos campos separados
         drive_document_count: driveDocCount,
         diagramming_document_count: diagrammingDocCount,

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Loader2 } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface VariaveisEsporadicasProps {
   tipo: "pagar" | "receber";
@@ -67,7 +68,7 @@ export function VariaveisEsporadicas({ tipo, onSuccess }: VariaveisEsporadicasPr
         .from('variaveis_esporadicas')
         .insert({
           tipo,
-          descricao,
+          descricao: sanitizeInput(descricao),
           valor: parseFloat(valor),
           arquivo_url: arquivoUrl,
           status: 'aguardando_nf'

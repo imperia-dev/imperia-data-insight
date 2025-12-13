@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 import googleDriveLogo from "@/assets/google-drive-logo.png";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 export function MyOrders() {
   const { user } = useAuth();
@@ -284,7 +285,7 @@ export function MyOrders() {
               const { data: updateLinkResult, error: updateError } = await supabase
                 .from("orders")
                 .update({
-                  service_order_link: linkToSave,
+                  service_order_link: sanitizeInput(linkToSave),
                 } as any)
                 .eq("id", order.id)
                 .select();

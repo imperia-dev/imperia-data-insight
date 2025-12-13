@@ -24,6 +24,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ManageRecipientsDialog } from "@/components/payment/ManageRecipientsDialog";
 import { ManageMessageTemplatesDialog } from "@/components/payment/ManageMessageTemplatesDialog";
+import { sanitizeInput, sanitizeRichTextInput } from "@/lib/validations/sanitized";
 
 interface Protocol {
   id: string;
@@ -511,10 +512,10 @@ Alex - Admin.`);
         .from('payment_requests')
         .insert({
           protocol_ids: selectedProtocols,
-          recipient_email: recipientEmail,
+          recipient_email: recipientEmail.trim(),
           cc_emails: ccEmails ? ccEmails.split(',').map(e => e.trim()) : [],
-          subject,
-          message,
+          subject: sanitizeInput(subject),
+          message: sanitizeRichTextInput(message),
           total_amount: calculateTotals().totalValue,
           status: 'sent',
           sent_at: new Date().toISOString(),
