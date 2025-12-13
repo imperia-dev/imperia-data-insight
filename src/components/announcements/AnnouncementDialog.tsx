@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Announcement } from "@/pages/Announcements";
@@ -44,9 +45,36 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Helper para remover HTML do título (texto puro)
+const stripHtml = (text: string): string => {
+  return DOMPurify.sanitize(text, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+    KEEP_CONTENT: true,
+  }).trim();
+};
+
+// Helper para sanitizar HTML do conteúdo (permite formatação básica)
+const sanitizeRichContent = (html: string): string => {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a'],
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'style'],
+  });
+};
+
 const formSchema = z.object({
-  title: z.string().min(3, "O título deve ter pelo menos 3 caracteres"),
-  content: z.string().min(10, "O conteúdo deve ter pelo menos 10 caracteres"),
+  title: z
+    .string()
+    .min(3, "O título deve ter pelo menos 3 caracteres")
+    .max(200, "O título deve ter no máximo 200 caracteres")
+    .transform(stripHtml),
+  content: z
+    .string()
+    .min(10, "O conteúdo deve ter pelo menos 10 caracteres")
+    .max(5000, "O conteúdo deve ter no máximo 5000 caracteres")
+    .transform(sanitizeRichContent),
   type: z.enum(["info", "warning", "success", "error"]),
   priority: z.number().min(1).max(10),
   is_active: z.boolean(),

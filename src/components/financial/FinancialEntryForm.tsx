@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { sanitizeInput } from '@/lib/validations/sanitized';
 
 interface FinancialEntryFormProps {
   onSuccess?: () => void;
@@ -45,30 +46,36 @@ export function FinancialEntryForm({ onSuccess }: FinancialEntryFormProps) {
     setLoading(true);
 
     try {
+      // Sanitize text inputs before saving
+      const sanitizedDescription = sanitizeInput(formData.description);
+      const sanitizedDocumentRef = sanitizeInput(formData.document_ref);
+      const sanitizedSubcategory = sanitizeInput(formData.subcategory);
+
       // For expenses, we save to the expenses table for better integration
       if (formData.type === 'expense') {
         const { error } = await supabase.from('expenses').insert({
           data_competencia: formData.date,
           data_emissao: formData.date,
           tipo_lancamento: 'empresa',
-          description: formData.description,
+          description: sanitizedDescription,
           amount_original: parseFloat(formData.amount),
           amount_base: parseFloat(formData.amount),
           currency: 'BRL',
           exchange_rate: 1,
           payment_method: formData.payment_method,
-          document_ref: formData.document_ref,
+          document_ref: sanitizedDocumentRef,
           status: 'lancado',
           fixo_variavel: formData.is_fixed ? 'fixo' : 'variavel',
           created_by: user?.id,
-          conta_contabil_id: null, // Would need to link to chart_of_accounts
+          conta_contabil_id: null,
         });
         
         if (error) throw error;
       } else {
-        // For revenue, tax, and deductions, use financial_entries
         const { error } = await supabase.from('financial_entries').insert({
           ...formData,
+          description: sanitizedDescription,
+          subcategory: sanitizedSubcategory,
           amount: parseFloat(formData.amount),
           tax_amount: parseFloat(formData.tax_amount),
           created_by: user?.id,

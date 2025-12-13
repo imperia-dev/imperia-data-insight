@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -17,12 +19,28 @@ import { ForgotPasswordModal } from "@/components/auth/ForgotPasswordModal";
 import { PhoneInput } from "@/components/auth/PhoneInput";
 import { useMFA } from "@/hooks";
 import { logger } from "@/utils/logger";
+import { emailSchema } from "@/lib/validations/auth";
+import { sanitizedNameSchema } from "@/lib/validations/sanitized";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+// Schema de validação para signup com sanitização
+const signupFormSchema = z.object({
+  fullName: sanitizedNameSchema,
+  email: emailSchema,
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  phone: z.string().optional(),
+});
+
+// Schema para login
+const loginFormSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, "Senha é obrigatória"),
+});
+
+type SignupFormData = z.infer<typeof signupFormSchema>;
+type LoginFormData = z.infer<typeof loginFormSchema>;
 
 export default function Auth() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -37,6 +55,25 @@ export default function Auth() {
   const location = useLocation();
   const { toast } = useToast();
   const { verifyChallenge, verifyBackupCode } = useMFA();
+
+  // Forms com validação e sanitização
+  const signupForm = useForm<SignupFormData>({
+    resolver: zodResolver(signupFormSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      phone: "",
+    },
+  });
+
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   // Cooldown timer effect
   useEffect(() => {
@@ -124,9 +161,7 @@ export default function Auth() {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSignUp = async (data: SignupFormData) => {
     // Check if in cooldown period
     if (rateLimitCooldown > 0) {
       toast({
@@ -154,14 +189,14 @@ export default function Auth() {
     try {
       const redirectUrl = `${window.location.origin}/pending-approval`;
       
-      // First create the user
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+      // Data already sanitized by zod schema
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            full_name: fullName,
+            full_name: data.fullName,
           }
         }
       });
@@ -177,12 +212,11 @@ export default function Auth() {
                    error.message.toLowerCase().includes("too many") ||
                    error.message.toLowerCase().includes("email rate limit exceeded") ||
                    error.message.includes("429")) {
-          // Set 5 minute cooldown (300 seconds)
           setRateLimitCooldown(300);
           
           toast({
             title: "Limite de tentativas excedido",
-            description: "Você atingiu o limite de cadastros. Por favor, aguarde 5 minutos antes de tentar novamente. Um contador aparecerá no botão.",
+            description: "Você atingiu o limite de cadastros. Por favor, aguarde 5 minutos antes de tentar novamente.",
             variant: "destructive",
             duration: 8000,
           });
@@ -196,21 +230,18 @@ export default function Auth() {
         return;
       }
       
-      if (data.user) {
-        // If signup successful and phone was provided, update the profile
-        if (phone) {
-          // Extract digits only for international format
-          const phoneDigits = phone.replace(/\D/g, '');
+      if (authData.user) {
+        if (data.phone) {
+          const phoneDigits = data.phone.replace(/\D/g, '');
           const formattedPhone = phoneDigits ? `+55${phoneDigits}` : '';
           
-          // Update profile with phone number
           const { error: profileError } = await supabase
             .from('profiles')
             .update({ 
               phone_number: formattedPhone,
               phone_verified: false 
             })
-            .eq('id', data.user.id);
+            .eq('id', authData.user.id);
           
           if (profileError) {
             logger.error('Error updating phone number');
@@ -222,7 +253,7 @@ export default function Auth() {
           description: "Verifique seu email para confirmar o cadastro. Após a confirmação, aguarde a aprovação do administrador.",
         });
         
-        // Redirect to pending approval page
+        signupForm.reset();
         navigate("/pending-approval");
       }
     } catch (error: any) {
@@ -236,23 +267,19 @@ export default function Auth() {
     }
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignIn = async (data: LoginFormData) => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
       });
 
       if (error) {
-        // Check if MFA is required
         if (error.message.includes('mfa') || error.message.includes('factor')) {
-          // Get user's MFA factors
           const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
           
-          // Only show MFA challenge if there are verified factors
           if (!factorsError && factorsData?.all && factorsData.all.length > 0) {
             const verifiedFactors = factorsData.all.filter(f => f.status === 'verified');
             if (verifiedFactors.length > 0) {
@@ -283,41 +310,30 @@ export default function Auth() {
             variant: "destructive",
           });
         }
-      } else if (data.user) {
-        // ALWAYS verify if MFA is necessary BEFORE redirecting
+      } else if (authData.user) {
         const { data: factorsData } = await supabase.auth.mfa.listFactors();
         const verifiedFactors = factorsData?.all?.filter(f => f.status === 'verified') || [];
 
         if (verifiedFactors.length > 0) {
-          // Check current AAL level
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
-          // If not at AAL2, force MFA challenge
           if (aalData?.currentLevel !== 'aal2') {
             setMfaFactors(verifiedFactors);
             setShowMFAChallenge(true);
             setLoading(false);
-            
-            // DO NOT redirect, DO NOT play success sound
             return;
           }
         }
 
-        // Only reach here if:
-        // 1. User doesn't have MFA configured, OR
-        // 2. MFA was successfully completed (AAL2)
-        
-        // Play reward sound
         const audio = new Audio('/login-success.mp3');
         audio.volume = 0.5;
-        audio.play().catch(() => {
-          // Ignore audio play errors (browser may block autoplay)
-        });
+        audio.play().catch(() => {});
         
         toast({
           title: "Login realizado com sucesso!",
           description: "Redirecionando...",
         });
+        loginForm.reset();
         navigate("/");
       }
     } catch (error: any) {
@@ -384,10 +400,11 @@ export default function Auth() {
       const success = await verifyBackupCode(code);
       
       if (success) {
-        // Retry authentication after backup code verification
+        // Get current form values for retry
+        const formValues = loginForm.getValues();
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: formValues.email,
+          password: formValues.password,
         });
         
         if (!error) {
@@ -553,67 +570,81 @@ export default function Auth() {
             </TabsList>
             
             <TabsContent value="login">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(handleSignIn)} className="space-y-4">
+                  <FormField
+                    control={loginForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="seu@email.com"
+                            disabled={loading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Sua senha"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
+                  <FormField
+                    control={loginForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Sua senha"
+                              disabled={loading}
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Entrando...
+                      </>
+                    ) : (
+                      "Entrar"
+                    )}
+                  </Button>
+                  <div className="text-center">
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
+                      variant="link"
+                      className="text-sm text-muted-foreground hover:text-primary"
+                      onClick={() => setShowForgotPassword(true)}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
+                      Esqueceu sua senha?
                     </Button>
                   </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Entrando...
-                    </>
-                  ) : (
-                    "Entrar"
-                  )}
-                </Button>
-                <div className="text-center">
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="text-sm text-muted-foreground hover:text-primary"
-                    onClick={() => setShowForgotPassword(true)}
-                  >
-                    Esqueceu sua senha?
-                  </Button>
-                </div>
-              </form>
+                </form>
+              </Form>
               
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
@@ -666,92 +697,120 @@ export default function Auth() {
                   </AlertDescription>
                 </Alert>
               )}
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nome Completo</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Seu nome completo"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    disabled={loading}
+              <Form {...signupForm}>
+                <form onSubmit={signupForm.handleSubmit(handleSignUp)} className="space-y-4">
+                  <FormField
+                    control={signupForm.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome Completo</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="Seu nome completo"
+                            disabled={loading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signupEmail">Email</Label>
-                  <Input
-                    id="signupEmail"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
+                  <FormField
+                    control={signupForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="seu@email.com"
+                            disabled={loading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone (opcional)</Label>
-                  <PhoneInput
-                    id="phone"
-                    value={phone}
-                    onChange={setPhone}
-                    disabled={loading}
-                    placeholder="(11) 98765-4321"
+                  <FormField
+                    control={signupForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefone (opcional)</FormLabel>
+                        <FormControl>
+                          <PhoneInput
+                            id="phone"
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            disabled={loading}
+                            placeholder="(11) 98765-4321"
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Usado para recuperação de senha via SMS
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Usado para recuperação de senha via SMS
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signupPassword">Senha</Label>
-                  <div className="relative">
-                    <Input
-                      id="signupPassword"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Mínimo 6 caracteres"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      disabled={loading}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={loading || rateLimitCooldown > 0}
-                >
-                  {rateLimitCooldown > 0 ? (
-                    <>
-                      Aguarde {Math.floor(rateLimitCooldown / 60)}:
-                      {(rateLimitCooldown % 60).toString().padStart(2, '0')}
-                    </>
-                  ) : loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Cadastrando...
-                    </>
-                  ) : (
-                    "Cadastrar"
-                  )}
-                </Button>
-              </form>
+                  <FormField
+                    control={signupForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Mínimo 6 caracteres"
+                              disabled={loading}
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={loading || rateLimitCooldown > 0}
+                  >
+                    {rateLimitCooldown > 0 ? (
+                      <>
+                        Aguarde {Math.floor(rateLimitCooldown / 60)}:
+                        {(rateLimitCooldown % 60).toString().padStart(2, '0')}
+                      </>
+                    ) : loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cadastrando...
+                      </>
+                    ) : (
+                      "Cadastrar"
+                    )}
+                  </Button>
+                </form>
+              </Form>
               
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
