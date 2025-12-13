@@ -270,10 +270,20 @@ async function processPayment(supabase: any, payload: any, userId: string) {
 }
 
 async function createExpense(supabase: any, payload: any, userId: string) {
+  // Sanitize text fields from payload
+  const sanitizedPayload = {
+    ...payload,
+    description: payload.description ? sanitizeInput(payload.description) : null,
+    notes: payload.notes ? sanitizeInput(payload.notes) : null,
+    observations: payload.observations ? sanitizeInput(payload.observations) : null,
+    sub_category: payload.sub_category ? sanitizeInput(payload.sub_category) : null,
+    document_ref: payload.document_ref ? sanitizeInput(payload.document_ref) : null,
+  };
+
   const { data, error } = await supabase
     .from('expenses')
     .insert({
-      ...payload,
+      ...sanitizedPayload,
       created_by: userId
     })
     .select()

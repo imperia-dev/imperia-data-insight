@@ -78,7 +78,7 @@ export function ManageRecipientsDialog() {
       const { error } = await supabase
         .from('payment_recipient_emails')
         .insert({
-          email: newRecipient.email.trim(),
+          email: sanitizeInput(newRecipient.email.trim()),
           name: sanitizeInput(newRecipient.name) || null,
           company: sanitizeInput(newRecipient.company) || null,
           created_by: (await supabase.auth.getUser()).data.user?.id
@@ -128,7 +128,7 @@ export function ManageRecipientsDialog() {
       const { error } = await supabase
         .from('payment_recipient_emails')
         .update({
-          email: editForm.email.trim(),
+          email: sanitizeInput(editForm.email.trim()),
           name: sanitizeInput(editForm.name) || null,
           company: sanitizeInput(editForm.company) || null
         })
