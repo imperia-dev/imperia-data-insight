@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { FileUp, TrendingUp, Package, FileText, Calculator, CheckCircle, Copy, RefreshCw, History, ChevronDown } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Papa from "papaparse";
 import { format } from "date-fns";
@@ -105,7 +106,7 @@ export default function Fechamento() {
             if (index === 0) return; // Skip header
             if (row[0] && row[2]) {
               parsedData.push({
-                id: row[0].toString().trim(),
+                id: sanitizeInput(row[0].toString().trim()),
                 pages: parseInt(row[2]) || 0
               });
             }

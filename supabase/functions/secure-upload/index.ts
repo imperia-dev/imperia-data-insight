@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { crypto } from 'https://deno.land/std@0.168.0/crypto/mod.ts';
+import { sanitizeInput } from '../_shared/sanitization.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -118,6 +119,9 @@ serve(async (req) => {
       );
     }
 
+    // Sanitize filename for logs
+    const sanitizedFilename = sanitizeInput(file.name);
+
     // Validate file type
     const mimeType = file.type;
     if (!ALLOWED_TYPES[mimeType as keyof typeof ALLOWED_TYPES]) {
@@ -126,7 +130,7 @@ serve(async (req) => {
         severity: 'warning',
         user_id: user.id,
         details: {
-          filename: file.name,
+          filename: sanitizedFilename,
           mime_type: mimeType,
           reason: 'Invalid file type'
         }
@@ -146,7 +150,7 @@ serve(async (req) => {
         severity: 'warning',
         user_id: user.id,
         details: {
-          filename: file.name,
+          filename: sanitizedFilename,
           size: file.size,
           max_size: maxSize,
           reason: 'File too large'
@@ -170,7 +174,7 @@ serve(async (req) => {
         severity: 'high',
         user_id: user.id,
         details: {
-          filename: file.name,
+          filename: sanitizedFilename,
           declared_type: mimeType,
           reason: 'MIME type mismatch - possible malicious file'
         }
@@ -192,7 +196,7 @@ serve(async (req) => {
             severity: 'critical',
             user_id: user.id,
             details: {
-              filename: file.name,
+              filename: sanitizedFilename,
               mime_type: mimeType,
               reason: 'Dangerous content detected'
             }

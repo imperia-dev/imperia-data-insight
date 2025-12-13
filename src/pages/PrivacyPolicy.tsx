@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Shield, Lock, Eye, Database, Bell, UserCheck } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 export default function PrivacyPolicy() {
   const { user } = useAuth();
@@ -56,7 +57,7 @@ export default function PrivacyPolicy() {
         .insert({
           user_id: user.id,
           policy_version: "1.0",
-          user_agent: navigator.userAgent,
+          user_agent: sanitizeInput(navigator.userAgent),
         });
 
       if (error) throw error;
