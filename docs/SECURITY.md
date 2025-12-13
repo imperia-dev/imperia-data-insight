@@ -1,5 +1,19 @@
 # Security Documentation
 
+> **Last Updated**: December 2024
+> **Security Audit Status**: ✅ Completed
+
+## Table of Contents
+1. [Secure Logging Practices](#secure-logging-practices)
+2. [Environment Variables Management](#environment-variables-management)
+3. [Row Level Security (RLS)](#row-level-security-rls)
+4. [Storage Security](#storage-security)
+5. [Rate Limiting](#rate-limiting)
+6. [Security Monitoring](#security-monitoring)
+7. [Manual Configuration Required](#manual-configuration-required)
+
+---
+
 ## Secure Logging Practices
 
 ### Overview
@@ -178,6 +192,139 @@ Sensitive data access is rate-limited:
 - Max 100 operations per hour per user
 - Automatic lockout on excessive attempts
 - Real-time alerts for violations
+
+---
+
+## Row Level Security (RLS)
+
+### Overview
+All 91 database tables have Row Level Security (RLS) enabled. Policies are configured to ensure data isolation based on user roles.
+
+### Role Hierarchy
+| Role | Access Level |
+|------|--------------|
+| `owner` | Full access to all data |
+| `master` | Administrative access to most data |
+| `admin` | Operational administrative access |
+| `financeiro` | Financial data access only |
+| `operation` | Operational tasks access |
+| `translator` | Translation work access |
+| `customer` | Own data only |
+
+### Critical Tables with Restricted Access
+
+#### Lead Tracking Tables (Fixed Dec 2024)
+- `lead_conversions`, `lead_events`, `lead_sessions`, `lead_page_views`
+- **SELECT**: Only `owner`, `master`, `admin`
+- **INSERT**: Public (for tracking)
+- **UPDATE/DELETE**: Only `owner`
+
+#### Financial Tables
+- `closing_protocols`, `contas_a_pagar`, `contas_a_receber`, `expenses`
+- Access restricted to `owner`, `financeiro`
+
+#### Audit & Security Tables
+- `audit_logs`, `security_logs`, `active_sessions`, `account_lockouts`
+- Access restricted to `owner` only
+
+### Policy Best Practices
+```sql
+-- ✅ GOOD: Using get_user_role function
+CREATE POLICY "Only privileged roles can view"
+ON table_name FOR SELECT
+USING (get_user_role(auth.uid()) IN ('owner', 'master', 'admin'));
+
+-- ❌ BAD: Using USING (true) - exposes all data
+CREATE POLICY "Anyone can view"
+ON table_name FOR SELECT
+USING (true);
+```
+
+---
+
+## Storage Security
+
+### Bucket Configuration (Updated Dec 2024)
+
+#### Public Buckets (Safe for public access)
+| Bucket | Purpose |
+|--------|---------|
+| `company-assets` | Public company logos/images |
+| `avatars` | User profile pictures |
+| `announcement-images` | Public announcements |
+
+#### Private Buckets (Role-restricted access)
+| Bucket | SELECT | INSERT | UPDATE | DELETE |
+|--------|--------|--------|--------|--------|
+| `service-provider-files` | owner, master, admin, financeiro | owner, master, admin, financeiro | owner, master, admin | owner |
+| `payment-receipts` | owner, master, admin, financeiro | owner, master, admin, financeiro | owner, master, admin | owner |
+| `documents` | owner, master, admin, operation | owner, master, admin, operation | owner, master, admin | owner |
+| `pendency-attachments` | owner, master, admin, operation | owner, master, admin, operation, customer | owner, master, admin | owner |
+
+### Storage Policy Example
+```sql
+CREATE POLICY "Privileged roles can view documents"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'documents' AND get_user_role(auth.uid()) IN ('owner', 'master', 'admin', 'operation'));
+```
+
+---
+
+## Rate Limiting
+
+### Configuration
+| Endpoint Pattern | Limit | Window |
+|-----------------|-------|--------|
+| `/auth/*` | 5 requests | 60 seconds |
+| `/api/*` | 100 requests | 60 seconds |
+| Default | 50 requests | 60 seconds |
+
+### Lockout Mechanism
+- After exceeding rate limit: 15-minute cooldown
+- Automatic lockout logged to `rate_limit_logs`
+- Alerts sent to owner on violations
+
+---
+
+## Manual Configuration Required
+
+### ⚠️ Leaked Password Protection
+**Status**: Must be manually enabled in Supabase Dashboard
+
+**Steps to enable**:
+1. Go to Supabase Dashboard → Authentication → Settings
+2. Scroll to "Security" section
+3. Enable "Leaked password protection"
+4. Save changes
+
+This feature checks passwords against HaveIBeenPwned database during signup/password change.
+
+### JWT Token Configuration
+- **Access Token TTL**: 1 hour (Supabase default)
+- **Refresh Token TTL**: 1 week
+- **Storage**: localStorage (protected by CSP)
+
+---
+
+## Validation Test
+
+### Testing RLS Policies (Penetration Test)
+```bash
+# 1. Get tokens for two different users
+# User A (translator role)
+curl -X POST 'https://YOUR_PROJECT.supabase.co/auth/v1/token?grant_type=password' \
+  -H 'apikey: YOUR_ANON_KEY' \
+  -d '{"email":"translator@example.com","password":"xxx"}'
+
+# 2. Try to access lead data with translator token
+curl 'https://YOUR_PROJECT.supabase.co/rest/v1/lead_conversions' \
+  -H 'apikey: YOUR_ANON_KEY' \
+  -H 'Authorization: Bearer TRANSLATOR_TOKEN'
+
+# Expected result: Empty array [] (access denied by RLS)
+```
+
+---
 
 ### Reporting Security Issues
 
