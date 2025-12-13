@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { DespesaProtocolDetailsDialog } from "@/components/dashboardFinanceiro/DespesaProtocolDetailsDialog";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -374,7 +375,7 @@ function FechamentoDespesasContent() {
           expense_count: expensesToProcess.length,
           status: 'draft',
           closing_data: expensesToProcess as any,
-          notes: `${closingMode === "payment" ? "[PAGAMENTO] " : ""}${notes}`,
+          notes: `${closingMode === "payment" ? "[PAGAMENTO] " : ""}${sanitizeInput(notes)}`,
           created_by: user?.id
         })
         .select()

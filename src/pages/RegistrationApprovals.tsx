@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, XCircle, Clock, User } from "lucide-react";
 import { format } from "date-fns";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 import { ptBR } from "date-fns/locale";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -78,7 +79,7 @@ export default function RegistrationApprovals() {
     try {
       const { error } = await supabase.rpc('approve_user', {
         p_user_id: request.user_id,
-        p_notes: notes
+        p_notes: sanitizeInput(notes)
       });
 
       if (error) throw error;
@@ -118,8 +119,8 @@ export default function RegistrationApprovals() {
     try {
       const { error } = await supabase.rpc('reject_user', {
         p_user_id: request.user_id,
-        p_reason: rejectionReason,
-        p_notes: notes
+        p_reason: sanitizeInput(rejectionReason),
+        p_notes: sanitizeInput(notes)
       });
 
       if (error) throw error;
