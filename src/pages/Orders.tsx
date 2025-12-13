@@ -281,7 +281,7 @@ export function Orders() {
   // Update last document ID mutation
   const updateLastDocumentMutation = useMutation({
     mutationFn: async (value: string) => {
-      const trimmedValue = value.trim();
+      const trimmedValue = sanitizeInput(value.trim());
       const { error } = await supabase
         .from("system_settings")
         .upsert({ 

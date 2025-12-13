@@ -19,6 +19,7 @@ import { usePageLayout } from "@/hooks/usePageLayout";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Upload, CheckCircle, XCircle, FileText, Calendar, DollarSign, Loader2, AlertCircle, Search, Eye, Download, Check } from "lucide-react";
+import { sanitizeInput } from "@/lib/validations/sanitized";
 
 interface Protocol {
   id: string;
@@ -191,13 +192,13 @@ export default function PaymentReceipts() {
         .from('payment_receipts')
         .insert({
           protocol_id: selectedProtocol.id,
-          receipt_number: receiptNumber || null,
+          receipt_number: receiptNumber ? sanitizeInput(receiptNumber) : null,
           receipt_date: receiptDate,
           amount: parseFloat(receiptAmount),
           payment_method: paymentMethod,
-          bank_reference: bankReference || null,
+          bank_reference: bankReference ? sanitizeInput(bankReference) : null,
           file_url: publicUrl,
-          notes: receiptNotes || null,
+          notes: receiptNotes ? sanitizeInput(receiptNotes) : null,
           validated: false,
           created_by: (await supabase.auth.getUser()).data.user?.id
         })

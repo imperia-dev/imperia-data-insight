@@ -364,7 +364,7 @@ export default function CompanyCosts() {
           data_pagamento: paymentDate,
           payment_method: paymentMethod,
           observations: paymentObservations 
-            ? `${selectedCostForPayment.observations || ''}\n\nPagamento: ${paymentObservations}`.trim()
+            ? `${selectedCostForPayment.observations || ''}\n\nPagamento: ${sanitizeInput(paymentObservations)}`.trim()
             : selectedCostForPayment.observations
         })
         .eq('id', selectedCostForPayment.id);
