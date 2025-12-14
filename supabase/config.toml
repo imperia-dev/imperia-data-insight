@@ -1,7 +1,7 @@
 project_id = "agttqqaampznczkyfvkf"
 
 [functions.send-payment-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.process-idempotent-operation]
 verify_jwt = true
@@ -10,7 +10,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.check-secret-expiration]
-verify_jwt = false
+verify_jwt = true
 
 [functions.btg-auth]
 verify_jwt = true
@@ -58,13 +58,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.detect-suspicious-login]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-login-alert]
-verify_jwt = false
+verify_jwt = true
 
 [functions.daily-backup]
-verify_jwt = false
+verify_jwt = true
 
 [functions.n8n-webhook-proxy]
 verify_jwt = true
