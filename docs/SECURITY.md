@@ -4,13 +4,153 @@
 > **Security Audit Status**: ✅ Completed
 
 ## Table of Contents
-1. [Secure Logging Practices](#secure-logging-practices)
-2. [Environment Variables Management](#environment-variables-management)
-3. [Row Level Security (RLS)](#row-level-security-rls)
-4. [Storage Security](#storage-security)
-5. [Rate Limiting](#rate-limiting)
-6. [Security Monitoring](#security-monitoring)
-7. [Manual Configuration Required](#manual-configuration-required)
+1. [Input Validation & SQL Injection Prevention](#input-validation--sql-injection-prevention)
+2. [Secure Logging Practices](#secure-logging-practices)
+3. [Environment Variables Management](#environment-variables-management)
+4. [Row Level Security (RLS)](#row-level-security-rls)
+5. [Storage Security](#storage-security)
+6. [Rate Limiting](#rate-limiting)
+7. [Security Monitoring](#security-monitoring)
+8. [Manual Configuration Required](#manual-configuration-required)
+
+---
+
+## Input Validation & SQL Injection Prevention
+
+### Overview
+This project implements comprehensive input validation and sanitization to prevent SQL injection, XSS, and other injection attacks. All user inputs are validated both client-side and server-side.
+
+### Mandatory Form Validation Pattern
+
+All forms MUST use the `useSecureForm` hook or apply sanitization schemas from `src/lib/validations/sanitized.ts`.
+
+#### Option 1: Using useSecureForm Hook (Recommended)
+```typescript
+import { useSecureForm, sanitizedNameSchema, sanitizedDescriptionSchema } from '@/hooks/useSecureForm';
+import { z } from 'zod';
+
+const formSchema = z.object({
+  name: sanitizedNameSchema,
+  description: sanitizedDescriptionSchema,
+  email: z.string().email(),
+});
+
+function MyForm() {
+  const { form, handleSecureSubmit, isSubmitting } = useSecureForm({
+    schema: formSchema,
+    defaultValues: { name: '', description: '', email: '' },
+    onSubmit: async (data) => {
+      // data is already sanitized - safe to use with database
+      await supabase.from('table').insert(data);
+    },
+  });
+
+  return (
+    <form onSubmit={handleSecureSubmit}>
+      {/* form fields */}
+    </form>
+  );
+}
+```
+
+#### Option 2: Manual Sanitization
+```typescript
+import { sanitizeInput } from '@/lib/validations/sanitized';
+import { useValidation } from '@/hooks/useValidation';
+import { z } from 'zod';
+
+const schema = z.object({
+  name: z.string().min(1).transform(val => sanitizeInput(val)),
+});
+
+// Before database operations
+const sanitizedName = sanitizeInput(userInput);
+await supabase.from('table').insert({ name: sanitizedName });
+```
+
+### Available Sanitization Schemas
+
+| Schema | Purpose | Example Use |
+|--------|---------|-------------|
+| `sanitizedTextSchema` | Plain text, removes all HTML | Generic text inputs |
+| `sanitizedNameSchema` | Names with accents, min 2 chars | Person/company names |
+| `sanitizedDescriptionSchema` | Long text up to 5000 chars | Descriptions, notes |
+| `sanitizedTitleSchema` | Titles, 3-200 chars | Form titles, headers |
+| `sanitizedRichTextSchema` | Allows safe HTML formatting | Rich text editors |
+| `sanitizedDocumentRefSchema` | Document references | Invoice numbers, protocols |
+| `sanitizedOptionalMessageSchema` | Optional messages | Comments, feedback |
+
+### Injection Detection
+
+The `useSecureForm` hook automatically detects potential injection attempts:
+- SQL injection characters (`'`, `"`, `;`, `--`)
+- XSS script tags (`<script>`)
+- Event handlers (`onclick`, `onerror`)
+- Template injection (`${}`, `{{}}`)
+
+In development mode, these are logged to console for debugging.
+
+### Checklist for New Forms
+
+When creating a new form, verify:
+
+- [ ] Using `useSecureForm` hook OR `useValidation` with sanitized schemas
+- [ ] All text inputs use appropriate sanitization schema
+- [ ] No direct string concatenation in database queries
+- [ ] Search/filter inputs are sanitized before use
+- [ ] Protocol/ID lookups use `sanitizeInput()` before query
+- [ ] Error messages don't expose internal details
+
+### Edge Function Sanitization
+
+All Edge Functions MUST sanitize inputs using `supabase/functions/_shared/sanitization.ts`:
+
+```typescript
+import { sanitizeInput, sanitizeEmail, sanitizeObject } from '../_shared/sanitization.ts';
+
+serve(async (req) => {
+  const body = await req.json();
+  
+  // Sanitize specific fields
+  const email = sanitizeEmail(body.email);
+  const name = sanitizeInput(body.name);
+  
+  // Or sanitize entire object
+  const sanitizedBody = sanitizeObject(body, ['name', 'description', 'notes']);
+  
+  // Safe to use with database
+  await supabaseAdmin.from('table').insert(sanitizedBody);
+});
+```
+
+### What NOT to Do
+
+```typescript
+// ❌ NEVER use raw user input in queries
+const { data } = await supabase
+  .from('users')
+  .select('*')
+  .eq('name', userInput);  // VULNERABLE!
+
+// ✅ ALWAYS sanitize first
+const { data } = await supabase
+  .from('users')
+  .select('*')
+  .eq('name', sanitizeInput(userInput));
+
+// ❌ NEVER concatenate SQL
+const query = `SELECT * FROM users WHERE name = '${userInput}'`;
+
+// ❌ NEVER trust client-side validation alone
+// Always validate on server too
+
+// ❌ NEVER use dangerouslySetInnerHTML with user content
+<div dangerouslySetInnerHTML={{ __html: userContent }} />
+
+// ✅ Use SafeHTML component instead
+import { SafeHTML } from '@/components/security/SafeHTML';
+<SafeHTML html={userContent} />
+```
 
 ---
 
