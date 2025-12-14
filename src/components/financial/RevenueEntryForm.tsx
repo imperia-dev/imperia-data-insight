@@ -49,10 +49,17 @@ export function RevenueEntryForm({ onSuccess }: RevenueEntryFormProps) {
       }
 
       try {
+        // Sanitize protocol input before database query
+        const sanitizedProtocol = sanitizeInput(protocol);
+        if (!sanitizedProtocol) {
+          setProtocolData(null);
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('closing_protocols')
           .select('*')
-          .eq('protocol_number', protocol)
+          .eq('protocol_number', sanitizedProtocol)
           .single();
 
         if (error) throw error;
