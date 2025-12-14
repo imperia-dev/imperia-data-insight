@@ -100,14 +100,14 @@ This project implements strict separation between public and private environment
 
 ### Security Checklist
 
-- [ ] `.env` file added to `.gitignore`
-- [ ] No sensitive data in frontend code
-- [ ] Service role key only in Edge Functions
+- [x] `.env` file added to `.gitignore`
+- [x] No sensitive data in frontend code
+- [x] Service role key only in Edge Functions
 - [ ] Webhooks validated with signatures
-- [ ] API keys stored in Supabase Secrets
-- [ ] CORS headers properly configured
-- [ ] Rate limiting implemented where needed
-- [ ] Audit logs for sensitive operations
+- [x] API keys stored in Supabase Secrets
+- [x] CORS headers properly configured
+- [x] Rate limiting implemented where needed
+- [x] Audit logs for sensitive operations
 
 ### Adding Secrets in Production
 
