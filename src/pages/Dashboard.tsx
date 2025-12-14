@@ -362,20 +362,27 @@ export default function Dashboard() {
     return { startDate, endDate };
   };
 
-  // Fetch Google Sheets data function
+  // Fetch Google Sheets data via Edge Function (secure proxy)
   const fetchGoogleSheetsData = async () => {
     setSheetsLoading(true);
     setSheetError(null);
     
     try {
-      console.log('Fetching Google Sheets data...');
-      const response = await fetch('https://docs.google.com/spreadsheets/d/16P4o2pDyAM9WFjb-v4HfDuyQe7OhtML8WlhnO-c7dEQ/export?format=csv&gid=533199022');
+      console.log('Fetching Google Sheets data via Edge Function...');
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch sheet data: ${response.status}`);
+      const { data, error } = await supabase.functions.invoke('fetch-google-sheet', {
+        body: { gid: '533199022' },
+      });
+      
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch sheet data');
       }
       
-      const csvText = await response.text();
+      if (!data?.csv) {
+        throw new Error('No CSV data returned');
+      }
+      
+      const csvText = data.csv;
       console.log('CSV data received, parsing...');
       
       // Parse CSV data

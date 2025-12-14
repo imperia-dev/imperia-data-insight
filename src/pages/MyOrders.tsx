@@ -202,128 +202,80 @@ export function MyOrders() {
       console.log('=== VERIFICAÇÃO account_ID ===');
       console.log('Dados após update:', verifyData);
 
-      // Step 2: Call n8n webhook with operation_account_id
+      // Step 2: Call n8n webhook via Edge Function (secure proxy)
       try {
-        // Prepare payload with correct field names and values
         const payload = {
           translationOrderId: order.order_number,
           AccountId: profile.operation_account_id,
         };
 
-        // ===== LOG 5: ANTES DE CHAMAR WEBHOOK =====
-        console.log('=== CHAMANDO WEBHOOK N8N ===');
+        console.log('=== CHAMANDO WEBHOOK VIA EDGE FUNCTION ===');
         console.log('Payload:', payload);
-        console.log('URL:', 'https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138');
-        
-        toast({
-          title: "Debug: Enviando para n8n",
-          description: `translationOrderId=${order.order_number}, AccountId=${profile.operation_account_id}`,
+
+        const { data: webhookData, error: webhookError } = await supabase.functions.invoke('n8n-webhook-proxy', {
+          body: payload,
         });
 
-        const webhookResponse = await fetch(
-          "https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          }
-        );
+        console.log('=== RESPOSTA N8N (via Edge Function) ===');
+        console.log('Response data:', webhookData);
+        console.log('Error:', webhookError);
 
-        // Get response text first to handle empty responses
-        const responseText = await webhookResponse.text();
-        
-        // ===== LOG 6: RESPOSTA DO WEBHOOK =====
-        console.log('=== RESPOSTA N8N ===');
-        console.log('Status:', webhookResponse.status);
-        console.log('Status OK?:', webhookResponse.ok);
-        console.log('Response text:', responseText);
-
-        let responseData = null;
-        if (responseText && responseText.trim()) {
-          try {
-            responseData = JSON.parse(responseText);
-            console.log('Response data parsed:', responseData);
-            
-            // Check for known n8n errors
-            if (responseData.error) {
-              console.error('=== ERRO RETORNADO PELO N8N ===');
-              console.error('Erro:', responseData.error);
-              
-              if (responseData.error === 'INVALID_INPUT') {
-                console.error('Dados inválidos enviados ao sistema de operação');
-                toast({
-                  title: "Erro de Validação",
-                  description: "Dados inválidos enviados ao sistema de operação. Verifique o account_ID.",
-                  variant: "destructive",
-                });
-              } else if (responseData.error === 'NOT_FOUND') {
-                console.error('Pedido não encontrado no sistema de operação');
-                toast({
-                  title: "Pedido Não Encontrado",
-                  description: `Pedido ${order.order_number} não encontrado no sistema de operação.`,
-                  variant: "destructive",
-                });
-              }
-              // Continue with partial success - order was assigned
-              return { 
-                success: true, 
-                partialSuccess: true,
-                error: responseData.error
-              };
-            }
-            
-            // ===== LOG 7: SALVANDO SERVICE_ORDER_LINK =====
-            if (responseData.ServiceOrderLink || responseData.Id) {
-              const linkToSave = responseData.ServiceOrderLink || responseData.Id;
-              
-              console.log('=== SALVANDO SERVICE_ORDER_LINK ===');
-              console.log('Link a salvar:', linkToSave);
-              console.log('Order ID:', order.id);
-              
-              const { data: updateLinkResult, error: updateError } = await supabase
-                .from("orders")
-                .update({
-                  service_order_link: sanitizeInput(linkToSave),
-                } as any)
-                .eq("id", order.id)
-                .select();
-
-              console.log('Update link result:', updateLinkResult);
-              console.log('Update link error:', updateError);
-
-              if (updateError) {
-                console.error("=== ERRO AO SALVAR LINK ===");
-                console.error('Erro:', updateError);
-              } else {
-                console.log('=== LINK SALVO COM SUCESSO ===');
-                console.log('ServiceOrderLink salvo:', linkToSave);
-              }
-
-              return { 
-                success: true, 
-                serviceOrderLink: linkToSave 
-              };
-            }
-          } catch (parseError) {
-            console.error('=== ERRO AO FAZER PARSE DO JSON ===');
-            console.error('Parse error:', parseError);
-            console.log('Resposta recebida:', responseText);
-          }
-        } else {
-          console.warn('=== WEBHOOK RETORNOU RESPOSTA VAZIA ===');
-          console.warn('Pedido atribuído mas sem link');
+        if (webhookError) {
+          console.error('Edge function error:', webhookError);
+          throw new Error(webhookError.message || 'Webhook error');
         }
 
-        if (!webhookResponse.ok) {
-          console.error("=== WEBHOOK RETORNOU ERRO HTTP ===");
-          console.error("Status:", webhookResponse.status);
+        const responseData = webhookData;
+
+        // Check for known n8n errors
+        if (responseData?.error) {
+          console.error('=== ERRO RETORNADO PELO N8N ===');
+          console.error('Erro:', responseData.error);
+          
+          if (responseData.error === 'INVALID_INPUT') {
+            toast({
+              title: "Erro de Validação",
+              description: "Dados inválidos enviados ao sistema de operação. Verifique o account_ID.",
+              variant: "destructive",
+            });
+          } else if (responseData.error === 'NOT_FOUND') {
+            toast({
+              title: "Pedido Não Encontrado",
+              description: `Pedido ${order.order_number} não encontrado no sistema de operação.`,
+              variant: "destructive",
+            });
+          }
+          return { 
+            success: true, 
+            partialSuccess: true,
+            error: responseData.error
+          };
+        }
+        
+        // Save service order link if returned
+        if (responseData?.ServiceOrderLink || responseData?.Id) {
+          const linkToSave = responseData.ServiceOrderLink || responseData.Id;
+          
+          console.log('Saving service_order_link:', linkToSave);
+          
+          const { error: updateError } = await supabase
+            .from("orders")
+            .update({
+              service_order_link: sanitizeInput(linkToSave),
+            } as any)
+            .eq("id", order.id);
+
+          if (updateError) {
+            console.error('Error saving link:', updateError);
+          }
+
+          return { 
+            success: true, 
+            serviceOrderLink: linkToSave 
+          };
         }
       } catch (webhookError) {
-        console.error("=== ERRO AO CHAMAR WEBHOOK ===");
-        console.error('Erro completo:', webhookError);
-        // Don't throw - continue with partial success
+        console.error('Webhook error:', webhookError);
         return { 
           success: true, 
           partialSuccess: true 

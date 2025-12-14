@@ -519,56 +519,33 @@ export function Orders() {
       console.log('=== VERIFICAÇÃO account_ID ===');
       console.log('Dados após update:', verifyData);
 
-      // Step 2: Call n8n webhook to generate service order link
+      // Step 2: Call n8n webhook via Edge Function (secure proxy)
       try {
         const payload = {
           translationOrderId: orderData.order_number,
           AccountId: profile.operation_account_id,
         };
 
-        console.log('=== CHAMANDO WEBHOOK N8N ===');
+        console.log('=== CHAMANDO WEBHOOK VIA EDGE FUNCTION ===');
         console.log('Payload:', payload);
-        console.log('URL:', 'https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138');
 
-        const webhookResponse = await fetch(
-          "https://automations.lytech.global/webhook/45450e61-deeb-429e-b803-7c4419e6c138",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          }
-        );
+        const { data: webhookData, error: webhookError } = await supabase.functions.invoke('n8n-webhook-proxy', {
+          body: payload,
+        });
 
-        const responseText = await webhookResponse.text();
-        
-        console.log('=== RESPOSTA N8N ===');
-        console.log('Status:', webhookResponse.status);
-        console.log('Status OK?:', webhookResponse.ok);
-        console.log('Response text:', responseText);
-        
-        if (!webhookResponse.ok) {
-          console.error('Webhook failed with status:', webhookResponse.status);
-          console.error('Response:', responseText);
-          throw new Error(`Webhook retornou status ${webhookResponse.status}`);
+        console.log('=== RESPOSTA N8N (via Edge Function) ===');
+        console.log('Response data:', webhookData);
+        console.log('Error:', webhookError);
+
+        if (webhookError) {
+          console.error('Edge function error:', webhookError);
         }
 
-        let webhookData;
-        try {
-          webhookData = JSON.parse(responseText);
-          console.log('Webhook data parsed:', webhookData);
-        } catch (parseError) {
-          console.error('Erro ao fazer parse da resposta:', parseError);
-          throw new Error("Erro ao processar resposta do webhook");
-        }
-
-        // Save service_order_link if returned (check all possible keys)
+        // Save service_order_link if returned
         if (webhookData?.ServiceOrderLink || webhookData?.serviceOrderLink || webhookData?.service_order_link) {
           const linkToSave = sanitizeInput(webhookData.ServiceOrderLink || webhookData.serviceOrderLink || webhookData.service_order_link);
           
-          console.log('=== SALVANDO SERVICE_ORDER_LINK ===');
-          console.log('Link a salvar:', linkToSave);
+          console.log('Saving service_order_link:', linkToSave);
           
           const { error: linkError } = await supabase
             .from("orders")
@@ -576,19 +553,12 @@ export function Orders() {
             .eq("id", orderId);
 
           if (linkError) {
-            console.error('Erro ao salvar service_order_link:', linkError);
-          } else {
-            console.log('service_order_link salvo com sucesso!');
+            console.error('Error saving service_order_link:', linkError);
           }
-        } else {
-          console.warn('Webhook não retornou service_order_link');
-          console.log('Chaves disponíveis na resposta:', Object.keys(webhookData));
         }
       } catch (webhookError) {
-        console.error('=== ERRO NO WEBHOOK ===');
-        console.error('Erro completo:', webhookError);
-        // Não vamos bloquear a atribuição do pedido se o webhook falhar
-        // apenas logamos o erro
+        console.error('Webhook error:', webhookError);
+        // Don't block order assignment if webhook fails
       }
     },
     onSuccess: () => {
