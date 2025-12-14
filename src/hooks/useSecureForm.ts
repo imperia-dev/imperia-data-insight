@@ -46,7 +46,8 @@ interface UseSecureFormReturn<T extends FieldValues> {
 
 // Patterns that might indicate injection attempts
 const INJECTION_PATTERNS = [
-  /['";--]/g,                    // SQL injection characters
+  /['";]/g,                      // SQL injection quote characters
+  /--/g,                         // SQL comment
   /<script[^>]*>/gi,             // XSS script tags
   /javascript:/gi,               // JavaScript protocol
   /on\w+\s*=/gi,                 // Event handlers
