@@ -301,8 +301,11 @@ const App = () => (
                 <CustomerRequests />
               </ProtectedRouteWithApproval>
             } />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/privacy-policy" element={
+              <ProtectedRouteWithApproval>
+                <PrivacyPolicy />
+              </ProtectedRouteWithApproval>
+            } />
             <Route path="/settings/security/secrets" element={
               <ProtectedRouteWithApproval>
                 <SecretManagement />
