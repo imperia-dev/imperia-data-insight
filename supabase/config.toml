@@ -65,3 +65,9 @@ verify_jwt = false
 
 [functions.daily-backup]
 verify_jwt = false
+
+[functions.n8n-webhook-proxy]
+verify_jwt = true
+
+[functions.fetch-google-sheet]
+verify_jwt = true
