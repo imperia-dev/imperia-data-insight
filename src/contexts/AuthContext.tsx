@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useInactivityDetector } from "@/hooks/useInactivityDetector";
 import { logger } from "@/utils/logger";
+import { toast } from "sonner";
 
 interface AuthContextType {
   user: User | null;
@@ -14,21 +15,62 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Calculate milliseconds until midnight
+const calculateTimeUntilMidnight = (): number => {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0); // Next midnight
+  return midnight.getTime() - now.getTime();
+};
+
+// Check if user has logged in today
+const checkDailyLogin = (): boolean => {
+  const lastLoginDate = localStorage.getItem('last_login_date');
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  // If already logged in today, session is valid
+  if (lastLoginDate === today) {
+    return false; // Not expired
+  }
+  
+  // If no login today, session should be expired
+  return true; // Expired - needs new login
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const midnightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Create signOut function before using it in useInactivityDetector
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (reason?: string) => {
     setLoading(true);
+    
+    // Clear localStorage
+    localStorage.removeItem('last_login_date');
+    
+    // Clear midnight timeout
+    if (midnightTimeoutRef.current) {
+      clearTimeout(midnightTimeoutRef.current);
+      midnightTimeoutRef.current = null;
+    }
+    
     const { error } = await supabase.auth.signOut();
     if (error) {
       logger.error("Error signing out");
     }
     setUser(null);
     setSession(null);
+    
+    if (reason === 'daily_login') {
+      toast.info("Sessão expirada", {
+        description: "Por favor, faça login novamente para continuar.",
+        duration: 5000,
+      });
+    }
+    
     navigate("/auth");
     setLoading(false);
   }, [navigate]);
@@ -59,22 +101,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  // Set up midnight expiration timer
+  const setupMidnightExpiration = useCallback(() => {
+    // Clear any existing timeout
+    if (midnightTimeoutRef.current) {
+      clearTimeout(midnightTimeoutRef.current);
+    }
+    
+    const msUntilMidnight = calculateTimeUntilMidnight();
+    
+    // Set timeout to expire session at midnight
+    midnightTimeoutRef.current = setTimeout(() => {
+      logger.info("Session expired at midnight - daily login required");
+      signOut('daily_login');
+    }, msUntilMidnight);
+    
+    logger.debug(`Midnight expiration set for ${Math.round(msUntilMidnight / 1000 / 60)} minutes from now`);
+  }, [signOut]);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Check if session is older than 24 hours
+        // Check if session is older than 12 hours
         if (session && checkSessionExpiry(session)) {
-          // Force sign out if session is too old
           await supabase.auth.signOut();
+          return;
+        }
+        
+        // Check daily login requirement
+        if (session && checkDailyLogin()) {
+          logger.info("Daily login required - session from previous day");
+          await supabase.auth.signOut();
+          toast.info("Sessão expirada", {
+            description: "Por favor, faça login novamente para continuar.",
+            duration: 5000,
+          });
           return;
         }
         
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Set up midnight expiration if session exists
+        if (session) {
+          setupMidnightExpiration();
+        }
+        
         // Only navigate on actual sign out, not on other auth state changes
         if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('last_login_date');
           navigate('/auth');
         }
       }
@@ -82,16 +158,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      // Check if session is older than 24 hours
+      // Check if session is older than 12 hours
       if (session && checkSessionExpiry(session)) {
-        // Force sign out if session is too old
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);
         navigate('/auth');
+      } 
+      // Check daily login requirement
+      else if (session && checkDailyLogin()) {
+        logger.info("Daily login required on initial load");
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        toast.info("Sessão expirada", {
+          description: "Por favor, faça login novamente para continuar.",
+          duration: 5000,
+        });
+        navigate('/auth');
       } else {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Set up midnight expiration if session exists
+        if (session) {
+          setupMidnightExpiration();
+        }
       }
       setLoading(false);
     });
@@ -99,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up interval to check session expiry every minute
     const intervalId = setInterval(async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session && checkSessionExpiry(session)) {
+      if (session && (checkSessionExpiry(session) || checkDailyLogin())) {
         await supabase.auth.signOut();
       }
     }, 60000); // Check every minute
@@ -107,8 +199,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
       clearInterval(intervalId);
+      if (midnightTimeoutRef.current) {
+        clearTimeout(midnightTimeoutRef.current);
+      }
     };
-  }, [navigate]);
+  }, [navigate, setupMidnightExpiration]);
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signOut }}>
