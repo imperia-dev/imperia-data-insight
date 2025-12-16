@@ -271,12 +271,49 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      // Check for account lockout before attempting login
+      const { data: lockoutData, error: lockoutError } = await supabase.rpc('check_and_apply_lockout', {
+        p_identifier: data.email,
+        p_attempt_type: 'login'
+      });
+
+      if (lockoutError) {
+        logger.error('Error checking lockout status');
+      }
+
+      // Parse lockout response (returns JSONB from database)
+      const lockoutInfo = lockoutData as { locked?: boolean; locked_until?: string; reason?: string; type?: string } | null;
+
+      if (lockoutInfo?.locked) {
+        const lockedUntil = new Date(lockoutInfo.locked_until || '');
+        const now = new Date();
+        const minutesLeft = Math.ceil((lockedUntil.getTime() - now.getTime()) / (1000 * 60));
+        
+        toast({
+          title: "Conta temporariamente bloqueada",
+          description: `Muitas tentativas de login falhas. Tente novamente em ${minutesLeft > 0 ? minutesLeft : 1} minuto${minutesLeft !== 1 ? 's' : ''}.`,
+          variant: "destructive",
+          duration: 10000,
+        });
+        setLoading(false);
+        return;
+      }
+
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
       if (error) {
+        // Log failed attempt
+        await supabase.rpc('log_login_attempt', {
+          p_identifier: data.email,
+          p_attempt_type: 'login',
+          p_success: false,
+          p_failure_reason: error.message,
+          p_metadata: { user_agent: navigator.userAgent }
+        });
+
         if (error.message.includes('mfa') || error.message.includes('factor')) {
           const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
           
@@ -311,6 +348,18 @@ export default function Auth() {
           });
         }
       } else if (authData.user) {
+        // Log successful attempt
+        await supabase.rpc('log_login_attempt', {
+          p_identifier: data.email,
+          p_attempt_type: 'login',
+          p_success: true,
+          p_metadata: { user_agent: navigator.userAgent }
+        });
+
+        // Save daily login date
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.setItem('last_login_date', today);
+
         const { data: factorsData } = await supabase.auth.mfa.listFactors();
         const verifiedFactors = factorsData?.all?.filter(f => f.status === 'verified') || [];
 
