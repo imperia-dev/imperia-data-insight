@@ -156,6 +156,7 @@ const mockDocuments = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  
   const { mainContainerClass } = usePageLayout();
   const [userName, setUserName] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
@@ -1207,25 +1208,29 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
                   </SelectContent>
                 </Select>
                 
-                {/* WhatsApp Button */}
-                <Button 
-                  onClick={() => setIsWhatsAppModalOpen(true)}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <Phone className="h-4 w-4" />
-                  WhatsApp
-                </Button>
+                {/* WhatsApp Button - Owner only */}
+                {userRole === 'owner' && (
+                  <Button 
+                    onClick={() => setIsWhatsAppModalOpen(true)}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Phone className="h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                )}
                 
-                {/* Z-API Button */}
-                <Button 
-                  onClick={() => setIsZApiModalOpen(true)}
-                  variant="outline"
-                  className="flex items-center gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Z-API
-                </Button>
+                {/* Z-API Button - Owner only */}
+                {userRole === 'owner' && (
+                  <Button 
+                    onClick={() => setIsZApiModalOpen(true)}
+                    variant="outline"
+                    className="flex items-center gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Z-API
+                  </Button>
+                )}
                 
                 {/* Export PDF Button */}
                 <Button 
