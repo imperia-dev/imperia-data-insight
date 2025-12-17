@@ -89,10 +89,7 @@ export function AddChecklistItemDialog({
     setOption2Description("");
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadImage = async (file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error("Por favor, selecione uma imagem");
@@ -107,7 +104,7 @@ export function AddChecklistItemDialog({
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name?.split('.').pop() || 'png';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `checklist-items/${fileName}`;
 
@@ -128,6 +125,28 @@ export function AddChecklistItemDialog({
       toast.error("Erro ao enviar imagem");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadImage(file);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          await uploadImage(file);
+        }
+        break;
+      }
     }
   };
 
@@ -298,25 +317,24 @@ export function AddChecklistItemDialog({
                   </Button>
                 </div>
               ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-24 border-dashed"
+                <div
+                  tabIndex={0}
+                  onPaste={handlePaste}
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
+                  className="w-full h-24 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
                   {uploading ? (
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 text-muted-foreground">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                       Enviando...
                     </span>
                   ) : (
                     <span className="flex flex-col items-center gap-2 text-muted-foreground">
                       <ImageIcon className="h-8 w-8" />
-                      Clique para enviar uma imagem
+                      <span className="text-sm">Clique para enviar ou cole (Ctrl+V)</span>
                     </span>
                   )}
-                </Button>
+                </div>
               )}
             </div>
 
