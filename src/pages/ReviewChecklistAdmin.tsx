@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { CreateTemplateDialog } from "@/components/reviewChecklist/CreateTemplateDialog";
 import { AddChecklistItemDialog } from "@/components/reviewChecklist/AddChecklistItemDialog";
 import { TemplatePreviewDialog } from "@/components/reviewChecklist/TemplatePreviewDialog";
+import { SafeHTML } from "@/components/security/SafeHTML";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -309,12 +310,10 @@ export default function ReviewChecklistAdmin() {
                                 {index + 1}.
                               </span>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{item.title}</p>
-                                {item.description && (
-                                  <p className="text-sm text-muted-foreground truncate">
-                                    {item.description}
-                                  </p>
-                                )}
+                                <SafeHTML 
+                                  html={item.title} 
+                                  className="font-medium truncate [&_*]:inline"
+                                />
                               </div>
                               {item.is_required && (
                                 <Badge variant="outline" className="text-xs">
