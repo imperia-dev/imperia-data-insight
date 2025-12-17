@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Upload, X, Image as ImageIcon } from "lucide-react";
 
 interface ChecklistItem {
   id: string;
@@ -51,25 +51,23 @@ export function AddChecklistItemDialog({
   onSuccess,
 }: AddChecklistItemDialogProps) {
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [option1Label, setOption1Label] = useState("Verifiquei");
   const [option1Description, setOption1Description] = useState("");
   const [option2Label, setOption2Label] = useState("Não verifiquei");
   const [option2Description, setOption2Description] = useState("");
-  const [isRequired, setIsRequired] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editingItem) {
       setTitle(editingItem.title);
-      setDescription(editingItem.description || "");
       setImageUrl(editingItem.image_url || "");
       setOption1Label(editingItem.option_1_label);
       setOption1Description(editingItem.option_1_description || "");
       setOption2Label(editingItem.option_2_label);
       setOption2Description(editingItem.option_2_description || "");
-      setIsRequired(editingItem.is_required);
     } else {
       resetForm();
     }
@@ -77,13 +75,60 @@ export function AddChecklistItemDialog({
 
   const resetForm = () => {
     setTitle("");
-    setDescription("");
     setImageUrl("");
     setOption1Label("Verifiquei");
     setOption1Description("");
     setOption2Label("Não verifiquei");
     setOption2Description("");
-    setIsRequired(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Por favor, selecione uma imagem");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `checklist-items/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      setImageUrl(publicUrl);
+      toast.success("Imagem enviada com sucesso!");
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error("Erro ao enviar imagem");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,13 +149,13 @@ export function AddChecklistItemDialog({
       const itemData = {
         template_id: template.id,
         title: title.trim(),
-        description: description.trim() || null,
-        image_url: imageUrl.trim() || null,
+        description: null,
+        image_url: imageUrl || null,
         option_1_label: option1Label.trim(),
         option_1_description: option1Description.trim() || null,
         option_2_label: option2Label.trim(),
         option_2_description: option2Description.trim() || null,
-        is_required: isRequired,
+        is_required: true,
         display_order: editingItem?.display_order ?? (template.items?.length || 0)
       };
 
@@ -169,37 +214,54 @@ export function AddChecklistItemDialog({
               />
             </div>
 
-            {/* Description */}
+            {/* Image Upload */}
             <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                placeholder="Descreva o que deve ser verificado..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
+              <Label>Imagem (opcional)</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
               />
-            </div>
-
-            {/* Image URL */}
-            <div className="space-y-2">
-              <Label htmlFor="imageUrl">URL da Imagem (opcional)</Label>
-              <Input
-                id="imageUrl"
-                type="url"
-                placeholder="https://exemplo.com/imagem.jpg"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-              />
-              {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt="Preview"
-                  className="mt-2 rounded-lg max-h-32 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+              
+              {imageUrl ? (
+                <div className="relative inline-block">
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    className="rounded-lg max-h-40 object-contain border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={handleRemoveImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-24 border-dashed"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <span className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      Enviando...
+                    </span>
+                  ) : (
+                    <span className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <ImageIcon className="h-8 w-8" />
+                      Clique para enviar uma imagem
+                    </span>
+                  )}
+                </Button>
               )}
             </div>
 
@@ -238,28 +300,13 @@ export function AddChecklistItemDialog({
                 />
               </div>
             </div>
-
-            {/* Is Required */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="required">Obrigatório</Label>
-                <p className="text-sm text-muted-foreground">
-                  O usuário deve responder este item para enviar o checklist
-                </p>
-              </div>
-              <Switch
-                id="required"
-                checked={isRequired}
-                onCheckedChange={setIsRequired}
-              />
-            </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || uploading}>
               {loading ? "Salvando..." : editingItem ? "Salvar Alterações" : "Adicionar Item"}
             </Button>
           </DialogFooter>
