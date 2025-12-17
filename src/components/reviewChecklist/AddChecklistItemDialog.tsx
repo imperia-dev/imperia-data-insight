@@ -8,12 +8,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { X, Image as ImageIcon, Bold, Italic, Underline } from "lucide-react";
 
 interface ChecklistItem {
   id: string;
@@ -59,6 +59,7 @@ export function AddChecklistItemDialog({
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (editingItem) {
@@ -68,8 +69,14 @@ export function AddChecklistItemDialog({
       setOption1Description(editingItem.option_1_description || "");
       setOption2Label(editingItem.option_2_label);
       setOption2Description(editingItem.option_2_description || "");
+      if (titleRef.current) {
+        titleRef.current.innerHTML = editingItem.title;
+      }
     } else {
       resetForm();
+      if (titleRef.current) {
+        titleRef.current.innerHTML = "";
+      }
     }
   }, [editingItem, open]);
 
@@ -134,7 +141,10 @@ export function AddChecklistItemDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim()) {
+    const titleContent = titleRef.current?.innerHTML || title;
+    const plainTextTitle = titleContent.replace(/<[^>]*>/g, '').trim();
+    
+    if (!plainTextTitle) {
       toast.error("Título é obrigatório");
       return;
     }
@@ -148,7 +158,7 @@ export function AddChecklistItemDialog({
     try {
       const itemData = {
         template_id: template.id,
-        title: title.trim(),
+        title: titleContent.trim(),
         description: null,
         image_url: imageUrl || null,
         option_1_label: option1Label.trim(),
@@ -203,15 +213,60 @@ export function AddChecklistItemDialog({
           </DialogHeader>
           
           <div className="grid gap-6 py-4">
-            {/* Title */}
+            {/* Title with Rich Text */}
             <div className="space-y-2">
-              <Label htmlFor="title">Título do Item *</Label>
-              <Input
-                id="title"
-                placeholder="Ex: Verifique os nomes das traduções"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+              <Label>Título do Item *</Label>
+              <div className="flex items-center gap-1 mb-2 p-1 rounded-md bg-muted/50 w-fit">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => document.execCommand('bold')}
+                  title="Negrito"
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => document.execCommand('italic')}
+                  title="Itálico"
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => document.execCommand('underline')}
+                  title="Sublinhado"
+                >
+                  <Underline className="h-4 w-4" />
+                </Button>
+              </div>
+              <div
+                ref={titleRef}
+                contentEditable
+                className="min-h-[40px] px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                onInput={(e) => setTitle(e.currentTarget.innerHTML)}
+                data-placeholder="Ex: Verifique os nomes das traduções"
+                style={{ 
+                  minHeight: '40px',
+                  wordBreak: 'break-word'
+                }}
+                suppressContentEditableWarning
               />
+              <style>{`
+                [contenteditable]:empty:before {
+                  content: attr(data-placeholder);
+                  color: hsl(var(--muted-foreground));
+                  pointer-events: none;
+                }
+              `}</style>
             </div>
 
             {/* Image Upload */}
