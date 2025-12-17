@@ -135,12 +135,16 @@ export function AddChecklistItemDialog({
   };
 
   const handlePaste = async (e: React.ClipboardEvent) => {
+    // Don't handle paste if we already have an image
+    if (imageUrl) return;
+    
     const items = e.clipboardData?.items;
     if (!items) return;
 
     for (const item of items) {
       if (item.type.startsWith('image/')) {
         e.preventDefault();
+        e.stopPropagation();
         const file = item.getAsFile();
         if (file) {
           await uploadImage(file);
@@ -148,6 +152,11 @@ export function AddChecklistItemDialog({
         break;
       }
     }
+  };
+
+  const handleImageError = () => {
+    setImageUrl("");
+    toast.error("Erro ao carregar imagem");
   };
 
   const handleRemoveImage = () => {
@@ -219,7 +228,7 @@ export function AddChecklistItemDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onPaste={handlePaste}>
           <DialogHeader>
             <DialogTitle>
               {editingItem ? "Editar Item" : "Adicionar Item"}
@@ -303,8 +312,9 @@ export function AddChecklistItemDialog({
                 <div className="relative inline-block">
                   <img
                     src={imageUrl}
-                    alt="Preview"
+                    alt="Preview da imagem"
                     className="rounded-lg max-h-40 object-contain border"
+                    onError={handleImageError}
                   />
                   <Button
                     type="button"
@@ -319,7 +329,6 @@ export function AddChecklistItemDialog({
               ) : (
                 <div
                   tabIndex={0}
-                  onPaste={handlePaste}
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full h-24 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
