@@ -254,6 +254,7 @@ _Enviado por: ${userName}_
 _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
   };
 
+  const showDetails = (title: string, data: string[] | OrderSummary[], isGrouped: boolean = false) => {
     setDialogTitle(title);
     setDialogContentData(data);
     setIsGroupedDialog(isGrouped);
