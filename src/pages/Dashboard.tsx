@@ -1799,8 +1799,19 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
       <ZApiMessageModal
         open={isZApiModalOpen}
         onOpenChange={setIsZApiModalOpen}
-        defaultMessage={getZApiReportMessage()}
-        title="Enviar Relatório via Z-API"
+        metrics={{
+          attributedDocuments,
+          documentsInProgress,
+          documentsDelivered,
+          urgencies,
+          pendencies,
+          delays,
+          lowestScore,
+          averageScore,
+          highestScore,
+          selectedPeriod,
+          userName,
+        }}
       />
     </div>
   );
