@@ -20,10 +20,11 @@ serve(async (req) => {
   try {
     const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
     const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
+    const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN || !ZAPI_CLIENT_TOKEN) {
       console.error("Z-API credentials not configured");
       return new Response(
         JSON.stringify({ error: "Z-API credentials not configured" }),
@@ -107,6 +108,7 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Client-Token": ZAPI_CLIENT_TOKEN,
       },
       body: JSON.stringify({
         phone: sanitizedPhone,
