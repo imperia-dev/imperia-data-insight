@@ -6,7 +6,7 @@ import { ChartCard } from "@/components/dashboard/ChartCard";
 import { ErrorTypesChart } from "@/components/dashboard/ErrorTypesChart";
 import { PendencyGoalChart } from "@/components/dashboard/PendencyGoalChart";
 import { DocumentTable } from "@/components/documents/DocumentTable";
-import { WhatsAppOperationalReportModal } from "@/components/dashboard/WhatsAppOperationalReportModal";
+
 import { AnnouncementNotificationModal } from "@/components/announcements/AnnouncementNotificationModal";
 import { useUnreadAnnouncements } from "@/hooks/useUnreadAnnouncements";
 import { ZApiMessageModal } from "@/components/zapi/ZApiMessageModal";
@@ -30,7 +30,7 @@ import {
   AlertCircle,
   ChevronRight,
   RefreshCw,
-  Phone,
+  
   MessageCircle,
 } from "lucide-react";
 import {
@@ -199,7 +199,7 @@ export default function Dashboard() {
   const [translatorLoading, setTranslatorLoading] = useState(false);
   const [averageTimePerDocument, setAverageTimePerDocument] = useState<string>("0");
   const [deliveryRate, setDeliveryRate] = useState<string>("0");
-  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  
   const [isZApiModalOpen, setIsZApiModalOpen] = useState(false);
   
   // Dialog state
@@ -1093,17 +1093,6 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
                   </SelectContent>
                 </Select>
                 
-                {/* WhatsApp Button - Owner only */}
-                {userRole === 'owner' && (
-                  <Button 
-                    onClick={() => setIsWhatsAppModalOpen(true)}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Phone className="h-4 w-4" />
-                    WhatsApp
-                  </Button>
-                )}
                 
                 {/* Z-API Button - Owner only */}
                 {userRole === 'owner' && (
@@ -1644,23 +1633,6 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
         />
       )}
       
-      {/* WhatsApp Report Modal */}
-      <WhatsAppOperationalReportModal
-        isOpen={isWhatsAppModalOpen}
-        onClose={() => setIsWhatsAppModalOpen(false)}
-        stats={{
-          documentsTranslated,
-          documentsInProgress,
-          documentsDelivered,
-          urgencies,
-          pendencies,
-          delays,
-          averageTime: averageTimePerDocument,
-          deliveryRate,
-          pendencyTypes: pendencyTypesData,
-          translatorPerformance: translatorPerformanceData,
-        }}
-      />
       
       {/* Z-API Message Modal */}
       <ZApiMessageModal
