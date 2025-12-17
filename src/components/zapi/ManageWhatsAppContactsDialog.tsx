@@ -39,13 +39,21 @@ export function ManageWhatsAppContactsDialog({
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 2) return numbers;
-    if (numbers.length <= 4) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    if (numbers.length <= 9) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
-    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    // Format: +55 (11) 99999-9999
+    if (numbers.length <= 2) return `+${numbers}`;
+    if (numbers.length <= 4) return `+${numbers.slice(0, 2)} (${numbers.slice(2)}`;
+    if (numbers.length <= 6) return `+${numbers.slice(0, 2)} (${numbers.slice(2, 4)}) ${numbers.slice(4)}`;
+    if (numbers.length <= 11) return `+${numbers.slice(0, 2)} (${numbers.slice(2, 4)}) ${numbers.slice(4, 9)}-${numbers.slice(9)}`;
+    return `+${numbers.slice(0, 2)} (${numbers.slice(2, 4)}) ${numbers.slice(4, 9)}-${numbers.slice(9, 13)}`;
   };
 
   const cleanPhone = (phone: string) => phone.replace(/\D/g, "");
+  
+  // Validates phone has country code (55) + DDD (2 digits) + number (8-9 digits) = min 12 digits
+  const isValidPhone = (phone: string) => {
+    const cleaned = cleanPhone(phone);
+    return cleaned.length >= 12 && cleaned.startsWith("55");
+  };
 
   const fetchContacts = async () => {
     setLoading(true);
@@ -73,8 +81,8 @@ export function ManageWhatsAppContactsDialog({
 
   const handleAddContact = async () => {
     const cleanedPhone = cleanPhone(newContact.phone);
-    if (!newContact.name.trim() || cleanedPhone.length < 10) {
-      toast.error("Preencha nome e telefone válido");
+    if (!newContact.name.trim() || !isValidPhone(newContact.phone)) {
+      toast.error("Preencha nome e telefone válido com código do país (+55)");
       return;
     }
 
@@ -123,8 +131,8 @@ export function ManageWhatsAppContactsDialog({
     if (!editingId) return;
 
     const cleanedPhone = cleanPhone(editingData.phone);
-    if (!editingData.name.trim() || cleanedPhone.length < 10) {
-      toast.error("Preencha nome e telefone válido");
+    if (!editingData.name.trim() || !isValidPhone(editingData.phone)) {
+      toast.error("Preencha nome e telefone válido com código do país (+55)");
       return;
     }
 
@@ -180,18 +188,21 @@ export function ManageWhatsAppContactsDialog({
                 }
               />
               <Input
-                placeholder="(11) 99999-9999"
+                placeholder="+55 (11) 99999-9999"
                 value={formatPhone(newContact.phone)}
                 onChange={(e) =>
                   setNewContact({ ...newContact, phone: e.target.value })
                 }
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Inclua o código do país (ex: +55 para Brasil)
+            </p>
             <Button
               onClick={handleAddContact}
               size="sm"
               className="w-full"
-              disabled={!newContact.name || cleanPhone(newContact.phone).length < 10}
+              disabled={!newContact.name || !isValidPhone(newContact.phone)}
             >
               <Plus className="h-4 w-4 mr-2" />
               Adicionar
