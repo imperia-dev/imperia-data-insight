@@ -9,6 +9,7 @@ import { DocumentTable } from "@/components/documents/DocumentTable";
 import { WhatsAppOperationalReportModal } from "@/components/dashboard/WhatsAppOperationalReportModal";
 import { AnnouncementNotificationModal } from "@/components/announcements/AnnouncementNotificationModal";
 import { useUnreadAnnouncements } from "@/hooks/useUnreadAnnouncements";
+import { ZApiMessageModal } from "@/components/zapi/ZApiMessageModal";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -30,6 +31,7 @@ import {
   ChevronRight,
   RefreshCw,
   Phone,
+  MessageCircle,
 } from "lucide-react";
 import {
   LineChart,
@@ -199,6 +201,7 @@ export default function Dashboard() {
   const [averageTimePerDocument, setAverageTimePerDocument] = useState<string>("0");
   const [deliveryRate, setDeliveryRate] = useState<string>("0");
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [isZApiModalOpen, setIsZApiModalOpen] = useState(false);
   
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -228,7 +231,29 @@ export default function Dashboard() {
     });
   };
 
-  const showDetails = (title: string, data: string[] | OrderSummary[], isGrouped: boolean = false) => {
+  // Generate Z-API report message
+  const getZApiReportMessage = () => {
+    const now = new Date();
+    const periodLabel = selectedPeriod === 'day' ? 'Hoje' :
+                       selectedPeriod === 'week' ? 'Esta Semana' :
+                       selectedPeriod === 'month' ? format(now, "MMM/yy", { locale: ptBR }).toUpperCase() :
+                       selectedPeriod === 'lastMonth' ? 'Último Mês' :
+                       selectedPeriod === 'quarter' ? 'Este Trimestre' :
+                       selectedPeriod === 'year' ? 'Este Ano' :
+                       'Período Personalizado';
+    
+    return `📊 *RELATÓRIO OPERACIONAL - ${periodLabel}*
+
+• Documentos Atribuídos: ${attributedDocuments}
+• Em Andamento: ${documentsInProgress}
+• Entregues: ${documentsDelivered}
+• Urgências: ${urgencies}
+• Pendências: ${pendencies}
+
+_Enviado por: ${userName}_
+_Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
+  };
+
     setDialogTitle(title);
     setDialogContentData(data);
     setIsGroupedDialog(isGrouped);
@@ -1191,6 +1216,16 @@ export default function Dashboard() {
                   WhatsApp
                 </Button>
                 
+                {/* Z-API Button */}
+                <Button 
+                  onClick={() => setIsZApiModalOpen(true)}
+                  variant="outline"
+                  className="flex items-center gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Z-API
+                </Button>
+                
                 {/* Export PDF Button */}
                 <Button 
                   onClick={handleExportPDF}
@@ -1752,6 +1787,14 @@ export default function Dashboard() {
           pendencyTypes: pendencyTypesData,
           translatorPerformance: translatorPerformanceData,
         }}
+      />
+      
+      {/* Z-API Message Modal */}
+      <ZApiMessageModal
+        open={isZApiModalOpen}
+        onOpenChange={setIsZApiModalOpen}
+        defaultMessage={getZApiReportMessage()}
+        title="Enviar Relatório via Z-API"
       />
     </div>
   );
