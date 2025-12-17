@@ -204,7 +204,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Checklist de Revisão",
         icon: ClipboardCheck,
         href: "/review-checklist",
-        roles: ["operation", "translator"],
+        roles: ["owner", "master", "operation"],
       },
       {
         title: "Controle de Demanda",
@@ -328,7 +328,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Gerenciar Checklists",
         icon: ClipboardCheck,
         href: "/review-checklist-admin",
-        roles: ["owner"],
+        roles: ["owner", "master"],
       },
     ],
   },
