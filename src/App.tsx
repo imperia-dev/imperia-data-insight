@@ -67,6 +67,8 @@ import ContasAReceber from "./pages/ContasAReceber";
 import DashboardControleFinanceiro from "./pages/DashboardControleFinanceiro";
 import Announcements from "./pages/Announcements";
 import BadNews from "./pages/BadNews";
+import ReviewChecklistAdmin from "./pages/ReviewChecklistAdmin";
+import ReviewChecklist from "./pages/ReviewChecklist";
 
 const queryClient = new QueryClient();
 
@@ -339,6 +341,16 @@ const App = () => (
           <Route path="/bad-news" element={
             <ProtectedRouteWithApproval>
               <BadNews />
+            </ProtectedRouteWithApproval>
+          } />
+          <Route path="/review-checklist-admin" element={
+            <ProtectedRouteWithApproval>
+              <ReviewChecklistAdmin />
+            </ProtectedRouteWithApproval>
+          } />
+          <Route path="/review-checklist" element={
+            <ProtectedRouteWithApproval>
+              <ReviewChecklist />
             </ProtectedRouteWithApproval>
           } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

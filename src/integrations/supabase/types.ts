@@ -3806,6 +3806,143 @@ export type Database = {
           },
         ]
       }
+      review_checklist_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string | null
+          is_required: boolean | null
+          option_1_description: string | null
+          option_1_label: string
+          option_2_description: string | null
+          option_2_label: string
+          template_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_required?: boolean | null
+          option_1_description?: string | null
+          option_1_label?: string
+          option_2_description?: string | null
+          option_2_label?: string
+          template_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_required?: boolean | null
+          option_1_description?: string | null
+          option_1_label?: string
+          option_2_description?: string | null
+          option_2_label?: string
+          template_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_checklist_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "review_checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_checklist_responses: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_id: string
+          notes: string | null
+          order_id: string | null
+          selected_option: string
+          template_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_id: string
+          notes?: string | null
+          order_id?: string | null
+          selected_option: string
+          template_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_id?: string
+          notes?: string | null
+          order_id?: string | null
+          selected_option?: string
+          template_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_checklist_responses_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "review_checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_checklist_responses_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "review_checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_checklist_templates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       reviewer_protocols: {
         Row: {
           account_type: string | null

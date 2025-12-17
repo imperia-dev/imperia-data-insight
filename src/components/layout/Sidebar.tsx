@@ -43,6 +43,7 @@ import {
   MessageSquare,
   Image,
   Target,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -200,6 +201,12 @@ const navigationGroups: NavigationGroup[] = [
         roles: ["operation", "translator"],
       },
       {
+        title: "Checklist de Revisão",
+        icon: ClipboardCheck,
+        href: "/review-checklist",
+        roles: ["operation", "translator"],
+      },
+      {
         title: "Controle de Demanda",
         icon: ClipboardList,
         href: "/demand-control",
@@ -315,6 +322,12 @@ const navigationGroups: NavigationGroup[] = [
         title: "Assets da Empresa",
         icon: Image,
         href: "/company-assets",
+        roles: ["owner"],
+      },
+      {
+        title: "Gerenciar Checklists",
+        icon: ClipboardCheck,
+        href: "/review-checklist-admin",
         roles: ["owner"],
       },
     ],
