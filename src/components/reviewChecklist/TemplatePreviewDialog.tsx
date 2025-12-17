@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { StorageImage } from "@/components/common/StorageImage";
+import { SafeHTML } from "@/components/security/SafeHTML";
 
 interface ChecklistItem {
   id: string;
@@ -76,7 +78,11 @@ export function TemplatePreviewDialog({
                     </span>
                     <div className="flex-1">
                       <CardTitle className="text-base flex items-center gap-2">
-                        {item.title}
+                        <SafeHTML
+                          html={item.title}
+                          className="inline-block [&_*]:inline"
+                          allowedTags={["strong", "em", "u", "br", "span"]}
+                        />
                         {item.is_required && (
                           <span className="text-destructive">*</span>
                         )}
@@ -92,9 +98,10 @@ export function TemplatePreviewDialog({
                 
                 {item.image_url && (
                   <div className="px-6 pb-4">
-                    <img
-                      src={item.image_url}
-                      alt={item.title}
+                    <StorageImage
+                      bucket="documents"
+                      pathOrUrl={item.image_url}
+                      alt={item.title.replace(/<[^>]*>/g, "").trim() || "Imagem do item"}
                       className="rounded-lg max-h-48 object-contain"
                     />
                   </div>

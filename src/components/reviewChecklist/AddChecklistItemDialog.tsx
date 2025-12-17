@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { StorageImage } from "@/components/common/StorageImage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { X, Image as ImageIcon, Bold, Italic, Underline } from "lucide-react";
@@ -114,11 +115,7 @@ export function AddChecklistItemDialog({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-
-      setImageUrl(publicUrl);
+      setImageUrl(filePath);
       toast.success("Imagem enviada com sucesso!");
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -169,7 +166,11 @@ export function AddChecklistItemDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const titleContent = titleRef.current?.innerHTML || title;
+    const rawTitleContent = titleRef.current?.innerHTML || title;
+    const titleContent = rawTitleContent
+      .replace(/<\/?b>/g, (m) => (m === "<b>" ? "<strong>" : "</strong>"))
+      .replace(/<\/?i>/g, (m) => (m === "<i>" ? "<em>" : "</em>"));
+
     const plainTextTitle = titleContent.replace(/<[^>]*>/g, '').trim();
     
     if (!plainTextTitle) {
@@ -310,8 +311,9 @@ export function AddChecklistItemDialog({
               
               {imageUrl ? (
                 <div className="relative inline-block">
-                  <img
-                    src={imageUrl}
+                  <StorageImage
+                    bucket="documents"
+                    pathOrUrl={imageUrl}
                     alt="Preview da imagem"
                     className="rounded-lg max-h-40 object-contain border"
                     onError={handleImageError}
