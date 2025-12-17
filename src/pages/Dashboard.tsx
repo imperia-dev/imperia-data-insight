@@ -6,8 +6,10 @@ import { ChartCard } from "@/components/dashboard/ChartCard";
 import { ErrorTypesChart } from "@/components/dashboard/ErrorTypesChart";
 import { PendencyGoalChart } from "@/components/dashboard/PendencyGoalChart";
 import { DocumentTable } from "@/components/documents/DocumentTable";
+import { WhatsAppOperationalReportModal } from "@/components/dashboard/WhatsAppOperationalReportModal";
 import { AnnouncementNotificationModal } from "@/components/announcements/AnnouncementNotificationModal";
 import { useUnreadAnnouncements } from "@/hooks/useUnreadAnnouncements";
+import { ZApiMessageModal } from "@/components/zapi/ZApiMessageModal";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -28,6 +30,8 @@ import {
   AlertCircle,
   ChevronRight,
   RefreshCw,
+  Phone,
+  MessageCircle,
 } from "lucide-react";
 import {
   LineChart,
@@ -195,6 +199,8 @@ export default function Dashboard() {
   const [translatorLoading, setTranslatorLoading] = useState(false);
   const [averageTimePerDocument, setAverageTimePerDocument] = useState<string>("0");
   const [deliveryRate, setDeliveryRate] = useState<string>("0");
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [isZApiModalOpen, setIsZApiModalOpen] = useState(false);
   
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -224,6 +230,28 @@ export default function Dashboard() {
     });
   };
 
+  // Generate Z-API report message
+  const getZApiReportMessage = () => {
+    const now = new Date();
+    const periodLabel = selectedPeriod === 'day' ? 'Hoje' :
+                       selectedPeriod === 'week' ? 'Esta Semana' :
+                       selectedPeriod === 'month' ? format(now, "MMM/yy", { locale: ptBR }).toUpperCase() :
+                       selectedPeriod === 'lastMonth' ? 'Último Mês' :
+                       selectedPeriod === 'quarter' ? 'Este Trimestre' :
+                       selectedPeriod === 'year' ? 'Este Ano' :
+                       'Período Personalizado';
+    
+    return `📊 *RELATÓRIO OPERACIONAL - ${periodLabel}*
+
+• Documentos Atribuídos: ${attributedDocuments}
+• Em Andamento: ${documentsInProgress}
+• Entregues: ${documentsDelivered}
+• Urgências: ${urgencies}
+• Pendências: ${pendencies}
+
+_Enviado por: ${userName}_
+_Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
+  };
 
   const showDetails = (title: string, data: string[] | OrderSummary[], isGrouped: boolean = false) => {
     setDialogTitle(title);
@@ -1065,6 +1093,30 @@ export default function Dashboard() {
                   </SelectContent>
                 </Select>
                 
+                {/* WhatsApp Button - Owner only */}
+                {userRole === 'owner' && (
+                  <Button 
+                    onClick={() => setIsWhatsAppModalOpen(true)}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Phone className="h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                )}
+                
+                {/* Z-API Button - Owner only */}
+                {userRole === 'owner' && (
+                  <Button 
+                    onClick={() => setIsZApiModalOpen(true)}
+                    variant="outline"
+                    className="flex items-center gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Z-API
+                  </Button>
+                )}
+                
                 {/* Export PDF Button */}
                 <Button 
                   onClick={handleExportPDF}
@@ -1591,6 +1643,43 @@ export default function Dashboard() {
           isLoading={isMarkingAsRead}
         />
       )}
+      
+      {/* WhatsApp Report Modal */}
+      <WhatsAppOperationalReportModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        stats={{
+          documentsTranslated,
+          documentsInProgress,
+          documentsDelivered,
+          urgencies,
+          pendencies,
+          delays,
+          averageTime: averageTimePerDocument,
+          deliveryRate,
+          pendencyTypes: pendencyTypesData,
+          translatorPerformance: translatorPerformanceData,
+        }}
+      />
+      
+      {/* Z-API Message Modal */}
+      <ZApiMessageModal
+        open={isZApiModalOpen}
+        onOpenChange={setIsZApiModalOpen}
+        metrics={{
+          attributedDocuments,
+          documentsInProgress,
+          documentsDelivered,
+          urgencies,
+          pendencies,
+          delays,
+          lowestScore,
+          averageScore,
+          highestScore,
+          selectedPeriod,
+          userName,
+        }}
+      />
     </div>
   );
 }
