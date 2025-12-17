@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { StorageImage } from "@/components/common/StorageImage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -352,37 +352,21 @@ export function AddChecklistItemDialog({
             {/* Option 1 */}
             <div className="space-y-3 p-4 rounded-lg bg-muted/50">
               <Label className="text-sm font-semibold">Opção 1 (Positiva)</Label>
-              <div className="space-y-2">
-                <Input
-                  placeholder="Texto da opção (ex: Verifiquei)"
-                  value={option1Label}
-                  onChange={(e) => setOption1Label(e.target.value)}
-                />
-                <Textarea
-                  placeholder="Descrição da opção (opcional)"
-                  value={option1Description}
-                  onChange={(e) => setOption1Description(e.target.value)}
-                  rows={2}
-                />
-              </div>
+              <Input
+                placeholder="Texto da opção (ex: Verifiquei)"
+                value={option1Label}
+                onChange={(e) => setOption1Label(e.target.value)}
+              />
             </div>
 
             {/* Option 2 */}
             <div className="space-y-3 p-4 rounded-lg bg-muted/50">
               <Label className="text-sm font-semibold">Opção 2 (Negativa)</Label>
-              <div className="space-y-2">
-                <Input
-                  placeholder="Texto da opção (ex: Não verifiquei)"
-                  value={option2Label}
-                  onChange={(e) => setOption2Label(e.target.value)}
-                />
-                <Textarea
-                  placeholder="Descrição da opção (opcional)"
-                  value={option2Description}
-                  onChange={(e) => setOption2Description(e.target.value)}
-                  rows={2}
-                />
-              </div>
+              <Input
+                placeholder="Texto da opção (ex: Não verifiquei)"
+                value={option2Label}
+                onChange={(e) => setOption2Label(e.target.value)}
+              />
             </div>
           </div>
 
