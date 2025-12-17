@@ -74,3 +74,6 @@ verify_jwt = true
 
 [functions.unlock-account]
 verify_jwt = true
+
+[functions.send-zapi-message]
+verify_jwt = true
