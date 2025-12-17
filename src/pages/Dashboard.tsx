@@ -178,9 +178,7 @@ export default function Dashboard() {
   const [lowestScore, setLowestScore] = useState<number>(0);
   const [averageScore, setAverageScore] = useState<number>(0);
   const [highestScore, setHighestScore] = useState<number>(0);
-  const [sheetsLoading, setSheetsLoading] = useState(false);
-  const [lastSheetsUpdate, setLastSheetsUpdate] = useState<Date | null>(null);
-  const [sheetsError, setSheetError] = useState<string | null>(null);
+  // Google Sheets integration removed - no longer needed
   const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
@@ -390,126 +388,13 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
   };
 
   // Fetch Google Sheets data via Edge Function (secure proxy)
-  const fetchGoogleSheetsData = async () => {
-    setSheetsLoading(true);
-    setSheetError(null);
-    
-    try {
-      console.log('Fetching Google Sheets data via Edge Function...');
-      
-      const { data, error } = await supabase.functions.invoke('fetch-google-sheet', {
-        body: { gid: '533199022' },
-      });
-      
-      if (error) {
-        throw new Error(error.message || 'Failed to fetch sheet data');
-      }
-      
-      if (!data?.csv) {
-        throw new Error('No CSV data returned');
-      }
-      
-      const csvText = data.csv;
-      console.log('CSV data received, parsing...');
-      
-      // Parse CSV data
-      const lines = csvText.split('\n');
-      const scores: number[] = [];
-      
-      // Get date range for filtering
-      const { startDate, endDate } = getDateRange();
-      
-      // Skip header row (index 0) and process data starting from index 1
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line) {
-          // Try both comma and tab as separators
-          const columns = line.includes('\t') ? line.split('\t') : line.split(',');
-          
-          // Column C (index 2) contains the scores
-          const scoreValue = columns[2]?.trim();
-          // Column D (index 3) contains the date "Data da Análise"
-          const dateValue = columns[3]?.trim();
-          
-          // Parse date and check if within selected period
-          if (dateValue && scoreValue && !isNaN(Number(scoreValue))) {
-            let analysisDate: Date | null = null;
-            
-            // Try parsing date in DD/MM/YYYY format
-            if (dateValue.includes('/')) {
-              const parts = dateValue.split('/');
-              if (parts.length === 3) {
-                const [day, month, year] = parts;
-                analysisDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-              }
-            } else if (dateValue.includes('-')) {
-              // Try ISO format
-              analysisDate = new Date(dateValue);
-            }
-            
-            // Check if date is valid and within selected period
-            if (analysisDate && !isNaN(analysisDate.getTime()) && 
-                analysisDate >= startDate && analysisDate <= endDate) {
-              scores.push(Number(scoreValue));
-            }
-          }
-        }
-      }
-      
-      console.log(`Found ${scores.length} scores for selected period`);
-      
-      if (scores.length > 0) {
-        const min = Math.min(...scores);
-        const max = Math.max(...scores);
-        const avg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-        
-        setLowestScore(min);
-        setHighestScore(max);
-        setAverageScore(Number(avg.toFixed(1)));
-        setLastSheetsUpdate(new Date());
-        
-        toast({
-          title: "Dados atualizados",
-          description: `${scores.length} notas carregadas para o período selecionado`,
-        });
-      } else {
-        setLowestScore(0);
-        setHighestScore(0);
-        setAverageScore(0);
-        toast({
-          title: "Sem dados",
-          description: "Nenhuma nota encontrada para o período selecionado",
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching Google Sheets data:', error);
-      setSheetError(error instanceof Error ? error.message : 'Erro ao buscar dados');
-      toast({
-        title: "Erro ao atualizar",
-        description: error instanceof Error ? error.message : "Não foi possível carregar os dados da planilha",
-        variant: "destructive",
-      });
-    } finally {
-      setSheetsLoading(false);
-    }
-  };
+  // Google Sheets data fetching removed - no longer needed
 
   // Initial load and dependencies effect
   useEffect(() => {
     fetchDashboardData();
     fetchEvolutionData();
-    fetchGoogleSheetsData(); // Load Google Sheets data on initial load
   }, [selectedPeriod, customDateRange, selectedCustomer]);
-
-  // Auto-refresh Google Sheets data every 30 minutes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('Auto-refreshing Google Sheets data...');
-      fetchGoogleSheetsData();
-    }, 30 * 60 * 1000); // 30 minutes
-
-    return () => clearInterval(interval);
-  }, []);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -1370,26 +1255,8 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
           
           {/* Second row with Delays and AI Score indicators */}
           <div className="mb-8">
-            {/* Refresh button and last update info */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-foreground">Indicadores de Desempenho</h3>
-              <div className="flex items-center gap-4">
-                {lastSheetsUpdate && (
-                  <span className="text-sm text-muted-foreground">
-                    Última atualização: {format(lastSheetsUpdate, "HH:mm", { locale: ptBR })}
-                  </span>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={fetchGoogleSheetsData}
-                  disabled={sheetsLoading}
-                  className="gap-2"
-                >
-                  <RefreshCw className={cn("h-4 w-4", sheetsLoading && "animate-spin")} />
-                  {sheetsLoading ? "Atualizando..." : "Atualizar Notas"}
-                </Button>
-              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1404,21 +1271,21 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
               />
               <StatsCard
                 title="Menor Nota"
-                value={sheetsLoading ? "..." : lowestScore.toLocaleString('pt-BR')}
+                value={loading ? "..." : lowestScore.toLocaleString('pt-BR')}
                 icon={<TrendingDown className="h-5 w-5" />}
                 description="Menor divergência"
                 trend="up"
               />
               <StatsCard
                 title="Média"
-                value={sheetsLoading ? "..." : averageScore.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                value={loading ? "..." : averageScore.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                 icon={<Activity className="h-5 w-5" />}
                 description="Média de divergências"
                 trend="neutral"
               />
               <StatsCard
                 title="Maior Nota"
-                value={sheetsLoading ? "..." : highestScore.toLocaleString('pt-BR')}
+                value={loading ? "..." : highestScore.toLocaleString('pt-BR')}
                 icon={<TrendingUp className="h-5 w-5" />}
                 description="Maior divergência"
                 trend="down"
