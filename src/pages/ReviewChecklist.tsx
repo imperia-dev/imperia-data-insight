@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StorageImage } from "@/components/common/StorageImage";
+import { SafeHTML } from "@/components/security/SafeHTML";
 import { CheckCircle, Clock, FileText, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -187,7 +189,8 @@ export default function ReviewChecklist() {
     const requiredItems = selectedTemplate.items.filter(item => item.is_required);
     for (const item of requiredItems) {
       if (!responses[item.id]) {
-        toast.error(`Por favor, responda: "${item.title}"`);
+        const itemTitle = item.title.replace(/<[^>]*>/g, '').trim();
+        toast.error(`Por favor, responda: "${itemTitle || 'Item do checklist'}"`);
         return false;
       }
     }
@@ -350,7 +353,11 @@ export default function ReviewChecklist() {
                             </span>
                             <div className="flex-1">
                               <CardTitle className="text-base flex items-center gap-2">
-                                {item.title}
+                                <SafeHTML
+                                  html={item.title}
+                                  className="inline-block [&_*]:inline"
+                                  allowedTags={["strong", "em", "u", "br", "span"]}
+                                />
                                 {item.is_required && (
                                   <span className="text-destructive">*</span>
                                 )}
@@ -364,15 +371,16 @@ export default function ReviewChecklist() {
                           </div>
                         </CardHeader>
                         
-                        {item.image_url && (
-                          <div className="px-6 pb-4">
-                            <img
-                              src={item.image_url}
-                              alt={item.title}
-                              className="rounded-lg max-h-48 object-contain"
-                            />
-                          </div>
-                        )}
+                         {item.image_url && (
+                           <div className="px-6 pb-4">
+                             <StorageImage
+                               bucket="documents"
+                               pathOrUrl={item.image_url}
+                               alt={item.title.replace(/<[^>]*>/g, "").trim() || "Imagem do item"}
+                               className="rounded-lg max-h-48 object-contain"
+                             />
+                           </div>
+                         )}
                         
                         <CardContent>
                           <RadioGroup
@@ -430,7 +438,7 @@ export default function ReviewChecklist() {
                           size="lg"
                         >
                           {submitting ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2" />
                           ) : (
                             <Send className="h-4 w-4 mr-2" />
                           )}
