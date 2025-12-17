@@ -30,9 +30,6 @@ verify_jwt = false
 [functions.send-sms]
 verify_jwt = true
 
-[functions.send-whatsapp-report]
-verify_jwt = true
-
 [functions.initiate-password-reset]
 verify_jwt = false
 
@@ -73,7 +70,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.unlock-account]
-verify_jwt = true
-
-[functions.send-zapi-message]
 verify_jwt = true
