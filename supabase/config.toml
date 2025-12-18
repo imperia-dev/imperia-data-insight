@@ -77,3 +77,6 @@ verify_jwt = true
 
 [functions.send-zapi-message]
 verify_jwt = true
+
+[functions.execute-scheduled-messages]
+verify_jwt = false
