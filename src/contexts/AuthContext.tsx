@@ -121,37 +121,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener FIRST
+    // IMPORTANT: No async callback and no direct Supabase calls to prevent deadlocks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        // Check if session is older than 12 hours
-        if (session && checkSessionExpiry(session)) {
-          await supabase.auth.signOut();
-          return;
-        }
-        
-        // Check daily login requirement
-        if (session && checkDailyLogin()) {
-          logger.info("Daily login required - session from previous day");
-          await supabase.auth.signOut();
-          toast.info("Sessão expirada", {
-            description: "Por favor, faça login novamente para continuar.",
-            duration: 5000,
-          });
-          return;
-        }
-        
+      (event, session) => {
+        // Only synchronous state updates inside callback
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Set up midnight expiration if session exists
+        // Defer session validation checks to prevent deadlock
         if (session) {
-          setupMidnightExpiration();
+          setTimeout(() => {
+            // Check if session is older than 12 hours
+            if (checkSessionExpiry(session)) {
+              signOut();
+              return;
+            }
+            
+            // Check daily login requirement
+            if (checkDailyLogin()) {
+              logger.info("Daily login required - session from previous day");
+              signOut('daily_login');
+              return;
+            }
+            
+            // Set up midnight expiration
+            setupMidnightExpiration();
+          }, 0);
         }
         
-        // Only navigate on actual sign out, not on other auth state changes
+        // Handle sign out event
         if (event === 'SIGNED_OUT') {
           localStorage.removeItem('last_login_date');
-          navigate('/auth');
+          setTimeout(() => navigate('/auth'), 0);
         }
       }
     );
