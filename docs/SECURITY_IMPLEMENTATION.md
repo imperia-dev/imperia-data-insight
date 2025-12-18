@@ -97,9 +97,12 @@
 
 ### 13. Privacy & Compliance (LGPD)
 - ✅ Página de Política de Privacidade (/privacy-policy)
-- ✅ Tabela `privacy_policy_acceptances` para consentimento
-- ✅ Versionamento de políticas
+- ✅ Página de Termos de Serviço (/terms-of-service)
+- ✅ Tabela `privacy_policy_acceptances` para consentimento de privacidade
+- ✅ Tabela `terms_of_service_acceptances` para consentimento de termos
+- ✅ Versionamento de políticas e termos
 - ✅ Registro de aceite do usuário
+- ✅ Links funcionais na página de login
 
 ## 📊 Security Score Components
 
