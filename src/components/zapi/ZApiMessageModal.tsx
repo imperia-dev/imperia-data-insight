@@ -10,13 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageCircle, Send, Loader2, Users, Plus } from "lucide-react";
@@ -71,12 +64,13 @@ export function ZApiMessageModal({
   title = "Enviar Mensagem WhatsApp",
 }: ZApiMessageModalProps) {
   const [contacts, setContacts] = useState<WhatsAppContact[]>([]);
-  const [selectedContactId, setSelectedContactId] = useState<string>("");
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [manualPhone, setManualPhone] = useState(defaultPhone);
   const [selectedData, setSelectedData] = useState<Set<string>>(new Set());
   const [isSending, setIsSending] = useState(false);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
+  const [sendingProgress, setSendingProgress] = useState({ current: 0, total: 0 });
 
   // Data options based on metrics
   const dataOptions: DataOption[] = useMemo(() => {
@@ -143,38 +137,57 @@ export function ZApiMessageModal({
     const value = e.target.value;
     const cleaned = value.replace(/[^\d\s()\-+]/g, "");
     setManualPhone(cleaned);
-    setSelectedContactId(""); // Clear contact selection when typing manually
   };
 
-  const getCleanPhone = () => {
-    // If a contact is selected, use its phone
-    if (selectedContactId) {
-      const contact = contacts.find(c => c.id === selectedContactId);
-      if (contact) {
-        let phone = contact.phone.replace(/\D/g, "");
-        if (!phone.startsWith("55") && phone.length >= 10) {
-          phone = "55" + phone;
-        }
-        return phone;
-      }
-    }
-    
-    // Otherwise use manual phone
-    let cleanPhone = manualPhone.replace(/\D/g, "");
+  const getCleanPhone = (phone: string) => {
+    let cleanPhone = phone.replace(/\D/g, "");
     if (!cleanPhone.startsWith("55") && cleanPhone.length >= 10) {
       cleanPhone = "55" + cleanPhone;
     }
     return cleanPhone;
   };
 
-  const handleContactSelect = (contactId: string) => {
-    setSelectedContactId(contactId);
-    if (contactId) {
+  const toggleContactSelection = (contactId: string) => {
+    const newSelected = new Set(selectedContactIds);
+    if (newSelected.has(contactId)) {
+      newSelected.delete(contactId);
+    } else {
+      newSelected.add(contactId);
+    }
+    setSelectedContactIds(newSelected);
+  };
+
+  const selectAllContacts = () => {
+    setSelectedContactIds(new Set(contacts.map(c => c.id)));
+  };
+
+  const deselectAllContacts = () => {
+    setSelectedContactIds(new Set());
+  };
+
+  const getSelectedPhones = (): string[] => {
+    const phones: string[] = [];
+    
+    // Add phones from selected contacts
+    selectedContactIds.forEach(contactId => {
       const contact = contacts.find(c => c.id === contactId);
       if (contact) {
-        setManualPhone(contact.phone);
+        const cleanPhone = getCleanPhone(contact.phone);
+        if (cleanPhone.length >= 12) {
+          phones.push(cleanPhone);
+        }
+      }
+    });
+    
+    // Add manual phone if valid and no contacts selected
+    if (phones.length === 0 && manualPhone) {
+      const cleanPhone = getCleanPhone(manualPhone);
+      if (cleanPhone.length >= 12) {
+        phones.push(cleanPhone);
       }
     }
+    
+    return phones;
   };
 
   const toggleDataOption = (id: string) => {
@@ -233,10 +246,10 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
   }, [metrics, selectedData, dataOptions, defaultMessage]);
 
   const handleSend = async () => {
-    const cleanPhone = getCleanPhone();
+    const phones = getSelectedPhones();
 
-    if (!cleanPhone || cleanPhone.length < 12) {
-      toast.error("Selecione um contato ou digite um número válido");
+    if (phones.length === 0) {
+      toast.error("Selecione pelo menos um contato ou digite um número válido");
       return;
     }
 
@@ -246,28 +259,52 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
     }
 
     setIsSending(true);
+    setSendingProgress({ current: 0, total: phones.length });
 
-    try {
-      const { data, error } = await supabase.functions.invoke("send-zapi-message", {
-        body: { phone: cleanPhone, message: messagePreview },
-      });
+    let successCount = 0;
+    let failCount = 0;
 
-      if (error) throw error;
+    for (let i = 0; i < phones.length; i++) {
+      const phone = phones[i];
+      setSendingProgress({ current: i + 1, total: phones.length });
+      
+      try {
+        const { data, error } = await supabase.functions.invoke("send-zapi-message", {
+          body: { phone, message: messagePreview },
+        });
 
-      if (data.success) {
-        toast.success("Mensagem enviada com sucesso!");
-        onOpenChange(false);
-        setSelectedData(new Set(dataOptions.map(d => d.id)));
-        setSelectedContactId("");
-        setManualPhone("");
-      } else {
-        throw new Error(data.error || "Erro ao enviar mensagem");
+        if (error) throw error;
+
+        if (data.success) {
+          successCount++;
+        } else {
+          failCount++;
+          console.error(`Failed to send to ${phone}:`, data.error);
+        }
+      } catch (error) {
+        failCount++;
+        console.error(`Error sending to ${phone}:`, error);
       }
-    } catch (error) {
-      console.error("Error sending Z-API message:", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao enviar mensagem");
-    } finally {
-      setIsSending(false);
+
+      // Small delay between messages to avoid rate limiting
+      if (i < phones.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    setIsSending(false);
+    setSendingProgress({ current: 0, total: 0 });
+
+    if (successCount > 0 && failCount === 0) {
+      toast.success(`Mensagem enviada para ${successCount} contato(s) com sucesso!`);
+      onOpenChange(false);
+      setSelectedData(new Set(dataOptions.map(d => d.id)));
+      setSelectedContactIds(new Set());
+      setManualPhone("");
+    } else if (successCount > 0 && failCount > 0) {
+      toast.warning(`Enviado para ${successCount} contato(s). ${failCount} falha(s).`);
+    } else {
+      toast.error("Erro ao enviar mensagens");
     }
   };
 
@@ -334,7 +371,7 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
               Enviar Relatório via Z-API
             </DialogTitle>
             <DialogDescription>
-              Selecione o contato e os dados para enviar
+              Selecione os contatos e os dados para enviar
             </DialogDescription>
           </DialogHeader>
 
@@ -344,53 +381,78 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
               {/* Contact Selection */}
               <div className="space-y-2">
                 <Label className="flex items-center justify-between">
-                  <span>Contato</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs"
-                    onClick={() => setShowContactsDialog(true)}
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Gerenciar
-                  </Button>
+                  <span>Contatos ({selectedContactIds.size} selecionado{selectedContactIds.size !== 1 ? 's' : ''})</span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={selectAllContacts}
+                      disabled={contacts.length === 0}
+                    >
+                      Todos
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={deselectAllContacts}
+                    >
+                      Nenhum
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => setShowContactsDialog(true)}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Gerenciar
+                    </Button>
+                  </div>
                 </Label>
-                <Select
-                  value={selectedContactId}
-                  onValueChange={handleContactSelect}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um contato ou digite abaixo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loadingContacts ? (
-                      <SelectItem value="_loading" disabled>
-                        Carregando...
-                      </SelectItem>
-                    ) : contacts.length === 0 ? (
-                      <SelectItem value="_empty" disabled>
-                        Nenhum contato cadastrado
-                      </SelectItem>
-                    ) : (
-                      contacts.map((contact) => (
-                        <SelectItem key={contact.id} value={contact.id}>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-3 w-3" />
-                            {contact.name}
-                            <span className="text-muted-foreground text-xs">
-                              ({contact.phone.slice(-4)})
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <ScrollArea className="h-[120px] border rounded-lg p-2">
+                  {loadingContacts ? (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Carregando...
+                    </div>
+                  ) : contacts.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      Nenhum contato cadastrado
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {contacts.map((contact) => (
+                        <div
+                          key={contact.id}
+                          onClick={() => toggleContactSelection(contact.id)}
+                          className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${
+                            selectedContactIds.has(contact.id)
+                              ? "bg-green-500/10 border-green-500"
+                              : "bg-background hover:bg-muted/50"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={selectedContactIds.has(contact.id)}
+                            onCheckedChange={() => toggleContactSelection(contact.id)}
+                          />
+                          <Users className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm flex-1">{contact.name}</span>
+                          <span className="text-muted-foreground text-xs font-mono">
+                            ({contact.phone.slice(-4)})
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
                 <Input
-                  placeholder="Ou digite: +55 (11) 99999-9999"
+                  placeholder="Ou digite um número: +55 (11) 99999-9999"
                   value={formatPhoneDisplay(manualPhone)}
                   onChange={handlePhoneChange}
                   className="font-mono text-sm"
+                  disabled={selectedContactIds.size > 0}
                 />
               </div>
 
@@ -469,18 +531,20 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
             </Button>
             <Button
               onClick={handleSend}
-              disabled={isSending || (!selectedContactId && getCleanPhone().length < 12) || selectedData.size === 0}
+              disabled={isSending || (selectedContactIds.size === 0 && getCleanPhone(manualPhone).length < 12) || selectedData.size === 0}
               className="bg-green-600 hover:bg-green-700"
             >
               {isSending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Enviando...
+                  {sendingProgress.total > 1 
+                    ? `Enviando ${sendingProgress.current}/${sendingProgress.total}...` 
+                    : "Enviando..."}
                 </>
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Enviar WhatsApp
+                  Enviar WhatsApp {selectedContactIds.size > 1 ? `(${selectedContactIds.size})` : ""}
                 </>
               )}
             </Button>
