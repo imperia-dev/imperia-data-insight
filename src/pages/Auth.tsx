@@ -356,10 +356,6 @@ export default function Auth() {
           p_metadata: { user_agent: navigator.userAgent }
         });
 
-        // Save daily login date
-        const today = new Date().toISOString().split('T')[0];
-        localStorage.setItem('last_login_date', today);
-
         const { data: factorsData } = await supabase.auth.mfa.listFactors();
         const verifiedFactors = factorsData?.all?.filter(f => f.status === 'verified') || [];
 

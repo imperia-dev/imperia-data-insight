@@ -128,23 +128,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer session validation checks to prevent deadlock
-        if (session) {
+        // Handle new login - save date and don't check expiration
+        if (event === 'SIGNED_IN' && session) {
+          const today = new Date().toISOString().split('T')[0];
+          localStorage.setItem('last_login_date', today);
+          
           setTimeout(() => {
-            // Check if session is older than 12 hours
+            setupMidnightExpiration();
+          }, 0);
+          return; // Don't check expiration on new login
+        }
+        
+        // Only check expiration for TOKEN_REFRESHED or INITIAL_SESSION events
+        if (session && event !== 'SIGNED_IN') {
+          setTimeout(() => {
             if (checkSessionExpiry(session)) {
               signOut();
               return;
             }
             
-            // Check daily login requirement
             if (checkDailyLogin()) {
               logger.info("Daily login required - session from previous day");
               signOut('daily_login');
               return;
             }
             
-            // Set up midnight expiration
             setupMidnightExpiration();
           }, 0);
         }
