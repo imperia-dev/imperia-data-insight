@@ -13,20 +13,37 @@
 - ✅ Warning 5 minutos antes do logout
 - ✅ Detecção de atividade do usuário
 - ✅ Validação de sessão de 12 horas
+- ✅ Logout obrigatório à meia-noite (login diário)
+- ✅ Proteção contra loop de login (race condition fix)
+- ✅ Verificação periódica de sessão a cada 60 segundos
 
-### 3. Input Validation & Sanitization
+### 3. Authentication Security
+- ✅ MFA (Multi-Factor Authentication) com TOTP
+- ✅ Códigos de backup para MFA
+- ✅ Proteção contra brute force com bloqueio progressivo
+- ✅ Detecção de logins suspeitos (novo dispositivo/IP)
+- ✅ Notificações por email de logins suspeitos
+- ✅ Tabela `login_attempts` para tracking de tentativas
+- ✅ Tabela `account_lockouts` para bloqueios de conta
+- ✅ Unlock de conta por administradores
+
+### 4. Input Validation & Sanitization
 - ✅ DOMPurify instalado e configurado
 - ✅ SafeHTML component para renderização segura
 - ✅ useSanitize hook para validação
 - ✅ Schemas Zod para validação de formulários
 
-### 4. Edge Functions Security
-- ✅ Rate limiter Edge Function
+### 5. Edge Functions Security
+- ✅ Rate limiter Edge Function com persistência em banco
 - ✅ Secure upload Edge Function com validação MIME
 - ✅ Daily backup Edge Function
 - ✅ Detecção de conteúdo malicioso
+- ✅ Detect suspicious login Edge Function
+- ✅ Send login alert Edge Function
+- ✅ Unlock account Edge Function
+- ✅ Rotate secret Edge Function
 
-### 5. Database Security (Supabase)
+### 6. Database Security (Supabase)
 - ✅ Tabelas de segurança (security_events, audit_logs)
 - ✅ Funções de logging de segurança
 - ✅ Mascaramento de dados sensíveis (CPF, CNPJ, PIX)
@@ -34,31 +51,55 @@
 - ✅ Rate limiting para acesso a dados sensíveis
 - ✅ Tracking de tentativas falhas de acesso
 - ✅ RLS policies para Storage buckets
+- ✅ Tabela `active_sessions` para gestão de sessões
+- ✅ Tabela `login_notifications` para alertas de login
+- ✅ Tabela `rate_limit_entries` para rate limiting persistente
 
-### 6. Validation Schemas (Zod)
+### 7. Validation Schemas (Zod)
 - ✅ Auth schemas (login, signup, MFA)
 - ✅ Financial schemas (CPF, CNPJ, PIX, amounts)
 - ✅ Document schemas (uploads, orders, pendencies)
 - ✅ Common schemas (URL, UUID, pagination, search)
 - ✅ useValidation hook para integração
 
-### 7. Backup & Recovery
+### 8. Backup & Recovery
 - ✅ Edge Function daily-backup configurada
 - ✅ Backup automático diário/semanal/mensal
 - ✅ Limpeza automática de backups antigos
 - ✅ Storage no bucket 'backups'
 - ✅ Logs de backup na tabela backup_logs
 
-### 8. Security Dashboard
+### 9. Security Dashboard
 - ✅ Dashboard de monitoramento de segurança
 - ✅ Visualização de eventos e métricas
 - ✅ Score de segurança
 - ✅ Alertas de eventos críticos
+- ✅ Componente AuthSecurityMonitor
+- ✅ Componente ActiveSessionsTable
 
-### 9. Error Handling
+### 10. Error Handling
 - ✅ Error Boundary component
 - ✅ Logging de erros para auditoria
 - ✅ Sanitização de mensagens de erro
+
+### 11. Idempotency Keys
+- ✅ Tabela `idempotency_keys` para operações únicas
+- ✅ Prevenção de operações duplicadas
+- ✅ Expiração automática após 24 horas
+- ✅ Operações suportadas: approve_protocol, process_payment, create_expense
+
+### 12. Secret Rotation
+- ✅ Dashboard de gestão de secrets (/settings/security/secrets)
+- ✅ Rotação manual e automática de secrets
+- ✅ Notificações de expiração (30, 7, 0 dias)
+- ✅ Tabela `secret_rotation_logs` para auditoria
+- ✅ Edge Function check-secret-expiration
+
+### 13. Privacy & Compliance (LGPD)
+- ✅ Página de Política de Privacidade (/privacy-policy)
+- ✅ Tabela `privacy_policy_acceptances` para consentimento
+- ✅ Versionamento de políticas
+- ✅ Registro de aceite do usuário
 
 ## 📊 Security Score Components
 
