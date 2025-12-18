@@ -10,6 +10,7 @@ import { DocumentTable } from "@/components/documents/DocumentTable";
 import { AnnouncementNotificationModal } from "@/components/announcements/AnnouncementNotificationModal";
 import { useUnreadAnnouncements } from "@/hooks/useUnreadAnnouncements";
 import { ZApiMessageModal } from "@/components/zapi/ZApiMessageModal";
+import { ManageScheduledMessagesDialog } from "@/components/zapi/ManageScheduledMessagesDialog";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -201,6 +202,7 @@ export default function Dashboard() {
   const [deliveryRate, setDeliveryRate] = useState<string>("0");
   
   const [isZApiModalOpen, setIsZApiModalOpen] = useState(false);
+  const [isScheduledMessagesOpen, setIsScheduledMessagesOpen] = useState(false);
   
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1106,6 +1108,18 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
                   </Button>
                 )}
                 
+                {/* Scheduled Messages Button - Owner only */}
+                {userRole === 'owner' && (
+                  <Button 
+                    onClick={() => setIsScheduledMessagesOpen(true)}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Clock className="h-4 w-4" />
+                    Agendar
+                  </Button>
+                )}
+                
                 {/* Export PDF Button */}
                 <Button 
                   onClick={handleExportPDF}
@@ -1651,6 +1665,12 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
           selectedPeriod,
           userName,
         }}
+      />
+      
+      {/* Scheduled Messages Dialog */}
+      <ManageScheduledMessagesDialog
+        open={isScheduledMessagesOpen}
+        onOpenChange={setIsScheduledMessagesOpen}
       />
     </div>
   );

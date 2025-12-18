@@ -4101,6 +4101,134 @@ export type Database = {
           },
         ]
       }
+      scheduled_message_contacts: {
+        Row: {
+          created_at: string
+          id: string
+          scheduled_message_id: string
+          whatsapp_contact_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          scheduled_message_id: string
+          whatsapp_contact_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          scheduled_message_id?: string
+          whatsapp_contact_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_message_contacts_scheduled_message_id_fkey"
+            columns: ["scheduled_message_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_message_contacts_whatsapp_contact_id_fkey"
+            columns: ["whatsapp_contact_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_message_logs: {
+        Row: {
+          contacts_failed: number
+          contacts_sent: number
+          error_message: string | null
+          executed_at: string
+          id: string
+          message_sent: string | null
+          metadata: Json | null
+          scheduled_message_id: string
+          status: string
+        }
+        Insert: {
+          contacts_failed?: number
+          contacts_sent?: number
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          message_sent?: string | null
+          metadata?: Json | null
+          scheduled_message_id: string
+          status: string
+        }
+        Update: {
+          contacts_failed?: number
+          contacts_sent?: number
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          message_sent?: string | null
+          metadata?: Json | null
+          scheduled_message_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_message_logs_scheduled_message_id_fkey"
+            columns: ["scheduled_message_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_messages: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          include_metrics: Json
+          is_active: boolean
+          last_executed_at: string | null
+          message_template: string
+          name: string
+          next_execution: string | null
+          schedule_days: string[] | null
+          schedule_time: string
+          schedule_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          include_metrics?: Json
+          is_active?: boolean
+          last_executed_at?: string | null
+          message_template: string
+          name: string
+          next_execution?: string | null
+          schedule_days?: string[] | null
+          schedule_time: string
+          schedule_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          include_metrics?: Json
+          is_active?: boolean
+          last_executed_at?: string | null
+          message_template?: string
+          name?: string
+          next_execution?: string | null
+          schedule_days?: string[] | null
+          schedule_time?: string
+          schedule_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       secret_rotation_logs: {
         Row: {
           expires_at: string | null
@@ -5142,6 +5270,14 @@ export type Database = {
         Returns: undefined
       }
       calculate_lead_score: { Args: { p_lead_id: string }; Returns: number }
+      calculate_next_execution: {
+        Args: {
+          p_schedule_days: string[]
+          p_schedule_time: string
+          p_schedule_type: string
+        }
+        Returns: string
+      }
       check_and_apply_lockout: {
         Args: { p_attempt_type?: string; p_identifier: string }
         Returns: Json
