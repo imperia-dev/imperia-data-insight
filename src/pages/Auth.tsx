@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -898,13 +899,13 @@ export default function Auth() {
         <CardFooter className="text-center text-sm text-muted-foreground">
           <p className="w-full">
             Ao continuar, você concorda com nossos{" "}
-            <a href="#" className="underline hover:text-primary">
+            <Link to="/terms-of-service" target="_blank" className="underline hover:text-primary">
               Termos de Serviço
-            </a>{" "}
+            </Link>{" "}
             e{" "}
-            <a href="#" className="underline hover:text-primary">
+            <Link to="/privacy-policy" target="_blank" className="underline hover:text-primary">
               Política de Privacidade
-            </a>
+            </Link>
           </p>
         </CardFooter>
       </Card>

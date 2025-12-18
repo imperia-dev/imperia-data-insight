@@ -60,6 +60,7 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import CustomerPendencyRequest from "./pages/CustomerPendencyRequest";
 import CustomerRequests from "./pages/CustomerRequests";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import SecretManagement from "./pages/SecretManagement";
 import CompanyAssets from "./pages/CompanyAssets";
 import ContasAPagar from "./pages/ContasAPagar";
@@ -88,6 +89,7 @@ const App = () => (
             <Route path="/reset-password" element={<PasswordReset />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/registration-approvals" element={
               <ProtectedRouteWithApproval>
                 <RegistrationApprovals />
@@ -303,11 +305,7 @@ const App = () => (
                 <CustomerRequests />
               </ProtectedRouteWithApproval>
             } />
-            <Route path="/privacy-policy" element={
-              <ProtectedRouteWithApproval>
-                <PrivacyPolicy />
-              </ProtectedRouteWithApproval>
-            } />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/settings/security/secrets" element={
               <ProtectedRouteWithApproval>
                 <SecretManagement />
