@@ -31,9 +31,17 @@ export const useRoleAccess = (pathname: string) => {
           .eq('user_id', session.user.id)
           .order('role', { ascending: true }) // Get highest priority role
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (error || !data) {
+        if (error) {
+          console.error('Error fetching role access:', error);
+          setHasAccess(false);
+          setLoading(false);
+          return;
+        }
+        
+        if (!data) {
+          // User has no role assigned
           setHasAccess(false);
           setLoading(false);
           return;

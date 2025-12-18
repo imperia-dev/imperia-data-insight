@@ -33,10 +33,17 @@ export const useUserRole = () => {
           .eq('user_id', session.user.id)
           .order('role', { ascending: true }) // Get highest priority role
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (error || !data) {
+        if (error) {
           console.error('Error fetching user role:', error);
+          setUserRole(null);
+          setLoading(false);
+          return;
+        }
+        
+        if (!data) {
+          // User has no role assigned yet
           setUserRole(null);
           setLoading(false);
           return;
