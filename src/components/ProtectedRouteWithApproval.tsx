@@ -44,13 +44,16 @@ export function ProtectedRouteWithApproval({ children }: ProtectedRouteWithAppro
           .from('profiles')
           .select('approval_status')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error checking approval status:', error);
           setApprovalStatus('pending');
+        } else if (!data) {
+          // Profile doesn't exist yet
+          setApprovalStatus('pending');
         } else {
-          setApprovalStatus(data?.approval_status || 'pending');
+          setApprovalStatus(data.approval_status || 'pending');
         }
       } catch (error) {
         console.error('Error checking approval status:', error);
