@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon, FileDown, FileText, Search } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, User, Trophy, Shield, CalendarIcon, FileDown, FileText, Search, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageLayout } from "@/hooks/usePageLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
+import { ZApiProductivityModal } from "@/components/zapi/ZApiProductivityModal";
 
 interface PaymentData {
   user_id: string;
@@ -67,7 +68,7 @@ export default function Financial() {
   const [customEndTime, setCustomEndTime] = useState("23:59");
   const [observations, setObservations] = useState("");
   const [showAllPerformers, setShowAllPerformers] = useState(false);
-
+  const [isZApiModalOpen, setIsZApiModalOpen] = useState(false);
   const { userRole, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
@@ -543,7 +544,17 @@ export default function Financial() {
                   </SelectContent>
                 </Select>
                 
-                <div className="flex flex-col gap-2 w-full md:w-auto">
+                <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                  {userRole === 'owner' && (
+                    <Button 
+                      onClick={() => setIsZApiModalOpen(true)}
+                      variant="outline"
+                      className="flex items-center gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Z-API
+                    </Button>
+                  )}
                   <Button 
                     onClick={handleExportPDF} 
                     variant="outline"
@@ -933,6 +944,26 @@ export default function Financial() {
           )}
         </main>
       </div>
+
+      {/* Z-API Modal */}
+      <ZApiProductivityModal
+        open={isZApiModalOpen}
+        onOpenChange={setIsZApiModalOpen}
+        metrics={{
+          totalPayments,
+          totalDriveValue,
+          totalDiagrammingValue,
+          activeProviders: accumulatedPayments.length,
+          averagePerProvider: accumulatedPayments.length > 0 ? totalPayments / accumulatedPayments.length : 0,
+          selectedPeriod,
+          userName,
+          topPerformers: topPerformers.map(p => ({
+            user_name: p.user_name,
+            total_amount: p.total_amount,
+            document_count: p.document_count
+          }))
+        }}
+      />
     </div>
   );
 }
