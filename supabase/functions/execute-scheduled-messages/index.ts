@@ -279,7 +279,15 @@ async function fetchDashboardMetrics(
 }
 
 function buildMessage(template: string, includeMetrics: Record<string, boolean>, metrics: DashboardMetrics): string {
+  // Get current time in Brazil timezone
   const now = new Date();
+  const brazilTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  
+  const dateStr = brazilTime.toLocaleDateString('pt-BR');
+  const timeStr = brazilTime.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   let message = `📊 *RELATÓRIO OPERACIONAL*\n_${metrics.periodLabel}_\n\n`;
 
@@ -306,10 +314,7 @@ function buildMessage(template: string, includeMetrics: Record<string, boolean>,
     message += `\n${template}\n`;
   }
 
-  message += `\n_Enviado automaticamente_\n_${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })}_`;
+  message += `\n_Enviado automaticamente_\n_${dateStr} às ${timeStr}_`;
 
   return message;
 }
