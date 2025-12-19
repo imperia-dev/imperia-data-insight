@@ -16,6 +16,8 @@ interface ScheduledMessage {
   is_active: boolean;
   include_metrics: Record<string, boolean>;
   metrics_period: string;
+  metrics_period_start: string | null;
+  metrics_period_end: string | null;
   next_execution: string;
   last_executed_at: string | null;
 }
@@ -85,7 +87,11 @@ serve(async (req) => {
 
       // Get date range based on metrics_period
       const metricsPeriod = message.metrics_period || 'month';
-      const { startDate, endDate, periodLabel } = getDateRange(metricsPeriod);
+      const { startDate, endDate, periodLabel } = getDateRange(
+        metricsPeriod, 
+        message.metrics_period_start, 
+        message.metrics_period_end
+      );
 
       // Fetch dashboard metrics
       const metrics = await fetchDashboardMetrics(supabase, startDate, endDate, periodLabel);
@@ -207,8 +213,21 @@ serve(async (req) => {
   }
 });
 
-function getDateRange(period: string): { startDate: Date; endDate: Date; periodLabel: string } {
+function getDateRange(
+  period: string, 
+  customStart?: string | null, 
+  customEnd?: string | null
+): { startDate: Date; endDate: Date; periodLabel: string } {
   const now = new Date();
+  
+  if (period === 'custom' && customStart && customEnd) {
+    const startDate = new Date(customStart + 'T00:00:00');
+    const endDate = new Date(customEnd + 'T23:59:59.999');
+    const startFormatted = startDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    const endFormatted = endDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    const periodLabel = `Período: ${startFormatted} a ${endFormatted}`;
+    return { startDate, endDate, periodLabel };
+  }
   
   if (period === 'day') {
     const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
