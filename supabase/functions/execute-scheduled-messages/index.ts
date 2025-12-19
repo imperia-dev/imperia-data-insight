@@ -143,19 +143,25 @@ serve(async (req) => {
       for (const contact of contacts as WhatsAppContact[]) {
         try {
           // Send text message first
+          console.log(`[execute-scheduled-messages] Sending text to ${contact.name} (${contact.phone})`);
           const sendResult = await sendZApiMessage(contact.phone, finalMessage);
           if (sendResult.success) {
+            console.log(`[execute-scheduled-messages] Text sent successfully to ${contact.name}`);
             contactsSent++;
             
             // Send PDF if available
             if (pdfUrl) {
-              await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before sending document
-              const pdfResult = await sendZApiDocument(contact.phone, pdfUrl, `Relatório Operacional - ${periodLabel}.pdf`);
-              if (!pdfResult.success) {
+              console.log(`[execute-scheduled-messages] Sending PDF to ${contact.name}...`);
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before sending document
+              const pdfResult = await sendZApiDocument(contact.phone, pdfUrl, `Relatório Operacional - ${metrics.periodLabel}.pdf`);
+              if (pdfResult.success) {
+                console.log(`[execute-scheduled-messages] PDF sent successfully to ${contact.name}`);
+              } else {
                 console.error(`[execute-scheduled-messages] Error sending PDF to ${contact.name}:`, pdfResult.error);
               }
             }
           } else {
+            console.error(`[execute-scheduled-messages] Error sending text to ${contact.name}:`, sendResult.error);
             contactsFailed++;
             errors.push(`${contact.name}: ${sendResult.error}`);
           }
@@ -554,36 +560,50 @@ async function sendZApiDocument(phone: string, documentUrl: string, fileName: st
   const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
   
   if (!instanceId || !token) {
+    console.error('[sendZApiDocument] Z-API credentials not configured');
     return { success: false, error: 'Z-API credentials not configured' };
   }
   
   // Clean phone number
   const cleanPhone = phone.replace(/\D/g, '');
   
+  console.log(`[sendZApiDocument] Sending document to ${cleanPhone}`);
+  console.log(`[sendZApiDocument] Document URL: ${documentUrl}`);
+  console.log(`[sendZApiDocument] File name: ${fileName}`);
+  
   try {
-    const response = await fetch(
-      `https://api.z-api.io/instances/${instanceId}/token/${token}/send-document-url`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(clientToken && { 'Client-Token': clientToken })
-        },
-        body: JSON.stringify({
-          phone: cleanPhone,
-          document: documentUrl,
-          fileName: fileName
-        })
-      }
-    );
+    // Use send-document/pdf endpoint for PDF files
+    const endpoint = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-document/pdf`;
+    
+    const requestBody = {
+      phone: cleanPhone,
+      document: documentUrl,
+      fileName: fileName
+    };
+    
+    console.log(`[sendZApiDocument] Request URL: ${endpoint}`);
+    console.log(`[sendZApiDocument] Request body:`, JSON.stringify(requestBody));
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(clientToken && { 'Client-Token': clientToken })
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    const responseText = await response.text();
+    console.log(`[sendZApiDocument] Response status: ${response.status}`);
+    console.log(`[sendZApiDocument] Response body: ${responseText}`);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      return { success: false, error: `HTTP ${response.status}: ${errorText}` };
+      return { success: false, error: `HTTP ${response.status}: ${responseText}` };
     }
     
     return { success: true };
   } catch (error) {
+    console.error(`[sendZApiDocument] Exception:`, error);
     return { success: false, error: error.message };
   }
 }
