@@ -315,6 +315,7 @@ function buildMessage(template: string, includeMetrics: Record<string, boolean>,
   }
 
   message += `\n_Enviado automaticamente_\n_${dateStr} às ${timeStr}_`;
+  message += `\n\n_Powered by Impéria Traduções_`;
 
   return message;
 }
