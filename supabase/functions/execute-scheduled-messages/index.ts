@@ -176,13 +176,18 @@ serve(async (req) => {
               // Wait before sending document (helps avoid rate limiting)
               await new Promise((resolve) => setTimeout(resolve, 3500));
 
-              // Prefer Base64 to avoid any external URL fetch issues on WhatsApp/Z-API side
-              const pdfResult = await sendZApiDocument(
-                contact.phone,
-                pdfBase64 ?? pdfUrl!,
-                safeFileName,
-                6
-              );
+              // Prefer Base64 (data URI) to avoid any external URL fetch issues on WhatsApp/Z-API side
+              const documentPayload = pdfBase64
+                ? `data:application/pdf;base64,${pdfBase64}`
+                : pdfUrl!;
+
+              let pdfResult = await sendZApiDocument(contact.phone, documentPayload, safeFileName, 6);
+
+              // If Base64 fails, try URL as fallback
+              if (!pdfResult.success && pdfBase64 && pdfUrl) {
+                console.warn(`[execute-scheduled-messages] Base64 failed for ${contact.name}, trying URL...`);
+                pdfResult = await sendZApiDocument(contact.phone, pdfUrl, safeFileName, 6);
+              }
 
               if (pdfResult.success) {
                 console.log(`[execute-scheduled-messages] PDF sent successfully to ${contact.name}`);
@@ -672,58 +677,4 @@ function uint8ToBase64(bytes: Uint8Array) {
     binary += String.fromCharCode(...(bytes.subarray(i, i + chunkSize) as any));
   }
   return btoa(binary);
-}
-
-async function sendZApiDocument(phone: string, documentUrl: string, fileName: string): Promise<{ success: boolean; error?: string }> {
-  const instanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-  const token = Deno.env.get('ZAPI_TOKEN');
-  const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
-  
-  if (!instanceId || !token) {
-    console.error('[sendZApiDocument] Z-API credentials not configured');
-    return { success: false, error: 'Z-API credentials not configured' };
-  }
-  
-  // Clean phone number
-  const cleanPhone = phone.replace(/\D/g, '');
-  
-  console.log(`[sendZApiDocument] Sending document to ${cleanPhone}`);
-  console.log(`[sendZApiDocument] Document URL: ${documentUrl}`);
-  console.log(`[sendZApiDocument] File name: ${fileName}`);
-  
-  try {
-    // Use send-document/pdf endpoint for PDF files
-    const endpoint = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-document/pdf`;
-    
-    const requestBody = {
-      phone: cleanPhone,
-      document: documentUrl,
-      fileName: fileName
-    };
-    
-    console.log(`[sendZApiDocument] Request URL: ${endpoint}`);
-    console.log(`[sendZApiDocument] Request body:`, JSON.stringify(requestBody));
-    
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(clientToken && { 'Client-Token': clientToken })
-      },
-      body: JSON.stringify(requestBody)
-    });
-    
-    const responseText = await response.text();
-    console.log(`[sendZApiDocument] Response status: ${response.status}`);
-    console.log(`[sendZApiDocument] Response body: ${responseText}`);
-    
-    if (!response.ok) {
-      return { success: false, error: `HTTP ${response.status}: ${responseText}` };
-    }
-    
-    return { success: true };
-  } catch (error) {
-    console.error(`[sendZApiDocument] Exception:`, error);
-    return { success: false, error: error.message };
-  }
 }
