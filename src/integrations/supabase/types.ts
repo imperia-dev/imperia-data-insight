@@ -4195,6 +4195,8 @@ export type Database = {
           last_executed_at: string | null
           message_template: string
           metrics_period: string | null
+          metrics_period_end: string | null
+          metrics_period_start: string | null
           name: string
           next_execution: string | null
           pdf_customer_filter: string | null
@@ -4214,6 +4216,8 @@ export type Database = {
           last_executed_at?: string | null
           message_template: string
           metrics_period?: string | null
+          metrics_period_end?: string | null
+          metrics_period_start?: string | null
           name: string
           next_execution?: string | null
           pdf_customer_filter?: string | null
@@ -4233,6 +4237,8 @@ export type Database = {
           last_executed_at?: string | null
           message_template?: string
           metrics_period?: string | null
+          metrics_period_end?: string | null
+          metrics_period_start?: string | null
           name?: string
           next_execution?: string | null
           pdf_customer_filter?: string | null

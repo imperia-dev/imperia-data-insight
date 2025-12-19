@@ -58,6 +58,8 @@ interface ScheduledMessage {
   is_active: boolean;
   include_metrics: Record<string, boolean>;
   metrics_period: string;
+  metrics_period_start: string | null;
+  metrics_period_end: string | null;
   next_execution: string | null;
   last_executed_at: string | null;
   created_at: string;
@@ -99,6 +101,7 @@ const METRIC_OPTIONS = [
 const METRICS_PERIOD_OPTIONS = [
   { value: 'day', label: 'Hoje' },
   { value: 'month', label: 'Mês Atual' },
+  { value: 'custom', label: 'Personalizado' },
 ];
 
 
@@ -132,6 +135,8 @@ export function ManageScheduledMessagesDialog({
   });
   const [formMessageTemplate, setFormMessageTemplate] = useState("");
   const [formMetricsPeriod, setFormMetricsPeriod] = useState("month");
+  const [formMetricsPeriodStart, setFormMetricsPeriodStart] = useState("");
+  const [formMetricsPeriodEnd, setFormMetricsPeriodEnd] = useState("");
   
   useEffect(() => {
     if (open) {
@@ -154,7 +159,9 @@ export function ManageScheduledMessagesDialog({
       const typedData = (data || []).map(item => ({
         ...item,
         include_metrics: (item.include_metrics as Record<string, boolean>) || {},
-        metrics_period: (item as any).metrics_period || 'month'
+        metrics_period: (item as any).metrics_period || 'month',
+        metrics_period_start: (item as any).metrics_period_start || null,
+        metrics_period_end: (item as any).metrics_period_end || null,
       }));
       
       setSchedules(typedData);
@@ -218,6 +225,8 @@ export function ManageScheduledMessagesDialog({
     });
     setFormMessageTemplate("");
     setFormMetricsPeriod("month");
+    setFormMetricsPeriodStart("");
+    setFormMetricsPeriodEnd("");
     setIsEditing(false);
     setEditingId(null);
   };
@@ -231,6 +240,8 @@ export function ManageScheduledMessagesDialog({
     setFormIncludeMetrics(schedule.include_metrics || {});
     setFormMessageTemplate(schedule.message_template || "");
     setFormMetricsPeriod(schedule.metrics_period || "month");
+    setFormMetricsPeriodStart(schedule.metrics_period_start || "");
+    setFormMetricsPeriodEnd(schedule.metrics_period_end || "");
     setEditingId(schedule.id);
     setIsEditing(true);
     
@@ -273,6 +284,15 @@ export function ManageScheduledMessagesDialog({
       return;
     }
     
+    if (formMetricsPeriod === 'custom' && (!formMetricsPeriodStart || !formMetricsPeriodEnd)) {
+      toast({
+        title: "Erro",
+        description: "Selecione as datas de início e fim do período.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const scheduleData = {
         name: formName,
@@ -282,6 +302,8 @@ export function ManageScheduledMessagesDialog({
         schedule_days: formScheduleDays,
         include_metrics: formIncludeMetrics,
         metrics_period: formMetricsPeriod,
+        metrics_period_start: formMetricsPeriod === 'custom' ? formMetricsPeriodStart : null,
+        metrics_period_end: formMetricsPeriod === 'custom' ? formMetricsPeriodEnd : null,
         include_pdf: false,
         pdf_period_type: 'current_month',
         pdf_customer_filter: 'all',
@@ -715,7 +737,7 @@ export function ManageScheduledMessagesDialog({
                         <div className="flex items-center justify-between mb-2">
                           <Label>Métricas a Incluir</Label>
                           <Select value={formMetricsPeriod} onValueChange={setFormMetricsPeriod}>
-                            <SelectTrigger className="w-32 h-8">
+                            <SelectTrigger className="w-36 h-8">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -727,6 +749,30 @@ export function ManageScheduledMessagesDialog({
                             </SelectContent>
                           </Select>
                         </div>
+                        
+                        {formMetricsPeriod === 'custom' && (
+                          <div className="grid grid-cols-2 gap-2 mb-3">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Data Início</Label>
+                              <Input
+                                type="date"
+                                value={formMetricsPeriodStart}
+                                onChange={e => setFormMetricsPeriodStart(e.target.value)}
+                                className="h-8"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Data Fim</Label>
+                              <Input
+                                type="date"
+                                value={formMetricsPeriodEnd}
+                                onChange={e => setFormMetricsPeriodEnd(e.target.value)}
+                                className="h-8"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="grid grid-cols-2 gap-2">
                           {METRIC_OPTIONS.map(metric => (
                             <div key={metric.key} className="flex items-center gap-2">
