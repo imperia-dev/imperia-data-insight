@@ -36,8 +36,7 @@ import {
   History,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  FileText
+  AlertCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -58,9 +57,6 @@ interface ScheduledMessage {
   schedule_days: string[];
   is_active: boolean;
   include_metrics: Record<string, boolean>;
-  include_pdf: boolean;
-  pdf_period_type: string;
-  pdf_customer_filter: string;
   next_execution: string | null;
   last_executed_at: string | null;
   created_at: string;
@@ -73,7 +69,6 @@ interface ScheduledMessageLog {
   contacts_sent: number;
   contacts_failed: number;
   error_message: string | null;
-  pdf_url: string | null;
 }
 
 interface ManageScheduledMessagesDialogProps {
@@ -100,14 +95,6 @@ const METRIC_OPTIONS = [
   { key: 'delays', label: 'Atrasos' },
 ];
 
-const PDF_PERIOD_OPTIONS = [
-  { value: 'current_month', label: 'Mês Atual' },
-  { value: 'previous_month', label: 'Mês Anterior' },
-  { value: 'current_week', label: 'Semana Atual' },
-  { value: 'previous_week', label: 'Semana Anterior' },
-  { value: 'last_7_days', label: 'Últimos 7 dias' },
-  { value: 'last_30_days', label: 'Últimos 30 dias' },
-];
 
 export function ManageScheduledMessagesDialog({
   open,
@@ -138,9 +125,6 @@ export function ManageScheduledMessagesDialog({
     delays: false,
   });
   const [formMessageTemplate, setFormMessageTemplate] = useState("");
-  const [formIncludePdf, setFormIncludePdf] = useState(false);
-  const [formPdfPeriodType, setFormPdfPeriodType] = useState("current_month");
-  const [formPdfCustomerFilter, setFormPdfCustomerFilter] = useState("all");
   
   useEffect(() => {
     if (open) {
@@ -225,9 +209,6 @@ export function ManageScheduledMessagesDialog({
       delays: false,
     });
     setFormMessageTemplate("");
-    setFormIncludePdf(false);
-    setFormPdfPeriodType("current_month");
-    setFormPdfCustomerFilter("all");
     setIsEditing(false);
     setEditingId(null);
   };
@@ -240,9 +221,6 @@ export function ManageScheduledMessagesDialog({
     setFormScheduleDays(schedule.schedule_days || []);
     setFormIncludeMetrics(schedule.include_metrics || {});
     setFormMessageTemplate(schedule.message_template || "");
-    setFormIncludePdf(schedule.include_pdf || false);
-    setFormPdfPeriodType(schedule.pdf_period_type || "current_month");
-    setFormPdfCustomerFilter(schedule.pdf_customer_filter || "all");
     setEditingId(schedule.id);
     setIsEditing(true);
     
@@ -293,9 +271,9 @@ export function ManageScheduledMessagesDialog({
         schedule_time: formScheduleTime,
         schedule_days: formScheduleDays,
         include_metrics: formIncludeMetrics,
-        include_pdf: formIncludePdf,
-        pdf_period_type: formPdfPeriodType,
-        pdf_customer_filter: formPdfCustomerFilter,
+        include_pdf: false,
+        pdf_period_type: 'current_month',
+        pdf_customer_filter: 'all',
       };
       
       let scheduleId: string;
@@ -743,53 +721,6 @@ export function ManageScheduledMessagesDialog({
                           placeholder="Adicione uma mensagem personalizada..."
                           rows={3}
                         />
-                      </div>
-                      
-                      {/* PDF Options */}
-                      <div className="border-t pt-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            <Label>Anexar PDF do Relatório</Label>
-                          </div>
-                          <Switch
-                            checked={formIncludePdf}
-                            onCheckedChange={setFormIncludePdf}
-                          />
-                        </div>
-                        
-                        {formIncludePdf && (
-                          <div className="space-y-3 pl-6">
-                            <div>
-                              <Label className="text-sm">Período do Relatório</Label>
-                              <Select value={formPdfPeriodType} onValueChange={setFormPdfPeriodType}>
-                                <SelectTrigger className="mt-1">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {PDF_PERIOD_OPTIONS.map(opt => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                      {opt.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-sm">Filtro de Cliente (opcional)</Label>
-                              <Input
-                                value={formPdfCustomerFilter}
-                                onChange={e => setFormPdfCustomerFilter(e.target.value)}
-                                placeholder="all = todos os clientes"
-                                className="mt-1"
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Digite "all" para todos ou o nome exato do cliente
-                              </p>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </ScrollArea>
