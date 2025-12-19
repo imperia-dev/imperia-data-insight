@@ -4146,6 +4146,7 @@ export type Database = {
           id: string
           message_sent: string | null
           metadata: Json | null
+          pdf_url: string | null
           scheduled_message_id: string
           status: string
         }
@@ -4157,6 +4158,7 @@ export type Database = {
           id?: string
           message_sent?: string | null
           metadata?: Json | null
+          pdf_url?: string | null
           scheduled_message_id: string
           status: string
         }
@@ -4168,6 +4170,7 @@ export type Database = {
           id?: string
           message_sent?: string | null
           metadata?: Json | null
+          pdf_url?: string | null
           scheduled_message_id?: string
           status?: string
         }
@@ -4187,11 +4190,14 @@ export type Database = {
           created_by: string | null
           id: string
           include_metrics: Json
+          include_pdf: boolean | null
           is_active: boolean
           last_executed_at: string | null
           message_template: string
           name: string
           next_execution: string | null
+          pdf_customer_filter: string | null
+          pdf_period_type: string | null
           schedule_days: string[] | null
           schedule_time: string
           schedule_type: string
@@ -4202,11 +4208,14 @@ export type Database = {
           created_by?: string | null
           id?: string
           include_metrics?: Json
+          include_pdf?: boolean | null
           is_active?: boolean
           last_executed_at?: string | null
           message_template: string
           name: string
           next_execution?: string | null
+          pdf_customer_filter?: string | null
+          pdf_period_type?: string | null
           schedule_days?: string[] | null
           schedule_time: string
           schedule_type: string
@@ -4217,11 +4226,14 @@ export type Database = {
           created_by?: string | null
           id?: string
           include_metrics?: Json
+          include_pdf?: boolean | null
           is_active?: boolean
           last_executed_at?: string | null
           message_template?: string
           name?: string
           next_execution?: string | null
+          pdf_customer_filter?: string | null
+          pdf_period_type?: string | null
           schedule_days?: string[] | null
           schedule_time?: string
           schedule_type?: string
