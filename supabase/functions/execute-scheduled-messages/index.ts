@@ -230,34 +230,52 @@ async function fetchDashboardMetrics(
   endDate: Date,
   periodLabel: string
 ): Promise<DashboardMetrics> {
+  // Query 1: Orders created in the period (for in_progress, delivered, urgencies, delays)
   const { data: orders, error } = await supabase
     .from('orders')
-    .select('id, order_number, document_count, status_order, is_urgent, attribution_date, deadline, delivered_at, customer')
+    .select('id, order_number, document_count, status_order, is_urgent, urgent_document_count, attribution_date, deadline, delivered_at, customer, created_at')
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString());
 
   if (error) {
-    console.error('[fetchDashboardMetrics] Error:', error);
+    console.error('[fetchDashboardMetrics] Error fetching orders:', error);
     return { attributed: 0, inProgress: 0, delivered: 0, urgencies: 0, pendencies: 0, delays: 0, periodLabel };
   }
 
+  // Query 2: Attributed documents (filter by attribution_date, same as Dashboard)
+  const { data: attributedOrders, error: attrError } = await supabase
+    .from('orders')
+    .select('id, order_number, document_count, attribution_date')
+    .gte('attribution_date', startDate.toISOString())
+    .lte('attribution_date', endDate.toISOString());
+
+  if (attrError) {
+    console.error('[fetchDashboardMetrics] Error fetching attributed orders:', attrError);
+  }
+
   const typedOrders = orders || [];
+  const typedAttributedOrders = attributedOrders || [];
   const now = new Date();
 
-  const attributed = typedOrders
-    .filter((o: any) => o.attribution_date)
-    .reduce((sum: number, o: any) => sum + (o.document_count || 0), 0);
+  // Attributed: sum document_count from orders with attribution_date in period
+  const attributed = typedAttributedOrders.reduce((sum: number, o: any) => sum + (o.document_count || 0), 0);
 
+  // In Progress: orders with status 'in_progress'
   const inProgress = typedOrders
     .filter((o: any) => o.status_order === 'in_progress')
     .reduce((sum: number, o: any) => sum + (o.document_count || 0), 0);
 
+  // Delivered: orders with status 'delivered'
   const delivered = typedOrders
     .filter((o: any) => o.status_order === 'delivered')
     .reduce((sum: number, o: any) => sum + (o.document_count || 0), 0);
 
-  const urgencies = typedOrders.filter((o: any) => o.is_urgent).reduce((sum: number, o: any) => sum + (o.document_count || 0), 0);
+  // Urgencies: use urgent_document_count like Dashboard does
+  const urgencies = typedOrders
+    .filter((o: any) => o.is_urgent === true)
+    .reduce((sum: number, o: any) => sum + (o.urgent_document_count || 0), 0);
 
+  // Delays: orders not delivered and past deadline
   const delays = typedOrders
     .filter((o: any) => {
       if (o.status_order === 'delivered') return false;
@@ -266,14 +284,16 @@ async function fetchDashboardMetrics(
     })
     .reduce((sum: number, o: any) => sum + (o.document_count || 0), 0);
 
+  // Pendencies: all created in period (no status filter, same as Dashboard)
   const { data: pendenciesData } = await supabase
     .from('pendencies')
     .select('id')
-    .eq('status', 'open')
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString());
 
   const pendencies = pendenciesData?.length || 0;
+
+  console.log('[fetchDashboardMetrics] Results:', { attributed, inProgress, delivered, urgencies, pendencies, delays });
 
   return { attributed, inProgress, delivered, urgencies, pendencies, delays, periodLabel };
 }
