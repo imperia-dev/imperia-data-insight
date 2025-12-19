@@ -4194,6 +4194,7 @@ export type Database = {
           is_active: boolean
           last_executed_at: string | null
           message_template: string
+          metrics_period: string | null
           name: string
           next_execution: string | null
           pdf_customer_filter: string | null
@@ -4212,6 +4213,7 @@ export type Database = {
           is_active?: boolean
           last_executed_at?: string | null
           message_template: string
+          metrics_period?: string | null
           name: string
           next_execution?: string | null
           pdf_customer_filter?: string | null
@@ -4230,6 +4232,7 @@ export type Database = {
           is_active?: boolean
           last_executed_at?: string | null
           message_template?: string
+          metrics_period?: string | null
           name?: string
           next_execution?: string | null
           pdf_customer_filter?: string | null
