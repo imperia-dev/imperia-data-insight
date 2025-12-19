@@ -57,6 +57,7 @@ interface ScheduledMessage {
   schedule_days: string[];
   is_active: boolean;
   include_metrics: Record<string, boolean>;
+  metrics_period: string;
   next_execution: string | null;
   last_executed_at: string | null;
   created_at: string;
@@ -95,6 +96,11 @@ const METRIC_OPTIONS = [
   { key: 'delays', label: 'Atrasos' },
 ];
 
+const METRICS_PERIOD_OPTIONS = [
+  { value: 'day', label: 'Hoje' },
+  { value: 'month', label: 'Mês Atual' },
+];
+
 
 export function ManageScheduledMessagesDialog({
   open,
@@ -125,6 +131,7 @@ export function ManageScheduledMessagesDialog({
     delays: false,
   });
   const [formMessageTemplate, setFormMessageTemplate] = useState("");
+  const [formMetricsPeriod, setFormMetricsPeriod] = useState("month");
   
   useEffect(() => {
     if (open) {
@@ -146,7 +153,8 @@ export function ManageScheduledMessagesDialog({
       // Cast data to handle JSONB include_metrics field
       const typedData = (data || []).map(item => ({
         ...item,
-        include_metrics: (item.include_metrics as Record<string, boolean>) || {}
+        include_metrics: (item.include_metrics as Record<string, boolean>) || {},
+        metrics_period: (item as any).metrics_period || 'month'
       }));
       
       setSchedules(typedData);
@@ -209,6 +217,7 @@ export function ManageScheduledMessagesDialog({
       delays: false,
     });
     setFormMessageTemplate("");
+    setFormMetricsPeriod("month");
     setIsEditing(false);
     setEditingId(null);
   };
@@ -221,6 +230,7 @@ export function ManageScheduledMessagesDialog({
     setFormScheduleDays(schedule.schedule_days || []);
     setFormIncludeMetrics(schedule.include_metrics || {});
     setFormMessageTemplate(schedule.message_template || "");
+    setFormMetricsPeriod(schedule.metrics_period || "month");
     setEditingId(schedule.id);
     setIsEditing(true);
     
@@ -271,6 +281,7 @@ export function ManageScheduledMessagesDialog({
         schedule_time: formScheduleTime,
         schedule_days: formScheduleDays,
         include_metrics: formIncludeMetrics,
+        metrics_period: formMetricsPeriod,
         include_pdf: false,
         pdf_period_type: 'current_month',
         pdf_customer_filter: 'all',
@@ -404,6 +415,7 @@ export function ManageScheduledMessagesDialog({
   const getScheduleTypeLabel = (type: string) => {
     switch (type) {
       case 'daily': return 'Diário';
+      case 'weekdays': return 'Dias Úteis';
       case 'weekly': return 'Semanal';
       case 'monthly': return 'Mensal';
       default: return type;
@@ -627,6 +639,7 @@ export function ManageScheduledMessagesDialog({
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="daily">Diário</SelectItem>
+                              <SelectItem value="weekdays">Dias Úteis (Seg-Sex)</SelectItem>
                               <SelectItem value="weekly">Semanal</SelectItem>
                               <SelectItem value="monthly">Mensal (dia 1)</SelectItem>
                             </SelectContent>
@@ -699,8 +712,22 @@ export function ManageScheduledMessagesDialog({
                       </div>
                       
                       <div>
-                        <Label>Métricas a Incluir</Label>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label>Métricas a Incluir</Label>
+                          <Select value={formMetricsPeriod} onValueChange={setFormMetricsPeriod}>
+                            <SelectTrigger className="w-32 h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {METRICS_PERIOD_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
                           {METRIC_OPTIONS.map(metric => (
                             <div key={metric.key} className="flex items-center gap-2">
                               <Checkbox

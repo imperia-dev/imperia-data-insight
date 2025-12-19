@@ -15,6 +15,7 @@ interface ScheduledMessage {
   schedule_days: string[];
   is_active: boolean;
   include_metrics: Record<string, boolean>;
+  metrics_period: string;
   next_execution: string;
   last_executed_at: string | null;
 }
@@ -82,8 +83,9 @@ serve(async (req) => {
     for (const message of pendingMessages as ScheduledMessage[]) {
       console.log(`[execute-scheduled-messages] Processing message: ${message.name}`);
 
-      // Get current month metrics
-      const { startDate, endDate, periodLabel } = getCurrentMonthRange();
+      // Get date range based on metrics_period
+      const metricsPeriod = message.metrics_period || 'month';
+      const { startDate, endDate, periodLabel } = getDateRange(metricsPeriod);
 
       // Fetch dashboard metrics
       const metrics = await fetchDashboardMetrics(supabase, startDate, endDate, periodLabel);
@@ -205,8 +207,17 @@ serve(async (req) => {
   }
 });
 
-function getCurrentMonthRange(): { startDate: Date; endDate: Date; periodLabel: string } {
+function getDateRange(period: string): { startDate: Date; endDate: Date; periodLabel: string } {
   const now = new Date();
+  
+  if (period === 'day') {
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const periodLabel = `Hoje, ${now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}`;
+    return { startDate, endDate, periodLabel };
+  }
+  
+  // Default: month
   const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
   const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
   const periodLabel = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
