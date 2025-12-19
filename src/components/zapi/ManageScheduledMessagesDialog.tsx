@@ -213,6 +213,7 @@ export function ManageScheduledMessagesDialog({
   };
   
   const startEdit = async (schedule: ScheduledMessage) => {
+    setShowLogs(null); // Clear logs view to show edit form
     setFormName(schedule.name);
     setFormScheduleType(schedule.schedule_type);
     setFormScheduleTime(schedule.schedule_time);
