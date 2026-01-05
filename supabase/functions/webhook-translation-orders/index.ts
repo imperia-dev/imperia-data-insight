@@ -19,10 +19,22 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const webhookSecret = Deno.env.get('TRANSLATION_WEBHOOK_SECRET');
 
-    // Verify webhook secret
+    // SECURITY: Webhook secret is REQUIRED - fail if not configured
+    if (!webhookSecret) {
+      console.error('CRITICAL: TRANSLATION_WEBHOOK_SECRET not configured - rejecting all requests');
+      return new Response(
+        JSON.stringify({ error: 'Webhook not configured' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Verify webhook secret - ALWAYS required
     const requestSecret = req.headers.get('x-webhook-secret');
-    if (webhookSecret && requestSecret !== webhookSecret) {
-      console.error('Invalid webhook secret');
+    if (requestSecret !== webhookSecret) {
+      console.error('Invalid or missing webhook secret');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { 
