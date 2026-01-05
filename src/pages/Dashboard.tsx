@@ -595,20 +595,25 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
         const notErrorPendencies = typedPendenciesData.filter(p => p.error_type === 'nao_e_erro').length;
         const notErrorPercentage = totalAttributedDocs > 0 ? ((notErrorPendencies / totalAttributedDocs) * 100).toFixed(1) : '0.0';
         
-        // 2. Porcentagem de erros reais (todos menos "não é erro") em relação ao total de documentos atribuídos
-        const realErrorPendencies = typedPendenciesData.filter(p => p.error_type !== 'nao_e_erro').length;
+        // 2. Pendências aguardando classificação (solicitações de clientes ainda não analisadas)
+        const pendingClassification = typedPendenciesData.filter(p => p.error_type === 'solicitacao_cliente').length;
+        const pendingPercentage = totalAttributedDocs > 0 ? ((pendingClassification / totalAttributedDocs) * 100).toFixed(1) : '0.0';
+        
+        // 3. Porcentagem de erros reais (todos menos "não é erro" e "solicitação do cliente")
+        const realErrorPendencies = typedPendenciesData.filter(p => p.error_type !== 'nao_e_erro' && p.error_type !== 'solicitacao_cliente').length;
         const realErrorPercentage = totalAttributedDocs > 0 ? ((realErrorPendencies / totalAttributedDocs) * 100).toFixed(1) : '0.0';
         
-        // 3. Porcentagem total de pendências em relação ao total de documentos criados no período
+        // 4. Porcentagem total de pendências em relação ao total de documentos criados no período
         const totalPendencyPercentage = totalDocuments > 0 ? ((totalPendencies / totalDocuments) * 100).toFixed(1) : '0.0';
         
         // Create a formatted description for the pendencies card with line breaks
-        const pendencyDescription = `${notErrorPercentage}% - Não é erro\n${realErrorPercentage}% - Erros\n${totalPendencyPercentage}% - Total`;
+        const pendencyDescription = `${notErrorPercentage}% - Não é erro\n${realErrorPercentage}% - Erros\n${pendingPercentage}% - Aguardando\n${totalPendencyPercentage}% - Total`;
         setPendencyPercentage(pendencyDescription);
         
         // Process pendency types data
         const errorTypes = [
           { value: "nao_e_erro", label: "Não é erro" },
+          { value: "solicitacao_cliente", label: "Solicitação do Cliente" },
           { value: "falta_de_dados", label: "Falta de dados" },
           { value: "apostila", label: "Apostila" },
           { value: "erro_em_data", label: "Erro em data" },
