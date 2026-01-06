@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Check, X, Shield, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Check, Eye, EyeOff } from 'lucide-react';
 import { passwordSchema } from '@/lib/validations/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
@@ -16,14 +16,10 @@ export default function PasswordReset() {
   const navigate = useNavigate();
   const token = searchParams.get('token');
   
-  const [step, setStep] = useState<'verify-email' | 'verify-sms' | 'new-password' | 'complete'>('verify-email');
+  const [step, setStep] = useState<'verify-email' | 'new-password' | 'complete'>('verify-email');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [userId, setUserId] = useState('');
-  
-  // SMS verification
-  const [smsCode, setSmsCode] = useState('');
-  const [attemptsRemaining, setAttemptsRemaining] = useState(3);
   
   // Password fields
   const [password, setPassword] = useState('');
@@ -47,7 +43,7 @@ export default function PasswordReset() {
       // Get user ID from token
       const { data: tokenData } = await supabase
         .from('password_reset_tokens')
-        .select('user_id')
+        .select('user_id, sms_verified')
         .eq('email_token', token)
         .eq('used', false)
         .gte('expires_at', new Date().toISOString())
@@ -66,37 +62,13 @@ export default function PasswordReset() {
       });
 
       if (response.data?.success) {
-        setStep('verify-sms');
+        // Skip SMS step - go directly to new password
+        setStep('new-password');
       } else {
         setError(response.data?.error || 'Erro ao verificar email');
       }
     } catch (err) {
       setError('Erro ao verificar token');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifySmsCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await supabase.functions.invoke('verify-reset-token', {
-        body: { smsCode, userId },
-      });
-
-      if (response.data?.success) {
-        setStep('new-password');
-      } else {
-        setError(response.data?.error || 'Código inválido');
-        if (response.data?.attemptsRemaining !== undefined) {
-          setAttemptsRemaining(response.data.attemptsRemaining);
-        }
-      }
-    } catch (err) {
-      setError('Erro ao verificar código');
     } finally {
       setLoading(false);
     }
@@ -152,7 +124,6 @@ export default function PasswordReset() {
           <CardTitle>Redefinir Senha</CardTitle>
           <CardDescription>
             {step === 'verify-email' && 'Verificando seu email...'}
-            {step === 'verify-sms' && 'Digite o código enviado por SMS'}
             {step === 'new-password' && 'Crie uma nova senha segura'}
             {step === 'complete' && 'Senha redefinida com sucesso!'}
           </CardDescription>
@@ -160,47 +131,13 @@ export default function PasswordReset() {
         <CardContent>
           {step === 'verify-email' && (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          )}
-
-          {step === 'verify-sms' && (
-            <form onSubmit={verifySmsCode} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="smsCode">Código SMS (6 dígitos)</Label>
-                <Input
-                  id="smsCode"
-                  type="text"
-                  placeholder="000000"
-                  value={smsCode}
-                  onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  maxLength={6}
-                  pattern="[0-9]{6}"
-                  disabled={loading}
-                  required
-                  autoComplete="one-time-code"
-                />
-                {attemptsRemaining < 3 && (
-                  <p className="text-sm text-muted-foreground">
-                    Tentativas restantes: {attemptsRemaining}
-                  </p>
-                )}
-              </div>
-
+              {loading && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-
-              <Button type="submit" className="w-full" disabled={loading || smsCode.length !== 6}>
-                {loading ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando...</>
-                ) : (
-                  'Verificar Código'
-                )}
-              </Button>
-            </form>
+            </div>
           )}
 
           {step === 'new-password' && (
@@ -272,12 +209,6 @@ export default function PasswordReset() {
                 </p>
               </div>
             </div>
-          )}
-
-          {error && step === 'verify-email' && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
           )}
         </CardContent>
       </Card>

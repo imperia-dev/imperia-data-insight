@@ -18,7 +18,6 @@ export function ForgotPasswordModal({ open, onOpenChange }: ForgotPasswordModalP
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [maskedPhone, setMaskedPhone] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +48,6 @@ export function ForgotPasswordModal({ open, onOpenChange }: ForgotPasswordModalP
         setError(data.error);
       } else if (data.success) {
         setSuccess(true);
-        setMaskedPhone(data.phoneNumber || '');
       }
     } catch (err: any) {
       console.error('Error initiating password reset:', err);
@@ -67,7 +65,6 @@ export function ForgotPasswordModal({ open, onOpenChange }: ForgotPasswordModalP
         setEmail('');
         setError('');
         setSuccess(false);
-        setMaskedPhone('');
       }, 200);
     }
   };
@@ -139,13 +136,6 @@ export function ForgotPasswordModal({ open, onOpenChange }: ForgotPasswordModalP
                 <strong>Email enviado com sucesso!</strong>
                 <br />
                 Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.
-                {maskedPhone && (
-                  <>
-                    <br />
-                    <br />
-                    Um código de verificação também foi enviado via SMS para o número: <strong>{maskedPhone}</strong>
-                  </>
-                )}
               </AlertDescription>
             </Alert>
 
@@ -153,7 +143,6 @@ export function ForgotPasswordModal({ open, onOpenChange }: ForgotPasswordModalP
               <p>Você precisará:</p>
               <ol className="list-decimal list-inside mt-2 space-y-1">
                 <li>Clicar no link enviado por email</li>
-                <li>Inserir o código de 6 dígitos enviado por SMS</li>
                 <li>Criar uma nova senha segura</li>
               </ol>
             </div>

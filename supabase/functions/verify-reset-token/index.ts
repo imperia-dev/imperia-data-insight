@@ -8,7 +8,6 @@ const corsHeaders = {
 
 interface VerifyTokenRequest {
   emailToken?: string;
-  smsCode?: string;
   userId: string;
 }
 
@@ -23,26 +22,24 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    const { emailToken, smsCode, userId }: VerifyTokenRequest = await req.json();
+    const { emailToken, userId }: VerifyTokenRequest = await req.json();
+
+    console.log('Verifying reset token for user:', userId);
 
     // Get the reset token
-    let query = supabase
+    const { data: resetToken, error: tokenError } = await supabase
       .from('password_reset_tokens')
       .select('*')
       .eq('user_id', userId)
+      .eq('email_token', emailToken)
       .eq('used', false)
-      .gte('expires_at', new Date().toISOString());
-
-    if (emailToken) {
-      query = query.eq('email_token', emailToken);
-    }
-
-    const { data: resetToken, error: tokenError } = await query.single();
+      .gte('expires_at', new Date().toISOString())
+      .single();
 
     if (tokenError || !resetToken) {
       console.error('Token not found or expired:', tokenError);
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
+        JSON.stringify({ error: 'Token inválido ou expirado' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -50,125 +47,28 @@ serve(async (req) => {
       );
     }
 
-    // Verify email token
-    if (emailToken) {
-      const { error: updateError } = await supabase
-        .from('password_reset_tokens')
-        .update({ email_verified: true })
-        .eq('id', resetToken.id);
+    // Update email verification status
+    const { error: updateError } = await supabase
+      .from('password_reset_tokens')
+      .update({ email_verified: true })
+      .eq('id', resetToken.id);
 
-      if (updateError) {
-        console.error('Error updating email verification:', updateError);
-        throw updateError;
-      }
-
-      console.log('Email token verified for user:', userId);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          message: 'Email verified successfully',
-          emailVerified: true,
-          smsVerified: resetToken.sms_verified,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    if (updateError) {
+      console.error('Error updating email verification:', updateError);
+      throw updateError;
     }
 
-    // Verify SMS code
-    if (smsCode) {
-      // Check attempts
-      const { data: logs } = await supabase
-        .from('sms_verification_logs')
-        .select('attempts')
-        .eq('user_id', userId)
-        .eq('verification_type', 'password_reset')
-        .eq('status', 'sent')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      const attempts = logs?.attempts || 0;
-
-      if (attempts >= 3) {
-        return new Response(
-          JSON.stringify({ error: 'Too many failed attempts. Please request a new code.' }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      // Verify the SMS code
-      if (resetToken.sms_token !== smsCode) {
-        // Update attempts
-        if (logs) {
-          await supabase
-            .from('sms_verification_logs')
-            .update({ attempts: attempts + 1 })
-            .eq('id', logs.id);
-        }
-
-        console.error('Invalid SMS code for user:', userId);
-        
-        return new Response(
-          JSON.stringify({ 
-            error: 'Invalid code',
-            attemptsRemaining: 3 - attempts - 1,
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      // Update SMS verification status
-      const { error: updateError } = await supabase
-        .from('password_reset_tokens')
-        .update({ sms_verified: true })
-        .eq('id', resetToken.id);
-
-      if (updateError) {
-        console.error('Error updating SMS verification:', updateError);
-        throw updateError;
-      }
-
-      // Update SMS log
-      if (logs) {
-        await supabase
-          .from('sms_verification_logs')
-          .update({ 
-            status: 'verified',
-            attempts: attempts + 1,
-          })
-          .eq('id', logs.id);
-      }
-
-      console.log('SMS code verified for user:', userId);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          message: 'SMS code verified successfully',
-          emailVerified: resetToken.email_verified,
-          smsVerified: true,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+    console.log('Email token verified for user:', userId);
 
     return new Response(
-      JSON.stringify({ error: 'No verification data provided' }),
+      JSON.stringify({ 
+        success: true,
+        message: 'Email verificado com sucesso',
+        emailVerified: true,
+        smsVerified: true, // Always true for email-only flow
+      }),
       {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
