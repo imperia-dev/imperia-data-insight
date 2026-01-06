@@ -39,7 +39,11 @@ export function ForgotPasswordModal({ open, onOpenChange }: ForgotPasswordModalP
       });
 
       if (response.error) {
-        throw response.error;
+        // Prefer message returned by the function (when available)
+        const ctx = (response.error as any)?.context;
+        const fnJson = ctx?.json;
+        setError(fnJson?.error || response.error.message || 'Não foi possível enviar o email agora.');
+        return;
       }
 
       const data = response.data;
