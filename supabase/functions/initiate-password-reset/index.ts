@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,6 +20,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
+    const resendApiKey = Deno.env.get('RESEND_API_KEY') as string;
     const projectUrl = 'https://414fc41e-176f-45f7-9f94-7be36a4ca341.lovableproject.com';
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -108,50 +110,46 @@ serve(async (req) => {
       throw tokenError;
     }
 
-    // Send email with reset link
+    // Send email with reset link (Resend)
     const resetLink = `${projectUrl}/reset-password?token=${emailToken}`;
-    
-    // Send email via send-payment-email function (existing function that uses Resend)
-    const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-payment-email`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        to: email,
-        subject: 'Recuperação de Senha - Impéria Traduções',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #1e293b; margin: 0;">Impéria Traduções</h1>
-            </div>
-            <h2 style="color: #334155;">Olá ${profile.full_name || 'Usuário'},</h2>
-            <p style="color: #475569; line-height: 1.6;">Recebemos uma solicitação para redefinir sua senha.</p>
-            <p style="color: #475569; line-height: 1.6;">Clique no botão abaixo para criar uma nova senha:</p>
-            <div style="margin: 30px 0; text-align: center;">
-              <a href="${resetLink}" style="background-color: #1e293b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 500;">
-                Redefinir Senha
-              </a>
-            </div>
-            <p style="color: #64748b; font-size: 14px; line-height: 1.6;">
-              Este link expira em <strong>30 minutos</strong>.
-            </p>
-            <p style="color: #64748b; font-size: 14px; line-height: 1.6;">
-              Se você não solicitou esta recuperação, ignore este email. Sua senha permanecerá inalterada.
-            </p>
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
-            <p style="color: #94a3b8; font-size: 12px; text-align: center;">
-              Por segurança, nunca compartilhe links de recuperação com ninguém.
-            </p>
-          </div>
-        `,
-      }),
+
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not configured');
+      throw new Error('Email service not configured');
+    }
+
+    const resend = new Resend(resendApiKey);
+    const fromEmail = "Imperia Traduções <noreply@appimperiatraducoes.com>";
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #1e293b; margin: 0;">Impéria Traduções</h1>
+        </div>
+        <h2 style="color: #334155;">Olá ${profile.full_name || 'Usuário'},</h2>
+        <p style="color: #475569; line-height: 1.6;">Recebemos uma solicitação para redefinir sua senha.</p>
+        <p style="color: #475569; line-height: 1.6;">Clique no botão abaixo para criar uma nova senha:</p>
+        <div style="margin: 30px 0; text-align: center;">
+          <a href="${resetLink}" style="background-color: #1e293b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 500;">
+            Redefinir Senha
+          </a>
+        </div>
+        <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Este link expira em <strong>30 minutos</strong>.</p>
+        <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Se você não solicitou esta recuperação, ignore este email. Sua senha permanecerá inalterada.</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+        <p style="color: #94a3b8; font-size: 12px; text-align: center;">Por segurança, nunca compartilhe links de recuperação com ninguém.</p>
+      </div>
+    `;
+
+    const emailResult = await resend.emails.send({
+      from: fromEmail,
+      to: [email],
+      subject: 'Recuperação de Senha - Impéria Traduções',
+      html,
     });
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error('Error sending email:', errorText);
+    if (!emailResult || (emailResult as any).error) {
+      console.error('Error sending email via Resend:', JSON.stringify(emailResult));
       throw new Error('Failed to send email');
     }
 
