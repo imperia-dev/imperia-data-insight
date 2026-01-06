@@ -24,7 +24,12 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     const { email }: InitiateResetRequest = await req.json();
-    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null;
+    
+    // Extract first IP from x-forwarded-for (can contain multiple IPs)
+    const forwardedFor = req.headers.get('x-forwarded-for');
+    const ipAddress = forwardedFor 
+      ? forwardedFor.split(',')[0].trim() 
+      : req.headers.get('cf-connecting-ip') || null;
 
     console.log('Password reset requested for:', email);
 
