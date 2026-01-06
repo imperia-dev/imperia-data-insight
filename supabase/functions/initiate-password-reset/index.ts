@@ -21,7 +21,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
     const resendApiKey = Deno.env.get('RESEND_API_KEY') as string;
-    const projectUrl = 'https://414fc41e-176f-45f7-9f94-7be36a4ca341.lovableproject.com';
+    const projectUrl = 'https://ops.imperiatraducoes.com.br';
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
