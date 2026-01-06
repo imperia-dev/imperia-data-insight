@@ -7,8 +7,7 @@ const corsHeaders = {
 };
 
 interface VerifyTokenRequest {
-  emailToken?: string;
-  userId: string;
+  emailToken: string;
 }
 
 serve(async (req) => {
@@ -21,23 +20,32 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    const { emailToken, userId }: VerifyTokenRequest = await req.json();
 
-    console.log('Verifying reset token for user:', userId);
+    const body = (await req.json().catch(() => ({}))) as Partial<VerifyTokenRequest>;
+    const emailToken = body.emailToken;
 
-    // Get the reset token
+    if (!emailToken) {
+      return new Response(JSON.stringify({ error: 'Token ausente' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Verifying reset token');
+
+    // Get the reset token (email-only flow)
     const { data: resetToken, error: tokenError } = await supabase
       .from('password_reset_tokens')
       .select('*')
-      .eq('user_id', userId)
       .eq('email_token', emailToken)
       .eq('used', false)
       .gte('expires_at', new Date().toISOString())
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (tokenError || !resetToken) {
-      console.error('Token not found or expired:', tokenError);
+      console.error('Token not found or expired');
       return new Response(
         JSON.stringify({ error: 'Token inválido ou expirado' }),
         {
@@ -58,12 +66,11 @@ serve(async (req) => {
       throw updateError;
     }
 
-    console.log('Email token verified for user:', userId);
-
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         message: 'Email verificado com sucesso',
+        userId: resetToken.user_id,
         emailVerified: true,
         smsVerified: true, // Always true for email-only flow
       }),
