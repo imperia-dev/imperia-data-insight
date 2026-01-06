@@ -38,37 +38,23 @@ export default function PasswordReset() {
   const verifyEmailToken = async () => {
     setLoading(true);
     setError('');
-    
-    try {
-      // Get user ID from token
-      const { data: tokenData } = await supabase
-        .from('password_reset_tokens')
-        .select('user_id, sms_verified')
-        .eq('email_token', token)
-        .eq('used', false)
-        .gte('expires_at', new Date().toISOString())
-        .single();
 
-      if (!tokenData) {
-        setError('Link inválido ou expirado');
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('verify-reset-token', {
+        body: { emailToken: token },
+      });
+
+      if (invokeError || !data?.success || !data?.userId) {
+        setError(data?.error || 'Link inválido ou expirado');
         setTimeout(() => navigate('/auth'), 3000);
         return;
       }
 
-      setUserId(tokenData.user_id);
-
-      const response = await supabase.functions.invoke('verify-reset-token', {
-        body: { emailToken: token, userId: tokenData.user_id },
-      });
-
-      if (response.data?.success) {
-        // Skip SMS step - go directly to new password
-        setStep('new-password');
-      } else {
-        setError(response.data?.error || 'Erro ao verificar email');
-      }
-    } catch (err) {
+      setUserId(data.userId);
+      setStep('new-password');
+    } catch {
       setError('Erro ao verificar token');
+      setTimeout(() => navigate('/auth'), 3000);
     } finally {
       setLoading(false);
     }
