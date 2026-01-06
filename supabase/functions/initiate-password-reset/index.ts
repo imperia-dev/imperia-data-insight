@@ -73,13 +73,57 @@ serve(async (req) => {
       .gte('expires_at', new Date().toISOString())
       .single();
 
-    if (existingToken) {
+    // If there is already an active token, resend the email using the same token
+    // (prevents unnecessary token spam and avoids user-facing 429 errors)
+    if (existingToken?.email_token) {
+      const resetLink = `${projectUrl}/reset-password?token=${existingToken.email_token}`;
+
+      if (!resendApiKey) {
+        console.error('RESEND_API_KEY not configured');
+        throw new Error('Email service not configured');
+      }
+
+      const resend = new Resend(resendApiKey);
+      const fromEmail = "Imperia Traduções <noreply@appimperiatraducoes.com>";
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #1e293b; margin: 0;">Impéria Traduções</h1>
+          </div>
+          <h2 style="color: #334155;">Olá ${profile.full_name || 'Usuário'},</h2>
+          <p style="color: #475569; line-height: 1.6;">Você já possui uma solicitação de redefinição ativa.</p>
+          <p style="color: #475569; line-height: 1.6;">Segue novamente o link para redefinir sua senha:</p>
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${resetLink}" style="background-color: #1e293b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 500;">
+              Redefinir Senha
+            </a>
+          </div>
+          <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Se você não solicitou esta recuperação, ignore este email.</p>
+        </div>
+      `;
+
+      const emailResult = await resend.emails.send({
+        from: fromEmail,
+        to: [email],
+        subject: 'Recuperação de Senha - Impéria Traduções',
+        html,
+      });
+
+      if (!emailResult || (emailResult as any).error) {
+        console.error('Error resending email via Resend:', JSON.stringify(emailResult));
+        throw new Error('Failed to send email');
+      }
+
+      console.log('Password reset email re-sent to:', email);
+
       return new Response(
-        JSON.stringify({ 
-          error: 'Uma solicitação de recuperação já está ativa. Verifique seu email.' 
+        JSON.stringify({
+          success: true,
+          message: 'Já existe uma solicitação ativa. Reenviamos o email com o link de recuperação.',
         }),
         {
-          status: 429,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
