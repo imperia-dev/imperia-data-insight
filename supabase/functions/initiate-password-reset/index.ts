@@ -87,14 +87,18 @@ serve(async (req) => {
     const emailToken = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
-    // Create password reset token (email-only flow, no SMS required)
+    // NOTE: password_reset_tokens.sms_token is NOT NULL in DB.
+    // For email-only flow we store a placeholder and mark sms_verified=true.
+    const smsTokenPlaceholder = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Create password reset token (email-only flow)
     const { error: tokenError } = await supabase
       .from('password_reset_tokens')
       .insert({
         user_id: profile.id,
         email_token: emailToken,
-        sms_token: null, // No SMS required
-        sms_verified: true, // Skip SMS verification
+        sms_token: smsTokenPlaceholder,
+        sms_verified: true,
         expires_at: expiresAt.toISOString(),
         ip_address: ipAddress,
       });
