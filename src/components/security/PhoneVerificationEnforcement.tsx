@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/auth/PhoneInput";
-import { Phone, ShieldAlert, Loader2, Shield } from "lucide-react";
+import { Phone, ShieldAlert, Loader2, Shield, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { phoneSchema } from "@/lib/validations/auth";
@@ -16,6 +16,7 @@ import { sanitizeInput } from "@/lib/validations/sanitized";
 /**
  * PhoneVerificationEnforcement: Força todos os usuários a verificarem seu telefone
  * Modal bloqueante que não pode ser fechado sem completar a verificação
+ * Usa Z-API (WhatsApp) para envio do código de verificação
  */
 export function PhoneVerificationEnforcement() {
   const { user } = useAuth();
@@ -72,7 +73,7 @@ export function PhoneVerificationEnforcement() {
 
       toast({
         title: 'Telefone salvo',
-        description: 'Agora clique em "Enviar Código" para verificar.',
+        description: 'Agora clique em "Enviar Código" para verificar via WhatsApp.',
       });
     } catch (err: any) {
       console.error('Error updating phone:', err);
@@ -88,35 +89,54 @@ export function PhoneVerificationEnforcement() {
 
     try {
       const phoneDigits = phone.replace(/\D/g, '');
-      const formattedPhone = phoneDigits ? `+55${phoneDigits}` : '';
+      const formattedPhone = `55${phoneDigits}`; // Z-API format without +
 
+      // Generate verification code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      const response = await supabase.functions.invoke('send-sms', {
-        body: {
-          phoneNumber: formattedPhone,
-          message: `Seu código de verificação é: ${code}. Válido por 10 minutos.`,
-          userId: user!.id,
-          verificationType: 'phone_verification',
-        },
-      });
-
-      if (response.error) throw response.error;
-
+      // Store code in session before sending
       sessionStorage.setItem(`phone_verification_${user!.id}`, JSON.stringify({
         code,
-        phone: formattedPhone,
+        phone: `+55${phoneDigits}`,
         expires: Date.now() + 10 * 60 * 1000,
       }));
 
+      // Send via Z-API (WhatsApp)
+      const response = await supabase.functions.invoke('send-zapi-message', {
+        body: {
+          phone: formattedPhone,
+          message: `🔐 *Código de Verificação Impéria*\n\nSeu código de verificação é: *${code}*\n\n⏰ Válido por 10 minutos.\n\n_Não compartilhe este código com ninguém._`,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Erro ao enviar mensagem');
+      }
+
+      const data = response.data;
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      // Log attempt
+      await supabase
+        .from('sms_verification_logs')
+        .insert({
+          user_id: user!.id,
+          phone_number: sanitizeInput(`+55${phoneDigits}`),
+          verification_type: 'phone_verification',
+          status: 'sent',
+        });
+
       setVerificationSent(true);
       toast({
-        title: 'Código enviado',
-        description: 'Verifique seu telefone e insira o código recebido.',
+        title: 'Código enviado via WhatsApp',
+        description: 'Verifique seu WhatsApp e insira o código recebido.',
       });
     } catch (err: any) {
       console.error('Error sending verification:', err);
-      setError('Erro ao enviar código de verificação');
+      sessionStorage.removeItem(`phone_verification_${user!.id}`);
+      setError(err.message || 'Erro ao enviar código de verificação');
     } finally {
       setActionLoading(false);
     }
@@ -218,7 +238,7 @@ export function PhoneVerificationEnforcement() {
           <AlertDescription>
             <strong>Por que isso é necessário?</strong>
             <ul className="mt-2 list-disc list-inside text-sm space-y-1">
-              <li>Recuperação de senha segura via SMS</li>
+              <li>Recuperação de senha segura via WhatsApp</li>
               <li>Proteção adicional para sua conta</li>
               <li>Notificações importantes de segurança</li>
             </ul>
@@ -229,13 +249,16 @@ export function PhoneVerificationEnforcement() {
           {!verificationSent ? (
             <>
               <div className="space-y-2">
-                <Label htmlFor="phone">Número de Telefone</Label>
+                <Label htmlFor="phone">Número de Telefone (WhatsApp)</Label>
                 <PhoneInput
                   id="phone"
                   value={phone}
                   onChange={setPhone}
                   disabled={actionLoading}
                 />
+                <p className="text-xs text-muted-foreground">
+                  O código será enviado via WhatsApp para este número.
+                </p>
               </div>
 
               {error && (
@@ -264,8 +287,9 @@ export function PhoneVerificationEnforcement() {
                   <Button
                     onClick={handleSendVerification}
                     disabled={actionLoading}
+                    className="bg-green-600 hover:bg-green-700"
                   >
-                    <Shield className="mr-2 h-4 w-4" />
+                    <MessageCircle className="mr-2 h-4 w-4" />
                     Enviar Código
                   </Button>
                 )}
@@ -273,9 +297,10 @@ export function PhoneVerificationEnforcement() {
             </>
           ) : (
             <>
-              <Alert>
+              <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+                <MessageCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Um código de verificação foi enviado para o número informado.
+                  Um código de verificação foi enviado via <strong>WhatsApp</strong> para o número informado.
                 </AlertDescription>
               </Alert>
 
@@ -289,6 +314,7 @@ export function PhoneVerificationEnforcement() {
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   maxLength={6}
                   disabled={actionLoading}
+                  className="text-center text-2xl tracking-widest"
                 />
               </div>
 
@@ -309,7 +335,10 @@ export function PhoneVerificationEnforcement() {
                       Verificando...
                     </>
                   ) : (
-                    'Verificar Código'
+                    <>
+                      <Shield className="mr-2 h-4 w-4" />
+                      Verificar Código
+                    </>
                   )}
                 </Button>
 
