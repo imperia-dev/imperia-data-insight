@@ -52,8 +52,28 @@ export const ReviewerProtocolDetailsDialog = ({
                   <p className="font-medium">{protocol.reviewer_email}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">ID</p>
-                  <p className="font-medium text-xs">{protocol.reviewer_id}</p>
+                  <p className="text-sm text-muted-foreground">CPF</p>
+                  <p className="font-medium">{protocol.cpf || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">CNPJ</p>
+                  <p className="font-medium">{protocol.cnpj || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Chave PIX</p>
+                  <p className="font-medium">{protocol.pix_key || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Banco</p>
+                  <p className="font-medium">{protocol.bank_name || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Agência</p>
+                  <p className="font-medium">{protocol.bank_agency || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Conta</p>
+                  <p className="font-medium">{protocol.bank_account || "N/A"} {protocol.account_type ? `(${protocol.account_type})` : ""}</p>
                 </div>
               </div>
             </CardContent>
