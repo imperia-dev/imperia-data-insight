@@ -70,6 +70,7 @@ import Announcements from "./pages/Announcements";
 import BadNews from "./pages/BadNews";
 import ReviewChecklistAdmin from "./pages/ReviewChecklistAdmin";
 import ReviewChecklist from "./pages/ReviewChecklist";
+import AIAgent from "./pages/AIAgent";
 
 const queryClient = new QueryClient();
 
@@ -351,6 +352,11 @@ const App = () => (
               <ReviewChecklist />
             </ProtectedRouteWithApproval>
           } />
+           <Route path="/ai-agent" element={
+             <ProtectedRouteWithApproval>
+               <AIAgent />
+             </ProtectedRouteWithApproval>
+           } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
             </Routes>

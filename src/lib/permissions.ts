@@ -50,7 +50,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/announcements',
     '/bad-news',
     '/review-checklist-admin',
-    '/review-checklist'
+    '/review-checklist',
+    '/ai-agent'
   ],
   financeiro: [
     '/dashboard-controle-financeiro',
@@ -84,7 +85,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/bad-news',
     '/my-kpis',
     '/review-checklist-admin',
-    '/review-checklist'
+    '/review-checklist',
+    '/ai-agent'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
     // Removed: '/team'
@@ -101,7 +103,8 @@ export const rolePermissions: Record<Role, string[]> = {
     '/timesheet',
     '/settings',
     '/notifications',
-    '/bad-news'
+    '/bad-news',
+    '/ai-agent'
     // Removed: '/team'
     // Removed: '/reports'
     // Removed: '/ai-analytics'
