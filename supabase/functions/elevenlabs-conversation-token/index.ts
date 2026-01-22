@@ -84,8 +84,24 @@ serve(async (req) => {
     const elJson = await elRes.json().catch(() => ({}));
     if (!elRes.ok || !elJson?.token) {
       console.error("ElevenLabs token error:", elRes.status, elJson);
+
+      const details = (elJson as any)?.detail;
+      const missingPerm = details?.status === "missing_permissions";
+      const missingPermMessage = typeof details?.message === "string"
+        ? details.message
+        : undefined;
+
       return new Response(
-        JSON.stringify({ error: "Failed to generate ElevenLabs token" }),
+        JSON.stringify({
+          error: "Failed to generate ElevenLabs token",
+          elevenlabs_status: details?.status ?? elRes.status,
+          elevenlabs_message: missingPerm
+            ? (missingPermMessage ?? "Missing permissions for ConvAI")
+            : (missingPermMessage ?? undefined),
+          hint: missingPerm
+            ? "Your ElevenLabs API key must include permission convai_write. Update the ElevenLabs connector key (ELEVENLABS_API_KEY)."
+            : undefined,
+        }),
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
