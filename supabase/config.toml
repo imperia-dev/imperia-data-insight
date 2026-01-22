@@ -80,3 +80,9 @@ verify_jwt = true
 
 [functions.execute-scheduled-messages]
 verify_jwt = false
+
+[functions.elevenlabs-conversation-token]
+verify_jwt = true
+
+[functions.agent-toolkit]
+verify_jwt = true

@@ -335,7 +335,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     title: "Relatórios & Analytics",
     icon: FileBarChart,
-    roles: ["owner"],
+    roles: ["owner", "master", "admin"],
     items: [
       {
         title: "Relatórios",
@@ -348,6 +348,12 @@ const navigationGroups: NavigationGroup[] = [
         icon: Sparkles,
         href: "/ai-analytics",
         roles: ["owner"],
+      },
+      {
+        title: "Agente (Voz)",
+        icon: MessageSquare,
+        href: "/ai-agent",
+        roles: ["owner", "master", "admin"],
       },
     ],
   },
