@@ -4,13 +4,13 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { Mic, PhoneOff } from "lucide-react";
+import { motion } from "framer-motion";
 
 type TranscriptItem =
   | { id: string; who: "user"; text: string; createdAt: number }
@@ -112,6 +112,12 @@ export default function AIAgent() {
     return conversation.status;
   }, [conversation.status]);
 
+  const micState = useMemo(() => {
+    if (isConnecting) return "connecting" as const;
+    if (conversation.status !== "connected") return "disconnected" as const;
+    return conversation.isSpeaking ? ("speaking" as const) : ("listening" as const);
+  }, [conversation.isSpeaking, conversation.status, isConnecting]);
+
   const startConversation = useCallback(async () => {
     setIsConnecting(true);
     try {
@@ -185,38 +191,95 @@ export default function AIAgent() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Dica: o agente só atende roles altas. Para dados internos, ele usa ferramentas
-                protegidas por RBAC (Edge Function).
+                Clique em <span className="font-medium text-foreground">Iniciar</span> e fale.
+                O microfone anima conforme o agente responde (tempo real).
               </p>
 
-              <div className="mt-4 rounded-lg border bg-card">
-                <ScrollArea className="h-[420px] p-4">
-                  <div className="flex flex-col gap-3">
-                    {transcripts.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">
-                        Nada ainda. Clique em “Iniciar” e fale.
+              <div className="mt-6 flex flex-col items-center justify-center">
+                <button
+                  type="button"
+                  onClick={conversation.status === "disconnected" ? startConversation : stopConversation}
+                  disabled={isConnecting}
+                  aria-label={conversation.status === "disconnected" ? "Iniciar conversa" : "Encerrar conversa"}
+                  className="group relative flex h-56 w-56 items-center justify-center rounded-full border bg-card shadow-sm transition-transform hover:scale-[1.02] disabled:opacity-60"
+                >
+                  {/* Rings / pulsos */}
+                  {micState !== "disconnected" && (
+                    <>
+                      <motion.div
+                        aria-hidden
+                        className="absolute inset-0 rounded-full border bg-transparent"
+                        animate={{
+                          scale: micState === "speaking" ? [1, 1.08, 1] : [1, 1.04, 1],
+                          opacity: micState === "speaking" ? [0.35, 0.15, 0.35] : [0.25, 0.12, 0.25],
+                        }}
+                        transition={{ duration: micState === "speaking" ? 0.9 : 1.4, repeat: Infinity }}
+                      />
+                      <motion.div
+                        aria-hidden
+                        className="absolute inset-[-14px] rounded-full border bg-transparent"
+                        animate={{
+                          scale: micState === "speaking" ? [1, 1.14, 1] : [1, 1.08, 1],
+                          opacity: micState === "speaking" ? [0.25, 0.08, 0.25] : [0.18, 0.06, 0.18],
+                        }}
+                        transition={{ duration: micState === "speaking" ? 1.1 : 1.7, repeat: Infinity }}
+                      />
+                    </>
+                  )}
+
+                  {/* Corpo do mic */}
+                  <motion.div
+                    className="relative z-10 flex h-40 w-40 items-center justify-center rounded-full bg-muted"
+                    animate={{
+                      scale:
+                        micState === "connecting"
+                          ? [1, 0.98, 1]
+                          : micState === "speaking"
+                            ? [1, 1.04, 1]
+                            : [1, 1.01, 1],
+                    }}
+                    transition={{ duration: micState === "speaking" ? 0.6 : 1.2, repeat: Infinity }}
+                  >
+                    <Mic className="h-14 w-14 text-foreground" />
+
+                    {/* Equalizer simples quando falando */}
+                    {micState === "speaking" && (
+                      <div className="absolute -bottom-6 flex items-end gap-1">
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <motion.div
+                            key={i}
+                            className="w-2 rounded-full bg-primary"
+                            initial={false}
+                            animate={{ height: [8, 22, 10, 26, 12] }}
+                            transition={{
+                              duration: 0.8,
+                              repeat: Infinity,
+                              delay: i * 0.08,
+                              ease: "easeInOut",
+                            }}
+                          />
+                        ))}
                       </div>
-                    ) : (
-                      transcripts.map((t) => (
-                        <div
-                          key={t.id}
-                          className={
-                            t.who === "user"
-                              ? "self-end max-w-[85%] rounded-lg bg-muted px-3 py-2"
-                              : "self-start max-w-[85%] rounded-lg bg-accent px-3 py-2"
-                          }
-                        >
-                          <div className="text-xs text-muted-foreground">
-                            {t.who === "user" ? "Você" : "Agente"}
-                          </div>
-                          <div className="text-sm text-foreground whitespace-pre-wrap">
-                            {t.text}
-                          </div>
-                        </div>
-                      ))
                     )}
+                  </motion.div>
+
+                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-background px-3 py-1 text-xs text-muted-foreground">
+                    {micState === "disconnected" && "Toque para iniciar"}
+                    {micState === "connecting" && "Conectando..."}
+                    {micState === "listening" && "Ouvindo"}
+                    {micState === "speaking" && "Respondendo"}
                   </div>
-                </ScrollArea>
+                </button>
+
+                {/* Mantemos só um “último turno” discreto (sem caixa grande) */}
+                {transcripts.length > 0 && (
+                  <div className="mt-6 w-full max-w-3xl rounded-lg border bg-card p-4 animate-fade-in">
+                    <div className="text-xs text-muted-foreground">Última fala</div>
+                    <div className="mt-1 text-sm text-foreground whitespace-pre-wrap">
+                      {transcripts[transcripts.length - 1]?.text}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
