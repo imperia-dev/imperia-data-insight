@@ -263,12 +263,7 @@ export default function AIAgent() {
                     )}
                   </motion.div>
 
-                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-background px-3 py-1 text-xs text-muted-foreground">
-                    {micState === "disconnected" && "Toque para iniciar"}
-                    {micState === "connecting" && "Conectando..."}
-                    {micState === "listening" && "Ouvindo"}
-                    {micState === "speaking" && "Respondendo"}
-                  </div>
+                  {/* Removido texto abaixo do microfone para UI mais clean/friendly */}
                 </button>
 
                 {/* Mantemos só um “último turno” discreto (sem caixa grande) */}
