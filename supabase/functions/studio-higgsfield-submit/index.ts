@@ -25,11 +25,13 @@ async function safeReadText(res: Response) {
 }
 
 function normalizeHiggsBase(raw?: string | null) {
-  const base = (raw || "https://api.higgsfield.ai").trim().replace(/\/+$/, "");
-  // We observed 500s when calling platform + model path directly.
-  // The public docs use api.higgsfield.ai/v1/generations.
-  if (base.includes("platform.higgsfield.ai")) return "https://api.higgsfield.ai";
-  return base;
+  return (raw || "https://api.higgsfield.ai").trim().replace(/\/+$/, "");
+}
+
+function waitUntil(promise: Promise<unknown>) {
+  const er = (globalThis as any).EdgeRuntime;
+  if (er?.waitUntil) er.waitUntil(promise);
+  // Fallback: fire-and-forget (still may be cut short by runtime)
 }
 
 async function requireAuthAndRole(req: Request) {
@@ -91,9 +93,15 @@ serve(async (req) => {
     const higgsApiKey = Deno.env.get("HIGGSFIELD_API_KEY");
     const higgsSecret = Deno.env.get("HIGGSFIELD_API_SECRET");
     const higgsBase = normalizeHiggsBase(Deno.env.get("HIGGSFIELD_BASE_URL"));
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!higgsApiKey || !higgsSecret) {
       return jsonResponse({ error: "Missing Higgsfield credentials" }, 500);
+    }
+
+    if (!serviceKey) {
+      return jsonResponse({ error: "Missing SUPABASE_SERVICE_ROLE_KEY" }, 500);
     }
 
     const parsed = bodySchema.safeParse(await req.json().catch(() => ({})));
@@ -121,6 +129,38 @@ serve(async (req) => {
       return jsonResponse({ error: "Forbidden: not a member of this company" }, 403);
     }
 
+    // Create job immediately so the UI never gets stuck waiting for Higgsfield.
+    const tempRequestId = `pending:${crypto.randomUUID()}`;
+    const { data: job, error: jobErr } = await auth.supabase
+      .from("creative_provider_jobs")
+      .insert({
+        company_id: companyId,
+        creative_id: creativeId,
+        provider: "higgsfield",
+        request_id: tempRequestId,
+        status: "queued",
+        status_url: null,
+        cancel_url: null,
+        request_payload: {
+          mediaMode,
+          prompt,
+          aspectRatio,
+          carouselPages,
+          referenceImageUrl,
+          videoDuration,
+        },
+        created_by: auth.user.id,
+      })
+      .select("id")
+      .single();
+
+    if (jobErr || !job) {
+      console.error("Insert job error:", jobErr);
+      return jsonResponse({ error: "Failed to store job" }, 500);
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
     // Determine REST payload (docs.higgsfield.ai)
     // NOTE: Keep our internal modelId field for tracing, but call the unified /v1/generations endpoint.
     const modelId = mediaMode === "video" ? "dop" : "soul";
@@ -144,96 +184,70 @@ serve(async (req) => {
       payload.resolution = "720p";
     }
 
-    // Submit request to Higgsfield (REST)
-    const higgsRes = await fetch(higgsUrl, {
-      method: "POST",
-      headers: {
-        // Higgsfield REST API uses Bearer tokens
-        Authorization: `Bearer ${higgsApiKey}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    waitUntil(
+      (async () => {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 25_000);
+        try {
+          const higgsRes = await fetch(higgsUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${higgsApiKey}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
 
-    if (!higgsRes.ok) {
-      const errText = await safeReadText(higgsRes);
-      console.error("Higgsfield submit error:", {
-        status: higgsRes.status,
-        url: higgsUrl,
-        response: errText,
-        // Never log secrets
-        modelId,
-        payload,
-      });
+          if (!higgsRes.ok) {
+            const errText = await safeReadText(higgsRes);
+            console.error("Higgsfield submit error:", { status: higgsRes.status, url: higgsUrl, response: errText, modelId });
+            await adminClient
+              .from("creative_provider_jobs")
+              .update({ status: "failed", error_message: `Higgsfield error ${higgsRes.status}: ${errText?.slice?.(0, 400) ?? errText}` })
+              .eq("id", job.id);
+            return;
+          }
 
-      // Return details to the client to make debugging possible
-      return jsonResponse(
-        {
-          error: "Failed to submit to Higgsfield",
-          status: higgsRes.status,
-          details: errText?.slice?.(0, 4000) ?? errText,
-          modelId,
-          url: higgsUrl,
-        },
-        502,
-      );
-    }
+          const higgsData = await higgsRes.json().catch(() => ({}));
+          const requestId = (higgsData?.request_id ?? higgsData?.id ?? higgsData?.data?.id) as string | undefined;
+          const statusUrl =
+            (higgsData?.status_url as string | undefined) ??
+            (requestId ? `${higgsBase}/v1/generations/${requestId}` : undefined);
+          const cancelUrl = higgsData?.cancel_url as string | undefined;
+          const status = (higgsData?.status ?? "queued") as string;
 
-    const higgsData = await higgsRes.json().catch(() => ({}));
-    const requestId = (higgsData?.request_id ?? higgsData?.id ?? higgsData?.data?.id) as string | undefined;
-    const statusUrl = (higgsData?.status_url as string | undefined) ?? (requestId ? `${higgsBase}/v1/generations/${requestId}` : undefined);
-    const cancelUrl = higgsData?.cancel_url as string | undefined;
-    const status = (higgsData?.status ?? "queued") as string;
+          if (!requestId) {
+            console.error("Higgsfield submit unexpected response:", { url: higgsUrl, higgsData });
+            await adminClient
+              .from("creative_provider_jobs")
+              .update({ status: "failed", error_message: "Higgsfield response missing request id" })
+              .eq("id", job.id);
+            return;
+          }
 
-    if (!requestId) {
-      console.error("Higgsfield submit unexpected response:", { url: higgsUrl, higgsData });
-      return jsonResponse({ error: "Higgsfield response missing request id" }, 502);
-    }
+          await adminClient
+            .from("creative_provider_jobs")
+            .update({ request_id: requestId, status_url: statusUrl ?? null, cancel_url: cancelUrl ?? null, status })
+            .eq("id", job.id);
 
-    // Store job record
-    const { data: job, error: jobErr } = await auth.supabase
-      .from("creative_provider_jobs")
-      .insert({
-        company_id: companyId,
-        creative_id: creativeId,
-        provider: "higgsfield",
-        request_id: requestId,
-        status,
-        status_url: statusUrl,
-        cancel_url: cancelUrl,
-        request_payload: {
-          mediaMode,
-          prompt,
-          aspectRatio,
-          carouselPages,
-          referenceImageUrl,
-          videoDuration,
-          modelId,
-        },
-        created_by: auth.user.id,
-      })
-      .select("id")
-      .single();
+          console.log("studio-higgsfield-submit:accepted", { jobId: job.id, requestId, mediaMode });
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error("Higgsfield submit exception:", { msg, jobId: job.id, url: higgsUrl, modelId });
+          await adminClient
+            .from("creative_provider_jobs")
+            .update({ status: "failed", error_message: msg.includes("aborted") ? "Higgsfield timeout" : msg })
+            .eq("id", job.id);
+        } finally {
+          clearTimeout(t);
+        }
+      })(),
+    );
 
-    if (jobErr) {
-      console.error("Insert job error:", jobErr);
-      return jsonResponse({ error: "Failed to store job" }, 500);
-    }
-
-    console.log("studio-higgsfield-submit:success", {
-      userId: auth.user.id,
-      jobId: job.id,
-      requestId,
-      mediaMode,
-    });
-
-    return jsonResponse({
-      ok: true,
-      jobId: job.id,
-      requestId,
-      statusUrl,
-    });
+    // Return immediately
+    return jsonResponse({ ok: true, jobId: job.id });
   } catch (error) {
     console.error("studio-higgsfield-submit error:", error);
     return jsonResponse({ error: error instanceof Error ? error.message : "Internal error" }, 500);
