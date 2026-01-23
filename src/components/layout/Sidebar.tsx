@@ -375,6 +375,12 @@ const standaloneItems: NavigationItem[] = [
     roles: ["owner", "master", "operation", "translator"],
   },
   {
+    title: "Creative Studio",
+    icon: Sparkles,
+    href: "/creative-studio",
+    roles: ["owner", "master", "admin"],
+  },
+  {
     title: "Departamento de Notícias Ruins",
     icon: AlertCircle,
     href: "/bad-news",

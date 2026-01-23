@@ -71,6 +71,13 @@ import BadNews from "./pages/BadNews";
 import ReviewChecklistAdmin from "./pages/ReviewChecklistAdmin";
 import ReviewChecklist from "./pages/ReviewChecklist";
 import AIAgent from "./pages/AIAgent";
+import CreativeStudio from "./pages/CreativeStudio";
+import CreativeStudioBrandKit from "./pages/CreativeStudioBrandKit";
+import CreativeStudioSources from "./pages/CreativeStudioSources";
+import CreativeStudioGenerate from "./pages/CreativeStudioGenerate";
+import CreativeStudioReview from "./pages/CreativeStudioReview";
+import CreativeStudioCalendar from "./pages/CreativeStudioCalendar";
+import { ActiveCompanyProvider } from "./contexts/ActiveCompanyContext";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +92,7 @@ const App = () => (
             <MFAEnforcement />
             <MainAnnouncementModal />
             <SidebarProvider>
+            <ActiveCompanyProvider>
             <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<PasswordReset />} />
@@ -337,6 +345,36 @@ const App = () => (
               <Announcements />
             </ProtectedRouteWithApproval>
           } />
+            <Route path="/creative-studio" element={
+              <ProtectedRouteWithApproval>
+                <CreativeStudio />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/creative-studio/brand-kit" element={
+              <ProtectedRouteWithApproval>
+                <CreativeStudioBrandKit />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/creative-studio/sources" element={
+              <ProtectedRouteWithApproval>
+                <CreativeStudioSources />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/creative-studio/generate" element={
+              <ProtectedRouteWithApproval>
+                <CreativeStudioGenerate />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/creative-studio/review" element={
+              <ProtectedRouteWithApproval>
+                <CreativeStudioReview />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/creative-studio/calendar" element={
+              <ProtectedRouteWithApproval>
+                <CreativeStudioCalendar />
+              </ProtectedRouteWithApproval>
+            } />
           <Route path="/bad-news" element={
             <ProtectedRouteWithApproval>
               <BadNews />
@@ -360,7 +398,8 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
             </Routes>
-          </SidebarProvider>
+            </ActiveCompanyProvider>
+           </SidebarProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
