@@ -92,3 +92,9 @@ verify_jwt = true
 
 [functions.studio-generate-text]
 verify_jwt = true
+
+[functions.studio-higgsfield-submit]
+verify_jwt = true
+
+[functions.studio-higgsfield-poll]
+verify_jwt = true

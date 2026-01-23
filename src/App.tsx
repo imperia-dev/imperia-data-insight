@@ -75,6 +75,7 @@ import CreativeStudio from "./pages/CreativeStudio";
 import CreativeStudioBrandKit from "./pages/CreativeStudioBrandKit";
 import CreativeStudioSources from "./pages/CreativeStudioSources";
 import CreativeStudioGenerate from "./pages/CreativeStudioGenerate";
+import CreativeStudioAuto from "./pages/CreativeStudioAuto";
 import CreativeStudioReview from "./pages/CreativeStudioReview";
 import CreativeStudioCalendar from "./pages/CreativeStudioCalendar";
 import { ActiveCompanyProvider } from "./contexts/ActiveCompanyContext";
@@ -363,6 +364,11 @@ const App = () => (
             <Route path="/creative-studio/generate" element={
               <ProtectedRouteWithApproval>
                 <CreativeStudioGenerate />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/creative-studio/auto" element={
+              <ProtectedRouteWithApproval>
+                <CreativeStudioAuto />
               </ProtectedRouteWithApproval>
             } />
             <Route path="/creative-studio/review" element={
