@@ -24,11 +24,11 @@ type CreativeRow = Database["public"]["Tables"]["creatives"]["Row"];
 type ProviderJob = Database["public"]["Tables"]["creative_provider_jobs"]["Row"];
 
 type MediaMode = "image" | "carousel" | "video";
-type AspectRatio = "1:1" | "4:5" | "9:16";
+type AspectRatio = "1:1" | "3:4" | "9:16";
 
 const ASPECT_OPTIONS: Array<{ value: AspectRatio; label: string }> = [
   { value: "1:1", label: "Quadrado (1:1)" },
-  { value: "4:5", label: "Feed (4:5)" },
+  { value: "3:4", label: "Feed (3:4)" },
   { value: "9:16", label: "Reels (9:16)" },
 ];
 
@@ -40,7 +40,7 @@ export default function CreativeStudioAuto() {
   // Form state
   const [mediaMode, setMediaMode] = useState<MediaMode>("image");
   const [prompt, setPrompt] = useState("");
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("4:5");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("3:4");
   const [carouselPages, setCarouselPages] = useState(3);
   const [videoDuration, setVideoDuration] = useState(5);
   const [referenceImageUrl, setReferenceImageUrl] = useState("");
