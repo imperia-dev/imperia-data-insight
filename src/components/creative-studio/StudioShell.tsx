@@ -11,6 +11,7 @@ const tabs = [
   { label: "Brand Kit", href: "/creative-studio/brand-kit" },
   { label: "Fontes", href: "/creative-studio/sources" },
   { label: "Gerar", href: "/creative-studio/generate" },
+  { label: "Auto", href: "/creative-studio/auto" },
   { label: "Revisão", href: "/creative-studio/review" },
   { label: "Calendário", href: "/creative-studio/calendar" },
 ];
