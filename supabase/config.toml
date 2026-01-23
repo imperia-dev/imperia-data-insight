@@ -86,3 +86,6 @@ verify_jwt = true
 
 [functions.agent-toolkit]
 verify_jwt = true
+
+[functions.openai-analyze-attachment]
+verify_jwt = true
