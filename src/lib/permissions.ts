@@ -58,6 +58,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/creative-studio/brand-kit',
     '/creative-studio/sources',
     '/creative-studio/generate',
+    '/creative-studio/auto',
     '/creative-studio/review',
     '/creative-studio/calendar'
   ],
@@ -101,6 +102,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/creative-studio/brand-kit',
     '/creative-studio/sources',
     '/creative-studio/generate',
+    '/creative-studio/auto',
     '/creative-studio/review',
     '/creative-studio/calendar'
     // Removed: '/company-costs',
@@ -127,6 +129,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/creative-studio/brand-kit',
     '/creative-studio/sources',
     '/creative-studio/generate',
+    '/creative-studio/auto',
     '/creative-studio/review',
     '/creative-studio/calendar'
     // Removed: '/team'
