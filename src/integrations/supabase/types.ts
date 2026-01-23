@@ -427,6 +427,89 @@ export type Database = {
           },
         ]
       }
+      brand_assets: {
+        Row: {
+          asset_type: Database["public"]["Enums"]["brand_asset_type"]
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          value: Json
+        }
+        Insert: {
+          asset_type: Database["public"]["Enums"]["brand_asset_type"]
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          value: Json
+        }
+        Update: {
+          asset_type?: Database["public"]["Enums"]["brand_asset_type"]
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_assets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_posts: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          creative_id: string
+          id: string
+          posted_at: string | null
+          scheduled_at: string
+          status: Database["public"]["Enums"]["calendar_post_status"]
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          creative_id: string
+          id?: string
+          posted_at?: string | null
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["calendar_post_status"]
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          creative_id?: string
+          id?: string
+          posted_at?: string | null
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["calendar_post_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_posts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_posts_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "creatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_flow_categories: {
         Row: {
           created_at: string | null
@@ -941,6 +1024,36 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          style_guide: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          style_guide?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          style_guide?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_costs: {
         Row: {
           amount: number
@@ -982,6 +1095,38 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      company_memberships: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["studio_role"]
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["studio_role"]
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["studio_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_memberships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       consolidated_protocols: {
         Row: {
@@ -1275,6 +1420,117 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creative_adjustments: {
+        Row: {
+          company_id: string
+          created_at: string
+          creative_id: string
+          feedback: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          creative_id: string
+          feedback: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          creative_id?: string
+          feedback?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_adjustments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_adjustments_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "creatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creatives: {
+        Row: {
+          caption: string | null
+          company_id: string
+          concept_bullets: Json
+          concept_headline: string | null
+          concept_subheadline: string | null
+          created_at: string
+          feedback: string | null
+          generation_id: string
+          hashtags: Json
+          id: string
+          image_path: string | null
+          image_url: string | null
+          rationale: string | null
+          status: Database["public"]["Enums"]["creative_status"]
+          version: number
+        }
+        Insert: {
+          caption?: string | null
+          company_id: string
+          concept_bullets?: Json
+          concept_headline?: string | null
+          concept_subheadline?: string | null
+          created_at?: string
+          feedback?: string | null
+          generation_id: string
+          hashtags?: Json
+          id?: string
+          image_path?: string | null
+          image_url?: string | null
+          rationale?: string | null
+          status?: Database["public"]["Enums"]["creative_status"]
+          version?: number
+        }
+        Update: {
+          caption?: string | null
+          company_id?: string
+          concept_bullets?: Json
+          concept_headline?: string | null
+          concept_subheadline?: string | null
+          created_at?: string
+          feedback?: string | null
+          generation_id?: string
+          hashtags?: Json
+          id?: string
+          image_path?: string | null
+          image_url?: string | null
+          rationale?: string | null
+          status?: Database["public"]["Enums"]["creative_status"]
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creatives_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatives_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "generations"
             referencedColumns: ["id"]
           },
         ]
@@ -2260,6 +2516,59 @@ export type Database = {
           },
         ]
       }
+      generations: {
+        Row: {
+          campaign_theme: string | null
+          company_id: string
+          created_at: string
+          cta: string
+          error_message: string | null
+          format: string
+          id: string
+          objective: string
+          quantity_requested: number
+          status: Database["public"]["Enums"]["generation_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_theme?: string | null
+          company_id: string
+          created_at?: string
+          cta: string
+          error_message?: string | null
+          format?: string
+          id?: string
+          objective: string
+          quantity_requested: number
+          status?: Database["public"]["Enums"]["generation_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_theme?: string | null
+          company_id?: string
+          created_at?: string
+          cta?: string
+          error_message?: string | null
+          format?: string
+          id?: string
+          objective?: string
+          quantity_requested?: number
+          status?: Database["public"]["Enums"]["generation_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       idempotency_keys: {
         Row: {
           completed_at: string | null
@@ -2298,6 +2607,44 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      knowledge_base: {
+        Row: {
+          company_id: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          source_type: Database["public"]["Enums"]["knowledge_source_type"]
+          source_url: string | null
+        }
+        Insert: {
+          company_id: string
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          source_type: Database["public"]["Enums"]["knowledge_source_type"]
+          source_url?: string | null
+        }
+        Update: {
+          company_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          source_type?: Database["public"]["Enums"]["knowledge_source_type"]
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_base_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_conversions: {
         Row: {
@@ -5326,6 +5673,10 @@ export type Database = {
         }
         Returns: string
       }
+      can_access_company_storage: {
+        Args: { p_company_id: string }
+        Returns: boolean
+      }
       check_and_apply_lockout: {
         Args: { p_attempt_type?: string; p_identifier: string }
         Returns: Json
@@ -5354,6 +5705,10 @@ export type Database = {
       cleanup_expired_reset_tokens: { Args: never; Returns: undefined }
       cleanup_old_backups: { Args: never; Returns: undefined }
       cleanup_rate_limit_entries: { Args: never; Returns: undefined }
+      company_role: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: Database["public"]["Enums"]["studio_role"]
+      }
       generate_mfa_backup_codes: { Args: never; Returns: string[] }
       generate_protocol_number: {
         Args: {
@@ -5428,6 +5783,14 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      has_company_admin_access: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      has_company_write_access: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5437,6 +5800,10 @@ export type Database = {
       }
       is_channel_member: {
         Args: { p_channel_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_company_member: {
+        Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
       }
       is_protocol_delayed: {
@@ -5541,12 +5908,20 @@ export type Database = {
         | "non_current_liability"
         | "equity"
       batch_status: "draft" | "sent" | "processing" | "completed" | "failed"
+      brand_asset_type:
+        | "logo"
+        | "palette"
+        | "font"
+        | "example_creative"
+        | "prohibited_word"
+      calendar_post_status: "scheduled" | "posted" | "failed"
       cash_flow_method: "direct" | "indirect"
       conta_pagar_status:
         | "novo"
         | "aguardando_pagamento"
         | "aguardando_nf"
         | "finalizado"
+      creative_status: "generated" | "approved" | "rejected" | "adjusted"
       dfc_activity_type: "OPERATING" | "INVESTING" | "FINANCING"
       document_status:
         | "pending"
@@ -5573,9 +5948,15 @@ export type Database = {
         | "custo_venda"
         | "investimento"
       financial_entry_type: "revenue" | "expense" | "tax" | "deduction"
+      generation_status: "pending" | "generating" | "completed" | "failed"
+      knowledge_source_type:
+        | "website"
+        | "competitor_inspiration"
+        | "brand_kit_summary"
       payment_status_enum: "pending" | "sent" | "paid" | "failed"
       protocol_type: "receita" | "despesa_fixa" | "despesa_variavel" | "folha"
       scenario_type: "pessimistic" | "realistic" | "optimistic"
+      studio_role: "admin" | "editor" | "viewer"
       user_role:
         | "master"
         | "admin"
@@ -5729,6 +6110,14 @@ export const Constants = {
         "equity",
       ],
       batch_status: ["draft", "sent", "processing", "completed", "failed"],
+      brand_asset_type: [
+        "logo",
+        "palette",
+        "font",
+        "example_creative",
+        "prohibited_word",
+      ],
+      calendar_post_status: ["scheduled", "posted", "failed"],
       cash_flow_method: ["direct", "indirect"],
       conta_pagar_status: [
         "novo",
@@ -5736,6 +6125,7 @@ export const Constants = {
         "aguardando_nf",
         "finalizado",
       ],
+      creative_status: ["generated", "approved", "rejected", "adjusted"],
       dfc_activity_type: ["OPERATING", "INVESTING", "FINANCING"],
       document_status: [
         "pending",
@@ -5765,9 +6155,16 @@ export const Constants = {
         "investimento",
       ],
       financial_entry_type: ["revenue", "expense", "tax", "deduction"],
+      generation_status: ["pending", "generating", "completed", "failed"],
+      knowledge_source_type: [
+        "website",
+        "competitor_inspiration",
+        "brand_kit_summary",
+      ],
       payment_status_enum: ["pending", "sent", "paid", "failed"],
       protocol_type: ["receita", "despesa_fixa", "despesa_variavel", "folha"],
       scenario_type: ["pessimistic", "realistic", "optimistic"],
+      studio_role: ["admin", "editor", "viewer"],
       user_role: [
         "master",
         "admin",
