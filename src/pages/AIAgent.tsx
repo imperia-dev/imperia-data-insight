@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
+import { AttachmentPanel, type AttachmentAnalysis } from "@/components/ai-agent/AttachmentPanel";
 import { Mic, PhoneOff } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -23,6 +24,8 @@ export default function AIAgent() {
   const [userName, setUserName] = useState<string>("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [transcripts, setTranscripts] = useState<TranscriptItem[]>([]);
+  const [lastAttachmentSummary, setLastAttachmentSummary] = useState<string>("");
+  const [pendingContextUpdates, setPendingContextUpdates] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -105,6 +108,55 @@ export default function AIAgent() {
       },
     },
   });
+
+  const pushContextUpdate = useCallback(
+    async (content: string) => {
+      const trimmed = content.trim();
+      if (!trimmed) return;
+
+      if (conversation.status === "connected") {
+        try {
+          await conversation.sendContextualUpdate(trimmed);
+        } catch (err) {
+          console.error("Failed to send contextual update", err);
+          setPendingContextUpdates((prev) => [...prev, trimmed]);
+        }
+      } else {
+        setPendingContextUpdates((prev) => [...prev, trimmed]);
+      }
+    },
+    [conversation],
+  );
+
+  useEffect(() => {
+    const flush = async () => {
+      if (conversation.status !== "connected") return;
+      if (pendingContextUpdates.length === 0) return;
+
+      // envia em ordem
+      for (const item of pendingContextUpdates) {
+        try {
+          await conversation.sendContextualUpdate(item);
+        } catch (err) {
+          console.error("Failed to flush contextual update", err);
+          return;
+        }
+      }
+      setPendingContextUpdates([]);
+    };
+
+    flush();
+  }, [conversation, conversation.status, pendingContextUpdates]);
+
+  const onAttachmentAnalyzed = useCallback(
+    async (analysis: AttachmentAnalysis) => {
+      setLastAttachmentSummary(analysis.summary);
+
+      const contextual = `ANEXO DO USUÁRIO (use como contexto; não reproduza integralmente; extraia insights e responda em PT-BR):\n${analysis.summary}`;
+      await pushContextUpdate(contextual);
+    },
+    [pushContextUpdate],
+  );
 
   const statusLabel = useMemo(() => {
     if (conversation.status === "connected") return "Conectado";
@@ -195,7 +247,8 @@ export default function AIAgent() {
                 O microfone anima conforme o agente responde (tempo real).
               </p>
 
-              <div className="mt-6 flex flex-col items-center justify-center">
+              <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
+                <div className="flex flex-col items-center justify-center">
                 <button
                   type="button"
                   onClick={conversation.status === "disconnected" ? startConversation : stopConversation}
@@ -275,6 +328,32 @@ export default function AIAgent() {
                     </div>
                   </div>
                 )}
+                </div>
+
+                <div className="space-y-4">
+                  <AttachmentPanel
+                    disabled={isConnecting}
+                    onAnalyzed={onAttachmentAnalyzed}
+                  />
+
+                  {lastAttachmentSummary && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Resumo do último anexo</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-sm text-foreground whitespace-pre-wrap">
+                          {lastAttachmentSummary}
+                        </div>
+                        {pendingContextUpdates.length > 0 && (
+                          <div className="mt-3 text-xs text-muted-foreground">
+                            Contexto pendente para enviar ao agente: {pendingContextUpdates.length}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
