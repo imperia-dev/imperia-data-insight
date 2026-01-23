@@ -1466,6 +1466,126 @@ export type Database = {
           },
         ]
       }
+      creative_media: {
+        Row: {
+          company_id: string
+          created_at: string
+          creative_id: string
+          id: string
+          media_type: Database["public"]["Enums"]["creative_media_type"]
+          metadata: Json
+          position: number
+          public_url: string | null
+          storage_bucket: string
+          storage_path: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          creative_id: string
+          id?: string
+          media_type: Database["public"]["Enums"]["creative_media_type"]
+          metadata?: Json
+          position?: number
+          public_url?: string | null
+          storage_bucket: string
+          storage_path: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          creative_id?: string
+          id?: string
+          media_type?: Database["public"]["Enums"]["creative_media_type"]
+          metadata?: Json
+          position?: number
+          public_url?: string | null
+          storage_bucket?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_media_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_media_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "creatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creative_provider_jobs: {
+        Row: {
+          cancel_url: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          creative_id: string
+          error_message: string | null
+          id: string
+          provider: string
+          request_id: string
+          request_payload: Json
+          result_payload: Json | null
+          status: string
+          status_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_url?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          creative_id: string
+          error_message?: string | null
+          id?: string
+          provider?: string
+          request_id: string
+          request_payload?: Json
+          result_payload?: Json | null
+          status?: string
+          status_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_url?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          creative_id?: string
+          error_message?: string | null
+          id?: string
+          provider?: string
+          request_id?: string
+          request_payload?: Json
+          result_payload?: Json | null
+          status?: string
+          status_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_provider_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_provider_jobs_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "creatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creatives: {
         Row: {
           caption: string | null
@@ -5925,6 +6045,7 @@ export type Database = {
         | "aguardando_pagamento"
         | "aguardando_nf"
         | "finalizado"
+      creative_media_type: "image" | "video"
       creative_status: "generated" | "approved" | "rejected" | "adjusted"
       dfc_activity_type: "OPERATING" | "INVESTING" | "FINANCING"
       document_status:
@@ -6129,6 +6250,7 @@ export const Constants = {
         "aguardando_nf",
         "finalizado",
       ],
+      creative_media_type: ["image", "video"],
       creative_status: ["generated", "approved", "rejected", "adjusted"],
       dfc_activity_type: ["OPERATING", "INVESTING", "FINANCING"],
       document_status: [
