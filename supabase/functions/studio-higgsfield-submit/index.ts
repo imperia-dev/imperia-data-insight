@@ -16,6 +16,14 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+async function safeReadText(res: Response) {
+  try {
+    return await res.text();
+  } catch {
+    return "";
+  }
+}
+
 async function requireAuthAndRole(req: Request) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -127,7 +135,8 @@ serve(async (req) => {
     }
 
     // Submit request to Higgsfield
-    const higgsRes = await fetch(`${higgsBase}/${modelId}`, {
+    const higgsUrl = `${higgsBase}/${modelId}`;
+    const higgsRes = await fetch(higgsUrl, {
       method: "POST",
       headers: {
         Authorization: `Key ${higgsApiKey}:${higgsSecret}`,
@@ -138,9 +147,27 @@ serve(async (req) => {
     });
 
     if (!higgsRes.ok) {
-      const errText = await higgsRes.text().catch(() => "");
-      console.error("Higgsfield submit error:", higgsRes.status, errText);
-      return jsonResponse({ error: "Failed to submit to Higgsfield", status: higgsRes.status }, 502);
+      const errText = await safeReadText(higgsRes);
+      console.error("Higgsfield submit error:", {
+        status: higgsRes.status,
+        url: higgsUrl,
+        response: errText,
+        // Never log secrets
+        modelId,
+        payload,
+      });
+
+      // Return details to the client to make debugging possible
+      return jsonResponse(
+        {
+          error: "Failed to submit to Higgsfield",
+          status: higgsRes.status,
+          details: errText?.slice?.(0, 4000) ?? errText,
+          modelId,
+          url: higgsUrl,
+        },
+        502,
+      );
     }
 
     const higgsData = await higgsRes.json();
