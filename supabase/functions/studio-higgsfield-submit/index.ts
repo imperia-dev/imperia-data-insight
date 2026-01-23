@@ -25,7 +25,8 @@ async function safeReadText(res: Response) {
 }
 
 function normalizeHiggsBase(raw?: string | null) {
-  return (raw || "https://api.higgsfield.ai").trim().replace(/\/+$/, "");
+  // Docs: https://platform.higgsfield.ai
+  return (raw || "https://platform.higgsfield.ai").trim().replace(/\/+$/, "");
 }
 
 function waitUntil(promise: Promise<unknown>) {
@@ -162,26 +163,23 @@ serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     // Determine REST payload (docs.higgsfield.ai)
-    // NOTE: Keep our internal modelId field for tracing, but call the unified /v1/generations endpoint.
-    const modelId = mediaMode === "video" ? "dop" : "soul";
+    // Docs: POST https://platform.higgsfield.ai/{model_id}
+    // Using soul/standard for image, carousel, and (temporarily) video per user confirmation.
+    const modelId = "higgsfield-ai/soul/standard";
+    const higgsUrl = `${higgsBase}/${modelId}`;
 
-    const higgsUrl = `${higgsBase}/v1/generations`;
     const payload: Record<string, unknown> = {
       prompt,
       aspect_ratio: aspectRatio,
+      resolution: "720p",
     };
 
+    // Higgsfield docs don't specify extra params for video/carousel beyond prompt/aspect_ratio/resolution,
+    // but we keep the existing intent for carousel/video when possible.
+    if (mediaMode === "carousel") payload.num_images = carouselPages ?? 3;
     if (mediaMode === "video") {
-      payload.task = referenceImageUrl ? "image-to-video" : "text-to-video";
-      payload.model = "wan-25";
       payload.duration = videoDuration ?? 5;
       if (referenceImageUrl) payload.image_url = referenceImageUrl;
-    } else {
-      payload.task = "text-to-image";
-      payload.model = "flux";
-      // carousel = multiple images
-      if (mediaMode === "carousel") payload.num_images = carouselPages ?? 3;
-      payload.resolution = "720p";
     }
 
     waitUntil(
@@ -192,7 +190,8 @@ serve(async (req) => {
           const higgsRes = await fetch(higgsUrl, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${higgsApiKey}`,
+              // Docs: Authorization: Key {api_key_id}:{api_key_secret}
+              Authorization: `Key ${higgsApiKey}:${higgsSecret}`,
               "Content-Type": "application/json",
               Accept: "application/json",
             },
@@ -211,11 +210,10 @@ serve(async (req) => {
           }
 
           const higgsData = await higgsRes.json().catch(() => ({}));
-          const requestId = (higgsData?.request_id ?? higgsData?.id ?? higgsData?.data?.id) as string | undefined;
-          const statusUrl =
-            (higgsData?.status_url as string | undefined) ??
-            (requestId ? `${higgsBase}/v1/generations/${requestId}` : undefined);
-          const cancelUrl = higgsData?.cancel_url as string | undefined;
+          // Docs response: { status, request_id, status_url, cancel_url }
+          const requestId = (higgsData?.request_id ?? higgsData?.requestId ?? higgsData?.id) as string | undefined;
+          const statusUrl = (higgsData?.status_url as string | undefined) ?? undefined;
+          const cancelUrl = (higgsData?.cancel_url as string | undefined) ?? undefined;
           const status = (higgsData?.status ?? "queued") as string;
 
           if (!requestId) {
@@ -232,7 +230,7 @@ serve(async (req) => {
             .update({ request_id: requestId, status_url: statusUrl ?? null, cancel_url: cancelUrl ?? null, status })
             .eq("id", job.id);
 
-          console.log("studio-higgsfield-submit:accepted", { jobId: job.id, requestId, mediaMode });
+          console.log("studio-higgsfield-submit:accepted", { jobId: job.id, requestId, mediaMode, modelId });
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           console.error("Higgsfield submit exception:", { msg, jobId: job.id, url: higgsUrl, modelId });

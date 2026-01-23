@@ -109,7 +109,8 @@ serve(async (req) => {
 
     const pollRes = await fetch(statusUrl, {
       headers: {
-        Authorization: `Bearer ${higgsApiKey}`,
+        // Docs: Authorization: Key {api_key_id}:{api_key_secret}
+        Authorization: `Key ${higgsApiKey}:${higgsSecret}`,
         Accept: "application/json",
       },
     });
@@ -127,7 +128,7 @@ serve(async (req) => {
     const updates: Record<string, unknown> = { status: newStatus };
     if (newStatus === "completed" || newStatus === "succeeded") {
       updates.result_payload = pollData;
-    } else if (newStatus === "failed" || newStatus === "error") {
+    } else if (newStatus === "failed" || newStatus === "error" || newStatus === "nsfw") {
       updates.error_message = pollData.error ?? "Unknown error";
     }
 
