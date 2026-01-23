@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StudioShell } from "@/components/creative-studio/StudioShell";
 import { useActiveCompany } from "@/contexts/ActiveCompanyContext";
 import { useStudioCompanies } from "@/hooks/creative-studio/useStudioCompanies";
@@ -22,6 +22,52 @@ export default function CreativeStudioBrandKit() {
 
   const [paletteHex, setPaletteHex] = useState("#");
   const [saving, setSaving] = useState(false);
+  const [palette, setPalette] = useState<string[]>([]);
+  const [loadingPalette, setLoadingPalette] = useState(false);
+
+  const loadPalette = async () => {
+    if (!activeCompanyId) {
+      setPalette([]);
+      return;
+    }
+
+    setLoadingPalette(true);
+    try {
+      const { data, error } = await supabase
+        .from("brand_assets")
+        .select("value")
+        .eq("company_id", activeCompanyId)
+        .eq("asset_type", "palette")
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      const hexes = (data ?? [])
+        .map((row) => {
+          const v = row.value as any;
+          const hex = typeof v?.hex === "string" ? v.hex : null;
+          return hex;
+        })
+        .filter((h): h is string => !!h);
+
+      setPalette(hexes);
+    } catch (e) {
+      console.error(e);
+      setPalette([]);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar a paleta salva.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPalette(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadPalette();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCompanyId]);
 
   const addPaletteColor = async () => {
     if (!activeCompanyId) {
@@ -51,6 +97,7 @@ export default function CreativeStudioBrandKit() {
 
       toast({ title: "Cor adicionada", description: "A cor foi salva no Brand Kit." });
       setPaletteHex("#");
+      await loadPalette();
     } catch (e) {
       console.error(e);
       toast({ title: "Erro", description: "Não foi possível salvar a cor.", variant: "destructive" });
@@ -66,13 +113,41 @@ export default function CreativeStudioBrandKit() {
           <CardHeader>
             <CardTitle>Identidade</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-4">
             <p className="text-muted-foreground">
               Empresa ativa: <span className="text-foreground font-medium">{company?.name || "(nenhuma)"}</span>
             </p>
             <p className="text-sm text-muted-foreground">
               MVP: aqui vamos começar pelo essencial (paleta). Upload de logo/exemplos entra no próximo passo.
             </p>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Cores salvas</p>
+              {!activeCompanyId ? (
+                <p className="text-sm text-muted-foreground">Selecione uma empresa para ver a paleta.</p>
+              ) : loadingPalette ? (
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              ) : palette.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma cor salva ainda.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {palette.map((hex, idx) => (
+                    <div
+                      key={`${hex}-${idx}`}
+                      className="flex items-center gap-2 rounded-md border bg-card px-2 py-1"
+                    >
+                      <span
+                        className="h-5 w-5 rounded-sm border"
+                        style={{ backgroundColor: hex }}
+                        aria-label={`Cor ${hex}`}
+                        title={hex}
+                      />
+                      <span className="text-xs font-mono text-muted-foreground">{hex}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
