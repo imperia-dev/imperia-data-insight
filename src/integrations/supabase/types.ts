@@ -5709,6 +5709,10 @@ export type Database = {
         Args: { p_company_id: string; p_user_id: string }
         Returns: Database["public"]["Enums"]["studio_role"]
       }
+      create_company: {
+        Args: { p_description?: string; p_name: string }
+        Returns: string
+      }
       generate_mfa_backup_codes: { Args: never; Returns: string[] }
       generate_protocol_number: {
         Args: {
