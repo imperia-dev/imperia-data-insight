@@ -51,7 +51,15 @@ export const rolePermissions: Record<Role, string[]> = {
     '/bad-news',
     '/review-checklist-admin',
     '/review-checklist',
-    '/ai-agent'
+    '/ai-agent',
+
+    // Creative Studio
+    '/creative-studio',
+    '/creative-studio/brand-kit',
+    '/creative-studio/sources',
+    '/creative-studio/generate',
+    '/creative-studio/review',
+    '/creative-studio/calendar'
   ],
   financeiro: [
     '/dashboard-controle-financeiro',
@@ -86,7 +94,15 @@ export const rolePermissions: Record<Role, string[]> = {
     '/my-kpis',
     '/review-checklist-admin',
     '/review-checklist',
-    '/ai-agent'
+    '/ai-agent',
+
+    // Creative Studio
+    '/creative-studio',
+    '/creative-studio/brand-kit',
+    '/creative-studio/sources',
+    '/creative-studio/generate',
+    '/creative-studio/review',
+    '/creative-studio/calendar'
     // Removed: '/company-costs',
     // Removed: '/service-provider-costs'
     // Removed: '/team'
@@ -104,7 +120,15 @@ export const rolePermissions: Record<Role, string[]> = {
     '/settings',
     '/notifications',
     '/bad-news',
-    '/ai-agent'
+    '/ai-agent',
+
+    // Creative Studio
+    '/creative-studio',
+    '/creative-studio/brand-kit',
+    '/creative-studio/sources',
+    '/creative-studio/generate',
+    '/creative-studio/review',
+    '/creative-studio/calendar'
     // Removed: '/team'
     // Removed: '/reports'
     // Removed: '/ai-analytics'
