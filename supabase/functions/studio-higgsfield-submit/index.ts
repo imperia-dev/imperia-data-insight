@@ -76,7 +76,9 @@ const bodySchema = z.object({
   creativeId: z.string().uuid(),
   mediaMode: z.enum(["image", "carousel", "video"]),
   prompt: z.string().min(3).max(2000),
-  aspectRatio: z.enum(["1:1", "4:5", "9:16"]).default("4:5"),
+  // Higgsfield allowed values (per error): '9:16', '16:9', '4:3', '3:4', '1:1', '2:3' or '3:2'
+  // We keep the UI aligned to IG formats: 1:1, 3:4 (closest to 4:5), 9:16
+  aspectRatio: z.enum(["1:1", "3:4", "9:16"]).default("3:4"),
   carouselPages: z.number().int().min(2).max(10).optional(),
   referenceImageUrl: z.string().url().optional(),
   videoDuration: z.number().int().min(3).max(15).optional(),
