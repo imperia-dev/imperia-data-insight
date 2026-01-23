@@ -24,6 +24,14 @@ async function safeReadText(res: Response) {
   }
 }
 
+function normalizeHiggsBase(raw?: string | null) {
+  const base = (raw || "https://api.higgsfield.ai").trim().replace(/\/+$/, "");
+  // We observed 500s when calling platform + model path directly.
+  // The public docs use api.higgsfield.ai/v1/generations.
+  if (base.includes("platform.higgsfield.ai")) return "https://api.higgsfield.ai";
+  return base;
+}
+
 async function requireAuthAndRole(req: Request) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -82,7 +90,7 @@ serve(async (req) => {
 
     const higgsApiKey = Deno.env.get("HIGGSFIELD_API_KEY");
     const higgsSecret = Deno.env.get("HIGGSFIELD_API_SECRET");
-    const higgsBase = Deno.env.get("HIGGSFIELD_BASE_URL") || "https://platform.higgsfield.ai";
+    const higgsBase = normalizeHiggsBase(Deno.env.get("HIGGSFIELD_BASE_URL"));
 
     if (!higgsApiKey || !higgsSecret) {
       return jsonResponse({ error: "Missing Higgsfield credentials" }, 500);
@@ -113,33 +121,35 @@ serve(async (req) => {
       return jsonResponse({ error: "Forbidden: not a member of this company" }, 403);
     }
 
-    // Determine Higgsfield model and payload
-    let modelId: string;
-    let payload: Record<string, unknown>;
+    // Determine REST payload (docs.higgsfield.ai)
+    // NOTE: Keep our internal modelId field for tracing, but call the unified /v1/generations endpoint.
+    const modelId = mediaMode === "video" ? "dop" : "soul";
+
+    const higgsUrl = `${higgsBase}/v1/generations`;
+    const payload: Record<string, unknown> = {
+      prompt,
+      aspect_ratio: aspectRatio,
+    };
 
     if (mediaMode === "video") {
-      modelId = "higgsfield-ai/dop/standard";
-      payload = {
-        prompt,
-        image_url: referenceImageUrl ?? undefined,
-        duration: videoDuration ?? 5,
-        aspect_ratio: aspectRatio,
-      };
+      payload.task = referenceImageUrl ? "image-to-video" : "text-to-video";
+      payload.model = "wan-25";
+      payload.duration = videoDuration ?? 5;
+      if (referenceImageUrl) payload.image_url = referenceImageUrl;
     } else {
-      modelId = "higgsfield-ai/soul/standard";
-      payload = {
-        prompt,
-        aspect_ratio: aspectRatio,
-        resolution: "720p",
-      };
+      payload.task = "text-to-image";
+      payload.model = "flux";
+      // carousel = multiple images
+      if (mediaMode === "carousel") payload.num_images = carouselPages ?? 3;
+      payload.resolution = "720p";
     }
 
-    // Submit request to Higgsfield
-    const higgsUrl = `${higgsBase}/${modelId}`;
+    // Submit request to Higgsfield (REST)
     const higgsRes = await fetch(higgsUrl, {
       method: "POST",
       headers: {
-        Authorization: `Key ${higgsApiKey}:${higgsSecret}`,
+        // Higgsfield REST API uses Bearer tokens
+        Authorization: `Bearer ${higgsApiKey}`,
         "Content-Type": "application/json",
         Accept: "application/json",
       },
@@ -170,7 +180,16 @@ serve(async (req) => {
       );
     }
 
-    const higgsData = await higgsRes.json();
+    const higgsData = await higgsRes.json().catch(() => ({}));
+    const requestId = (higgsData?.request_id ?? higgsData?.id ?? higgsData?.data?.id) as string | undefined;
+    const statusUrl = (higgsData?.status_url as string | undefined) ?? (requestId ? `${higgsBase}/v1/generations/${requestId}` : undefined);
+    const cancelUrl = higgsData?.cancel_url as string | undefined;
+    const status = (higgsData?.status ?? "queued") as string;
+
+    if (!requestId) {
+      console.error("Higgsfield submit unexpected response:", { url: higgsUrl, higgsData });
+      return jsonResponse({ error: "Higgsfield response missing request id" }, 502);
+    }
 
     // Store job record
     const { data: job, error: jobErr } = await auth.supabase
@@ -179,10 +198,10 @@ serve(async (req) => {
         company_id: companyId,
         creative_id: creativeId,
         provider: "higgsfield",
-        request_id: higgsData.request_id,
-        status: higgsData.status ?? "queued",
-        status_url: higgsData.status_url,
-        cancel_url: higgsData.cancel_url,
+        request_id: requestId,
+        status,
+        status_url: statusUrl,
+        cancel_url: cancelUrl,
         request_payload: {
           mediaMode,
           prompt,
@@ -205,15 +224,15 @@ serve(async (req) => {
     console.log("studio-higgsfield-submit:success", {
       userId: auth.user.id,
       jobId: job.id,
-      requestId: higgsData.request_id,
+      requestId,
       mediaMode,
     });
 
     return jsonResponse({
       ok: true,
       jobId: job.id,
-      requestId: higgsData.request_id,
-      statusUrl: higgsData.status_url,
+      requestId,
+      statusUrl,
     });
   } catch (error) {
     console.error("studio-higgsfield-submit error:", error);
