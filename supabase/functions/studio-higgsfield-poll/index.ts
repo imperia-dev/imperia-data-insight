@@ -14,6 +14,14 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+async function safeReadText(res: Response) {
+  try {
+    return await res.text();
+  } catch {
+    return "";
+  }
+}
+
 async function requireAuth(req: Request) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -101,32 +109,32 @@ serve(async (req) => {
 
     const pollRes = await fetch(statusUrl, {
       headers: {
-        Authorization: `Key ${higgsApiKey}:${higgsSecret}`,
+        Authorization: `Bearer ${higgsApiKey}`,
         Accept: "application/json",
       },
     });
 
     if (!pollRes.ok) {
-      const errText = await pollRes.text().catch(() => "");
-      console.error("Higgsfield poll error:", pollRes.status, errText);
-      return jsonResponse({ error: "Failed to poll Higgsfield", status: pollRes.status }, 502);
+      const errText = await safeReadText(pollRes);
+      console.error("Higgsfield poll error:", { status: pollRes.status, statusUrl, response: errText });
+      return jsonResponse({ error: "Failed to poll Higgsfield", status: pollRes.status, details: errText }, 502);
     }
 
-    const pollData = await pollRes.json();
-    const newStatus = pollData.status ?? job.status;
+    const pollData = await pollRes.json().catch(() => ({}));
+    const newStatus = (pollData.status ?? pollData.state ?? job.status) as string;
 
     // Update job record
     const updates: Record<string, unknown> = { status: newStatus };
-    if (newStatus === "completed") {
+    if (newStatus === "completed" || newStatus === "succeeded") {
       updates.result_payload = pollData;
-    } else if (newStatus === "failed") {
+    } else if (newStatus === "failed" || newStatus === "error") {
       updates.error_message = pollData.error ?? "Unknown error";
     }
 
     await auth.supabase.from("creative_provider_jobs").update(updates).eq("id", job.id);
 
     // If completed, download media and store in Supabase Storage
-    if (newStatus === "completed") {
+    if (newStatus === "completed" || newStatus === "succeeded") {
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const adminClient = createClient(supabaseUrl, serviceKey!, { auth: { persistSession: false } });
@@ -138,11 +146,25 @@ serve(async (req) => {
 
       const mediaUrls: Array<{ url: string; position: number }> = [];
 
-      if (isVideo && pollData.video?.url) {
-        mediaUrls.push({ url: pollData.video.url, position: 1 });
-      } else if (Array.isArray(pollData.images)) {
-        (pollData.images as Array<{ url: string }>).forEach((img, idx) => {
-          mediaUrls.push({ url: img.url, position: idx + 1 });
+      // Normalize possible response shapes
+      const videoUrl =
+        pollData?.video?.url ??
+        pollData?.output?.video?.url ??
+        pollData?.result?.video?.url ??
+        pollData?.data?.video?.url;
+
+      const imagesArr =
+        pollData?.images ??
+        pollData?.output?.images ??
+        pollData?.result?.images ??
+        pollData?.data?.images;
+
+      if (isVideo && typeof videoUrl === "string") {
+        mediaUrls.push({ url: videoUrl, position: 1 });
+      } else if (Array.isArray(imagesArr)) {
+        (imagesArr as Array<{ url?: string; uri?: string }>).forEach((img, idx) => {
+          const u = (img?.url ?? (img as any)?.uri) as string | undefined;
+          if (u) mediaUrls.push({ url: u, position: idx + 1 });
         });
       }
 
