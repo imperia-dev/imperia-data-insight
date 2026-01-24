@@ -44,6 +44,17 @@ const SIZE_MAP: Record<string, "1024x1024" | "1024x1792" | "1792x1024"> = {
 
 console.log("studio-openai-generate: module loaded");
 
+// Brand context schema
+const brandContextSchema = z.object({
+  companyName: z.string().optional(),
+  palette: z.array(z.string()).optional(),
+  knowledgeBase: z.array(z.object({
+    source_type: z.string(),
+    content: z.string(),
+    source_url: z.string().nullable().optional(),
+  })).optional(),
+}).optional();
+
 const bodySchema = z.object({
   companyId: z.string().uuid(),
   creativeId: z.string().uuid(),
@@ -51,10 +62,60 @@ const bodySchema = z.object({
   prompt: z.string().min(3).max(2000),
   aspectRatio: z.enum(["1:1", "3:4", "4:3", "9:16", "16:9"]).default("3:4"),
   carouselPages: z.number().int().min(2).max(10).optional(),
+  brandContext: brandContextSchema,
 });
 
 // Log function start
 console.log("studio-openai-generate: function started");
+
+// Build enriched prompt with brand context
+function buildEnrichedPrompt(
+  basePrompt: string,
+  brandContext?: {
+    companyName?: string;
+    palette?: string[];
+    knowledgeBase?: Array<{ source_type: string; content: string; source_url?: string | null }>;
+  }
+): string {
+  if (!brandContext) return basePrompt;
+
+  const parts: string[] = [];
+
+  // Add company name context
+  if (brandContext.companyName) {
+    parts.push(`Brand: ${brandContext.companyName}.`);
+  }
+
+  // Add color palette context
+  if (brandContext.palette && brandContext.palette.length > 0) {
+    parts.push(`Brand colors (HEX): ${brandContext.palette.join(", ")}. Use these colors prominently in the design.`);
+  }
+
+  // Add knowledge base context
+  if (brandContext.knowledgeBase && brandContext.knowledgeBase.length > 0) {
+    const contextPieces: string[] = [];
+    for (const kb of brandContext.knowledgeBase) {
+      if (kb.source_type === "brand_kit_summary") {
+        contextPieces.push(`Brand identity: ${kb.content}`);
+      } else if (kb.source_type === "website") {
+        contextPieces.push(`Website info: ${kb.content}`);
+      } else if (kb.source_type === "competitor_inspiration") {
+        contextPieces.push(`Style inspiration: ${kb.content}`);
+      }
+    }
+    if (contextPieces.length > 0) {
+      parts.push(contextPieces.join(" | "));
+    }
+  }
+
+  // Combine context with base prompt
+  if (parts.length > 0) {
+    const contextStr = parts.join(" ");
+    return `[BRAND CONTEXT: ${contextStr}]\n\n${basePrompt}`;
+  }
+
+  return basePrompt;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -79,8 +140,12 @@ serve(async (req) => {
       return jsonResponse({ error: "Invalid body", details: parsed.error.flatten() }, 400);
     }
 
-    const { companyId, creativeId, mediaMode, prompt, aspectRatio, carouselPages } = parsed.data;
-    console.log("studio-openai-generate: validated params", { companyId, creativeId, mediaMode, aspectRatio });
+    const { companyId, creativeId, mediaMode, prompt, aspectRatio, carouselPages, brandContext } = parsed.data;
+    console.log("studio-openai-generate: validated params", { companyId, creativeId, mediaMode, aspectRatio, hasBrandContext: !!brandContext });
+
+    // Build enriched prompt with brand context
+    const enrichedPrompt = buildEnrichedPrompt(prompt, brandContext);
+    console.log("studio-openai-generate: enriched prompt length", enrichedPrompt.length);
 
     // Verify company membership
     const { data: member } = await auth.supabase
@@ -121,7 +186,7 @@ serve(async (req) => {
         created_by: auth.user.id,
         provider: "openai",
         request_id: requestId,
-        request_payload: { mediaMode, prompt, aspectRatio, imageCount },
+        request_payload: { mediaMode, prompt, enrichedPrompt, aspectRatio, imageCount, brandContext },
         status: "in_progress",
       })
       .select("id")
@@ -148,7 +213,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: "dall-e-3",
-            prompt: prompt,
+            prompt: enrichedPrompt, // Use enriched prompt
             n: 1,
             size: size,
             quality: "standard",

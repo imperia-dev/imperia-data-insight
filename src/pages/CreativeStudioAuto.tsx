@@ -60,6 +60,11 @@ export default function CreativeStudioAuto() {
   const [creatives, setCreatives] = useState<CreativeRow[]>([]);
   const [selectedCreativeId, setSelectedCreativeId] = useState<string>("");
 
+  // Brand context data
+  const [brandPalette, setBrandPalette] = useState<string[]>([]);
+  const [knowledgeBase, setKnowledgeBase] = useState<Array<{ source_type: string; content: string; source_url: string | null }>>([]);
+  const [companyName, setCompanyName] = useState<string>("");
+
   // Jobs
   const [jobs, setJobs] = useState<ProviderJob[]>([]);
   const [jobMediaMap, setJobMediaMap] = useState<JobMediaMap>({});
@@ -84,6 +89,47 @@ export default function CreativeStudioAuto() {
       if (!selectedCreativeId && (data?.length ?? 0) > 0) setSelectedCreativeId(data![0].id);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const loadBrandContext = async () => {
+    if (!activeCompanyId) return;
+    try {
+      // Load company name
+      const { data: companyData } = await supabase
+        .from("companies")
+        .select("name")
+        .eq("id", activeCompanyId)
+        .maybeSingle();
+      
+      if (companyData?.name) setCompanyName(companyData.name);
+
+      // Load brand palette
+      const { data: paletteData } = await supabase
+        .from("brand_assets")
+        .select("value")
+        .eq("company_id", activeCompanyId)
+        .eq("asset_type", "palette")
+        .order("created_at", { ascending: true });
+
+      if (paletteData && paletteData.length > 0) {
+        const colors = paletteData.map((p) => (p.value as { hex: string })?.hex).filter(Boolean);
+        setBrandPalette(colors);
+      }
+
+      // Load knowledge base
+      const { data: kbData } = await supabase
+        .from("knowledge_base")
+        .select("source_type, content, source_url")
+        .eq("company_id", activeCompanyId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (kbData && kbData.length > 0) {
+        setKnowledgeBase(kbData as Array<{ source_type: string; content: string; source_url: string | null }>);
+      }
+    } catch (e) {
+      console.error("Error loading brand context:", e);
     }
   };
 
@@ -160,6 +206,7 @@ export default function CreativeStudioAuto() {
   useEffect(() => {
     void loadCreatives();
     void loadJobs();
+    void loadBrandContext();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCompanyId]);
 
@@ -178,6 +225,14 @@ export default function CreativeStudioAuto() {
     setIsSubmitting(true);
     try {
       const functionName = provider === "openai" ? "studio-openai-generate" : "studio-higgsfield-submit";
+      
+      // Build brand context object
+      const brandContext = {
+        companyName: companyName || undefined,
+        palette: brandPalette.length > 0 ? brandPalette : undefined,
+        knowledgeBase: knowledgeBase.length > 0 ? knowledgeBase : undefined,
+      };
+
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           companyId: activeCompanyId,
@@ -188,6 +243,7 @@ export default function CreativeStudioAuto() {
           carouselPages: mediaMode === "carousel" ? carouselPages : undefined,
           videoDuration: mediaMode === "video" ? videoDuration : undefined,
           referenceImageUrl: referenceImageUrl.trim() || undefined,
+          brandContext, // Include brand context
         },
       });
 
@@ -255,6 +311,25 @@ export default function CreativeStudioAuto() {
               </p>
             ) : (
               <>
+                {/* Brand context indicator */}
+                {(brandPalette.length > 0 || knowledgeBase.length > 0 || companyName) && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                    <p className="text-sm font-medium text-primary">✓ Contexto da marca carregado</p>
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      {companyName && <span className="bg-background px-2 py-1 rounded">Empresa: {companyName}</span>}
+                      {brandPalette.length > 0 && (
+                        <span className="bg-background px-2 py-1 rounded flex items-center gap-1">
+                          {brandPalette.slice(0, 4).map((c, i) => (
+                            <span key={i} className="w-3 h-3 rounded-full border" style={{ backgroundColor: c }} />
+                          ))}
+                          {brandPalette.length > 4 && <span>+{brandPalette.length - 4}</span>}
+                        </span>
+                      )}
+                      {knowledgeBase.length > 0 && <span className="bg-background px-2 py-1 rounded">{knowledgeBase.length} fonte(s)</span>}
+                    </div>
+                  </div>
+                )}
+
                 {/* Media mode tabs */}
                 <Tabs value={mediaMode} onValueChange={(v) => setMediaMode(v as MediaMode)}>
                   <TabsList className="grid w-full grid-cols-3">
