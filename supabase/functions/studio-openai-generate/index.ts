@@ -33,22 +33,28 @@ async function requireAuth(req: Request) {
 }
 
 // Size mapping per aspect ratio for DALL-E 3
+// DALL-E 3 only supports: 1024x1024, 1024x1792, 1792x1024
 const SIZE_MAP: Record<string, "1024x1024" | "1024x1792" | "1792x1024"> = {
   "1:1": "1024x1024",
-  "3:4": "1024x1792",
-  "9:16": "1024x1792",
-  "16:9": "1792x1024",
-  "4:3": "1792x1024",
+  "3:4": "1024x1792",  // portrait
+  "4:3": "1792x1024",  // landscape
+  "9:16": "1024x1792", // vertical/reels
+  "16:9": "1792x1024", // horizontal
 };
+
+console.log("studio-openai-generate: module loaded");
 
 const bodySchema = z.object({
   companyId: z.string().uuid(),
   creativeId: z.string().uuid(),
   mediaMode: z.enum(["image", "carousel"]), // video not supported via DALL-E
   prompt: z.string().min(3).max(2000),
-  aspectRatio: z.enum(["1:1", "3:4", "9:16"]).default("3:4"),
+  aspectRatio: z.enum(["1:1", "3:4", "4:3", "9:16", "16:9"]).default("3:4"),
   carouselPages: z.number().int().min(2).max(10).optional(),
 });
+
+// Log function start
+console.log("studio-openai-generate: function started");
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -64,12 +70,17 @@ serve(async (req) => {
       return jsonResponse({ error: "Missing OPENAI_API_KEY" }, 500);
     }
 
-    const parsed = bodySchema.safeParse(await req.json().catch(() => ({})));
+    const rawBody = await req.json().catch(() => ({}));
+    console.log("studio-openai-generate: received body", JSON.stringify(rawBody));
+
+    const parsed = bodySchema.safeParse(rawBody);
     if (!parsed.success) {
+      console.error("studio-openai-generate: validation failed", parsed.error.flatten());
       return jsonResponse({ error: "Invalid body", details: parsed.error.flatten() }, 400);
     }
 
     const { companyId, creativeId, mediaMode, prompt, aspectRatio, carouselPages } = parsed.data;
+    console.log("studio-openai-generate: validated params", { companyId, creativeId, mediaMode, aspectRatio });
 
     // Verify company membership
     const { data: member } = await auth.supabase
