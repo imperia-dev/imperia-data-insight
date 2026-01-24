@@ -18,7 +18,7 @@ import { useActiveCompany } from "@/contexts/ActiveCompanyContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { Loader2, Image as ImageIcon, Film, Images, RefreshCw, ExternalLink } from "lucide-react";
+import { Loader2, Image as ImageIcon, Film, Images, RefreshCw, ExternalLink, Upload, X } from "lucide-react";
 
 type CreativeRow = Database["public"]["Tables"]["creatives"]["Row"];
 type ProviderJob = Database["public"]["Tables"]["creative_provider_jobs"]["Row"];
@@ -63,6 +63,8 @@ export default function CreativeStudioAuto() {
   // Brand context data
   const [brandPalette, setBrandPalette] = useState<string[]>([]);
   const [knowledgeBase, setKnowledgeBase] = useState<Array<{ source_type: string; content: string; source_url: string | null }>>([]);
+  const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [companyName, setCompanyName] = useState<string>("");
 
   // Jobs
@@ -117,6 +119,30 @@ export default function CreativeStudioAuto() {
         setBrandPalette(colors);
       }
 
+      // Load brand logo
+      const { data: logoData } = await supabase
+        .from("brand_assets")
+        .select("value")
+        .eq("company_id", activeCompanyId)
+        .eq("asset_type", "logo")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (logoData && logoData.length > 0) {
+        const logoValue = logoData[0].value as { url?: string; storage_path?: string };
+        if (logoValue?.url) {
+          setBrandLogoUrl(logoValue.url);
+        } else if (logoValue?.storage_path) {
+          // Get signed URL for the logo
+          const { data: signedData } = await supabase.storage
+            .from("brand-assets")
+            .createSignedUrl(logoValue.storage_path, 3600);
+          if (signedData?.signedUrl) {
+            setBrandLogoUrl(signedData.signedUrl);
+          }
+        }
+      }
+
       // Load knowledge base
       const { data: kbData } = await supabase
         .from("knowledge_base")
@@ -130,6 +156,103 @@ export default function CreativeStudioAuto() {
       }
     } catch (e) {
       console.error("Error loading brand context:", e);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeCompanyId || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "Selecione uma imagem.", variant: "destructive" });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${activeCompanyId}/logo.${fileExt}`;
+
+      // Upload to brand-assets bucket
+      const { error: uploadError } = await supabase.storage
+        .from("brand-assets")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("brand-assets")
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData?.publicUrl;
+
+      // Remove existing logo asset
+      await supabase
+        .from("brand_assets")
+        .delete()
+        .eq("company_id", activeCompanyId)
+        .eq("asset_type", "logo");
+
+      // Insert new logo asset
+      const { error: insertError } = await supabase
+        .from("brand_assets")
+        .insert({
+          company_id: activeCompanyId,
+          created_by: user.id,
+          asset_type: "logo",
+          value: { url: publicUrl, storage_path: filePath },
+        });
+
+      if (insertError) throw insertError;
+
+      setBrandLogoUrl(publicUrl || null);
+      toast({ title: "Logo enviado com sucesso!" });
+    } catch (err) {
+      console.error("Error uploading logo:", err);
+      toast({ title: "Erro ao enviar logo", variant: "destructive" });
+    } finally {
+      setIsUploadingLogo(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!activeCompanyId) return;
+    try {
+      // Delete from brand_assets table
+      await supabase
+        .from("brand_assets")
+        .delete()
+        .eq("company_id", activeCompanyId)
+        .eq("asset_type", "logo");
+
+      // Delete from storage
+      const { data: logoData } = await supabase
+        .from("brand_assets")
+        .select("value")
+        .eq("company_id", activeCompanyId)
+        .eq("asset_type", "logo")
+        .limit(1);
+
+      if (logoData && logoData.length > 0) {
+        const logoValue = logoData[0].value as { storage_path?: string };
+        if (logoValue?.storage_path) {
+          await supabase.storage.from("brand-assets").remove([logoValue.storage_path]);
+        }
+      }
+
+      setBrandLogoUrl(null);
+      toast({ title: "Logo removido" });
+    } catch (err) {
+      console.error("Error removing logo:", err);
     }
   };
 
@@ -231,6 +354,7 @@ export default function CreativeStudioAuto() {
         companyName: companyName || undefined,
         palette: brandPalette.length > 0 ? brandPalette : undefined,
         knowledgeBase: knowledgeBase.length > 0 ? knowledgeBase : undefined,
+        logoUrl: brandLogoUrl || undefined,
       };
 
       const { data, error } = await supabase.functions.invoke(functionName, {
@@ -311,12 +435,55 @@ export default function CreativeStudioAuto() {
               </p>
             ) : (
               <>
+                {/* Logo upload */}
+                <div className="space-y-2">
+                  <Label>Logo da empresa</Label>
+                  <div className="flex items-center gap-3">
+                    {brandLogoUrl ? (
+                      <div className="relative group">
+                        <img 
+                          src={brandLogoUrl} 
+                          alt="Logo da empresa" 
+                          className="h-16 w-16 object-contain rounded-md border bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center h-16 w-16 border-2 border-dashed rounded-md cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
+                        {isUploadingLogo ? (
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        ) : (
+                          <Upload className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleLogoUpload}
+                          disabled={isUploadingLogo || isSubmitting}
+                        />
+                      </label>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      <p>Envie o logo da sua empresa.</p>
+                      <p>Será usado como contexto na geração.</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Brand context indicator */}
-                {(brandPalette.length > 0 || knowledgeBase.length > 0 || companyName) && (
+                {(brandPalette.length > 0 || knowledgeBase.length > 0 || companyName || brandLogoUrl) && (
                   <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
                     <p className="text-sm font-medium text-primary">✓ Contexto da marca carregado</p>
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                       {companyName && <span className="bg-background px-2 py-1 rounded">Empresa: {companyName}</span>}
+                      {brandLogoUrl && <span className="bg-background px-2 py-1 rounded">Logo ✓</span>}
                       {brandPalette.length > 0 && (
                         <span className="bg-background px-2 py-1 rounded flex items-center gap-1">
                           {brandPalette.slice(0, 4).map((c, i) => (
