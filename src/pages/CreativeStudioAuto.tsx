@@ -18,14 +18,18 @@ import { useActiveCompany } from "@/contexts/ActiveCompanyContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { Loader2, Image as ImageIcon, Film, Images, RefreshCw } from "lucide-react";
+import { Loader2, Image as ImageIcon, Film, Images, RefreshCw, ExternalLink } from "lucide-react";
 
 type CreativeRow = Database["public"]["Tables"]["creatives"]["Row"];
 type ProviderJob = Database["public"]["Tables"]["creative_provider_jobs"]["Row"];
+type CreativeMedia = Database["public"]["Tables"]["creative_media"]["Row"];
 
 type MediaMode = "image" | "carousel" | "video";
 type AspectRatio = "1:1" | "3:4" | "9:16";
 type Provider = "openai" | "higgsfield";
+
+// Map jobId -> signed URLs for media display
+type JobMediaMap = Record<string, string[]>;
 
 const ASPECT_OPTIONS: Array<{ value: AspectRatio; label: string }> = [
   { value: "1:1", label: "Quadrado (1:1)" },
@@ -58,6 +62,7 @@ export default function CreativeStudioAuto() {
 
   // Jobs
   const [jobs, setJobs] = useState<ProviderJob[]>([]);
+  const [jobMediaMap, setJobMediaMap] = useState<JobMediaMap>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [pollingJobId, setPollingJobId] = useState<string | null>(null);
@@ -95,10 +100,60 @@ export default function CreativeStudioAuto() {
 
       if (error) throw error;
       setJobs(data ?? []);
+      
+      // Fetch media for completed jobs
+      const completedJobs = (data ?? []).filter(j => j.status === "completed");
+      if (completedJobs.length > 0) {
+        await loadMediaForJobs(completedJobs.map(j => j.id));
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setIsLoadingJobs(false);
+    }
+  };
+
+  const loadMediaForJobs = async (jobIds: string[]) => {
+    if (!activeCompanyId || jobIds.length === 0) return;
+    
+    try {
+      // Fetch creative_media records that match job IDs in storage_path
+      const { data: mediaRecords, error } = await supabase
+        .from("creative_media")
+        .select("*")
+        .eq("company_id", activeCompanyId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      if (!mediaRecords || mediaRecords.length === 0) return;
+
+      const newMediaMap: JobMediaMap = {};
+
+      // Match media to jobs by storage_path containing jobId
+      for (const media of mediaRecords) {
+        for (const jobId of jobIds) {
+          if (media.storage_path.includes(jobId)) {
+            // Get signed URL for the media
+            const { data: signedData, error: signedError } = await supabase
+              .storage
+              .from(media.storage_bucket)
+              .createSignedUrl(media.storage_path, 3600); // 1 hour
+
+            if (!signedError && signedData?.signedUrl) {
+              if (!newMediaMap[jobId]) {
+                newMediaMap[jobId] = [];
+              }
+              newMediaMap[jobId].push(signedData.signedUrl);
+            }
+            break;
+          }
+        }
+      }
+
+      setJobMediaMap(prev => ({ ...prev, ...newMediaMap }));
+    } catch (e) {
+      console.error("Error loading media for jobs:", e);
     }
   };
 
@@ -372,6 +427,8 @@ export default function CreativeStudioAuto() {
               <ul className="space-y-2">
                 {jobs.map((j) => {
                   const reqPayload = j.request_payload as Record<string, unknown>;
+                  const mediaUrls = jobMediaMap[j.id] || [];
+                  
                   return (
                     <li key={j.id} className="rounded-md border p-3">
                       <div className="flex items-center justify-between gap-2">
@@ -379,6 +436,42 @@ export default function CreativeStudioAuto() {
                         <span className="text-xs text-muted-foreground">{reqPayload.mediaMode as string}</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{reqPayload.prompt as string}</p>
+                      
+                      {/* Show generated media for completed jobs */}
+                      {j.status === "completed" && mediaUrls.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          <div className="grid gap-2 grid-cols-2">
+                            {mediaUrls.slice(0, 4).map((url, idx) => (
+                              <a 
+                                key={idx} 
+                                href={url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="block relative group overflow-hidden rounded-md border"
+                              >
+                                <img 
+                                  src={url} 
+                                  alt={`Geração ${idx + 1}`} 
+                                  className="w-full h-24 object-cover transition-transform group-hover:scale-105"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <ExternalLink className="h-5 w-5 text-white" />
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                          {mediaUrls.length > 4 && (
+                            <p className="text-xs text-muted-foreground text-center">
+                              +{mediaUrls.length - 4} mais
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {j.status === "completed" && mediaUrls.length === 0 && (
+                        <p className="text-xs text-yellow-600 mt-2">Carregando mídia...</p>
+                      )}
+                      
                       {(j.status === "queued" || j.status === "in_progress") && (
                         <Button
                           variant="outline"
