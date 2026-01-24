@@ -53,6 +53,7 @@ const brandContextSchema = z.object({
     content: z.string(),
     source_url: z.string().nullable().optional(),
   })).optional(),
+  logoUrl: z.string().url().optional(),
 }).optional();
 
 const bodySchema = z.object({
@@ -75,6 +76,7 @@ function buildEnrichedPrompt(
     companyName?: string;
     palette?: string[];
     knowledgeBase?: Array<{ source_type: string; content: string; source_url?: string | null }>;
+    logoUrl?: string;
   }
 ): string {
   if (!brandContext) return basePrompt;
@@ -89,6 +91,11 @@ function buildEnrichedPrompt(
   // Add color palette context
   if (brandContext.palette && brandContext.palette.length > 0) {
     parts.push(`Brand colors (HEX): ${brandContext.palette.join(", ")}. Use these colors prominently in the design.`);
+  }
+
+  // Add logo context
+  if (brandContext.logoUrl) {
+    parts.push(`The brand has a logo. Consider incorporating brand identity elements consistent with a professional company logo in the design.`);
   }
 
   // Add knowledge base context
