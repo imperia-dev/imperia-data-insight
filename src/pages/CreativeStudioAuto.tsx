@@ -25,11 +25,17 @@ type ProviderJob = Database["public"]["Tables"]["creative_provider_jobs"]["Row"]
 
 type MediaMode = "image" | "carousel" | "video";
 type AspectRatio = "1:1" | "3:4" | "9:16";
+type Provider = "openai" | "higgsfield";
 
 const ASPECT_OPTIONS: Array<{ value: AspectRatio; label: string }> = [
   { value: "1:1", label: "Quadrado (1:1)" },
   { value: "3:4", label: "Feed (3:4)" },
   { value: "9:16", label: "Reels (9:16)" },
+];
+
+const PROVIDER_OPTIONS: Array<{ value: Provider; label: string; description: string }> = [
+  { value: "openai", label: "OpenAI (DALL-E 3)", description: "Imagens de alta qualidade" },
+  { value: "higgsfield", label: "Higgsfield", description: "Imagens e vídeos (requer créditos)" },
 ];
 
 export default function CreativeStudioAuto() {
@@ -39,6 +45,7 @@ export default function CreativeStudioAuto() {
 
   // Form state
   const [mediaMode, setMediaMode] = useState<MediaMode>("image");
+  const [provider, setProvider] = useState<Provider>("openai");
   const [prompt, setPrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("3:4");
   const [carouselPages, setCarouselPages] = useState(3);
@@ -107,9 +114,16 @@ export default function CreativeStudioAuto() {
       return;
     }
 
+    // OpenAI provider doesn't support video
+    if (provider === "openai" && mediaMode === "video") {
+      toast({ title: "OpenAI não suporta vídeo", description: "Selecione Higgsfield para gerar vídeos.", variant: "destructive" });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("studio-higgsfield-submit", {
+      const functionName = provider === "openai" ? "studio-openai-generate" : "studio-higgsfield-submit";
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           companyId: activeCompanyId,
           creativeId: selectedCreativeId,
@@ -124,7 +138,8 @@ export default function CreativeStudioAuto() {
 
       if (error) throw error;
 
-      toast({ title: "Geração iniciada", description: `Job ID: ${data?.jobId}` });
+      const status = data?.status ?? "iniciada";
+      toast({ title: `Geração ${status}`, description: `Job ID: ${data?.jobId}` });
       setPrompt("");
       await loadJobs();
     } catch (e) {
@@ -176,7 +191,7 @@ export default function CreativeStudioAuto() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Gerar mídia automática (Higgsfield)</CardTitle>
+            <CardTitle>Gerar mídia automática</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             {!activeCompanyId ? (
@@ -200,6 +215,30 @@ export default function CreativeStudioAuto() {
                   </TabsList>
 
                   <TabsContent value={mediaMode} className="space-y-4 pt-4">
+                    {/* Provider selection */}
+                    <div className="space-y-2">
+                      <Label>Provedor de IA</Label>
+                      <Select value={provider} onValueChange={(v) => setProvider(v as Provider)} disabled={isSubmitting}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PROVIDER_OPTIONS.map((p) => (
+                            <SelectItem key={p.value} value={p.value}>
+                              <div className="flex flex-col">
+                                <span>{p.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        {provider === "openai"
+                          ? "DALL-E 3: Imagens de alta qualidade. Não suporta vídeos."
+                          : "Higgsfield: Imagens e vídeos. Requer créditos ativos."}
+                      </p>
+                    </div>
+
                     {/* Prompt */}
                     <div className="space-y-2">
                       <Label htmlFor="prompt">Prompt de geração *</Label>

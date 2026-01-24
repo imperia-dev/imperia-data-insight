@@ -98,3 +98,6 @@ verify_jwt = true
 
 [functions.studio-higgsfield-poll]
 verify_jwt = true
+
+[functions.studio-openai-generate]
+verify_jwt = true
