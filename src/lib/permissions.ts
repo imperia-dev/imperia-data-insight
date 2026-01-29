@@ -27,7 +27,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/fechamento-prestadores',
     '/payment-request',
     '/payment-receipts',
-    '/btg-integration',
+    
     '/dashboard-comercial',
     '/dashboard-marketing',
     '/dashboard-tech',

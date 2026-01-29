@@ -43,7 +43,7 @@ import PaymentRequest from "./pages/PaymentRequest";
 import PaymentReceipts from "./pages/PaymentReceipts";
 import RegistrationApprovals from "./pages/RegistrationApprovals";
 import PendingApproval from "./pages/PendingApproval";
-import BTGIntegration from "./pages/BTGIntegration";
+
 import SecurityDashboard from "./pages/SecurityDashboard";
 import PasswordReset from "./pages/PasswordReset";
 import Leads from "./pages/Leads";
@@ -248,11 +248,6 @@ const App = () => (
             <Route path="/payment-receipts" element={
               <ProtectedRouteWithApproval>
                 <PaymentReceipts />
-              </ProtectedRouteWithApproval>
-            } />
-            <Route path="/btg-integration" element={
-              <ProtectedRouteWithApproval>
-                <BTGIntegration />
               </ProtectedRouteWithApproval>
             } />
             <Route path="/security-dashboard" element={

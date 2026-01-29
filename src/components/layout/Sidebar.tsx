@@ -139,12 +139,6 @@ const navigationGroups: NavigationGroup[] = [
         href: "/payment-receipts",
         roles: ["owner"],
       },
-      {
-        title: "Integração BTG",
-        icon: Link,
-        href: "/btg-integration",
-        roles: ["owner"],
-      },
     ],
   },
   {
