@@ -11,7 +11,7 @@ import { Header } from "@/components/layout/Header";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useLocation, Navigate } from "react-router-dom";
 import { Send, Eye, CheckCircle2, Upload, FileCheck, Loader2, FileSpreadsheet, Trash2 } from "lucide-react";
-import { exportBTGPayments } from "@/utils/exportBTGPayments";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
@@ -327,46 +327,6 @@ export default function PaymentProcessing() {
     }
   };
 
-  const handleExportBTG = () => {
-    if (selectedProtocols.size === 0) {
-      toast.error("Selecione pelo menos um protocolo para exportar");
-      return;
-    }
-
-    const selectedProtocolsData = protocols.filter(p => selectedProtocols.has(p.id));
-    const prestadoresCount = selectedProtocolsData.filter(p => p.protocol_type === 'service_provider').length;
-    const revisoresCount = selectedProtocolsData.filter(p => p.protocol_type === 'reviewer').length;
-    
-    console.log('Protocolos selecionados para exportação:', {
-      total: selectedProtocolsData.length,
-      prestadores: prestadoresCount,
-      revisores: revisoresCount,
-      protocolos: selectedProtocolsData.map(p => ({
-        id: p.id,
-        numero: p.protocol_number,
-        tipo: p.protocol_type,
-        temPix: !!p.pix_key,
-        pixKey: p.pix_key
-      }))
-    });
-    
-    try {
-      const result = exportBTGPayments(selectedProtocolsData);
-      
-      let description = `${prestadoresCount} prestadores, ${revisoresCount} revisores | ${result.pixCount} pagamentos PIX`;
-      if (result.protocolsWithoutPix > 0) {
-        description += `\n⚠️ ${result.protocolsWithoutPix} protocolo(s) sem chave PIX não foram exportados`;
-      }
-      
-      toast.success(`Arquivo BTG exportado com sucesso!`, {
-        description
-      });
-    } catch (error: any) {
-      toast.error("Erro ao exportar arquivo BTG", {
-        description: error.message
-      });
-    }
-  };
 
   const handleDeleteProtocol = async () => {
     if (!protocolToDelete || !deleteReason.trim()) {
@@ -435,14 +395,6 @@ export default function PaymentProcessing() {
               </div>
               {selectedProtocols.size > 0 && (
                 <div className="flex gap-2">
-                  <Button
-                    onClick={handleExportBTG}
-                    variant="outline"
-                    size="lg"
-                  >
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    Exportar BTG
-                  </Button>
                   <Button
                     onClick={handleProcessPayments}
                     disabled={processing}
