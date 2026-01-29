@@ -12,11 +12,6 @@ verify_jwt = true
 [functions.check-secret-expiration]
 verify_jwt = true
 
-[functions.btg-auth]
-verify_jwt = true
-
-[functions.btg-sync-suppliers]
-verify_jwt = true
 
 [functions.rate-limiter]
 verify_jwt = false
