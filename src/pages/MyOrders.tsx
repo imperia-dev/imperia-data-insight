@@ -19,12 +19,13 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
-import { Package, CheckCircle, Clock, AlertTriangle, AlertCircle, User, Hammer } from "lucide-react";
+import { Package, Clock, AlertTriangle, Hammer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 import googleDriveLogo from "@/assets/google-drive-logo.png";
 import { sanitizeInput } from "@/lib/validations/sanitized";
+import { useDemandLimits } from "@/hooks/useDemandLimits";
+import { DemandLimitIndicator } from "@/components/orders/DemandLimitIndicator";
 
 export function MyOrders() {
   const { user } = useAuth();
@@ -86,27 +87,15 @@ export function MyOrders() {
     },
   });
 
-  // Fetch user's concurrent order limit
-  const { data: userLimit } = useQuery({
-    queryKey: ["user-order-limit", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      
-      const { data, error } = await supabase
-        .from("user_document_limits")
-        .select("concurrent_order_limit")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error fetching user limit:", error);
-      }
-
-      // Return default limit if not found
-      return data || { concurrent_order_limit: 2 };
-    },
-    enabled: !!user?.id,
-  });
+  // Use demand limits hook for daily + concurrent limits
+  const {
+    userLimit,
+    documentsToday,
+    currentOrderCount,
+    canTakeMoreOrders,
+    dailyLimitReached,
+    validateOrderTake,
+  } = useDemandLimits(myOrders);
 
   // Mark order as delivered mutation
   const deliverOrderMutation = useMutation({
@@ -124,7 +113,8 @@ export function MyOrders() {
     },
     onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: ["my-orders"] });
-      await queryClient.invalidateQueries({ queryKey: ["delivered-orders"] }); // Invalidate delivered orders cache
+      await queryClient.invalidateQueries({ queryKey: ["delivered-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["today-document-count", user?.id] });
       toast({
         title: "Pedido finalizado",
         description: "O pedido foi marcado como entregue com sucesso.",
@@ -156,12 +146,12 @@ export function MyOrders() {
         throw new Error("Peça ao admin o cadastro da plataforma ops");
       }
 
-      // Check if user has reached the concurrent order limit
-      const currentOrderCount = myOrders?.length || 0;
-      const maxConcurrentOrders = userLimit?.concurrent_order_limit || 2;
+      // Validate demand limits (daily + concurrent)
+      const orderDocCount = order.document_count || 1;
+      const validation = validateOrderTake(orderDocCount);
       
-      if (currentOrderCount >= maxConcurrentOrders) {
-        throw new Error(`Você já possui ${currentOrderCount} pedido(s) em andamento. Finalize um pedido antes de pegar outro.`);
+      if (!validation.valid) {
+        throw new Error(validation.error);
       }
 
       // ===== LOG 2: ANTES DE ATUALIZAR NO SUPABASE =====
@@ -285,12 +275,14 @@ export function MyOrders() {
       return { success: true };
     },
     onSuccess: async (result) => {
-      // Force immediate refetch of both queries with correct key
+      // Force immediate refetch of all relevant queries
       await queryClient.invalidateQueries({ queryKey: ["available-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["today-document-count", user?.id] });
       // Force refetch to ensure data is updated
       await queryClient.refetchQueries({ queryKey: ["available-orders"] });
       await queryClient.refetchQueries({ queryKey: ["my-orders", user?.id] });
+      await queryClient.refetchQueries({ queryKey: ["today-document-count", user?.id] });
       
       if (result?.serviceOrderLink) {
         toast({
@@ -329,10 +321,9 @@ export function MyOrders() {
     },
   });
 
-  // Calculate if user can take more orders
-  const currentOrderCount = myOrders?.length || 0;
+  // Get max concurrent from hook data
   const maxConcurrentOrders = userLimit?.concurrent_order_limit || 2;
-  const canTakeMoreOrders = currentOrderCount < maxConcurrentOrders;
+  const dailyLimit = userLimit?.daily_limit || 10;
 
   return (
     <div className="min-h-screen bg-background">
@@ -368,39 +359,18 @@ export function MyOrders() {
                 </p>
               </div>
             </div>
-            
-            {/* Performance Summary */}
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Pedidos Hoje</p>
-                  <p className="text-2xl font-bold">{myOrders?.length || 0}</p>
-                </div>
-                <Package className="h-8 w-8 text-primary" />
-              </div>
-            </Card>
           </div>
 
-          {/* Order Status Badge */}
-          <div className="mb-6 flex items-center gap-4">
-            <Badge 
-              variant={canTakeMoreOrders ? "default" : "secondary"}
-              className="px-4 py-2"
-            >
-              <span className="font-medium">
-                {currentOrderCount}/{maxConcurrentOrders} pedidos em andamento
-              </span>
-            </Badge>
-            {!canTakeMoreOrders && (
-              <Alert className="flex-1">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Você atingiu o limite de {maxConcurrentOrders} pedidos simultâneos. 
-                  Finalize um pedido para pegar outro.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
+          {/* Demand Limit Indicator */}
+          <DemandLimitIndicator
+            documentsToday={documentsToday}
+            dailyLimit={dailyLimit}
+            currentOrderCount={currentOrderCount}
+            maxConcurrentOrders={maxConcurrentOrders}
+            canTakeMoreOrders={canTakeMoreOrders}
+            dailyLimitReached={dailyLimitReached}
+            className="mb-6"
+          />
 
           {/* Available Orders */}
           <Card className="mb-6">
