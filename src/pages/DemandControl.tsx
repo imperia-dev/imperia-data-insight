@@ -23,6 +23,7 @@ interface UserLimit {
   user_id: string;
   full_name: string;
   email: string;
+  role?: string;
   daily_limit: number;
   concurrent_order_limit: number;
 }
@@ -43,11 +44,21 @@ export function DemandControl() {
     try {
       setLoading(true);
 
-      // Fetch all operation users
+      // Fetch operation and master users from user_roles table
+      const { data: userRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["operation", "master"]);
+
+      if (rolesError) throw rolesError;
+
+      const userIds = userRoles?.map(r => r.user_id) || [];
+
+      // Fetch profiles for those users
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, full_name, email")
-        .eq("role", "operation");
+        .in("id", userIds);
 
       if (profilesError) throw profilesError;
 
@@ -58,14 +69,16 @@ export function DemandControl() {
 
       if (limitsError) throw limitsError;
 
-      // Merge data
+      // Merge data with role info
       const mergedData = profiles?.map(profile => {
         const limit = limits?.find(l => l.user_id === profile.id);
+        const userRole = userRoles?.find(r => r.user_id === profile.id)?.role;
         return {
           id: limit?.id,
           user_id: profile.id,
           full_name: profile.full_name,
           email: profile.email,
+          role: userRole,
           daily_limit: limit?.daily_limit || 10,
           concurrent_order_limit: limit?.concurrent_order_limit || 2
         };
@@ -181,7 +194,7 @@ export function DemandControl() {
         <CardContent>
           {users.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum usuário com role 'operation' encontrado
+              Nenhum usuário com role 'operation' ou 'master' encontrado
             </div>
           ) : (
             <Table>
@@ -189,6 +202,7 @@ export function DemandControl() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead className="w-[100px]">Cargo</TableHead>
                   <TableHead className="w-[150px]">Limite Diário</TableHead>
                   <TableHead className="w-[150px]">Limite Simultâneo</TableHead>
                   <TableHead className="w-[100px]">Ações</TableHead>
@@ -199,6 +213,15 @@ export function DemandControl() {
                   <TableRow key={user.user_id}>
                     <TableCell className="font-medium">{user.full_name}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        user.role === 'master' 
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' 
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                      }`}>
+                        {user.role === 'master' ? 'Master' : 'Operation'}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Input
                         type="number"
