@@ -61,6 +61,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useDemandLimits } from "@/hooks/useDemandLimits";
 
 export function Orders() {
   const { user } = useAuth();
@@ -225,6 +226,25 @@ export function Orders() {
       return data;
     },
   });
+
+  // Fetch user's orders in progress for demand limit validation
+  const { data: myOrdersInProgress } = useQuery({
+    queryKey: ["my-orders-in-progress", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, document_count")
+        .eq("assigned_to", user?.id)
+        .eq("status_order", "in_progress");
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Use demand limits hook for daily + concurrent validation
+  const { validateOrderTake } = useDemandLimits(myOrdersInProgress);
 
   // Toggle attention mutation
   const { mutate: toggleAttention, isPending: isToggleAttentionPending } = useMutation({
@@ -467,7 +487,7 @@ export function Orders() {
         throw new Error("Peça ao admin o cadastro da plataforma ops");
       }
 
-      // Get the full order details to access order_number
+      // Get the full order details to access order_number and document_count
       const { data: orderData, error: fetchError } = await supabase
         .from("orders")
         .select("*")
@@ -477,6 +497,14 @@ export function Orders() {
       if (fetchError) {
         console.error('ERRO ao buscar order:', fetchError);
         throw fetchError;
+      }
+
+      // Validate demand limits (daily + concurrent)
+      const orderDocCount = orderData.document_count || 1;
+      const validation = validateOrderTake(orderDocCount);
+      
+      if (!validation.valid) {
+        throw new Error(validation.error);
       }
 
       console.log('Order Number:', orderData.order_number);
@@ -565,6 +593,8 @@ export function Orders() {
       console.log("takeOrderMutation onSuccess: Invalidando e refazendo queries.");
       queryClient.refetchQueries({ queryKey: ["orders"] });
       queryClient.refetchQueries({ queryKey: ["my-orders", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-orders-in-progress", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["today-document-count", user?.id] });
       toast({
         title: "Pedido atribuído",
         description: "O pedido foi atribuído a você com sucesso.",
