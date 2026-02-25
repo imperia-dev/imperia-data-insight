@@ -137,6 +137,7 @@ export const rolePermissions: Record<Role, string[]> = {
     // Removed: '/ai-analytics'
   ],
   operation: [
+    '/',
     '/my-orders',
     '/orders',
     '/delivered-orders',
@@ -152,6 +153,7 @@ export const rolePermissions: Record<Role, string[]> = {
     '/review-checklist'
   ],
   translator: [
+    '/',
     '/my-orders',
     '/wallet',
     '/notifications',
