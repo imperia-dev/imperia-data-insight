@@ -227,7 +227,7 @@ serve(async (req) => {
     // Send via uazapiGO
     console.log('Sending WhatsApp report via uazapiGO to:', sanitizedPhone);
 
-    const uazapiResponse = await fetch(`${UAZAPI_BASE_URL}/message/send-text`, {
+    const uazapiResponse = await fetch(`${UAZAPI_BASE_URL}/send/text`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

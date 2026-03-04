@@ -95,7 +95,7 @@ serve(async (req) => {
     }
 
     // Send message via uazapiGO
-    const uazapiUrl = `${UAZAPI_BASE_URL}/message/send-text`;
+    const uazapiUrl = `${UAZAPI_BASE_URL}/send/text`;
     
     console.log(`Sending uazapiGO message to ${sanitizedPhone.substring(0, 4)}****`);
 
