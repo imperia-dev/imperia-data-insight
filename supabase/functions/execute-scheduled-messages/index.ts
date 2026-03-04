@@ -360,26 +360,25 @@ function buildMessage(template: string, includeMetrics: Record<string, boolean>,
 }
 
 async function sendZApiMessage(phone: string, message: string): Promise<{ success: boolean; error?: string }> {
-  const instanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-  const token = Deno.env.get('ZAPI_TOKEN');
-  const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+  const baseUrl = Deno.env.get('UAZAPI_BASE_URL');
+  const uazapiToken = Deno.env.get('UAZAPI_TOKEN');
 
-  if (!instanceId || !token) {
-    return { success: false, error: 'Z-API credentials not configured' };
+  if (!baseUrl || !uazapiToken) {
+    return { success: false, error: 'uazapiGO credentials not configured' };
   }
 
   const cleanPhone = phone.replace(/\D/g, '');
 
   try {
-    const response = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`, {
+    const response = await fetch(`${baseUrl}/message/send-text`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(clientToken && { 'Client-Token': clientToken }),
+        'token': uazapiToken,
       },
       body: JSON.stringify({
-        phone: cleanPhone,
-        message: message,
+        number: cleanPhone,
+        text: message,
       }),
     });
 

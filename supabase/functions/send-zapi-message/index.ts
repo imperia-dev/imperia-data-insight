@@ -12,22 +12,20 @@ interface ZApiMessageRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
-    const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
-    const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
+    const UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
+    const UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN || !ZAPI_CLIENT_TOKEN) {
-      console.error("Z-API credentials not configured");
+    if (!UAZAPI_BASE_URL || !UAZAPI_TOKEN) {
+      console.error("uazapiGO credentials not configured");
       return new Response(
-        JSON.stringify({ error: "Z-API credentials not configured" }),
+        JSON.stringify({ error: "uazapiGO credentials not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -41,7 +39,6 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Verify user from JWT
@@ -56,10 +53,8 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body
     const { phone, message }: ZApiMessageRequest = await req.json();
 
-    // Validate inputs
     if (!phone || !message) {
       return new Response(
         JSON.stringify({ error: "Phone and message are required" }),
@@ -81,7 +76,7 @@ serve(async (req) => {
       );
     }
 
-    // Rate limiting - check recent messages from this user
+    // Rate limiting
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { count: recentMessages } = await supabase
       .from("audit_logs")
@@ -99,51 +94,51 @@ serve(async (req) => {
       );
     }
 
-    // Send message via Z-API
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+    // Send message via uazapiGO
+    const uazapiUrl = `${UAZAPI_BASE_URL}/message/send-text`;
     
-    console.log(`Sending Z-API message to ${sanitizedPhone.substring(0, 4)}****`);
+    console.log(`Sending uazapiGO message to ${sanitizedPhone.substring(0, 4)}****`);
 
-    const zapiResponse = await fetch(zapiUrl, {
+    const uazapiResponse = await fetch(uazapiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Client-Token": ZAPI_CLIENT_TOKEN,
+        "token": UAZAPI_TOKEN,
       },
       body: JSON.stringify({
-        phone: sanitizedPhone,
-        message: message,
+        number: sanitizedPhone,
+        text: message,
       }),
     });
 
-    const zapiResult = await zapiResponse.json();
+    const uazapiResult = await uazapiResponse.json();
 
     // Log the attempt
     await supabase.from("audit_logs").insert({
       user_id: user.id,
       table_name: "zapi_messages",
-      operation: zapiResponse.ok ? "send" : "send_failed",
-      record_id: zapiResult.messageId || null,
+      operation: uazapiResponse.ok ? "send" : "send_failed",
+      record_id: uazapiResult.messageId || null,
       accessed_fields: ["phone_masked", "message_length"],
     });
 
-    if (!zapiResponse.ok) {
-      console.error("Z-API error response:", zapiResult);
+    if (!uazapiResponse.ok) {
+      console.error("uazapiGO error response:", uazapiResult);
       return new Response(
         JSON.stringify({ 
-          error: "Failed to send message via Z-API",
-          details: zapiResult.message || "Unknown error"
+          error: "Failed to send message via uazapiGO",
+          details: uazapiResult.message || "Unknown error"
         }),
-        { status: zapiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: uazapiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Z-API message sent successfully. MessageId: ${zapiResult.messageId}`);
+    console.log(`uazapiGO message sent successfully. MessageId: ${uazapiResult.messageId}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        messageId: zapiResult.messageId,
+        messageId: uazapiResult.messageId,
         message: "Message sent successfully"
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
