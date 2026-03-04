@@ -370,7 +370,7 @@ async function sendZApiMessage(phone: string, message: string): Promise<{ succes
   const cleanPhone = phone.replace(/\D/g, '');
 
   try {
-    const response = await fetch(`${baseUrl}/message/send-text`, {
+    const response = await fetch(`${baseUrl}/send/text`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
