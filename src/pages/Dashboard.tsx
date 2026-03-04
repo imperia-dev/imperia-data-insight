@@ -1101,7 +1101,7 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
                 </Select>
                 
                 
-                {/* Z-API Button - Owner only */}
+                {/* WhatsApp Button - Owner only */}
                 {userRole === 'owner' && (
                   <Button 
                     onClick={() => setIsZApiModalOpen(true)}
@@ -1109,7 +1109,7 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
                     className="flex items-center gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
                   >
                     <MessageCircle className="h-4 w-4" />
-                    Z-API
+                    WhatsApp
                   </Button>
                 )}
                 
