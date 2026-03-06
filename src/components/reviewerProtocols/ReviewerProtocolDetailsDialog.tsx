@@ -23,6 +23,21 @@ export const ReviewerProtocolDetailsDialog = ({
 }: ReviewerProtocolDetailsDialogProps) => {
   if (!protocol) return null;
 
+  const { data: operationUser } = useQuery({
+    queryKey: ['operation-user', protocol.assigned_operation_user_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', protocol.assigned_operation_user_id)
+        .single();
+      return data;
+    },
+    enabled: open && !!protocol.assigned_operation_user_id,
+  });
+
+  const operationUserName = operationUser?.full_name || protocol.assigned_operation_user_id;
+
   const ordersData = protocol.orders_data || [];
 
   return (
