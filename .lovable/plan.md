@@ -1,37 +1,50 @@
 
 
-# Migração Z-API / Twilio → uazapiGO V2
+## Problem
 
-## Pré-requisito: Adicionar Secrets no Supabase
+The reviewer name shows as "Unknown" because the `generate-reviewer-protocols` edge function tries to look up `review_id` in the `profiles` table. But these IDs are **external system IDs** (e.g., `B7B94D25-A4ED-4555-A23D-719EB04643E7`), not Supabase user UUIDs — so the lookup always fails.
 
-Acesse o [painel de secrets](https://supabase.com/dashboard/project/agttqqaampznczkyfvkf/settings/functions) e adicione:
-- **`UAZAPI_BASE_URL`** → `https://imperia.uazapi.com`
-- **`UAZAPI_TOKEN`** → o Admin Token da sua tela (copie clicando no ícone)
+Meanwhile, the correct reviewer name already exists in `translation_orders.review_name` (Daniele, Beatriz, Hellem, etc.).
 
-## Arquivos a Modificar
+## Solution (2 parts)
 
-### 1. `supabase/functions/send-zapi-message/index.ts`
-- Trocar env vars de `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN` → `UAZAPI_BASE_URL`, `UAZAPI_TOKEN`
-- Trocar chamada `https://api.z-api.io/instances/{id}/token/{token}/send-text` → `{UAZAPI_BASE_URL}/message/send-text`
-- Trocar header `Client-Token` → `token`
-- Trocar body `{ phone, message }` → `{ number, text }`
-- Nome da função mantido igual (sem quebrar frontend)
+### 1. Fix the edge function (`generate-reviewer-protocols/index.ts`)
 
-### 2. `supabase/functions/execute-scheduled-messages/index.ts`
-- Atualizar a função `sendZApiMessage()` (renomear para `sendUazapiMessage()`) no final do arquivo
-- Mesmas mudanças: env vars, endpoint, headers e body
+Instead of looking up `profiles` by `review_id`, use `review_name` directly from the translation orders:
 
-### 3. `supabase/functions/send-whatsapp-report/index.ts`
-- Remover toda lógica do Twilio (template-based)
-- Trocar por uazapiGO com mensagem de texto puro
-- Criar função `buildReportMessage()` que formata os 3 tipos de relatório (operacional, técnico, financeiro) como texto legível
-- Usar mesma API: `POST {UAZAPI_BASE_URL}/message/send-text` com header `token`
+- Remove the profiles lookup entirely (lines 102-113)
+- In the grouping loop, use `order.review_name` as the reviewer name
+- Use `order.review_email` as the email (though note: this field currently stores names too, not actual emails)
 
-### 4. Nenhuma mudança no frontend
-Todas as chamadas do frontend usam `supabase.functions.invoke("send-zapi-message", ...)` e `supabase.functions.invoke("send-whatsapp-report", ...)` — a interface de request/response permanece igual.
+### 2. Fix existing "Unknown" protocols via SQL
 
-## Importante
-Depois de configurar os secrets e eu implementar, você precisa:
-1. Conectar seu WhatsApp no painel do uazapiGO (escanear QR code) — o status atual está "offline"
-2. Testar enviando uma mensagem pelo sistema
+Run an UPDATE to backfill `reviewer_name` on existing `reviewer_protocols` using the `review_name` from linked `translation_orders`:
+
+```sql
+UPDATE reviewer_protocols rp
+SET reviewer_name = sub.review_name
+FROM (
+  SELECT DISTINCT ON (to2.reviewer_protocol_id) 
+    to2.reviewer_protocol_id, to2.review_name
+  FROM translation_orders to2
+  WHERE to2.reviewer_protocol_id IS NOT NULL 
+    AND to2.review_name IS NOT NULL
+) sub
+WHERE rp.id = sub.reviewer_protocol_id
+  AND (rp.reviewer_name IS NULL OR rp.reviewer_name = 'Unknown');
+```
+
+Also fix protocols without linked orders (using `orders_data` JSONB):
+
+```sql
+UPDATE reviewer_protocols
+SET reviewer_name = orders_data->0->>'review_name'
+WHERE (reviewer_name IS NULL OR reviewer_name = 'Unknown')
+  AND orders_data IS NOT NULL
+  AND jsonb_array_length(orders_data) > 0
+  AND orders_data->0->>'review_name' IS NOT NULL;
+```
+
+### Files changed
+- `supabase/functions/generate-reviewer-protocols/index.ts` — remove profiles lookup, use `review_name` from orders directly
 
