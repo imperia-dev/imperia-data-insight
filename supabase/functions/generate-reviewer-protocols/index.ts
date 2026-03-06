@@ -99,40 +99,15 @@ serve(async (req) => {
 
     console.log(`Found ${orders.length} orders to process`);
 
-    // Get unique reviewer IDs
-    const reviewerIds = [...new Set(orders.map(o => o.review_id).filter(Boolean))];
-    
-    // Fetch reviewer names from profiles
-    const { data: reviewerProfiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email')
-      .in('id', reviewerIds);
-
-    if (profilesError) {
-      console.error('Error fetching reviewer profiles:', profilesError);
-    }
-
-    // Create a map of reviewer IDs to their info
-    const reviewerInfoMap = new Map();
-    if (reviewerProfiles) {
-      reviewerProfiles.forEach(profile => {
-        reviewerInfoMap.set(profile.id, {
-          name: profile.full_name || 'Unknown',
-          email: profile.email || ''
-        });
-      });
-    }
-
-    // Group orders by reviewer
+    // Group orders by reviewer - use review_name directly from orders
     const providerMap = new Map<string, ProviderData>();
 
     for (const order of orders) {
       if (!order.review_id) continue;
 
       const reviewerId = order.review_id;
-      const reviewerInfo = reviewerInfoMap.get(reviewerId);
-      const reviewerName = reviewerInfo?.name || order.review_nome || 'Unknown';
-      const reviewerEmail = reviewerInfo?.email || order.review_email || '';
+      const reviewerName = order.review_name || order.review_nome || 'Unknown';
+      const reviewerEmail = order.review_email || '';
       
       if (!providerMap.has(reviewerId)) {
         providerMap.set(reviewerId, {
