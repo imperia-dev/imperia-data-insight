@@ -139,7 +139,7 @@ export const ReviewerProtocolDetailsDialog = ({
                 title="Inserção de Dados e Nota Fiscal"
                 date={protocol.operation_data_filled_at}
                 completed={!!protocol.operation_data_filled_at}
-                notes={protocol.assigned_operation_user_id ? `Responsável: ${operationUserName}` : undefined}
+                notes={protocol.assigned_operation_user_id ? `Responsável: ${operationUserLabel}` : undefined}
               />
               <TimelineStep
                 title="Aprovação Master - Final"
