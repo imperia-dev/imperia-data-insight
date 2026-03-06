@@ -7,6 +7,8 @@ import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/lib/currency";
 import { ReviewerProtocolStatusBadge } from "./ReviewerProtocolStatusBadge";
 import { CheckCircle2, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReviewerProtocolDetailsDialogProps {
   protocol: any;
@@ -20,6 +22,21 @@ export const ReviewerProtocolDetailsDialog = ({
   onOpenChange,
 }: ReviewerProtocolDetailsDialogProps) => {
   if (!protocol) return null;
+
+  const { data: operationUser } = useQuery({
+    queryKey: ['operation-user', protocol.assigned_operation_user_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', protocol.assigned_operation_user_id)
+        .single();
+      return data;
+    },
+    enabled: open && !!protocol.assigned_operation_user_id,
+  });
+
+  const operationUserName = operationUser?.full_name || protocol.assigned_operation_user_id;
 
   const ordersData = protocol.orders_data || [];
 
@@ -120,7 +137,7 @@ export const ReviewerProtocolDetailsDialog = ({
                 title="Inserção de Dados e Nota Fiscal"
                 date={protocol.operation_data_filled_at}
                 completed={!!protocol.operation_data_filled_at}
-                notes={protocol.assigned_operation_user_id ? `Responsável: ${protocol.assigned_operation_user_id}` : undefined}
+                notes={protocol.assigned_operation_user_id ? `Responsável: ${operationUserName}` : undefined}
               />
               <TimelineStep
                 title="Aprovação Master - Final"

@@ -1,15 +1,37 @@
 
 
-## Plan: Show operation user name instead of just ID
+# Migração Z-API / Twilio → uazapiGO V2
 
-**Problem:** Line 123 in `ReviewerProtocolDetailsDialog.tsx` displays the raw `assigned_operation_user_id` UUID. We need to resolve it to a human-readable name.
+## Pré-requisito: Adicionar Secrets no Supabase
 
-**Solution:** Fetch the user's `full_name` from the `profiles` table using the `assigned_operation_user_id`, and display it alongside or instead of the ID.
+Acesse o [painel de secrets](https://supabase.com/dashboard/project/agttqqaampznczkyfvkf/settings/functions) e adicione:
+- **`UAZAPI_BASE_URL`** → `https://imperia.uazapi.com`
+- **`UAZAPI_TOKEN`** → o Admin Token da sua tela (copie clicando no ícone)
 
-### Changes to `src/components/reviewerProtocols/ReviewerProtocolDetailsDialog.tsx`
+## Arquivos a Modificar
 
-1. Add a `useQuery` hook that fetches `full_name` from `profiles` where `id = protocol.assigned_operation_user_id` (only when the dialog is open and the ID exists)
-2. Replace line 123's notes from `Responsável: ${protocol.assigned_operation_user_id}` to `Responsável: ${operationUserName}` (falling back to the ID if the lookup fails)
+### 1. `supabase/functions/send-zapi-message/index.ts`
+- Trocar env vars de `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN` → `UAZAPI_BASE_URL`, `UAZAPI_TOKEN`
+- Trocar chamada `https://api.z-api.io/instances/{id}/token/{token}/send-text` → `{UAZAPI_BASE_URL}/message/send-text`
+- Trocar header `Client-Token` → `token`
+- Trocar body `{ phone, message }` → `{ number, text }`
+- Nome da função mantido igual (sem quebrar frontend)
 
-Imports to add: `useQuery` from `@tanstack/react-query`, `supabase` from `@/integrations/supabase/client`.
+### 2. `supabase/functions/execute-scheduled-messages/index.ts`
+- Atualizar a função `sendZApiMessage()` (renomear para `sendUazapiMessage()`) no final do arquivo
+- Mesmas mudanças: env vars, endpoint, headers e body
+
+### 3. `supabase/functions/send-whatsapp-report/index.ts`
+- Remover toda lógica do Twilio (template-based)
+- Trocar por uazapiGO com mensagem de texto puro
+- Criar função `buildReportMessage()` que formata os 3 tipos de relatório (operacional, técnico, financeiro) como texto legível
+- Usar mesma API: `POST {UAZAPI_BASE_URL}/message/send-text` com header `token`
+
+### 4. Nenhuma mudança no frontend
+Todas as chamadas do frontend usam `supabase.functions.invoke("send-zapi-message", ...)` e `supabase.functions.invoke("send-whatsapp-report", ...)` — a interface de request/response permanece igual.
+
+## Importante
+Depois de configurar os secrets e eu implementar, você precisa:
+1. Conectar seu WhatsApp no painel do uazapiGO (escanear QR code) — o status atual está "offline"
+2. Testar enviando uma mensagem pelo sistema
 
