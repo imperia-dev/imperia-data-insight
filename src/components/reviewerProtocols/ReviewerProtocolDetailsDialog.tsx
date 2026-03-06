@@ -36,7 +36,9 @@ export const ReviewerProtocolDetailsDialog = ({
     enabled: open && !!protocol.assigned_operation_user_id,
   });
 
-  const operationUserName = operationUser?.full_name || protocol.assigned_operation_user_id;
+  const operationUserLabel = operationUser
+    ? `${operationUser.full_name} (${operationUser.email})`
+    : protocol.assigned_operation_user_id;
 
   const ordersData = protocol.orders_data || [];
 
