@@ -7,6 +7,8 @@ import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/lib/currency";
 import { ReviewerProtocolStatusBadge } from "./ReviewerProtocolStatusBadge";
 import { CheckCircle2, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReviewerProtocolDetailsDialogProps {
   protocol: any;
