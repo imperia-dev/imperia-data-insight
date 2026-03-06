@@ -28,7 +28,7 @@ export const ReviewerProtocolDetailsDialog = ({
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, email')
         .eq('id', protocol.assigned_operation_user_id)
         .single();
       return data;
