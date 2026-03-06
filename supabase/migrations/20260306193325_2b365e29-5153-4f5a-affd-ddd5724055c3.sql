@@ -1,0 +1,1 @@
+UPDATE reviewer_protocols SET status = 'draft', assigned_operation_user_id = NULL WHERE protocol_number IN ('PREST-REV-202602-001-UNK', 'PREST-REV-202602-002-UNK');
