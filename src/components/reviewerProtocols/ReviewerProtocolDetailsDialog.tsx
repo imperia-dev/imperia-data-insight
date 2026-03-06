@@ -28,7 +28,7 @@ export const ReviewerProtocolDetailsDialog = ({
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, email')
         .eq('id', protocol.assigned_operation_user_id)
         .single();
       return data;
@@ -36,7 +36,9 @@ export const ReviewerProtocolDetailsDialog = ({
     enabled: open && !!protocol.assigned_operation_user_id,
   });
 
-  const operationUserName = operationUser?.full_name || protocol.assigned_operation_user_id;
+  const operationUserLabel = operationUser
+    ? `${operationUser.full_name} (${operationUser.email})`
+    : protocol.assigned_operation_user_id;
 
   const ordersData = protocol.orders_data || [];
 
@@ -137,7 +139,7 @@ export const ReviewerProtocolDetailsDialog = ({
                 title="Inserção de Dados e Nota Fiscal"
                 date={protocol.operation_data_filled_at}
                 completed={!!protocol.operation_data_filled_at}
-                notes={protocol.assigned_operation_user_id ? `Responsável: ${operationUserName}` : undefined}
+                notes={protocol.assigned_operation_user_id ? `Responsável: ${operationUserLabel}` : undefined}
               />
               <TimelineStep
                 title="Aprovação Master - Final"
