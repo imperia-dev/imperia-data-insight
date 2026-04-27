@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { sanitizeInput } from "../_shared/sanitization.ts";
+import { requireRole } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,6 +48,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // SECURITY: Require authenticated caller with privileged role.
+    // Without this, anyone could send payment emails impersonating the company.
+    const auth = await requireRole(req, ['owner', 'master', 'admin', 'financeiro']);
+    if (!auth.ok) return auth.response;
+
     // Validate Resend API key
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     
