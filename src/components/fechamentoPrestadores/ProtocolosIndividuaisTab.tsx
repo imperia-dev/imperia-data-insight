@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Download, CheckCircle, XCircle, AlertCircle, FileText, ExternalLink } from "lucide-react";
+import { Plus, Download, CheckCircle, XCircle, AlertCircle, FileText, ExternalLink, Eye } from "lucide-react";
 
 export function ProtocolosIndividuaisTab() {
   const [protocols, setProtocols] = useState<any[]>([]);
@@ -282,21 +282,21 @@ export function ProtocolosIndividuaisTab() {
                     </TableCell>
                     <TableCell>{protocol.expense_count || 0}</TableCell>
                     <TableCell className="text-center">
-                      {protocol.receipt_url ? (
+                      {protocol.invoice_file_url ? (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.open(protocol.receipt_url, '_blank');
+                            window.open(protocol.invoice_file_url, '_blank');
                           }}
                           title="Ver nota fiscal"
                         >
-                          <FileText className="h-4 w-4 text-primary" />
+                          <Eye className="h-4 w-4 text-primary" />
                         </Button>
                       ) : (
-                        <FileText className="h-4 w-4 text-muted-foreground mx-auto" />
+                        <Eye className="h-4 w-4 text-muted-foreground/40 mx-auto" aria-label="Nota fiscal ainda não enviada" />
                       )}
                     </TableCell>
                     <TableCell className="text-center">
