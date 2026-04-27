@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Download, CheckCircle, XCircle, AlertCircle, FileText, ExternalLink } from "lucide-react";
+import { Plus, Download, CheckCircle, XCircle, AlertCircle, FileText, ExternalLink, Eye } from "lucide-react";
 
 export function ProtocolosIndividuaisTab() {
   const [protocols, setProtocols] = useState<any[]>([]);
