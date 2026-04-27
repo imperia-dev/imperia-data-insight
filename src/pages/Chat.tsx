@@ -63,7 +63,7 @@ export default function Chat() {
   const [isTyping, setIsTyping] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Fetch channels where user is a member
   const { data: channels = [] } = useQuery({

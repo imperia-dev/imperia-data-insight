@@ -394,12 +394,8 @@ class SecurityTester {
   }
 }
 
-// Run tests if executed directly
-if (require.main === module) {
-  const tester = new SecurityTester();
-  tester.runAllTests().then((results) => {
-    process.exit(results.failed > 0 ? 1 : 0);
-  });
-}
+// Note: previous Node.js CLI runner removed because this file ships with the
+// browser bundle. Use the exported `SecurityTester` from a dedicated Node
+// script if you need to execute it from the command line.
 
 export { SecurityTester };

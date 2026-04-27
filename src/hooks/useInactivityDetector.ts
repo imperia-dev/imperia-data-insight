@@ -19,8 +19,8 @@ export function useInactivityDetector({
   onLogout
 }: UseInactivityDetectorProps = {}) {
   const { toast } = useToast();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const warningRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
   const hasWarnedRef = useRef<boolean>(false);
 
