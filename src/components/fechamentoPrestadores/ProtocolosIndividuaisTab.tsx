@@ -287,9 +287,24 @@ export function ProtocolosIndividuaisTab() {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            window.open(protocol.invoice_file_url, '_blank');
+                            try {
+                              const url: string = protocol.invoice_file_url;
+                              const marker = "/service-provider-files/";
+                              const idx = url.indexOf(marker);
+                              const path = idx >= 0 ? url.slice(idx + marker.length) : url;
+                              const { data, error } = await supabase.storage
+                                .from("service-provider-files")
+                                .createSignedUrl(path, 60 * 60);
+                              if (error || !data?.signedUrl) {
+                                toast.error("Não foi possível abrir a nota fiscal");
+                                return;
+                              }
+                              window.open(data.signedUrl, "_blank");
+                            } catch {
+                              toast.error("Erro ao abrir a nota fiscal");
+                            }
                           }}
                           title="Ver nota fiscal"
                         >
