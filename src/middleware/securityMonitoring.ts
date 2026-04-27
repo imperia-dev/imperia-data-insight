@@ -11,7 +11,7 @@ class SecurityMonitor {
   private failedLoginAttempts: Map<string, number> = new Map();
   private suspiciousIPs: Set<string> = new Set();
   private eventQueue: SecurityEvent[] = [];
-  private flushInterval: NodeJS.Timeout | null = null;
+  private flushInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     // Flush events every 30 seconds
