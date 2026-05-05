@@ -47,7 +47,7 @@ serve(async (req) => {
 
     // Query delivered orders from service providers in this competence month
     // Only include orders that haven't been assigned to a protocol yet
-    const { data: orders, error: ordersError } = await supabase
+    let ordersQuery = supabase
       .from('orders')
       .select(`
         id,
@@ -76,6 +76,12 @@ serve(async (req) => {
       .not('document_count', 'is', null)
       .gt('document_count', 0)
       .is('service_provider_protocol_id', null);
+
+    if (provider_id) {
+      ordersQuery = ordersQuery.eq('assigned_to', provider_id);
+    }
+
+    const { data: orders, error: ordersError } = await ordersQuery;
 
     if (ordersError) {
       console.error('Error fetching orders:', ordersError);
