@@ -30,13 +30,13 @@ serve(async (req) => {
     if (!auth.ok) return auth.response;
     const supabase = auth.supabase;
 
-    const { competence, preview = false } = await req.json();
+    const { competence, preview = false, provider_id = null } = await req.json();
 
     if (!competence) {
       throw new Error('Competence month is required (format: YYYY-MM)');
     }
 
-    console.log(`Processing protocols for competence: ${competence}, preview: ${preview}`);
+    console.log(`Processing protocols for competence: ${competence}, preview: ${preview}, provider_id: ${provider_id}`);
 
     // Calculate date range for the competence month (00:00:00 to 23:59:59)
     const year = parseInt(competence.split('-')[0]);
@@ -47,7 +47,7 @@ serve(async (req) => {
 
     // Query delivered orders from service providers in this competence month
     // Only include orders that haven't been assigned to a protocol yet
-    const { data: orders, error: ordersError } = await supabase
+    let ordersQuery = supabase
       .from('orders')
       .select(`
         id,
@@ -76,6 +76,12 @@ serve(async (req) => {
       .not('document_count', 'is', null)
       .gt('document_count', 0)
       .is('service_provider_protocol_id', null);
+
+    if (provider_id) {
+      ordersQuery = ordersQuery.eq('assigned_to', provider_id);
+    }
+
+    const { data: orders, error: ordersError } = await ordersQuery;
 
     if (ordersError) {
       console.error('Error fetching orders:', ordersError);
@@ -197,14 +203,14 @@ serve(async (req) => {
     let skipped = 0;
 
     for (const provider of providers) {
-      // Check if protocol already exists
+      // Check if protocol already exists (active, non-cancelled)
       const { data: existing } = await supabase
         .from('service_provider_protocols')
         .select('id')
         .eq('supplier_id', provider.supplier_id)
-        .gte('competence_month', startDate)
-        .lte('competence_month', endDate)
-        .single();
+        .eq('competence_month', `${competence}-01`)
+        .neq('status', 'cancelled')
+        .maybeSingle();
 
       if (existing) {
         console.log(`Protocol already exists for supplier ${provider.supplier_id}`);
@@ -213,7 +219,6 @@ serve(async (req) => {
       }
 
       // Generate protocol number using database function
-      // Use only the date part (YYYY-MM-DD) for the protocol number generation
       const competenceDate = `${competence}-01`;
       const { data: protocolNumber, error: numberError } = await supabase
         .rpc('generate_protocol_number', {
@@ -227,7 +232,7 @@ serve(async (req) => {
         throw numberError;
       }
 
-      // Create protocol
+      // Create protocol — tolerate UNIQUE violation from concurrent invocations
       const { data: newProtocol, error: insertError } = await supabase
         .from('service_provider_protocols')
         .insert({
@@ -245,6 +250,12 @@ serve(async (req) => {
         .single();
 
       if (insertError) {
+        // 23505 = unique_violation — another concurrent call already created it
+        if ((insertError as any).code === '23505') {
+          console.log(`Race detected: protocol for supplier ${provider.supplier_id} already created concurrently — skipping`);
+          skipped += 1;
+          continue;
+        }
         console.error('Error inserting protocol:', insertError);
         throw insertError;
       }

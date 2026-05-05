@@ -112,23 +112,21 @@ export function GenerateProtocolsCard({ onProtocolsGenerated }: { onProtocolsGen
 
     setLoading(true);
     try {
-      // Generate protocols only for selected providers
-      const results = await Promise.all(
-        Array.from(selectedProviders).map(async (providerId) => {
-          const { data, error } = await supabase.functions.invoke('generate-provider-protocols', {
-            body: { 
-              competence: selectedMonth,
-              preview: false,
-              provider_id: providerId
-            }
-          });
-          if (error) throw error;
-          return data;
-        })
-      );
-
-      const created = results.reduce((sum, r) => sum + (r.created || 0), 0);
-      const skipped = results.reduce((sum, r) => sum + (r.skipped || 0), 0);
+      // Generate protocols sequentially to avoid race conditions
+      let created = 0;
+      let skipped = 0;
+      for (const providerId of Array.from(selectedProviders)) {
+        const { data, error } = await supabase.functions.invoke('generate-provider-protocols', {
+          body: {
+            competence: selectedMonth,
+            preview: false,
+            provider_id: providerId,
+          },
+        });
+        if (error) throw error;
+        created += data?.created || 0;
+        skipped += data?.skipped || 0;
+      }
       
       if (created > 0) {
         toast.success(`${created} protocolo(s) gerado(s) com sucesso!`);
