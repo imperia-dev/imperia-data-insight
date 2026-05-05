@@ -203,14 +203,14 @@ serve(async (req) => {
     let skipped = 0;
 
     for (const provider of providers) {
-      // Check if protocol already exists
+      // Check if protocol already exists (active, non-cancelled)
       const { data: existing } = await supabase
         .from('service_provider_protocols')
         .select('id')
         .eq('supplier_id', provider.supplier_id)
-        .gte('competence_month', startDate)
-        .lte('competence_month', endDate)
-        .single();
+        .eq('competence_month', `${competence}-01`)
+        .neq('status', 'cancelled')
+        .maybeSingle();
 
       if (existing) {
         console.log(`Protocol already exists for supplier ${provider.supplier_id}`);
@@ -219,7 +219,6 @@ serve(async (req) => {
       }
 
       // Generate protocol number using database function
-      // Use only the date part (YYYY-MM-DD) for the protocol number generation
       const competenceDate = `${competence}-01`;
       const { data: protocolNumber, error: numberError } = await supabase
         .rpc('generate_protocol_number', {
@@ -233,7 +232,7 @@ serve(async (req) => {
         throw numberError;
       }
 
-      // Create protocol
+      // Create protocol — tolerate UNIQUE violation from concurrent invocations
       const { data: newProtocol, error: insertError } = await supabase
         .from('service_provider_protocols')
         .insert({
@@ -251,6 +250,12 @@ serve(async (req) => {
         .single();
 
       if (insertError) {
+        // 23505 = unique_violation — another concurrent call already created it
+        if ((insertError as any).code === '23505') {
+          console.log(`Race detected: protocol for supplier ${provider.supplier_id} already created concurrently — skipping`);
+          skipped += 1;
+          continue;
+        }
         console.error('Error inserting protocol:', insertError);
         throw insertError;
       }
