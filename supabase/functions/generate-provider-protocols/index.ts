@@ -30,13 +30,13 @@ serve(async (req) => {
     if (!auth.ok) return auth.response;
     const supabase = auth.supabase;
 
-    const { competence, preview = false } = await req.json();
+    const { competence, preview = false, provider_id = null } = await req.json();
 
     if (!competence) {
       throw new Error('Competence month is required (format: YYYY-MM)');
     }
 
-    console.log(`Processing protocols for competence: ${competence}, preview: ${preview}`);
+    console.log(`Processing protocols for competence: ${competence}, preview: ${preview}, provider_id: ${provider_id}`);
 
     // Calculate date range for the competence month (00:00:00 to 23:59:59)
     const year = parseInt(competence.split('-')[0]);
