@@ -169,12 +169,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal');
+      const authPath = isPortal ? '/portal/login' : '/auth';
       // Check if session is older than 12 hours
       if (session && checkSessionExpiry(session)) {
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);
-        navigate('/auth');
+        navigate(authPath);
       } 
       // Check daily login requirement
       else if (session && checkDailyLogin()) {
@@ -186,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           description: "Por favor, faça login novamente para continuar.",
           duration: 5000,
         });
-        navigate('/auth');
+        navigate(authPath);
       } else {
         setSession(session);
         setUser(session?.user ?? null);
