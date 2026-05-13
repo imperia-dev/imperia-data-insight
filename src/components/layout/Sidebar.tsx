@@ -363,6 +363,12 @@ const standaloneItems: NavigationItem[] = [
     badge: true,
   },
   {
+    title: "Cadastros Trial",
+    icon: UserPlus,
+    href: "/trial-approvals",
+    roles: ["owner", "master"],
+  },
+  {
     title: "Avisos",
     icon: Megaphone,
     href: "/announcements",
