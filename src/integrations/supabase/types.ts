@@ -5401,6 +5401,163 @@ export type Database = {
           },
         ]
       }
+      trial_customers: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          company: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["trial_customer_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          phone: string
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["trial_customer_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["trial_customer_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trial_order_files: {
+        Row: {
+          analysis_error: string | null
+          analysis_status: Database["public"]["Enums"]["trial_file_analysis_status"]
+          characters: number
+          created_at: string
+          id: string
+          mime_type: string
+          order_id: string
+          original_filename: string
+          pages: number
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_error?: string | null
+          analysis_status?: Database["public"]["Enums"]["trial_file_analysis_status"]
+          characters?: number
+          created_at?: string
+          id?: string
+          mime_type: string
+          order_id: string
+          original_filename: string
+          pages?: number
+          size_bytes: number
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_error?: string | null
+          analysis_status?: Database["public"]["Enums"]["trial_file_analysis_status"]
+          characters?: number
+          created_at?: string
+          id?: string
+          mime_type?: string
+          order_id?: string
+          original_filename?: string
+          pages?: number
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_order_files_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "trial_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trial_orders: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          language_pair: string
+          notes: string | null
+          order_number: string
+          status: Database["public"]["Enums"]["trial_order_status"]
+          submitted_at: string | null
+          total_characters: number
+          total_documents: number
+          total_pages: number
+          translation_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          language_pair: string
+          notes?: string | null
+          order_number: string
+          status?: Database["public"]["Enums"]["trial_order_status"]
+          submitted_at?: string | null
+          total_characters?: number
+          total_documents?: number
+          total_pages?: number
+          translation_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          language_pair?: string
+          notes?: string | null
+          order_number?: string
+          status?: Database["public"]["Enums"]["trial_order_status"]
+          submitted_at?: string | null
+          total_characters?: number
+          total_documents?: number
+          total_pages?: number
+          translation_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "trial_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unit_economics: {
         Row: {
           arpu: number | null
@@ -5780,6 +5937,10 @@ export type Database = {
       }
     }
     Functions: {
+      approve_trial_customer: {
+        Args: { _customer_id: string }
+        Returns: undefined
+      }
       approve_user: {
         Args: { p_notes?: string; p_user_id: string }
         Returns: undefined
@@ -5833,6 +5994,11 @@ export type Database = {
         Args: { p_description?: string; p_name: string }
         Returns: string
       }
+      current_trial_customer_id: { Args: never; Returns: string }
+      deactivate_trial_customer: {
+        Args: { _customer_id: string }
+        Returns: undefined
+      }
       generate_mfa_backup_codes: { Args: never; Returns: string[] }
       generate_protocol_number: {
         Args: {
@@ -5843,6 +6009,7 @@ export type Database = {
         Returns: string
       }
       generate_sms_code: { Args: never; Returns: string }
+      generate_trial_order_number: { Args: never; Returns: string }
       get_active_secrets_summary: {
         Args: never
         Returns: {
@@ -5977,6 +6144,10 @@ export type Database = {
         Args: { input_text: string; mask_type?: string }
         Returns: string
       }
+      reject_trial_customer: {
+        Args: { _customer_id: string; _reason: string }
+        Returns: undefined
+      }
       reject_user: {
         Args: { p_notes?: string; p_reason: string; p_user_id: string }
         Returns: undefined
@@ -6082,6 +6253,14 @@ export type Database = {
       protocol_type: "receita" | "despesa_fixa" | "despesa_variavel" | "folha"
       scenario_type: "pessimistic" | "realistic" | "optimistic"
       studio_role: "admin" | "editor" | "viewer"
+      trial_customer_status: "pending" | "approved" | "rejected" | "deactivated"
+      trial_file_analysis_status: "pending" | "done" | "failed"
+      trial_order_status:
+        | "draft"
+        | "submitted"
+        | "processing"
+        | "completed"
+        | "cancelled"
       user_role:
         | "master"
         | "admin"
@@ -6291,6 +6470,15 @@ export const Constants = {
       protocol_type: ["receita", "despesa_fixa", "despesa_variavel", "folha"],
       scenario_type: ["pessimistic", "realistic", "optimistic"],
       studio_role: ["admin", "editor", "viewer"],
+      trial_customer_status: ["pending", "approved", "rejected", "deactivated"],
+      trial_file_analysis_status: ["pending", "done", "failed"],
+      trial_order_status: [
+        "draft",
+        "submitted",
+        "processing",
+        "completed",
+        "cancelled",
+      ],
       user_role: [
         "master",
         "admin",
