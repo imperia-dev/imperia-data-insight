@@ -212,6 +212,12 @@ const navigationGroups: NavigationGroup[] = [
         href: "/translation-orders",
         roles: ["owner", "admin"],
       },
+      {
+        title: "Pedidos do Portal",
+        icon: Package,
+        href: "/portal-orders",
+        roles: ["owner", "master"],
+      },
     ],
   },
   {
