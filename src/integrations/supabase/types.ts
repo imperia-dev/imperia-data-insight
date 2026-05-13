@@ -5401,6 +5401,50 @@ export type Database = {
           },
         ]
       }
+      trial_customer_contacts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          document: string | null
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          document?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          document?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "trial_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trial_customers: {
         Row: {
           approved_at: string | null

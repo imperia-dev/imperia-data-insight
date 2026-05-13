@@ -86,6 +86,12 @@ import PortalAwaiting from "./portal/pages/PortalAwaiting";
 import PortalDashboard from "./portal/pages/PortalDashboard";
 import PortalNewOrder from "./portal/pages/PortalNewOrder";
 import PortalOrderDetail from "./portal/pages/PortalOrderDetail";
+import PortalOrders from "./portal/pages/PortalOrders";
+import PortalTracking from "./portal/pages/PortalTracking";
+import PortalFinance from "./portal/pages/PortalFinance";
+import PortalClients from "./portal/pages/PortalClients";
+import PortalSettings from "./portal/pages/PortalSettings";
+import { PortalAppLayout } from "./portal/PortalAppLayout";
 import TrialApprovals from "./pages/TrialApprovals";
 
 const queryClient = new QueryClient();
@@ -112,9 +118,16 @@ const App = () => (
             <Route path="/portal/login" element={<PortalLogin />} />
             <Route path="/portal/cadastro" element={<PortalSignup />} />
             <Route path="/portal/aguardando" element={<PortalAwaiting />} />
-            <Route path="/portal/app" element={<PortalDashboard />} />
-            <Route path="/portal/app/novo" element={<PortalNewOrder />} />
-            <Route path="/portal/app/pedido/:id" element={<PortalOrderDetail />} />
+            <Route path="/portal/app" element={<PortalAppLayout />}>
+              <Route index element={<PortalDashboard />} />
+              <Route path="pedidos" element={<PortalOrders />} />
+              <Route path="novo" element={<PortalNewOrder />} />
+              <Route path="acompanhamento" element={<PortalTracking />} />
+              <Route path="financeiro" element={<PortalFinance />} />
+              <Route path="clientes" element={<PortalClients />} />
+              <Route path="configuracoes" element={<PortalSettings />} />
+              <Route path="pedido/:id" element={<PortalOrderDetail />} />
+            </Route>
             <Route path="/trial-approvals" element={
               <ProtectedRouteWithApproval>
                 <TrialApprovals />

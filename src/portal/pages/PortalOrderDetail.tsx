@@ -5,8 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { PortalLayout } from "../PortalLayout";
-import { TrialPortalGuard } from "../TrialPortalGuard";
 
 type Order = {
   id: string;
@@ -51,9 +49,8 @@ function OrderDetailInner() {
   }, [id]);
 
   return (
-    <PortalLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
-        <Button asChild variant="ghost" size="sm"><Link to="/portal/app"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar</Link></Button>
+    <div className="max-w-3xl mx-auto space-y-6">
+        <Button asChild variant="ghost" size="sm"><Link to="/portal/app/pedidos"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar</Link></Button>
         {loading || !order ? (
           <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : (
@@ -92,11 +89,10 @@ function OrderDetailInner() {
             </Card>
           </>
         )}
-      </div>
-    </PortalLayout>
+    </div>
   );
 }
 
 export default function PortalOrderDetail() {
-  return <TrialPortalGuard><OrderDetailInner /></TrialPortalGuard>;
+  return <OrderDetailInner />;
 }

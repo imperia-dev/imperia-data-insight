@@ -9,8 +9,7 @@ import { Loader2, Upload, X, FileText, CheckCircle2, AlertCircle } from "lucide-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { PortalLayout } from "../PortalLayout";
-import { TrialPortalGuard, useTrialCustomer } from "../TrialPortalGuard";
+import { useTrialCustomer } from "../TrialPortalGuard";
 
 type FileRow = {
   id: string;
@@ -147,8 +146,7 @@ function NewOrderInner() {
   };
 
   return (
-    <PortalLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Novo pedido</h1>
           <p className="text-muted-foreground">Tradução juramentada PT ↔ IT.</p>
@@ -237,11 +235,10 @@ function NewOrderInner() {
             Enviar pedido
           </Button>
         </div>
-      </div>
-    </PortalLayout>
+    </div>
   );
 }
 
 export default function PortalNewOrder() {
-  return <TrialPortalGuard><NewOrderInner /></TrialPortalGuard>;
+  return <NewOrderInner />;
 }
