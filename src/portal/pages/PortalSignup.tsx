@@ -10,14 +10,46 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PortalLayout } from "../PortalLayout";
 
+function formatPhoneBR(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+function formatCpfCnpj(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 14);
+  if (d.length <= 11) {
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  }
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+}
+
+const phoneRegex = /^\(\d{2}\) \d{4,5}-\d{4}$/;
+const cpfCnpjRegex = /^(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})$/;
+
 const schema = z.object({
   full_name: z.string().trim().min(3, "Nome muito curto").max(120),
   email: z.string().trim().email("Email inválido").max(255),
-  phone: z.string().trim().min(8, "Telefone inválido").max(30).regex(/^[+\d\s()-]+$/, "Telefone inválido"),
+  phone: z.string().trim().regex(phoneRegex, "Telefone inválido (use DDD + número)"),
   company: z.string().trim().max(120).optional().or(z.literal("")),
-  cpf_cnpj: z.string().trim().max(20).optional().or(z.literal("")),
+  cpf_cnpj: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || cpfCnpjRegex.test(v), "CPF ou CNPJ inválido")
+    .optional()
+    .or(z.literal("")),
   password: z.string().min(8, "Senha precisa ter ao menos 8 caracteres").max(72),
 });
+
 
 export default function PortalSignup() {
   const navigate = useNavigate();
