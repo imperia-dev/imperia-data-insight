@@ -120,6 +120,11 @@ const App = () => (
                 <TrialApprovals />
               </ProtectedRouteWithApproval>
             } />
+            <Route path="/registration-approvals" element={
+              <ProtectedRouteWithApproval>
+                <RegistrationApprovals />
+              </ProtectedRouteWithApproval>
+            } />
             <Route path="/" element={
               <ProtectedRouteWithApproval>
                 <HomePage />
