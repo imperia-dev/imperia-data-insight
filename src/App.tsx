@@ -79,6 +79,14 @@ import CreativeStudioAuto from "./pages/CreativeStudioAuto";
 import CreativeStudioReview from "./pages/CreativeStudioReview";
 import CreativeStudioCalendar from "./pages/CreativeStudioCalendar";
 import { ActiveCompanyProvider } from "./contexts/ActiveCompanyContext";
+import PortalLanding from "./portal/pages/PortalLanding";
+import PortalLogin from "./portal/pages/PortalLogin";
+import PortalSignup from "./portal/pages/PortalSignup";
+import PortalAwaiting from "./portal/pages/PortalAwaiting";
+import PortalDashboard from "./portal/pages/PortalDashboard";
+import PortalNewOrder from "./portal/pages/PortalNewOrder";
+import PortalOrderDetail from "./portal/pages/PortalOrderDetail";
+import TrialApprovals from "./pages/TrialApprovals";
 
 const queryClient = new QueryClient();
 
@@ -100,6 +108,18 @@ const App = () => (
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/portal" element={<PortalLanding />} />
+            <Route path="/portal/login" element={<PortalLogin />} />
+            <Route path="/portal/cadastro" element={<PortalSignup />} />
+            <Route path="/portal/aguardando" element={<PortalAwaiting />} />
+            <Route path="/portal/app" element={<PortalDashboard />} />
+            <Route path="/portal/app/novo" element={<PortalNewOrder />} />
+            <Route path="/portal/app/pedido/:id" element={<PortalOrderDetail />} />
+            <Route path="/trial-approvals" element={
+              <ProtectedRouteWithApproval>
+                <TrialApprovals />
+              </ProtectedRouteWithApproval>
+            } />
             <Route path="/registration-approvals" element={
               <ProtectedRouteWithApproval>
                 <RegistrationApprovals />
