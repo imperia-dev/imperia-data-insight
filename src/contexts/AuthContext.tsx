@@ -161,7 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Handle sign out event
         if (event === 'SIGNED_OUT') {
           localStorage.removeItem('last_login_date');
-          setTimeout(() => navigate('/auth'), 0);
+          const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal');
+          setTimeout(() => navigate(isPortal ? '/portal/login' : '/auth'), 0);
         }
       }
     );
