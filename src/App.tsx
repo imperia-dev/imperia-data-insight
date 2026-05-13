@@ -108,9 +108,16 @@ const App = () => (
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/registration-approvals" element={
+            <Route path="/portal" element={<PortalLanding />} />
+            <Route path="/portal/login" element={<PortalLogin />} />
+            <Route path="/portal/cadastro" element={<PortalSignup />} />
+            <Route path="/portal/aguardando" element={<PortalAwaiting />} />
+            <Route path="/portal/app" element={<PortalDashboard />} />
+            <Route path="/portal/app/novo" element={<PortalNewOrder />} />
+            <Route path="/portal/app/pedido/:id" element={<PortalOrderDetail />} />
+            <Route path="/trial-approvals" element={
               <ProtectedRouteWithApproval>
-                <RegistrationApprovals />
+                <TrialApprovals />
               </ProtectedRouteWithApproval>
             } />
             <Route path="/" element={
