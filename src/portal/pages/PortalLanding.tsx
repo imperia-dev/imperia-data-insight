@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PortalLayout } from "./PortalLayout";
+import { PortalLayout } from "../PortalLayout";
 import { FileText, Globe2, ShieldCheck, Sparkles } from "lucide-react";
 
 export default function PortalLanding() {
