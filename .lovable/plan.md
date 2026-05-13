@@ -1,47 +1,93 @@
-# Máscaras no formulário de cadastro do portal
+# Sidebar do Portal do Cliente
 
-Adicionar formatação automática enquanto o cliente digita os campos **Telefone** e **CPF / CNPJ** em `src/portal/pages/PortalSignup.tsx`.
+Adicionar um sidebar fixo no Portal do Cliente (a partir de `/portal/app`) com navegação para as áreas pedidas. Páginas novas serão criadas como placeholders funcionais quando ainda não existirem.
 
-## Comportamento
+## Layout
 
-**Telefone (BR)**
-- Aceita apenas dígitos digitados; tudo o resto é descartado.
-- Limite: 11 dígitos (DDD + 9 dígitos do celular).
-- Formatação progressiva conforme digita:
-  - `(47)`
-  - `(47) 9`
-  - `(47) 99728`
-  - `(47) 99728-1184`
-- Fixo (10 dígitos) também suportado: `(47) 3333-4444`.
+Criar `src/portal/PortalAppLayout.tsx` — novo layout exclusivo das rotas autenticadas `/portal/app/*`, separado do `PortalLayout` atual (que segue sendo usado nas páginas públicas: landing, login, cadastro, aguardando).
 
-**CPF / CNPJ**
-- Aceita apenas dígitos; limite 14.
-- Detecta automaticamente pelo número de dígitos:
-  - ≤ 11 → CPF: `117.540.239-75`
-  - \> 11 → CNPJ: `12.345.678/0001-90`
-- Formatação progressiva durante a digitação.
+Estrutura:
+- Sidebar fixo à esquerda (colapsável, baseado nos componentes shadcn `Sidebar` já usados no app interno).
+- No topo do sidebar: logo Impéria + label "Portal do Cliente".
+- No rodapé do sidebar: nome do cliente + botão "Sair".
+- Área principal renderiza o conteúdo da rota.
+- Mobile: sidebar vira off-canvas com botão de abrir no header.
 
-## Implementação
+Envolve todas as rotas em `TrialPortalGuard` (já existente) para manter o controle de acesso.
 
-1. Criar duas funções utilitárias no próprio arquivo (ou em `src/portal/utils/masks.ts` se preferir reuso):
-   - `formatPhoneBR(value: string): string`
-   - `formatCpfCnpj(value: string): string`
-   Ambas removem não-dígitos, truncam ao máximo permitido e aplicam o template.
+## Itens do sidebar
 
-2. Atualizar os handlers dos inputs:
-   - Telefone: `onChange={(e) => setForm(f => ({ ...f, phone: formatPhoneBR(e.target.value) }))}`
-   - CPF/CNPJ: idem com `formatCpfCnpj`.
-   - Adicionar `inputMode="numeric"` e `maxLength` apropriado em cada input.
-   - Atualizar `placeholder` do telefone para `(11) 90000-0000`.
+| Label | Rota | Origem |
+|---|---|---|
+| Dashboard | `/portal/app` | Já existe (`PortalDashboard`) — vira página resumo |
+| Pedidos | `/portal/app/pedidos` | **Novo** — lista completa dos pedidos |
+| Novo pedido | `/portal/app/novo` | Já existe (`PortalNewOrder`) |
+| Acompanhamento | `/portal/app/acompanhamento` | **Novo** — timeline/status detalhado |
+| Financeiro | `/portal/app/financeiro` | **Novo** — resumo de gastos |
+| Clientes | `/portal/app/clientes` | **Novo** — cadastro manual de clientes do usuário |
+| Configurações | `/portal/app/configuracoes` | **Novo** — dados da conta |
 
-3. Validação Zod (mantida client-side):
-   - `phone`: aceitar a string formatada; ajustar regex para `/^\(\d{2}\) \d{4,5}-\d{4}$/`.
-   - `cpf_cnpj`: opcional; quando preenchido, exigir formato `xxx.xxx.xxx-xx` ou `xx.xxx.xxx/xxxx-xx`.
+Detalhe da rota existente `/portal/app/pedido/:id` (`PortalOrderDetail`) — segue funcionando dentro do novo layout, sem item próprio no sidebar.
 
-4. Persistência:
-   - Salvar o valor **formatado** em `trial_customers.phone` e `cpf_cnpj` (mais legível na tela admin). Sem mudança de schema.
+## Páginas novas (escopo de cada uma)
 
-## Fora de escopo
+1. **Pedidos** (`PortalOrders.tsx`) — Tabela completa de pedidos do cliente (mesmo `trial_orders`) com filtros por status e busca, link para o detalhe. Reaproveita o que hoje está embutido no Dashboard.
 
-- Não validar dígito verificador de CPF/CNPJ (pode ser adicionado depois se quiser).
-- Não alterar o restante do formulário nem o fluxo de aprovação.
+2. **Acompanhamento** (`PortalTracking.tsx`) — Lista de pedidos em andamento (status ≠ `completed`/`cancelled`) com timeline visual por pedido (etapas: Enviado → Em processamento → Concluído), datas, prazo estimado, responsável quando houver.
+
+3. **Financeiro** (`PortalFinance.tsx`) — Cards de resumo: total gasto no período, nº de pedidos pagos, ticket médio, gráfico mensal simples. Lista dos pedidos pagos com valor. Filtro por período.
+
+4. **Clientes** (`PortalClients.tsx`) — CRUD simples (criar/editar/remover) de clientes que o usuário cadastra manualmente. Estes registros **não geram acesso** ao portal — são apenas dados (nome, documento, e-mail, telefone, observação) atrelados ao `customer_id` do usuário trial logado.
+
+5. **Configurações** (`PortalSettings.tsx`) — Edição dos dados da própria conta (nome, telefone, empresa) e troca de senha.
+
+6. **Dashboard** — refator: deixa de mostrar a tabela completa e passa a mostrar cards-resumo (pedidos abertos, em andamento, concluídos, último pedido) + atalhos rápidos.
+
+## Backend
+
+Para a página **Clientes** será necessária uma nova tabela:
+
+```sql
+create table public.trial_customer_contacts (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.trial_customers(id) on delete cascade,
+  full_name text not null,
+  email text,
+  phone text,
+  document text,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+RLS: apenas o dono (`customer_id` = trial customer logado) pode ler/escrever. Política via função security definer já existente que mapeia `auth.uid()` → `trial_customers.id`.
+
+As demais páginas usam tabelas/edge functions existentes (`trial_orders`).
+
+## Detalhes técnicos
+
+- Componentes shadcn: `Sidebar`, `SidebarProvider`, `SidebarTrigger`, `SidebarMenu`, etc. (já no projeto).
+- Navegação ativa via `NavLink` com `isActive`.
+- Sidebar colapsável (`collapsible="icon"`) — mantém ícones visíveis no estado fechado.
+- Roteamento: atualizar `src/App.tsx` adicionando as 5 rotas novas e envolvendo todas as `/portal/app/*` no `PortalAppLayout`.
+- Cor/tema: usa os tokens semânticos de `index.css` (sem cores hard-coded).
+- Sanitização: formulários novos (Clientes, Configurações) usam `useSecureForm` conforme regra do projeto.
+- Footer "© 2024 Impéria Traduções" do `PortalLayout` é removido do `PortalAppLayout` (sidebar fixa não precisa).
+
+## Arquivos a criar/editar
+
+Criar:
+- `src/portal/PortalAppLayout.tsx`
+- `src/portal/components/PortalSidebar.tsx`
+- `src/portal/pages/PortalOrders.tsx`
+- `src/portal/pages/PortalTracking.tsx`
+- `src/portal/pages/PortalFinance.tsx`
+- `src/portal/pages/PortalClients.tsx`
+- `src/portal/pages/PortalSettings.tsx`
+- Migration SQL: tabela `trial_customer_contacts` + RLS
+
+Editar:
+- `src/App.tsx` — novas rotas dentro do layout
+- `src/portal/pages/PortalDashboard.tsx` — remover `PortalLayout`, virar conteúdo puro com cards-resumo
+- `src/portal/pages/PortalNewOrder.tsx` e `PortalOrderDetail.tsx` — remover `PortalLayout`, deixar conteúdo puro (o layout vem do shell)
