@@ -57,15 +57,11 @@ export function PortalSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b">
         <div className={cn("flex items-center gap-2 px-2 py-2", collapsed && "justify-center")}>
-          {collapsed ? (
-            <Logo size="sm" iconOnly />
-          ) : (
-            <>
-              <Logo size="sm" />
-              <span className="text-xs font-semibold text-muted-foreground tracking-wide truncate">
-                Portal
-              </span>
-            </>
+          <Logo size="sm" />
+          {!collapsed && (
+            <span className="text-xs font-semibold text-muted-foreground tracking-wide truncate">
+              Portal
+            </span>
           )}
         </div>
       </SidebarHeader>
