@@ -123,7 +123,15 @@ export default function PortalSignup() {
                 </div>
                 <div>
                   <Label htmlFor="phone">Telefone *</Label>
-                  <Input id="phone" required placeholder="+55 11 90000-0000" value={form.phone} onChange={update("phone")} />
+                  <Input
+                    id="phone"
+                    required
+                    inputMode="numeric"
+                    maxLength={16}
+                    placeholder="(11) 90000-0000"
+                    value={form.phone}
+                    onChange={(e) => setForm((f) => ({ ...f, phone: formatPhoneBR(e.target.value) }))}
+                  />
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -133,7 +141,14 @@ export default function PortalSignup() {
                 </div>
                 <div>
                   <Label htmlFor="cpf_cnpj">CPF / CNPJ</Label>
-                  <Input id="cpf_cnpj" value={form.cpf_cnpj} onChange={update("cpf_cnpj")} />
+                  <Input
+                    id="cpf_cnpj"
+                    inputMode="numeric"
+                    maxLength={18}
+                    placeholder="000.000.000-00"
+                    value={form.cpf_cnpj}
+                    onChange={(e) => setForm((f) => ({ ...f, cpf_cnpj: formatCpfCnpj(e.target.value) }))}
+                  />
                 </div>
               </div>
               <div>
