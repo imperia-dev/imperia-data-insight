@@ -79,6 +79,14 @@ import CreativeStudioAuto from "./pages/CreativeStudioAuto";
 import CreativeStudioReview from "./pages/CreativeStudioReview";
 import CreativeStudioCalendar from "./pages/CreativeStudioCalendar";
 import { ActiveCompanyProvider } from "./contexts/ActiveCompanyContext";
+import PortalLanding from "./portal/pages/PortalLanding";
+import PortalLogin from "./portal/pages/PortalLogin";
+import PortalSignup from "./portal/pages/PortalSignup";
+import PortalAwaiting from "./portal/pages/PortalAwaiting";
+import PortalDashboard from "./portal/pages/PortalDashboard";
+import PortalNewOrder from "./portal/pages/PortalNewOrder";
+import PortalOrderDetail from "./portal/pages/PortalOrderDetail";
+import TrialApprovals from "./pages/TrialApprovals";
 
 const queryClient = new QueryClient();
 
