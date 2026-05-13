@@ -69,6 +69,7 @@ import DashboardControleFinanceiro from "./pages/DashboardControleFinanceiro";
 import Announcements from "./pages/Announcements";
 import BadNews from "./pages/BadNews";
 import ReviewChecklistAdmin from "./pages/ReviewChecklistAdmin";
+import PortalOrdersAdmin from "./pages/PortalOrdersAdmin";
 import ReviewChecklist from "./pages/ReviewChecklist";
 import AIAgent from "./pages/AIAgent";
 import CreativeStudio from "./pages/CreativeStudio";
@@ -151,6 +152,11 @@ const App = () => (
             <Route path="/orders" element={
               <ProtectedRouteWithApproval>
                 <Orders />
+              </ProtectedRouteWithApproval>
+            } />
+            <Route path="/portal-orders" element={
+              <ProtectedRouteWithApproval>
+                <PortalOrdersAdmin />
               </ProtectedRouteWithApproval>
             } />
             <Route path="/my-orders" element={
