@@ -47,21 +47,43 @@ serve(async (req) => {
     }
 
     // Create auth user (auto-confirm so they can log in after approval without verification email)
+    let userId: string | null = null;
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email: data.email,
       password: data.password,
       email_confirm: true,
       user_metadata: { full_name: data.full_name, source: "trial_portal" },
     });
-    if (createErr || !created.user) {
-      const msg = createErr?.message || "Falha ao criar conta";
-      const status = msg.toLowerCase().includes("already") ? 409 : 400;
-      return new Response(JSON.stringify({ error: msg }), {
-        status, headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
 
-    const userId = created.user.id;
+    if (createErr || !created?.user) {
+      const msg = (createErr?.message || "").toLowerCase();
+      const alreadyExists = msg.includes("already") || msg.includes("registered") || msg.includes("exists");
+      if (!alreadyExists) {
+        return new Response(JSON.stringify({ error: createErr?.message || "Falha ao criar conta" }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      // Auth user already exists from a previous attempt without trial_customers row.
+      // Verify the password matches before reusing the account.
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const anonClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
+      const { data: signIn, error: signInErr } = await anonClient.auth.signInWithPassword({
+        email: data.email, password: data.password,
+      });
+      if (signInErr || !signIn?.user) {
+        return new Response(
+          JSON.stringify({ error: "Este e-mail já possui uma conta. Faça login ou use a opção de recuperar senha." }),
+          { status: 409, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        );
+      }
+      userId = signIn.user.id;
+      // Update password metadata to ensure consistency (optional)
+      await admin.auth.admin.updateUserById(userId, {
+        user_metadata: { full_name: data.full_name, source: "trial_portal" },
+      }).catch(() => {});
+    } else {
+      userId = created.user.id;
+    }
 
     const { error: insertErr } = await admin.from("trial_customers").insert({
       user_id: userId,
