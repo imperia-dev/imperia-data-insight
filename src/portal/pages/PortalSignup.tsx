@@ -71,28 +71,25 @@ export default function PortalSignup() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: { emailRedirectTo: `${window.location.origin}/portal/login` },
+    const { data, error } = await supabase.functions.invoke("register-trial-customer", {
+      body: parsed.data,
     });
-    if (error || !data.user) {
+    if (error || (data && (data as any).error)) {
       setLoading(false);
-      toast.error("Não foi possível cadastrar", { description: error?.message });
+      const msg = (data as any)?.error || error?.message || "Falha ao cadastrar";
+      toast.error("Não foi possível cadastrar", { description: msg });
       return;
     }
 
-    const { error: insertError } = await supabase.from("trial_customers").insert({
-      user_id: data.user.id,
-      full_name: parsed.data.full_name,
+    // Auto sign-in to land directly on the awaiting-approval screen
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email: parsed.data.email,
-      phone: parsed.data.phone,
-      company: parsed.data.company || null,
-      cpf_cnpj: parsed.data.cpf_cnpj || null,
+      password: parsed.data.password,
     });
     setLoading(false);
-    if (insertError) {
-      toast.error("Erro ao salvar cadastro", { description: insertError.message });
+    if (signInError) {
+      toast.success("Cadastro enviado!", { description: "Faça login para acompanhar o status." });
+      navigate("/portal/login", { replace: true });
       return;
     }
     toast.success("Cadastro enviado!", { description: "Sua conta está em análise." });
