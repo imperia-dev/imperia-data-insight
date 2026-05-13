@@ -76,8 +76,21 @@ export default function PortalSignup() {
     });
     if (error || (data && (data as any).error)) {
       setLoading(false);
-      const msg = (data as any)?.error || error?.message || "Falha ao cadastrar";
-      toast.error("Não foi possível cadastrar", { description: msg });
+      const raw = (data as any)?.error || error?.message || "Falha ao cadastrar";
+      const lower = raw.toLowerCase();
+      const isDuplicate = lower.includes("já existe") || lower.includes("já possui") || lower.includes("already") || lower.includes("registered") || lower.includes("exists");
+      if (isDuplicate) {
+        toast.error("Email já cadastrado", {
+          description: "Já existe uma conta com este e-mail. Deseja fazer login?",
+          action: {
+            label: "Entrar",
+            onClick: () => navigate("/portal/login", { replace: true }),
+          },
+          duration: 8000,
+        });
+      } else {
+        toast.error("Não foi possível cadastrar", { description: raw });
+      }
       return;
     }
 
