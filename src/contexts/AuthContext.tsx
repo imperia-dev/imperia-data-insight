@@ -71,7 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
     
-    navigate("/auth");
+    const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal');
+    navigate(isPortal ? "/portal/login" : "/auth");
     setLoading(false);
   }, [navigate]);
   
