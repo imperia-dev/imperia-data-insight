@@ -154,7 +154,7 @@ export default function PortalOrdersAdmin() {
     setUpdatingStatus(true);
     const { error } = await supabase
       .from("trial_orders")
-      .update({ status: newStatus as OrderRow["status"] })
+      .update({ status: newStatus as any })
       .eq("id", selected.id);
     setUpdatingStatus(false);
     if (error) {
