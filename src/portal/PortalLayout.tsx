@@ -42,7 +42,7 @@ export function PortalLayout({ children, showAuthActions = true }: { children: R
       </header>
       <main className="container mx-auto px-4 py-8">{children}</main>
       <footer className="border-t mt-12 py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Impéria Traduções
+        © 2024 Impéria Traduções
       </footer>
     </div>
   );
