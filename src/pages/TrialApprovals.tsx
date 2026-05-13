@@ -44,19 +44,36 @@ export default function TrialApprovals() {
     if (allowed) load();
   }, [allowed]);
 
+  const sendStatusEmail = async (c: Customer, status: "approved" | "rejected", reason?: string) => {
+    try {
+      await supabase.functions.invoke("send-trial-status-email", {
+        body: { recipient_email: c.email, recipient_name: c.full_name, status, reason },
+      });
+    } catch (e) {
+      console.error("send-trial-status-email failed", e);
+    }
+  };
+
   const approve = async (id: string) => {
+    const customer = items.find((i) => i.id === id);
     const { error } = await supabase.rpc("approve_trial_customer", { _customer_id: id });
-    if (error) toast.error(error.message);
-    else { toast.success("Cliente aprovado"); load(); }
+    if (error) { toast.error(error.message); return; }
+    toast.success("Cliente aprovado");
+    if (customer) await sendStatusEmail(customer, "approved");
+    load();
   };
 
   const reject = async (id: string) => {
     const reason = prompt("Motivo da rejeição:") || "";
     if (!reason.trim()) return;
+    const customer = items.find((i) => i.id === id);
     const { error } = await supabase.rpc("reject_trial_customer", { _customer_id: id, _reason: reason.trim() });
-    if (error) toast.error(error.message);
-    else { toast.success("Cadastro rejeitado"); load(); }
+    if (error) { toast.error(error.message); return; }
+    toast.success("Cadastro rejeitado");
+    if (customer) await sendStatusEmail(customer, "rejected", reason.trim());
+    load();
   };
+
 
   const deactivate = async (id: string) => {
     if (!confirm("Desativar este cliente?")) return;
