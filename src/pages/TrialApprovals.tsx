@@ -72,8 +72,8 @@ export default function TrialApprovals() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar />
-      <Header />
+      <Sidebar userRole={userRole || ""} />
+      <Header userName="" userRole={userRole || ""} />
       <main className={`${mainContainerClass} pt-20 pb-8`}>
         <div className="container mx-auto px-4 max-w-6xl space-y-6">
           <div>
