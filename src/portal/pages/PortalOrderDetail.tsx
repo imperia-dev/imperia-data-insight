@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowLeft, FileText, Loader2, Download, Languages, FileSignature, Files,
   BookOpen, Type as TypeIcon, Calendar, Clock, User, Mail, Phone, Building2,
@@ -15,6 +16,18 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+type PreviewState = { url: string; name: string; mime: string; kind: "pdf" | "image" | "office" | "text" | "unsupported"; blobUrl?: string } | null;
+
+function detectKind(mime: string, name: string): "pdf" | "image" | "office" | "text" | "unsupported" {
+  const m = (mime || "").toLowerCase();
+  const n = name.toLowerCase();
+  if (m === "application/pdf" || n.endsWith(".pdf")) return "pdf";
+  if (m.startsWith("image/")) return "image";
+  if (m.startsWith("text/") || n.endsWith(".txt") || n.endsWith(".csv")) return "text";
+  if (/\.(docx?|xlsx?|pptx?|odt|ods|odp)$/.test(n)) return "office";
+  return "unsupported";
+}
 
 type Order = {
   id: string;
