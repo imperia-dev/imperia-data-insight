@@ -382,6 +382,23 @@ function OrderDetailInner() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!preview} onOpenChange={(o) => { if (!o) closePreview(); }}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 flex flex-col gap-0">
+          <DialogHeader className="px-6 py-3 border-b">
+            <DialogTitle className="truncate pr-8">{preview?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 bg-muted/30 overflow-hidden">
+            {preview?.kind === "image" ? (
+              <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+                <img src={preview.url} alt={preview.name} className="max-w-full max-h-full object-contain" />
+              </div>
+            ) : preview ? (
+              <iframe src={preview.url} title={preview.name} className="w-full h-full border-0" />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
