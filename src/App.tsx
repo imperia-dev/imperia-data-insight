@@ -88,7 +88,7 @@ import PortalDashboard from "./portal/pages/PortalDashboard";
 import PortalNewOrder from "./portal/pages/PortalNewOrder";
 import PortalOrderDetail from "./portal/pages/PortalOrderDetail";
 import PortalOrders from "./portal/pages/PortalOrders";
-import PortalTracking from "./portal/pages/PortalTracking";
+
 import PortalFinance from "./portal/pages/PortalFinance";
 import PortalClients from "./portal/pages/PortalClients";
 import PortalSettings from "./portal/pages/PortalSettings";
@@ -123,7 +123,7 @@ const App = () => (
               <Route index element={<PortalDashboard />} />
               <Route path="pedidos" element={<PortalOrders />} />
               <Route path="novo" element={<PortalNewOrder />} />
-              <Route path="acompanhamento" element={<PortalTracking />} />
+              
               <Route path="financeiro" element={<PortalFinance />} />
               <Route path="clientes" element={<PortalClients />} />
               <Route path="configuracoes" element={<PortalSettings />} />
