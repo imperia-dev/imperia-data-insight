@@ -10,7 +10,7 @@ import {
 import {
   ArrowLeft, FileText, Loader2, Download, Languages, FileSignature, Files,
   BookOpen, Type as TypeIcon, Calendar, Clock, User, Mail, Phone, Building2,
-  IdCard, CheckCircle2, CircleDot, Circle, AlertCircle, MessageSquare, Hash, Copy,
+  IdCard, CheckCircle2, CircleDot, Circle, AlertCircle, MessageSquare, Hash, Copy, Eye,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
