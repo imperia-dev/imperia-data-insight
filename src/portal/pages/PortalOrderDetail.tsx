@@ -85,6 +85,7 @@ function OrderDetailInner() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
