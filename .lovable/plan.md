@@ -1,64 +1,33 @@
-# Página interna: Pedidos do Portal (Owner/Master)
+# Novo pedido em abas (wizard livre)
 
-Adicionar uma página no app interno para que **owner** e **master** vejam os pedidos criados pelos clientes via Portal (`trial_orders`) e abram os documentos enviados.
+Refatorar `src/portal/pages/PortalNewOrder.tsx` para apresentar o fluxo em abas clicáveis no topo, com as etapas que você definiu. Mantém toda a lógica atual (criação de rascunho, upload, análise, envio) sem mudanças funcionais — só reorganiza a apresentação.
 
-## Backend
+## Abas
 
-Nada novo a criar. As políticas RLS já permitem acesso total para owner/master:
-- `trial_orders.to_select_admin` ✅
-- `trial_order_files.tof_select_admin` ✅
-- `trial_customers.tc_select_admin` ✅
-- Storage `trial-uploads.trial_uploads_select_admin` ✅
+1. **Par de idioma** — PT → IT / IT → PT (igual hoje).
+2. **Tipo de tradução** — Juramentada (igual hoje).
+3. **Arquivos** — upload com dropzone (igual hoje).
+4. **Dados sobre os arquivos** — tabela read-only com nome, páginas, caracteres e total geral (extraído do que já analisamos).
+5. **Preço** — placeholder "Em breve — cálculo automático de preço".
+6. **Pagamento** — placeholder "Em breve — opções de pagamento".
+7. **Revisão e envio** — resumo de tudo + campo Observações + botão "Enviar pedido".
 
-Visualização de documento: gerar URL assinada via `supabase.storage.from('trial-uploads').createSignedUrl(path, 300)` no clique — o bucket é privado.
+## Navegação
 
-## Frontend
+- Abas livres clicáveis (usuário pode pular entre etapas a qualquer momento).
+- Indicador visual de progresso (número + check verde nas abas já preenchidas).
+- Botões "Voltar" / "Próximo" no rodapé de cada aba como atalho.
+- O botão "Enviar pedido" só aparece na aba final e respeita as validações atuais (pelo menos 1 arquivo, nenhum em análise).
 
-### Nova rota
-`/portal-orders` (página interna, sem relação com o layout `/portal/app`).
+## Detalhes técnicos
 
-Adicionada em `src/App.tsx` envolta em `ProtectedRouteWithApproval`.
+- Usar `Tabs` do shadcn (`@/components/ui/tabs`) com `value` controlado por estado local.
+- Toda a lógica existente (`useEffect` de criação, `handleFiles`, polling, `submit`) permanece idêntica — apenas redistribuída entre `TabsContent`.
+- Nova aba "Dados sobre os arquivos": renderiza tabela com colunas `Arquivo | Páginas | Caracteres | Status`, mais linha de totais.
+- Abas "Preço" e "Pagamento": componente `EmptyState` simples com ícone e texto "Em breve".
+- Sem mudanças em rotas, edge functions, banco ou políticas RLS.
 
-### Item de sidebar
-Adicionar em `src/components/layout/Sidebar.tsx`, dentro do grupo **Operação**:
+## Fora de escopo
 
-```ts
-{ title: "Pedidos do Portal", icon: Globe, href: "/portal-orders", roles: ["owner", "master"] }
-```
-
-(filtro de roles já elimina para outras roles)
-
-### Página `src/pages/PortalOrdersAdmin.tsx`
-
-- **Lista** (tabela): número, cliente (nome + email), idioma, docs/páginas, status, data. Filtros por status + busca por número/cliente.
-- **Botão "Ver"** abre `Sheet`/`Dialog` com detalhes:
-  - Dados do cliente (nome, email, telefone, empresa, CPF/CNPJ).
-  - Resumo do pedido (idioma, tipo, totais, observações, datas).
-  - **Lista de arquivos** com nome, páginas, caracteres e botão **"Abrir documento"** que gera signed URL e abre em nova aba. Para imagens (mime começando com `image/`) também mostra preview inline.
-- Atualização de status do pedido pelo admin: dropdown rápido para mover entre `submitted` → `processing` → `completed` / `cancelled` (UPDATE direto, sem RLS extra — owner/master têm policy de update? Vou verificar).
-
-### Ponto a confirmar
-
-O policy `to_update_own` permite update apenas pelo próprio cliente em status `draft`. **Não há policy de UPDATE para owner/master** em `trial_orders`. Para o admin mudar status do pedido, será preciso adicionar policy:
-
-```sql
-create policy "to_update_admin"
-on public.trial_orders for update
-to authenticated
-using (has_role(auth.uid(),'owner') or has_role(auth.uid(),'master'))
-with check (has_role(auth.uid(),'owner') or has_role(auth.uid(),'master'));
-```
-
-Se você não quiser permitir mudança de status nessa tela agora, removo essa parte e fica só visualização. **Vou incluir a mudança de status (com a migration).**
-
-## Arquivos
-
-Criar:
-- `src/pages/PortalOrdersAdmin.tsx`
-
-Editar:
-- `src/App.tsx` — registrar a rota
-- `src/components/layout/Sidebar.tsx` — adicionar item no grupo Operação
-
-Migration:
-- Policy `to_update_admin` em `trial_orders`
+- Não implementar cálculo de preço nem integração de pagamento agora (apenas placeholders).
+- Não alterar o fluxo de submissão nem o backend.
