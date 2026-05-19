@@ -31,7 +31,7 @@ const items = [
   { title: "Dashboard", url: "/portal/app", icon: LayoutDashboard, end: true },
   { title: "Pedidos", url: "/portal/app/pedidos", icon: FileText },
   { title: "Novo pedido", url: "/portal/app/novo", icon: Plus },
-  { title: "Acompanhamento", url: "/portal/app/acompanhamento", icon: Activity },
+  
   { title: "Financeiro", url: "/portal/app/financeiro", icon: DollarSign },
   { title: "Clientes", url: "/portal/app/clientes", icon: Users },
   { title: "Configurações", url: "/portal/app/configuracoes", icon: Settings },
