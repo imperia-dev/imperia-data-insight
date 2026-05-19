@@ -123,7 +123,7 @@ const App = () => (
               <Route index element={<PortalDashboard />} />
               <Route path="pedidos" element={<PortalOrders />} />
               <Route path="novo" element={<PortalNewOrder />} />
-              <Route path="acompanhamento" element={<PortalTracking />} />
+              
               <Route path="financeiro" element={<PortalFinance />} />
               <Route path="clientes" element={<PortalClients />} />
               <Route path="configuracoes" element={<PortalSettings />} />
