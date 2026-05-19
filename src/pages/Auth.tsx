@@ -349,6 +349,24 @@ export default function Auth() {
           });
         }
       } else if (authData.user) {
+        // Defense in depth: block trial-portal accounts from logging into the internal system
+        const { data: trialRow } = await supabase
+          .from("trial_customers")
+          .select("id")
+          .eq("user_id", authData.user.id)
+          .maybeSingle();
+
+        if (trialRow) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Conta do Portal do Cliente",
+            description: "Esta conta pertence ao Portal do Cliente. Acesse em /portal/login.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         // Log successful attempt
         await supabase.rpc('log_login_attempt', {
           p_identifier: data.email,
