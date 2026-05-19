@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowLeft, FileText, Loader2, Download, Languages, FileSignature, Files,
   BookOpen, Type as TypeIcon, Calendar, Clock, User, Mail, Phone, Building2,
@@ -15,6 +16,18 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+type PreviewState = { url: string; name: string; mime: string; kind: "pdf" | "image" | "office" | "text" | "unsupported"; blobUrl?: string } | null;
+
+function detectKind(mime: string, name: string): "pdf" | "image" | "office" | "text" | "unsupported" {
+  const m = (mime || "").toLowerCase();
+  const n = name.toLowerCase();
+  if (m === "application/pdf" || n.endsWith(".pdf")) return "pdf";
+  if (m.startsWith("image/")) return "image";
+  if (m.startsWith("text/") || n.endsWith(".txt") || n.endsWith(".csv")) return "text";
+  if (/\.(docx?|xlsx?|pptx?|odt|ods|odp)$/.test(n)) return "office";
+  return "unsupported";
+}
 
 type Order = {
   id: string;
@@ -86,6 +99,7 @@ function OrderDetailInner() {
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<PreviewState>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -125,22 +139,42 @@ function OrderDetailInner() {
   const viewFile = async (f: FileRow) => {
     setViewingId(f.id);
     try {
-      const { data, error } = await supabase.storage.from("trial-uploads").createSignedUrl(f.storage_path, 60);
+      const kind = detectKind(f.mime_type, f.original_filename);
+      // For Office docs, use signed URL directly with Office Online viewer (requires public-ish URL — signed URL works since Microsoft fetches server-side)
+      const { data, error } = await supabase.storage
+        .from("trial-uploads")
+        .createSignedUrl(f.storage_path, 60 * 60);
       if (error || !data?.signedUrl) { toast.error("Erro ao gerar link"); return; }
+
+      if (kind === "office") {
+        const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(data.signedUrl)}`;
+        setPreview({ url: officeUrl, name: f.original_filename, mime: f.mime_type, kind });
+        return;
+      }
+
+      if (kind === "unsupported") {
+        toast.error("Tipo de arquivo não suportado para visualização. Use o botão de download.");
+        return;
+      }
+
+      // PDF / image / text — fetch as blob to avoid Content-Disposition forcing download
       const res = await fetch(data.signedUrl);
       if (!res.ok) throw new Error("fetch failed");
-      const contentType = res.headers.get("content-type") || "application/octet-stream";
+      const contentType = res.headers.get("content-type") || f.mime_type || "application/octet-stream";
       const blob = await res.blob();
       const typedBlob = blob.type ? blob : new Blob([blob], { type: contentType });
       const blobUrl = URL.createObjectURL(typedBlob);
-      const win = window.open(blobUrl, "_blank", "noopener,noreferrer");
-      if (!win) { toast.error("Permita pop-ups para visualizar"); }
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+      setPreview({ url: blobUrl, name: f.original_filename, mime: contentType, kind, blobUrl });
     } catch {
       toast.error("Erro ao visualizar arquivo");
     } finally {
       setViewingId(null);
     }
+  };
+
+  const closePreview = () => {
+    if (preview?.blobUrl) URL.revokeObjectURL(preview.blobUrl);
+    setPreview(null);
   };
 
   const copyNumber = () => {
@@ -348,6 +382,23 @@ function OrderDetailInner() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!preview} onOpenChange={(o) => { if (!o) closePreview(); }}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 flex flex-col gap-0">
+          <DialogHeader className="px-6 py-3 border-b">
+            <DialogTitle className="truncate pr-8">{preview?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 bg-muted/30 overflow-hidden">
+            {preview?.kind === "image" ? (
+              <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+                <img src={preview.url} alt={preview.name} className="max-w-full max-h-full object-contain" />
+              </div>
+            ) : preview ? (
+              <iframe src={preview.url} title={preview.name} className="w-full h-full border-0" />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
