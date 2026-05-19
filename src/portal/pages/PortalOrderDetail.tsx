@@ -124,10 +124,23 @@ function OrderDetailInner() {
 
   const viewFile = async (f: FileRow) => {
     setViewingId(f.id);
-    const { data, error } = await supabase.storage.from("trial-uploads").createSignedUrl(f.storage_path, 60);
-    setViewingId(null);
-    if (error || !data?.signedUrl) { toast.error("Erro ao gerar link"); return; }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    try {
+      const { data, error } = await supabase.storage.from("trial-uploads").createSignedUrl(f.storage_path, 60);
+      if (error || !data?.signedUrl) { toast.error("Erro ao gerar link"); return; }
+      const res = await fetch(data.signedUrl);
+      if (!res.ok) throw new Error("fetch failed");
+      const contentType = res.headers.get("content-type") || "application/octet-stream";
+      const blob = await res.blob();
+      const typedBlob = blob.type ? blob : new Blob([blob], { type: contentType });
+      const blobUrl = URL.createObjectURL(typedBlob);
+      const win = window.open(blobUrl, "_blank", "noopener,noreferrer");
+      if (!win) { toast.error("Permita pop-ups para visualizar"); }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch {
+      toast.error("Erro ao visualizar arquivo");
+    } finally {
+      setViewingId(null);
+    }
   };
 
   const copyNumber = () => {
