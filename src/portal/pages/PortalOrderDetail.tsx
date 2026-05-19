@@ -318,9 +318,14 @@ function OrderDetailInner() {
                         {f.analysis_status === "failed" && <Badge variant="destructive">Falha</Badge>}
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => downloadFile(f)} disabled={downloadingId === f.id}>
-                          {downloadingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => viewFile(f)} disabled={viewingId === f.id} title="Visualizar">
+                            {viewingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => downloadFile(f)} disabled={downloadingId === f.id} title="Baixar">
+                            {downloadingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
