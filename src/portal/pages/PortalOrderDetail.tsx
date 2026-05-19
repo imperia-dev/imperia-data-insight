@@ -122,6 +122,14 @@ function OrderDetailInner() {
     window.open(data.signedUrl, "_blank");
   };
 
+  const viewFile = async (f: FileRow) => {
+    setViewingId(f.id);
+    const { data, error } = await supabase.storage.from("trial-uploads").createSignedUrl(f.storage_path, 60);
+    setViewingId(null);
+    if (error || !data?.signedUrl) { toast.error("Erro ao gerar link"); return; }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
   const copyNumber = () => {
     if (!order) return;
     navigator.clipboard.writeText(order.order_number);
