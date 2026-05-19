@@ -19,7 +19,7 @@ import {
   LayoutDashboard,
   FileText,
   Plus,
-  Activity,
+  
   DollarSign,
   Users,
   Settings,
