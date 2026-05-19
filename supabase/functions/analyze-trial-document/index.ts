@@ -66,7 +66,12 @@ serve(async (req) => {
         // Vision via Lovable AI Gateway
         const apiKey = Deno.env.get("LOVABLE_API_KEY");
         if (apiKey) {
-          const b64 = btoa(String.fromCharCode(...buf));
+          let bin = "";
+          const CHUNK = 0x8000;
+          for (let i = 0; i < buf.length; i += CHUNK) {
+            bin += String.fromCharCode.apply(null, buf.subarray(i, i + CHUNK) as unknown as number[]);
+          }
+          const b64 = btoa(bin);
           const dataUrl = `data:${fileRow.mime_type};base64,${b64}`;
           const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
