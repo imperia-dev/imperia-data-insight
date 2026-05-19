@@ -139,22 +139,42 @@ function OrderDetailInner() {
   const viewFile = async (f: FileRow) => {
     setViewingId(f.id);
     try {
-      const { data, error } = await supabase.storage.from("trial-uploads").createSignedUrl(f.storage_path, 60);
+      const kind = detectKind(f.mime_type, f.original_filename);
+      // For Office docs, use signed URL directly with Office Online viewer (requires public-ish URL — signed URL works since Microsoft fetches server-side)
+      const { data, error } = await supabase.storage
+        .from("trial-uploads")
+        .createSignedUrl(f.storage_path, 60 * 60);
       if (error || !data?.signedUrl) { toast.error("Erro ao gerar link"); return; }
+
+      if (kind === "office") {
+        const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(data.signedUrl)}`;
+        setPreview({ url: officeUrl, name: f.original_filename, mime: f.mime_type, kind });
+        return;
+      }
+
+      if (kind === "unsupported") {
+        toast.error("Tipo de arquivo não suportado para visualização. Use o botão de download.");
+        return;
+      }
+
+      // PDF / image / text — fetch as blob to avoid Content-Disposition forcing download
       const res = await fetch(data.signedUrl);
       if (!res.ok) throw new Error("fetch failed");
-      const contentType = res.headers.get("content-type") || "application/octet-stream";
+      const contentType = res.headers.get("content-type") || f.mime_type || "application/octet-stream";
       const blob = await res.blob();
       const typedBlob = blob.type ? blob : new Blob([blob], { type: contentType });
       const blobUrl = URL.createObjectURL(typedBlob);
-      const win = window.open(blobUrl, "_blank", "noopener,noreferrer");
-      if (!win) { toast.error("Permita pop-ups para visualizar"); }
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+      setPreview({ url: blobUrl, name: f.original_filename, mime: contentType, kind, blobUrl });
     } catch {
       toast.error("Erro ao visualizar arquivo");
     } finally {
       setViewingId(null);
     }
+  };
+
+  const closePreview = () => {
+    if (preview?.blobUrl) URL.revokeObjectURL(preview.blobUrl);
+    setPreview(null);
   };
 
   const copyNumber = () => {
