@@ -1,45 +1,80 @@
-# Hardening da contagem de páginas e caracteres
+# Enriquecer página Financeiro (`/portal/app/financeiro`)
 
-Objetivo: tornar a análise de arquivos do portal trial mais confiável, cobrindo casos hoje frágeis (PDFs escaneados, DOCX, imagens com falha de OCR) e permitindo reprocessar arquivos sem redeploy.
+## Objetivo
+Transformar a página Financeiro num painel mais completo, incluindo cálculo de custo estimado por documento conforme a regra:
 
-## O que será feito
+- Documento com **até 3 páginas** → **R$ 70 (valor fixo)**
+- Documento com **4 páginas ou mais** → **páginas × R$ 50**
 
-1. **DOCX com paginação real**
-   - Ler `docProps/app.xml` do `.docx` (campo `Pages` gravado pelo Word) e usar esse valor quando existir.
-   - Manter o cálculo atual (`ceil(chars/1800)`) apenas como fallback quando o campo não estiver presente.
+O custo é calculado **por documento (arquivo)**, não pelo total agregado do pedido — assim 2 arquivos de 2 páginas custam R$ 140, e não R$ 70.
 
-2. **Fallback de OCR para PDFs escaneados**
-   - Após `pdf-parse`, se `characters == 0` e `pages > 0`, tratar como PDF escaneado.
-   - Renderizar/enviar o PDF (ou as primeiras páginas como imagem) ao Gemini 2.5 Flash via Lovable AI Gateway — mesmo pipeline já usado para imagens — e usar o texto extraído para contar caracteres.
+## Mudanças
 
-3. **Imagens com OCR sem retorno**
-   - Se o Gemini responder vazio ou falhar (rede/HTTP != 200), marcar o arquivo como `analysis_status = 'failed'` com `analysis_error` claro, em vez de salvar silenciosamente `characters = 0`.
+### 1. Consulta de dados
+Atualmente a página lê apenas `trial_orders`. Passaremos a buscar também `trial_order_files` (campos `order_id`, `pages`, `characters`) para calcular o custo por documento.
 
-4. **`chars_per_page` configurável**
-   - Remover a constante mágica `1800` da função.
-   - Ler de uma configuração (tabela `app_settings` ou variável de ambiente da Edge Function) com default 1800, para ajustes futuros sem redeploy.
+### 2. Função utilitária de preço
+Criar `src/portal/lib/pricing.ts` com:
+- `priceForDocument(pages)` → 70 se pages ≤ 3, senão pages × 50
+- `priceForOrder(files)` → soma de cada documento
+- Constantes exportadas (`FLAT_PRICE`, `PAGE_PRICE`, `FLAT_PAGE_LIMIT`) para reuso futuro (ex.: PortalOrderDetail).
 
-5. **Botão "Reanalisar arquivo"**
-   - Em `PortalOrderDetail.tsx` (lista de arquivos), adicionar ação de reanálise que reinvoca a função `analyze-trial-document` para o `file_id`.
-   - Mostrar feedback (toast) e recarregar a lista quando concluir.
-   - Disponível para o dono do pedido (a função já valida ownership).
+### 3. Novos KPIs no topo (grid de 6 cards, responsivo)
+- Pedidos no total
+- Pedidos concluídos
+- Pedidos em andamento (submitted + processing)
+- Total de documentos
+- Páginas traduzidas (+ caracteres como subtítulo)
+- **Valor total estimado** (destaque visual: card com fundo accent)
+
+Cards secundários abaixo:
+- Valor já faturado (pedidos `completed`)
+- Valor em aberto (pedidos `submitted` + `processing`)
+- Ticket médio por pedido
+- Preço médio por página
+
+### 4. Tabela Histórico enriquecida
+Adicionar colunas:
+- Idioma (PT→IT / IT→PT)
+- Documentos
+- Valor estimado (R$) — por linha
+- Status com Badge colorida (mesma convenção de PortalOrders)
+
+Mostrar linha de **totais** no rodapé da tabela.
+
+### 5. Detalhamento por documento (expansível)
+Cada linha do histórico ganha um botão "Ver documentos" que abre uma área com lista dos arquivos do pedido: nome, páginas, caracteres, valor calculado. Útil para o cliente entender exatamente como o valor foi formado.
+
+### 6. Aviso de transparência
+Substituir o texto "Os valores monetários estarão disponíveis em breve" por um bloco explicando a regra de preço (até 3 páginas: R$ 70 por documento; 4+ páginas: R$ 50/página) e deixando claro que valores são **estimativas** sujeitas a confirmação pela equipe.
 
 ## Detalhes técnicos
 
-- **Edge Function** `supabase/functions/analyze-trial-document/index.ts`:
-  - Adicionar leitura de `docProps/app.xml` via `npm:jszip` (rápido e leve) e parse de `<Pages>` por regex.
-  - Refatorar o branch de imagens em uma função `ocrViaGemini(buf, mime)` reutilizada pelo fallback de PDF escaneado.
-  - Em PDFs escaneados, enviar até N primeiras páginas (limite de segurança) ao Gemini. Opção mais simples: enviar o PDF inteiro como `application/pdf` data URL — Gemini 2.5 Flash aceita PDFs nativamente.
-  - Tratar `characters = 0` em imagem/OCR como erro: `analysis_status = 'failed'`, `analysis_error = 'OCR retornou vazio'`.
-  - Ler `chars_per_page` de `Deno.env.get('DOCX_CHARS_PER_PAGE')` com fallback `1800`.
+```text
+trial_orders ──1:N── trial_order_files
+                       ├ pages
+                       └ characters
+```
 
-- **Frontend** `src/portal/pages/PortalOrderDetail.tsx`:
-  - Botão "Reanalisar" por arquivo chamando `supabase.functions.invoke('analyze-trial-document', { body: { file_id } })`.
-  - Estado de loading local por arquivo; refetch da lista ao final.
+Query única com join embutido do Supabase:
+```ts
+supabase
+  .from("trial_orders")
+  .select("id, order_number, status, language_pair, total_documents, total_pages, total_characters, created_at, trial_order_files(pages, characters)")
+  .eq("customer_id", customer.id)
+  .order("created_at", { ascending: false });
+```
 
-- **Banco**: nenhuma migration necessária (campos `pages`, `characters`, `analysis_status`, `analysis_error` já existem em `trial_order_files`).
+Cálculo (memoizado com `useMemo`):
+```ts
+const orderCost = order.trial_order_files.reduce(
+  (sum, f) => sum + (f.pages <= 3 ? 70 : f.pages * 50), 0
+);
+```
+
+Formatação monetária via `formatCurrency` de `src/lib/currency.ts` (BRL).
 
 ## Fora de escopo
-
-- Mudar a UI do financeiro (`PortalFinance.tsx`) — os totais continuam vindo de `trial_orders.total_pages/total_characters`, que serão automaticamente recalculados após cada reanálise.
-- Reprocessamento em lote de pedidos antigos (pode ser feito manualmente arquivo a arquivo via o novo botão).
+- Não há alterações de schema nem de regras de RLS.
+- Não há cobrança real / integração de pagamento — apenas exibição de estimativa.
+- Outras páginas do portal permanecem inalteradas.
