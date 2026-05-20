@@ -314,27 +314,110 @@ export default function PortalOrderDetail() {
               </Card>
 
               <Card className="lg:col-span-2">
-                <CardHeader><CardTitle>Documentos do cliente</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle>Documentos e traduções</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Envie o PDF da tradução vinculado ao documento original correspondente.
+                  </p>
+                </CardHeader>
                 <CardContent>
                   {sourceFiles.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Nenhum documento enviado.</p>
                   ) : (
-                    <div className="space-y-2">
-                      {sourceFiles.map((f) => (
-                        <div key={f.id} className="border rounded-lg p-3 flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                              <div className="font-medium text-sm truncate">{f.original_filename}</div>
+                    <div className="space-y-4">
+                      {sourceFiles.map((f) => {
+                        const related = translationsBySource[f.id] ?? [];
+                        const isUploading = uploadingFor === f.id;
+                        return (
+                          <div key={f.id} className="border rounded-lg p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                  <div className="font-medium text-sm truncate">{f.original_filename}</div>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Original · {f.mime_type ?? "?"} · {formatBytes(f.size_bytes)} · {f.pages ?? 0} pgs · {f.characters ?? 0} chars
+                                </div>
+                              </div>
+                              <div className="flex gap-1 shrink-0">
+                                <Button size="sm" variant="outline" onClick={() => previewFile(f)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
+                                <Button size="sm" variant="outline" onClick={() => openFile(f.storage_path)} title="Abrir em nova aba"><ExternalLink className="h-4 w-4" /></Button>
+                                <Button size="sm" variant="outline" onClick={() => downloadFile(f.storage_path, f.original_filename)} title="Baixar"><Download className="h-4 w-4" /></Button>
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {f.mime_type ?? "?"} · {formatBytes(f.size_bytes)} · {f.pages ?? 0} pgs · {f.characters ?? 0} chars
+
+                            <div className="pl-4 border-l-2 border-primary/30 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                  Tradução (PDF)
+                                </span>
+                                <input
+                                  ref={(el) => { fileInputRefs.current[f.id] = el; }}
+                                  type="file"
+                                  accept="application/pdf,.pdf"
+                                  className="hidden"
+                                  onChange={(e) => handleUpload(e, f.id)}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => fileInputRefs.current[f.id]?.click()}
+                                  disabled={isUploading}
+                                >
+                                  {isUploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                                  Enviar tradução
+                                </Button>
+                              </div>
+                              {related.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">Nenhuma tradução vinculada.</p>
+                              ) : (
+                                related.map((t) => (
+                                  <div key={t.id} className="border rounded-md p-2 flex items-center justify-between gap-3 bg-muted/30">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4 shrink-0 text-primary" />
+                                        <div className="font-medium text-sm truncate">{t.original_filename}</div>
+                                      </div>
+                                      <div className="text-xs text-muted-foreground mt-0.5">
+                                        {formatBytes(t.size_bytes)}
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-1 shrink-0">
+                                      <Button size="sm" variant="outline" onClick={() => previewFile(t)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
+                                      <Button size="sm" variant="outline" onClick={() => openFile(t.storage_path)} title="Abrir em nova aba"><ExternalLink className="h-4 w-4" /></Button>
+                                      <Button size="sm" variant="outline" onClick={() => downloadFile(t.storage_path, t.original_filename)} title="Baixar"><Download className="h-4 w-4" /></Button>
+                                      <Button size="sm" variant="outline" onClick={() => removeTranslation(t)} title="Remover"><Trash2 className="h-4 w-4" /></Button>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
                             </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {orphanTranslations.length > 0 && (
+                    <div className="mt-6 pt-4 border-t space-y-2">
+                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Traduções sem documento vinculado
+                      </div>
+                      {orphanTranslations.map((t) => (
+                        <div key={t.id} className="border rounded-md p-2 flex items-center justify-between gap-3 bg-muted/30">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 shrink-0 text-primary" />
+                              <div className="font-medium text-sm truncate">{t.original_filename}</div>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{formatBytes(t.size_bytes)}</div>
+                          </div>
                           <div className="flex gap-1 shrink-0">
-                            <Button size="sm" variant="outline" onClick={() => previewFile(f)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
-                            <Button size="sm" variant="outline" onClick={() => openFile(f.storage_path)} title="Abrir em nova aba"><ExternalLink className="h-4 w-4" /></Button>
-                            <Button size="sm" variant="outline" onClick={() => downloadFile(f.storage_path, f.original_filename)} title="Baixar"><Download className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => previewFile(t)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => openFile(t.storage_path)} title="Abrir em nova aba"><ExternalLink className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => downloadFile(t.storage_path, t.original_filename)} title="Baixar"><Download className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => removeTranslation(t)} title="Remover"><Trash2 className="h-4 w-4" /></Button>
                           </div>
                         </div>
                       ))}
@@ -343,53 +426,6 @@ export default function PortalOrderDetail() {
                 </CardContent>
               </Card>
 
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Tradução (PDF)</span>
-                    <div>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="application/pdf,.pdf"
-                        className="hidden"
-                        onChange={handleUpload}
-                      />
-                      <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                        {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
-                        Enviar PDF
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {translationFiles.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhuma tradução enviada ainda.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {translationFiles.map((f) => (
-                        <div key={f.id} className="border rounded-lg p-3 flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 shrink-0 text-primary" />
-                              <div className="font-medium text-sm truncate">{f.original_filename}</div>
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {f.mime_type ?? "application/pdf"} · {formatBytes(f.size_bytes)}
-                            </div>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <Button size="sm" variant="outline" onClick={() => previewFile(f)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
-                            <Button size="sm" variant="outline" onClick={() => openFile(f.storage_path)} title="Abrir em nova aba"><ExternalLink className="h-4 w-4" /></Button>
-                            <Button size="sm" variant="outline" onClick={() => downloadFile(f.storage_path, f.original_filename)} title="Baixar"><Download className="h-4 w-4" /></Button>
-                            <Button size="sm" variant="outline" onClick={() => removeTranslation(f)} title="Remover"><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
           )}
 
