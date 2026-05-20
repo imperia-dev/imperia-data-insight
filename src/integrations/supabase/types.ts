@@ -5563,6 +5563,8 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string
+          external_id: string | null
+          external_link: string | null
           id: string
           language_pair: string
           notes: string | null
@@ -5578,6 +5580,8 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id: string
+          external_id?: string | null
+          external_link?: string | null
           id?: string
           language_pair: string
           notes?: string | null
@@ -5593,6 +5597,8 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string
+          external_id?: string | null
+          external_link?: string | null
           id?: string
           language_pair?: string
           notes?: string | null
