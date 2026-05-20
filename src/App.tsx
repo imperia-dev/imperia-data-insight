@@ -160,6 +160,11 @@ const App = () => (
                 <PortalOrdersAdmin />
               </ProtectedRouteWithApproval>
             } />
+            <Route path="/portal-orders/:id" element={
+              <ProtectedRouteWithApproval>
+                <PortalOrderDetailAdmin />
+              </ProtectedRouteWithApproval>
+            } />
             <Route path="/my-orders" element={
               <ProtectedRouteWithApproval>
                 <MyOrders />
