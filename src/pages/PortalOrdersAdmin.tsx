@@ -11,6 +11,11 @@ import { Loader2, Eye, ExternalLink, Download, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { usePageLayout } from "@/hooks/usePageLayout";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Customer = {
   id: string;
@@ -68,6 +73,9 @@ const formatBytes = (n: number | null) => {
 
 export default function PortalOrdersAdmin() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { userRole } = useUserRole();
+  const { mainContainerClass } = usePageLayout();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -167,16 +175,20 @@ export default function PortalOrdersAdmin() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Pedidos do Portal</h1>
-        <p className="text-muted-foreground">Pedidos enviados pelos clientes através do Portal de Traduções.</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole || ""} />
+      <div className={mainContainerClass}>
+        <Header userName={user?.email || ""} userRole={userRole || ""} />
+        <main className="p-4 md:p-6 lg:p-8 space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Pedidos do Portal</h1>
+            <p className="text-muted-foreground">Pedidos enviados pelos clientes através do Portal de Traduções.</p>
+          </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de pedidos</CardTitle>
-        </CardHeader>
+          <Card>
+            <CardHeader>
+              <CardTitle>Lista de pedidos</CardTitle>
+            </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
@@ -335,6 +347,8 @@ export default function PortalOrdersAdmin() {
           )}
         </SheetContent>
       </Sheet>
+        </main>
+      </div>
     </div>
   );
 }
