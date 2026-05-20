@@ -88,7 +88,6 @@ export default function PortalOrderDetail() {
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; name: string; mime: string | null } | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const orphanInputRef = useRef<HTMLInputElement>(null);
 
   const sourceFiles = files.filter((f) => (f.kind ?? "source") === "source");
   const translationFiles = files.filter((f) => f.kind === "translation");
