@@ -224,7 +224,7 @@ export default function PortalFinance() {
                         const files = o.trial_order_files ?? [];
                         const isOpen = !!expanded[o.id];
                         return (
-                          <>
+                          <Fragment key={o.id}>
                             <tr key={o.id} className="border-b last:border-0 hover:bg-muted/30">
                               <td className="py-3 pr-2">
                                 {files.length > 0 && (
