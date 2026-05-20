@@ -179,8 +179,8 @@ function NewOrderInner() {
   const langLabel = languagePair === "pt-it" ? "Português → Italiano" : "Italiano → Português";
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10 [&_h3]:font-semibold [&_h3]:italic" style={{ ['--card-title-font' as any]: "'Playfair Display', serif" }}>
-      <style>{`.max-w-5xl h3{font-family:'Playfair Display',serif}`}</style>
+    <div className="portal-new-order max-w-5xl mx-auto space-y-10">
+      <style>{`.portal-new-order h3{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;letter-spacing:-0.01em}`}</style>
       <header className="space-y-2 border-l-4 border-slate-900 pl-6">
         <h1 className="text-4xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
           Novo pedido
