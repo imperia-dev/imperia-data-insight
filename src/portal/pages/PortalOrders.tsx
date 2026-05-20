@@ -5,7 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, FileText, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTrialCustomer } from "../TrialPortalGuard";
 
@@ -33,19 +44,38 @@ export default function PortalOrders() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [toDelete, setToDelete] = useState<Order | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const loadOrders = async () => {
+    if (!customer) return;
+    const { data } = await supabase
+      .from("trial_orders")
+      .select("*")
+      .eq("customer_id", customer.id)
+      .order("created_at", { ascending: false });
+    setOrders((data as Order[]) ?? []);
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!customer) return;
-    (async () => {
-      const { data } = await supabase
-        .from("trial_orders")
-        .select("*")
-        .eq("customer_id", customer.id)
-        .order("created_at", { ascending: false });
-      setOrders((data as Order[]) ?? []);
-      setLoading(false);
-    })();
+    loadOrders();
   }, [customer]);
+
+  const handleDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from("trial_orders").delete().eq("id", toDelete.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Não foi possível excluir o pedido. Apenas rascunhos podem ser excluídos.");
+      return;
+    }
+    toast.success(`Pedido ${toDelete.order_number} excluído.`);
+    setOrders((prev) => prev.filter((o) => o.id !== toDelete.id));
+    setToDelete(null);
+  };
 
   const filtered = useMemo(
     () =>
@@ -119,8 +149,19 @@ export default function PortalOrders() {
                         <td className="py-3 pr-4">{o.total_documents} / {o.total_pages}</td>
                         <td className="py-3 pr-4"><Badge variant={s.variant}>{s.label}</Badge></td>
                         <td className="py-3 pr-4">{new Date(o.created_at).toLocaleDateString("pt-BR")}</td>
-                        <td className="py-3 text-right">
+                        <td className="py-3 text-right whitespace-nowrap">
                           <Button asChild variant="ghost" size="sm"><Link to={`/portal/app/pedido/${o.id}`}>Ver</Link></Button>
+                          {o.status === "draft" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setToDelete(o)}
+                              aria-label={`Excluir pedido ${o.order_number}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -131,6 +172,27 @@ export default function PortalOrders() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!toDelete} onOpenChange={(open) => !open && !deleting && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente. O pedido <strong>{toDelete?.order_number}</strong> e seus arquivos serão removidos. Apenas rascunhos podem ser excluídos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
