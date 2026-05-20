@@ -91,7 +91,12 @@ export default function PortalOrderDetail() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; name: string; mime: string | null } | null>(null);
+  const [externalLink, setExternalLink] = useState("");
+  const [externalId, setExternalId] = useState("");
+  const [savingRefs, setSavingRefs] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const canEditRefs = userRole === "owner" || userRole === "master";
 
   const sourceFiles = files.filter((f) => (f.kind ?? "source") === "source");
   const translationFiles = files.filter((f) => f.kind === "translation");
