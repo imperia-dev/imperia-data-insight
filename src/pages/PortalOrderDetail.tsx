@@ -183,7 +183,7 @@ export default function PortalOrderDetail() {
     setOrder({ ...order, external_link: link || null, external_id: externalId.trim() || null });
   };
 
-
+  const previewFile = async (f: FileRow) => {
     const { data, error } = await supabase.storage
       .from("trial-uploads")
       .createSignedUrl(f.storage_path, 600);
