@@ -90,7 +90,6 @@ export const rolePermissions: Record<Role, string[]> = {
     '/chat',
     '/translation-orders',
     '/registration-approvals',
-    '/trial-approvals',
     '/announcements',
     '/dashboard-tech',
     '/bad-news',
