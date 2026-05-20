@@ -405,6 +405,9 @@ function OrderDetailInner() {
                           <Button variant="ghost" size="icon" onClick={() => downloadFile(f)} disabled={downloadingId === f.id} title="Baixar">
                             {downloadingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                           </Button>
+                          <Button variant="ghost" size="icon" onClick={() => reanalyzeFile(f)} disabled={reanalyzingId === f.id} title="Reanalisar">
+                            {reanalyzingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
