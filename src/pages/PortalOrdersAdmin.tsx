@@ -86,6 +86,18 @@ export default function PortalOrdersAdmin() {
   const [files, setFiles] = useState<FileRow[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [preview, setPreview] = useState<{ url: string; name: string; mime: string | null } | null>(null);
+
+  const previewFile = async (f: FileRow) => {
+    const { data, error } = await supabase.storage
+      .from("trial-uploads")
+      .createSignedUrl(f.storage_path, 600);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Erro ao gerar pré-visualização", description: error?.message ?? "Falha", variant: "destructive" });
+      return;
+    }
+    setPreview({ url: data.signedUrl, name: f.original_filename, mime: f.mime_type });
+  };
 
   const loadOrders = async () => {
     setLoading(true);
