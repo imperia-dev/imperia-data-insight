@@ -47,6 +47,7 @@ type Order = {
 type FileRow = {
   id: string; original_filename: string; pages: number; characters: number;
   analysis_status: string; size_bytes: number; mime_type: string; storage_path: string; created_at: string;
+  kind: string; source_file_id: string | null;
 };
 type Customer = {
   id: string; full_name: string; email: string; phone: string | null;
