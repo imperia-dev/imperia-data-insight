@@ -5500,6 +5500,7 @@ export type Database = {
           characters: number
           created_at: string
           id: string
+          kind: string
           mime_type: string
           order_id: string
           original_filename: string
@@ -5514,6 +5515,7 @@ export type Database = {
           characters?: number
           created_at?: string
           id?: string
+          kind?: string
           mime_type: string
           order_id: string
           original_filename: string
@@ -5528,6 +5530,7 @@ export type Database = {
           characters?: number
           created_at?: string
           id?: string
+          kind?: string
           mime_type?: string
           order_id?: string
           original_filename?: string

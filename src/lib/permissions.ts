@@ -176,7 +176,11 @@ export const rolePermissions: Record<Role, string[]> = {
 
 // Helper function to check if a user with a specific role can access a route
 export const canAccessRoute = (role: Role, route: string): boolean => {
-  return rolePermissions[role]?.includes(route) || false;
+  const allowed = rolePermissions[role];
+  if (!allowed) return false;
+  if (allowed.includes(route)) return true;
+  // Allow sub-routes (e.g. /portal-orders/:id when /portal-orders is allowed)
+  return allowed.some((r) => r !== '/' && route.startsWith(r + '/'));
 };
 
 // Get all accessible routes for a role
