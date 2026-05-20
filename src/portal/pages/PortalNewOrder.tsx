@@ -179,35 +179,57 @@ function NewOrderInner() {
   const langLabel = languagePair === "pt-it" ? "Português → Italiano" : "Italiano → Português";
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Novo pedido</h1>
-        <p className="text-muted-foreground">Tradução juramentada PT ↔ IT.</p>
-      </div>
+    <div className="max-w-5xl mx-auto space-y-10">
+      <header className="space-y-2 border-l-4 border-slate-900 pl-6">
+        <h1 className="text-4xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+          Novo pedido
+        </h1>
+        <p className="text-slate-500 text-xs font-medium uppercase tracking-[0.2em]">
+          Tradução juramentada PT ↔ IT
+        </p>
+      </header>
 
-      <Tabs value={step} onValueChange={(v) => setStep(v as StepId)} className="space-y-4">
-        <TabsList className="h-auto flex-wrap gap-1 bg-muted/50 p-1">
+      <Tabs value={step} onValueChange={(v) => setStep(v as StepId)} className="space-y-6">
+        <TabsList className="h-auto w-full bg-transparent p-0 flex items-center justify-between gap-1 overflow-x-auto">
           {STEPS.map((s, i) => {
-            const Icon = s.icon;
             const done = completion[s.id];
+            const active = step === s.id;
+            const isLast = i === STEPS.length - 1;
             return (
-              <TabsTrigger
-                key={s.id}
-                value={s.id}
-                className="data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 px-3 py-2 text-xs sm:text-sm"
-              >
-                <span className={cn(
-                  "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold",
-                  done ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground",
-                )}>
-                  {done ? <Check className="h-3 w-3" /> : i + 1}
-                </span>
-                <Icon className="h-4 w-4 hidden sm:inline" />
-                <span>{s.label}</span>
-              </TabsTrigger>
+              <>
+                <TabsTrigger
+                  key={s.id}
+                  value={s.id}
+                  className="group flex-col gap-2 min-w-max px-3 py-2 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none relative"
+                >
+                  <span
+                    className={cn(
+                      "flex items-center justify-center rounded-full text-xs font-bold transition-all",
+                      active
+                        ? "w-10 h-10 border-2 border-slate-900 bg-background text-slate-900 ring-4 ring-muted shadow-[0_0_15px_rgba(15,23,42,0.1)]"
+                        : done
+                          ? "w-8 h-8 bg-slate-900 text-white shadow-lg"
+                          : "w-8 h-8 border border-slate-300 bg-transparent text-slate-400 opacity-60",
+                    )}
+                  >
+                    {done ? <Check className="h-4 w-4" strokeWidth={2.5} /> : i + 1}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[10px] uppercase tracking-tighter font-semibold whitespace-nowrap",
+                      active ? "text-slate-900" : done ? "text-slate-400" : "text-slate-400 opacity-60",
+                    )}
+                  >
+                    {s.label}
+                  </span>
+                  {active && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-slate-900 rounded-full" />}
+                </TabsTrigger>
+                {!isLast && <div className={cn("h-px flex-1 min-w-[12px]", done ? "bg-slate-200" : "bg-slate-100")} />}
+              </>
             );
           })}
         </TabsList>
+
 
         <TabsContent value="idioma">
           <Card>
