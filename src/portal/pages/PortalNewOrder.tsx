@@ -224,7 +224,7 @@ function NewOrderInner() {
                   {active && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-slate-900 rounded-full" />}
                 </TabsTrigger>
                 {!isLast && <div className={cn("h-px flex-1 min-w-[12px]", done ? "bg-slate-200" : "bg-slate-100")} />}
-              </>
+              </Fragment>
             );
           })}
         </TabsList>
