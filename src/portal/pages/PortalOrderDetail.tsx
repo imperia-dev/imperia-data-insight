@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   ArrowLeft, FileText, Loader2, Download, Languages, FileSignature, Files,
   BookOpen, Type as TypeIcon, Calendar, Clock, User, Mail, Phone, Building2,
-  IdCard, CheckCircle2, CircleDot, Circle, AlertCircle, MessageSquare, Hash, Copy, Eye,
+  IdCard, CheckCircle2, CircleDot, Circle, AlertCircle, MessageSquare, Hash, Copy, Eye, RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
