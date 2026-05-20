@@ -44,9 +44,38 @@ export default function PortalOrders() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [toDelete, setToDelete] = useState<Order | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const loadOrders = async () => {
+    if (!customer) return;
+    const { data } = await supabase
+      .from("trial_orders")
+      .select("*")
+      .eq("customer_id", customer.id)
+      .order("created_at", { ascending: false });
+    setOrders((data as Order[]) ?? []);
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!customer) return;
+    loadOrders();
+  }, [customer]);
+
+  const handleDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from("trial_orders").delete().eq("id", toDelete.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Não foi possível excluir o pedido. Apenas rascunhos podem ser excluídos.");
+      return;
+    }
+    toast.success(`Pedido ${toDelete.order_number} excluído.`);
+    setOrders((prev) => prev.filter((o) => o.id !== toDelete.id));
+    setToDelete(null);
+  };
     (async () => {
       const { data } = await supabase
         .from("trial_orders")
