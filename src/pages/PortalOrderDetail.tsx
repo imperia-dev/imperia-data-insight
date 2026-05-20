@@ -85,12 +85,18 @@ export default function PortalOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState<FileRow[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; name: string; mime: string | null } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const orphanInputRef = useRef<HTMLInputElement>(null);
 
   const sourceFiles = files.filter((f) => (f.kind ?? "source") === "source");
   const translationFiles = files.filter((f) => f.kind === "translation");
+  const orphanTranslations = translationFiles.filter((t) => !t.source_file_id);
+  const translationsBySource = translationFiles.reduce<Record<string, FileRow[]>>((acc, t) => {
+    if (t.source_file_id) (acc[t.source_file_id] ||= []).push(t);
+    return acc;
+  }, {});
 
   const load = async () => {
     if (!id) return;
