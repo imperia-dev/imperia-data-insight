@@ -343,10 +343,13 @@ export default function PortalOrdersAdmin() {
                             </div>
                           </div>
                           <div className="flex gap-1 shrink-0">
-                            <Button size="sm" variant="outline" onClick={() => openFile(f.storage_path)}>
+                            <Button size="sm" variant="outline" onClick={() => previewFile(f)} title="Visualizar">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => openFile(f.storage_path)} title="Abrir em nova aba">
                               <ExternalLink className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => downloadFile(f.storage_path, f.original_filename)}>
+                            <Button size="sm" variant="outline" onClick={() => downloadFile(f.storage_path, f.original_filename)} title="Baixar">
                               <Download className="h-4 w-4" />
                             </Button>
                           </div>
