@@ -76,16 +76,6 @@ export default function PortalOrders() {
     setOrders((prev) => prev.filter((o) => o.id !== toDelete.id));
     setToDelete(null);
   };
-    (async () => {
-      const { data } = await supabase
-        .from("trial_orders")
-        .select("*")
-        .eq("customer_id", customer.id)
-        .order("created_at", { ascending: false });
-      setOrders((data as Order[]) ?? []);
-      setLoading(false);
-    })();
-  }, [customer]);
 
   const filtered = useMemo(
     () =>
