@@ -1,4 +1,4 @@
-import { Bell, Search, User, ChevronDown, LogOut, MessageCircle, AlertCircle, Clock, DollarSign, AlertTriangle, CheckCircle } from "lucide-react";
+import { Bell, Search, User, ChevronDown, LogOut, MessageCircle, AlertCircle, Clock, DollarSign, AlertTriangle, CheckCircle, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -32,6 +32,44 @@ export function Header({ userName, userRole }: HeaderProps) {
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, getTimeAgo } = useNotifications();
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [avatarStyle, setAvatarStyle] = useState<"initials" | "photo" | "generated" | "3d-robot" | "3d-character" | "3d-abstract">("initials");
+  const [portalOrdersCount, setPortalOrdersCount] = useState(0);
+
+  // Poll new portal orders since last seen
+  useEffect(() => {
+    if (!user) return;
+    const lastSeenKey = `portal_orders_last_seen_${user.id}`;
+
+    const check = async () => {
+      const lastSeen = localStorage.getItem(lastSeenKey) || new Date(0).toISOString();
+      const { count } = await supabase
+        .from("trial_orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "submitted")
+        .gt("submitted_at", lastSeen);
+      setPortalOrdersCount(count || 0);
+    };
+
+    check();
+    const interval = setInterval(check, 30000);
+
+    const channel = supabase
+      .channel("portal-orders-header")
+      .on("postgres_changes", { event: "*", schema: "public", table: "trial_orders" }, check)
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const handlePortalOrdersClick = () => {
+    if (user) {
+      localStorage.setItem(`portal_orders_last_seen_${user.id}`, new Date().toISOString());
+    }
+    setPortalOrdersCount(0);
+    navigate("/portal-orders");
+  };
   
   useEffect(() => {
     const fetchUserAvatar = async () => {
@@ -106,6 +144,26 @@ export function Header({ userName, userRole }: HeaderProps) {
 
         {/* Theme Toggle */}
         <ThemeToggle />
+
+        {/* Portal Orders Notifier */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          onClick={handlePortalOrdersClick}
+          title="Novos pedidos do portal"
+        >
+          <ShoppingBag className="h-5 w-5" />
+          {portalOrdersCount > 0 && (
+            <Badge
+              variant="destructive"
+              className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+            >
+              {portalOrdersCount > 9 ? "9+" : portalOrdersCount}
+            </Badge>
+          )}
+        </Button>
+
 
         {/* Notifications */}
         <DropdownMenu>
