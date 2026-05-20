@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Eye, ExternalLink, Download, FileText, ArrowLeft, Upload, Trash2 } from "lucide-react";
+import { Loader2, Eye, ExternalLink, Download, FileText, ArrowLeft, Upload, Trash2, Link2, Hash, Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -38,6 +40,8 @@ type OrderRow = {
   notes: string | null;
   submitted_at: string | null;
   created_at: string;
+  external_link: string | null;
+  external_id: string | null;
   trial_customers: Customer | null;
 };
 
@@ -87,7 +91,12 @@ export default function PortalOrderDetail() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; name: string; mime: string | null } | null>(null);
+  const [externalLink, setExternalLink] = useState("");
+  const [externalId, setExternalId] = useState("");
+  const [savingRefs, setSavingRefs] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const canEditRefs = userRole === "owner" || userRole === "master";
 
   const sourceFiles = files.filter((f) => (f.kind ?? "source") === "source");
   const translationFiles = files.filter((f) => f.kind === "translation");
@@ -115,7 +124,10 @@ export default function PortalOrderDetail() {
     if (orderRes.error) {
       toast({ title: "Erro ao carregar pedido", description: orderRes.error.message, variant: "destructive" });
     } else {
-      setOrder((orderRes.data ?? null) as unknown as OrderRow | null);
+      const o = (orderRes.data ?? null) as unknown as OrderRow | null;
+      setOrder(o);
+      setExternalLink(o?.external_link ?? "");
+      setExternalId(o?.external_id ?? "");
     }
     if (filesRes.error) {
       toast({ title: "Erro ao carregar arquivos", description: filesRes.error.message, variant: "destructive" });
@@ -144,6 +156,31 @@ export default function PortalOrderDetail() {
     }
     toast({ title: "Status atualizado" });
     setOrder({ ...order, status: newStatus });
+  };
+
+  const saveRefs = async () => {
+    if (!order) return;
+    const link = externalLink.trim();
+    if (link && !/^https?:\/\//i.test(link)) {
+      toast({ title: "Link inválido", description: "Use uma URL iniciando com http:// ou https://", variant: "destructive" });
+      return;
+    }
+    if (link.length > 2000 || externalId.trim().length > 200) {
+      toast({ title: "Tamanho excedido", description: "Link até 2000 e ID até 200 caracteres.", variant: "destructive" });
+      return;
+    }
+    setSavingRefs(true);
+    const { error } = await supabase
+      .from("trial_orders")
+      .update({ external_link: link || null, external_id: externalId.trim() || null } as any)
+      .eq("id", order.id);
+    setSavingRefs(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Referências salvas" });
+    setOrder({ ...order, external_link: link || null, external_id: externalId.trim() || null });
   };
 
   const previewFile = async (f: FileRow) => {
@@ -309,6 +346,57 @@ export default function PortalOrderDetail() {
                     </Select>
                     {updatingStatus && <Loader2 className="h-4 w-4 animate-spin" />}
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Referências externas</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Vincule um link externo e um identificador a este pedido.
+                  </p>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="external_link" className="flex items-center gap-2 text-sm">
+                      <Link2 className="h-4 w-4" /> Link
+                    </Label>
+                    <Input
+                      id="external_link"
+                      type="url"
+                      placeholder="https://..."
+                      value={externalLink}
+                      onChange={(e) => setExternalLink(e.target.value)}
+                      disabled={!canEditRefs || savingRefs}
+                      maxLength={2000}
+                    />
+                    {order.external_link && (
+                      <a href={order.external_link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 break-all">
+                        <ExternalLink className="h-3 w-3" /> {order.external_link}
+                      </a>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="external_id" className="flex items-center gap-2 text-sm">
+                      <Hash className="h-4 w-4" /> ID
+                    </Label>
+                    <Input
+                      id="external_id"
+                      placeholder="Identificador..."
+                      value={externalId}
+                      onChange={(e) => setExternalId(e.target.value)}
+                      disabled={!canEditRefs || savingRefs}
+                      maxLength={200}
+                    />
+                  </div>
+                  {canEditRefs && (
+                    <div className="md:col-span-2 flex justify-end">
+                      <Button onClick={saveRefs} disabled={savingRefs} size="sm">
+                        {savingRefs ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                        Salvar referências
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
