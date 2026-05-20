@@ -351,6 +351,57 @@ export default function PortalOrderDetail() {
 
               <Card className="lg:col-span-2">
                 <CardHeader>
+                  <CardTitle>Referências externas</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Vincule um link externo e um identificador a este pedido.
+                  </p>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="external_link" className="flex items-center gap-2 text-sm">
+                      <Link2 className="h-4 w-4" /> Link
+                    </Label>
+                    <Input
+                      id="external_link"
+                      type="url"
+                      placeholder="https://..."
+                      value={externalLink}
+                      onChange={(e) => setExternalLink(e.target.value)}
+                      disabled={!canEditRefs || savingRefs}
+                      maxLength={2000}
+                    />
+                    {order.external_link && (
+                      <a href={order.external_link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 break-all">
+                        <ExternalLink className="h-3 w-3" /> {order.external_link}
+                      </a>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="external_id" className="flex items-center gap-2 text-sm">
+                      <Hash className="h-4 w-4" /> ID
+                    </Label>
+                    <Input
+                      id="external_id"
+                      placeholder="Identificador..."
+                      value={externalId}
+                      onChange={(e) => setExternalId(e.target.value)}
+                      disabled={!canEditRefs || savingRefs}
+                      maxLength={200}
+                    />
+                  </div>
+                  {canEditRefs && (
+                    <div className="md:col-span-2 flex justify-end">
+                      <Button onClick={saveRefs} disabled={savingRefs} size="sm">
+                        {savingRefs ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                        Salvar referências
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2">
+                <CardHeader>
                   <CardTitle>Documentos e traduções</CardTitle>
                   <p className="text-sm text-muted-foreground">
                     Envie o PDF da tradução vinculado ao documento original correspondente.
