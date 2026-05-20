@@ -355,70 +355,127 @@ function OrderDetailInner() {
         </Card>
       </div>
 
-      {/* Files */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center justify-between">
-            <span>Arquivos ({files.length})</span>
-            <span className="text-xs font-normal text-muted-foreground">Total: {formatBytes(totalSize)}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {files.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Nenhum arquivo neste pedido.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Arquivo</TableHead>
-                    <TableHead className="text-right">Páginas</TableHead>
-                    <TableHead className="text-right">Caracteres</TableHead>
-                    <TableHead className="text-right">Tamanho</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-12" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {files.map((f) => (
-                    <TableRow key={f.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <div className="min-w-0">
-                            <div className="font-medium truncate max-w-xs">{f.original_filename}</div>
+      {/* Files grouped by source document with their translations */}
+      {(() => {
+        const sources = files.filter((f) => f.kind !== "translation");
+        const translationsBySource = files
+          .filter((f) => f.kind === "translation")
+          .reduce<Record<string, FileRow[]>>((acc, t) => {
+            const k = t.source_file_id ?? "__orphan__";
+            (acc[k] ||= []).push(t);
+            return acc;
+          }, {});
+        const orphanTranslations = translationsBySource["__orphan__"] ?? [];
+
+        const FileActions = ({ f }: { f: FileRow }) => (
+          <div className="flex items-center gap-1 shrink-0">
+            <Button variant="ghost" size="icon" onClick={() => viewFile(f)} disabled={viewingId === f.id} title="Visualizar">
+              {viewingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => downloadFile(f)} disabled={downloadingId === f.id} title="Baixar">
+              {downloadingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            </Button>
+            {f.kind !== "translation" && (
+              <Button variant="ghost" size="icon" onClick={() => reanalyzeFile(f)} disabled={reanalyzingId === f.id} title="Reanalisar">
+                {reanalyzingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
+            )}
+          </div>
+        );
+
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center justify-between">
+                <span>Documentos ({sources.length})</span>
+                <span className="text-xs font-normal text-muted-foreground">Total: {formatBytes(totalSize)}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {sources.length === 0 && orphanTranslations.length === 0 && (
+                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum arquivo neste pedido.</p>
+              )}
+
+              {sources.map((src) => {
+                const trs = translationsBySource[src.id] ?? [];
+                return (
+                  <div key={src.id} className="rounded-lg border bg-card">
+                    <div className="p-4 flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="rounded-md bg-primary/10 text-primary p-2 shrink-0">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Documento original</div>
+                          <div className="font-medium truncate">{src.original_filename}</div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                            {src.pages ? <span>{src.pages} pág.</span> : null}
+                            {src.characters ? <span>{src.characters.toLocaleString("pt-BR")} caracteres</span> : null}
+                            <span>{formatBytes(src.size_bytes)}</span>
+                            {src.analysis_status === "done" && <span className="text-primary">Analisado</span>}
+                            {src.analysis_status === "pending" && <span>Analisando…</span>}
+                            {src.analysis_status === "failed" && <span className="text-destructive">Falha na análise</span>}
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">{f.pages || "—"}</TableCell>
-                      <TableCell className="text-right">{f.characters ? f.characters.toLocaleString("pt-BR") : "—"}</TableCell>
-                      <TableCell className="text-right">{formatBytes(f.size_bytes)}</TableCell>
-                      <TableCell>
-                        {f.analysis_status === "done" && <Badge variant="outline" className="text-primary border-primary/30">Analisado</Badge>}
-                        {f.analysis_status === "pending" && <Badge variant="outline">Analisando</Badge>}
-                        {f.analysis_status === "failed" && <Badge variant="destructive">Falha</Badge>}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => viewFile(f)} disabled={viewingId === f.id} title="Visualizar">
-                            {viewingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => downloadFile(f)} disabled={downloadingId === f.id} title="Baixar">
-                            {downloadingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => reanalyzeFile(f)} disabled={reanalyzingId === f.id} title="Reanalisar">
-                            {reanalyzingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                          </Button>
+                      </div>
+                      <FileActions f={src} />
+                    </div>
+
+                    <div className="border-t bg-muted/30 px-4 py-3">
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2 flex items-center gap-1.5">
+                        <Languages className="h-3 w-3" />
+                        Tradução {trs.length > 0 && `(${trs.length})`}
+                      </div>
+                      {trs.length === 0 ? (
+                        <div className="text-xs text-muted-foreground italic">
+                          Ainda não disponibilizada. Você será avisado quando estiver pronta.
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {trs.map((t) => (
+                            <div key={t.id} className="flex items-center justify-between gap-3 rounded-md bg-background border px-3 py-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileSignature className="h-4 w-4 text-primary shrink-0" />
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium truncate">{t.original_filename}</div>
+                                  <div className="text-[11px] text-muted-foreground">{formatBytes(t.size_bytes)}</div>
+                                </div>
+                              </div>
+                              <FileActions f={t} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {orphanTranslations.length > 0 && (
+                <div className="rounded-lg border bg-card">
+                  <div className="px-4 py-2 border-b bg-muted/30 text-[10px] uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-1.5">
+                    <Languages className="h-3 w-3" /> Traduções adicionais
+                  </div>
+                  <div className="p-3 space-y-1.5">
+                    {orphanTranslations.map((t) => (
+                      <div key={t.id} className="flex items-center justify-between gap-3 rounded-md bg-background border px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileSignature className="h-4 w-4 text-primary shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">{t.original_filename}</div>
+                            <div className="text-[11px] text-muted-foreground">{formatBytes(t.size_bytes)}</div>
+                          </div>
+                        </div>
+                        <FileActions f={t} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <Dialog open={!!preview} onOpenChange={(o) => { if (!o) closePreview(); }}>
         <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 flex flex-col gap-0">
