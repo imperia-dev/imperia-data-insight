@@ -70,7 +70,7 @@ import Announcements from "./pages/Announcements";
 import BadNews from "./pages/BadNews";
 import ReviewChecklistAdmin from "./pages/ReviewChecklistAdmin";
 import PortalOrdersAdmin from "./pages/PortalOrdersAdmin";
-import PortalOrderDetail from "./pages/PortalOrderDetail";
+import PortalOrderDetailAdmin from "./pages/PortalOrderDetail";
 import ReviewChecklist from "./pages/ReviewChecklist";
 import AIAgent from "./pages/AIAgent";
 import CreativeStudio from "./pages/CreativeStudio";
