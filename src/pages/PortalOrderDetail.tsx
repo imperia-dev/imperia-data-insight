@@ -158,7 +158,32 @@ export default function PortalOrderDetail() {
     setOrder({ ...order, status: newStatus });
   };
 
-  const previewFile = async (f: FileRow) => {
+  const saveRefs = async () => {
+    if (!order) return;
+    const link = externalLink.trim();
+    if (link && !/^https?:\/\//i.test(link)) {
+      toast({ title: "Link inválido", description: "Use uma URL iniciando com http:// ou https://", variant: "destructive" });
+      return;
+    }
+    if (link.length > 2000 || externalId.trim().length > 200) {
+      toast({ title: "Tamanho excedido", description: "Link até 2000 e ID até 200 caracteres.", variant: "destructive" });
+      return;
+    }
+    setSavingRefs(true);
+    const { error } = await supabase
+      .from("trial_orders")
+      .update({ external_link: link || null, external_id: externalId.trim() || null } as any)
+      .eq("id", order.id);
+    setSavingRefs(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Referências salvas" });
+    setOrder({ ...order, external_link: link || null, external_id: externalId.trim() || null });
+  };
+
+
     const { data, error } = await supabase.storage
       .from("trial-uploads")
       .createSignedUrl(f.storage_path, 600);
