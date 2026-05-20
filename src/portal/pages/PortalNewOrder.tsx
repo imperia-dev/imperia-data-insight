@@ -398,20 +398,43 @@ function NewOrderInner() {
           </Card>
         </TabsContent>
 
-        <div className="flex justify-between gap-3 pt-2">
-          <Button variant="outline" onClick={() => navigate("/portal/app")}>Cancelar</Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={goPrev} disabled={idx === 0}>Voltar</Button>
+        <div className="flex items-center justify-between gap-3 pt-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/portal/app")}
+            className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground hover:text-destructive"
+          >
+            Cancelar
+          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={goPrev}
+              disabled={idx === 0}
+              className="px-8 py-3 text-sm font-semibold"
+            >
+              Voltar
+            </Button>
             {step !== "revisao" ? (
-              <Button onClick={goNext}>Próximo</Button>
+              <Button
+                onClick={goNext}
+                className="px-10 py-3 text-xs font-bold uppercase tracking-[0.18em] shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:-translate-y-0.5 transition-all"
+              >
+                Próximo
+              </Button>
             ) : (
-              <Button onClick={submit} disabled={!canSubmit}>
+              <Button
+                onClick={submit}
+                disabled={!canSubmit}
+                className="px-10 py-3 text-xs font-bold uppercase tracking-[0.18em] shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:-translate-y-0.5 transition-all"
+              >
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Enviar pedido
               </Button>
             )}
           </div>
         </div>
+
       </Tabs>
     </div>
   );
