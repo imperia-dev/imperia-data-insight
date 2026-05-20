@@ -105,7 +105,7 @@ function OrderDetailInner() {
 
   const reloadFiles = async (orderId: string) => {
     const { data: f } = await supabase.from("trial_order_files")
-      .select("id,original_filename,pages,characters,analysis_status,size_bytes,mime_type,storage_path,created_at")
+      .select("id,original_filename,pages,characters,analysis_status,size_bytes,mime_type,storage_path,created_at,kind,source_file_id")
       .eq("order_id", orderId).order("created_at");
     setFiles((f as FileRow[]) ?? []);
   };
@@ -122,7 +122,7 @@ function OrderDetailInner() {
       if (!o) { setLoading(false); return; }
       const [{ data: f }, { data: c }] = await Promise.all([
         supabase.from("trial_order_files")
-          .select("id,original_filename,pages,characters,analysis_status,size_bytes,mime_type,storage_path,created_at")
+          .select("id,original_filename,pages,characters,analysis_status,size_bytes,mime_type,storage_path,created_at,kind,source_file_id")
           .eq("order_id", id).order("created_at"),
         supabase.from("trial_customers")
           .select("id,full_name,email,phone,company,cpf_cnpj")
