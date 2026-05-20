@@ -149,8 +149,19 @@ export default function PortalOrders() {
                         <td className="py-3 pr-4">{o.total_documents} / {o.total_pages}</td>
                         <td className="py-3 pr-4"><Badge variant={s.variant}>{s.label}</Badge></td>
                         <td className="py-3 pr-4">{new Date(o.created_at).toLocaleDateString("pt-BR")}</td>
-                        <td className="py-3 text-right">
+                        <td className="py-3 text-right whitespace-nowrap">
                           <Button asChild variant="ghost" size="sm"><Link to={`/portal/app/pedido/${o.id}`}>Ver</Link></Button>
+                          {o.status === "draft" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setToDelete(o)}
+                              aria-label={`Excluir pedido ${o.order_number}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     );
