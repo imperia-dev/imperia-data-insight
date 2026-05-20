@@ -363,6 +363,43 @@ export default function PortalOrdersAdmin() {
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle className="truncate">{preview?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden bg-muted/30">
+            {preview && (() => {
+              const mime = preview.mime ?? "";
+              const ext = preview.name.split(".").pop()?.toLowerCase() ?? "";
+              const isImage = mime.startsWith("image/") || ["png","jpg","jpeg","gif","webp","svg"].includes(ext);
+              const isPdf = mime === "application/pdf" || ext === "pdf";
+              const isOffice = ["doc","docx","xls","xlsx","ppt","pptx"].includes(ext);
+
+              if (isImage) {
+                return <img src={preview.url} alt={preview.name} className="w-full h-full object-contain" />;
+              }
+              if (isPdf) {
+                return <iframe src={preview.url} className="w-full h-full border-0" title={preview.name} />;
+              }
+              if (isOffice) {
+                const viewer = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(preview.url)}`;
+                return <iframe src={viewer} className="w-full h-full border-0" title={preview.name} />;
+              }
+              return (
+                <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-6">
+                  <FileText className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Pré-visualização não disponível para este tipo de arquivo.</p>
+                  <Button variant="outline" onClick={() => window.open(preview.url, "_blank", "noopener,noreferrer")}>
+                    <ExternalLink className="h-4 w-4 mr-2" /> Abrir em nova aba
+                  </Button>
+                </div>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
         </main>
       </div>
     </div>
