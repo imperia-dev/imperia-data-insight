@@ -39,6 +39,8 @@ type OrderRow = {
   notes: string | null;
   submitted_at: string | null;
   created_at: string;
+  external_link: string | null;
+  external_id: string | null;
   trial_customers: Customer | null;
 };
 
