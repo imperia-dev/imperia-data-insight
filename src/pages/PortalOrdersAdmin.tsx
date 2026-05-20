@@ -73,6 +73,9 @@ const formatBytes = (n: number | null) => {
 
 export default function PortalOrdersAdmin() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { userRole } = useUserRole();
+  const { mainContainerClass } = usePageLayout();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
