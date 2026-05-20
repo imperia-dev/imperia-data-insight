@@ -196,9 +196,8 @@ function NewOrderInner() {
             const active = step === s.id;
             const isLast = i === STEPS.length - 1;
             return (
-              <>
+              <Fragment key={s.id}>
                 <TabsTrigger
-                  key={s.id}
                   value={s.id}
                   className="group flex-col gap-2 min-w-max px-3 py-2 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none relative"
                 >
