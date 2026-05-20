@@ -50,6 +50,7 @@ type FileRow = {
   pages: number | null;
   characters: number | null;
   kind?: string | null;
+  source_file_id?: string | null;
 };
 
 const STATUS_OPTIONS = ["draft", "submitted", "processing", "completed", "cancelled"];

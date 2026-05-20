@@ -5506,6 +5506,7 @@ export type Database = {
           original_filename: string
           pages: number
           size_bytes: number
+          source_file_id: string | null
           storage_path: string
           updated_at: string
         }
@@ -5521,6 +5522,7 @@ export type Database = {
           original_filename: string
           pages?: number
           size_bytes: number
+          source_file_id?: string | null
           storage_path: string
           updated_at?: string
         }
@@ -5536,6 +5538,7 @@ export type Database = {
           original_filename?: string
           pages?: number
           size_bytes?: number
+          source_file_id?: string | null
           storage_path?: string
           updated_at?: string
         }
@@ -5545,6 +5548,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "trial_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trial_order_files_source_file_id_fkey"
+            columns: ["source_file_id"]
+            isOneToOne: false
+            referencedRelation: "trial_order_files"
             referencedColumns: ["id"]
           },
         ]
