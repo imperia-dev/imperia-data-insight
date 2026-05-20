@@ -1,15 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireRole } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Whitelist of allowed sheet tab IDs to prevent reading arbitrary tabs
+const ALLOWED_GIDS = new Set(['533199022']);
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Restrict to privileged internal roles
+  const auth = await requireRole(req, ['owner', 'master', 'admin']);
+  if (!auth.ok) return auth.response;
 
   try {
     const sheetId = Deno.env.get('GOOGLE_SHEET_ID');
@@ -22,12 +30,12 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body for optional gid parameter
+    // Parse request body for optional gid parameter (whitelisted)
     let gid = '533199022'; // Default gid
     try {
       const body = await req.json();
-      if (body.gid) {
-        gid = body.gid;
+      if (body.gid && ALLOWED_GIDS.has(String(body.gid))) {
+        gid = String(body.gid);
       }
     } catch {
       // No body or invalid JSON, use default gid

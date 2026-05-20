@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { requireAuth } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,6 +21,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require authenticated caller (any role) and ignore client-supplied userId
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
@@ -28,7 +34,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    const { phoneNumber, message, userId, verificationType }: SendSMSRequest = await req.json();
+    const { phoneNumber, message, verificationType }: SendSMSRequest = await req.json();
+    const userId = auth.userId;
 
     // Validate phone number format
     const phoneRegex = /^\+[1-9]\d{1,14}$/;

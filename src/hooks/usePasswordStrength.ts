@@ -45,39 +45,51 @@ export function usePasswordStrength(password: string) {
 
   const [isPwnedChecking, setIsPwnedChecking] = useState(false);
 
-  // Check password against Have I Been Pwned API
+  // Check password against Have I Been Pwned API using the k-anonymity model
+  // entirely in the browser — the plaintext password NEVER leaves the client.
   const checkPwnedPassword = async (pwd: string) => {
     if (!pwd || pwd.length < 8) return;
-    
+
     setIsPwnedChecking(true);
     try {
-      const response = await fetch(
-        `https://agttqqaampznczkyfvkf.supabase.co/functions/v1/check-pwned-password`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ password: pwd }),
-        }
-      );
+      // Compute SHA-1 in the browser
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-1', encoder.encode(pwd));
+      const hashHex = Array.from(new Uint8Array(hashBuffer))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')
+        .toUpperCase();
 
-      if (response.ok) {
-        const data = await response.json();
-        setRequirements((prev) => ({
-          ...prev,
-          notPwned: !data.isPwned,
-        }));
-        
-        if (data.isPwned) {
-          setStrength((prev) => ({
-            ...prev,
-            feedback: [
-              ...prev.feedback.filter(f => !f.includes('vazamento')),
-              data.message || 'Esta senha foi encontrada em vazamentos de dados',
-            ],
-          }));
+      const prefix = hashHex.slice(0, 5);
+      const suffix = hashHex.slice(5);
+
+      const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+        headers: { 'Add-Padding': 'true' },
+      });
+
+      if (!response.ok) return;
+
+      const text = await response.text();
+      let pwnedCount = 0;
+      for (const line of text.split('\n')) {
+        const [hashSuffix, count] = line.trim().split(':');
+        if (hashSuffix === suffix) {
+          pwnedCount = parseInt(count, 10) || 0;
+          break;
         }
+      }
+
+      const isPwned = pwnedCount > 0;
+      setRequirements((prev) => ({ ...prev, notPwned: !isPwned }));
+
+      if (isPwned) {
+        setStrength((prev) => ({
+          ...prev,
+          feedback: [
+            ...prev.feedback.filter((f) => !f.includes('vazamento')),
+            `Esta senha foi encontrada em ${pwnedCount.toLocaleString('pt-BR')} vazamentos de dados`,
+          ],
+        }));
       }
     } catch (error) {
       console.error('Error checking pwned password:', error);
