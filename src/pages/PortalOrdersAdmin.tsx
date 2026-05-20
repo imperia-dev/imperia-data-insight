@@ -218,7 +218,7 @@ export default function PortalOrdersAdmin() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Pedido</TableHead>
-                  <TableHead>Cliente</TableHead>
+                  <TableHead>Usuário (criador)</TableHead>
                   <TableHead>Idioma</TableHead>
                   <TableHead className="text-right">Docs</TableHead>
                   <TableHead className="text-right">Pgs</TableHead>
