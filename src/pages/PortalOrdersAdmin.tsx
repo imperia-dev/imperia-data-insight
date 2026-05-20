@@ -148,15 +148,17 @@ export default function PortalOrdersAdmin() {
                       <TableHead className="text-right">Docs</TableHead>
                       <TableHead className="text-right">Pgs</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Link</TableHead>
+                      <TableHead>ID</TableHead>
                       <TableHead>Enviado em</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-10"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={10} className="text-center py-10"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
                     ) : filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">Nenhum pedido encontrado.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">Nenhum pedido encontrado.</TableCell></TableRow>
                     ) : filtered.map((o) => (
                       <TableRow key={o.id} className="cursor-pointer" onClick={() => navigate(`/portal-orders/${o.id}`)}>
                         <TableCell className="font-mono text-sm">{o.order_number}</TableCell>
@@ -168,6 +170,14 @@ export default function PortalOrdersAdmin() {
                         <TableCell className="text-right">{o.total_documents ?? 0}</TableCell>
                         <TableCell className="text-right">{o.total_pages ?? 0}</TableCell>
                         <TableCell><Badge variant={statusVariant(o.status)}>{o.status}</Badge></TableCell>
+                        <TableCell className="text-sm max-w-[180px]" onClick={(e) => e.stopPropagation()}>
+                          {o.external_link ? (
+                            <a href={o.external_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 truncate">
+                              <ExternalLink className="h-3 w-3 shrink-0" /> <span className="truncate">{o.external_link}</span>
+                            </a>
+                          ) : <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{o.external_id ?? <span className="text-muted-foreground">-</span>}</TableCell>
                         <TableCell className="text-sm">
                           {o.submitted_at ? format(new Date(o.submitted_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "-"}
                         </TableCell>
