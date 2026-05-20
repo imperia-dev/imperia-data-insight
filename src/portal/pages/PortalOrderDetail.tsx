@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   ArrowLeft, FileText, Loader2, Download, Languages, FileSignature, Files,
   BookOpen, Type as TypeIcon, Calendar, Clock, User, Mail, Phone, Building2,
-  IdCard, CheckCircle2, CircleDot, Circle, AlertCircle, MessageSquare, Hash, Copy, Eye,
+  IdCard, CheckCircle2, CircleDot, Circle, AlertCircle, MessageSquare, Hash, Copy, Eye, RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -99,7 +99,20 @@ function OrderDetailInner() {
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewState>(null);
+
+  const reloadFiles = async (orderId: string) => {
+    const { data: f } = await supabase.from("trial_order_files")
+      .select("id,original_filename,pages,characters,analysis_status,size_bytes,mime_type,storage_path,created_at")
+      .eq("order_id", orderId).order("created_at");
+    setFiles((f as FileRow[]) ?? []);
+  };
+
+  const reloadOrder = async (orderId: string) => {
+    const { data: o } = await supabase.from("trial_orders").select("*").eq("id", orderId).maybeSingle();
+    if (o) setOrder(o as Order);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -120,6 +133,27 @@ function OrderDetailInner() {
       setLoading(false);
     })();
   }, [id]);
+
+  const reanalyzeFile = async (f: FileRow) => {
+    if (!order) return;
+    setReanalyzingId(f.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-trial-document", {
+        body: { file_id: f.id },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(`Falha na análise: ${data.error}`);
+      } else {
+        toast.success(`Reanalisado: ${data?.pages ?? 0} pág. / ${(data?.characters ?? 0).toLocaleString("pt-BR")} caracteres${data?.ocr_used ? " (OCR)" : ""}`);
+      }
+      await Promise.all([reloadFiles(order.id), reloadOrder(order.id)]);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao reanalisar arquivo");
+    } finally {
+      setReanalyzingId(null);
+    }
+  };
 
   const totalSize = useMemo(() => files.reduce((s, f) => s + (f.size_bytes || 0), 0), [files]);
   const activeIdx = useMemo(() => {
@@ -370,6 +404,9 @@ function OrderDetailInner() {
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => downloadFile(f)} disabled={downloadingId === f.id} title="Baixar">
                             {downloadingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => reanalyzeFile(f)} disabled={reanalyzingId === f.id} title="Reanalisar">
+                            {reanalyzingId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                           </Button>
                         </div>
                       </TableCell>
