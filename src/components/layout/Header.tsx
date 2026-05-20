@@ -1,4 +1,4 @@
-import { Bell, Search, User, ChevronDown, LogOut, MessageCircle, AlertCircle, Clock, DollarSign, AlertTriangle, CheckCircle } from "lucide-react";
+import { Bell, Search, User, ChevronDown, LogOut, MessageCircle, AlertCircle, Clock, DollarSign, AlertTriangle, CheckCircle, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
