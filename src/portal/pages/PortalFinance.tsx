@@ -66,7 +66,7 @@ export default function PortalFinance() {
         )
         .eq("customer_id", customer.id)
         .order("created_at", { ascending: false });
-      setOrders((data as unknown as Order[]) ?? []);
+      setOrders(((data as unknown as Order[]) ?? []).filter((o) => o.status !== "draft"));
       setLoading(false);
     })();
   }, [customer]);
