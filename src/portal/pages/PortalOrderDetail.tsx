@@ -99,6 +99,7 @@ function OrderDetailInner() {
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewState>(null);
 
   useEffect(() => {
