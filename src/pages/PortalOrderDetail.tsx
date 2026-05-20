@@ -124,7 +124,10 @@ export default function PortalOrderDetail() {
     if (orderRes.error) {
       toast({ title: "Erro ao carregar pedido", description: orderRes.error.message, variant: "destructive" });
     } else {
-      setOrder((orderRes.data ?? null) as unknown as OrderRow | null);
+      const o = (orderRes.data ?? null) as unknown as OrderRow | null;
+      setOrder(o);
+      setExternalLink(o?.external_link ?? "");
+      setExternalId(o?.external_id ?? "");
     }
     if (filesRes.error) {
       toast({ title: "Erro ao carregar arquivos", description: filesRes.error.message, variant: "destructive" });
