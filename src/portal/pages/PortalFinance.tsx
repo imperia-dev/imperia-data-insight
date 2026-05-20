@@ -311,7 +311,7 @@ export default function PortalFinance() {
                                 </td>
                               </tr>
                             )}
-                          </>
+                          </Fragment>
                         );
                       })}
                     </tbody>
