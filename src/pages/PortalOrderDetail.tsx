@@ -180,13 +180,16 @@ export default function PortalOrderDetail() {
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    sourceFileId: string | null,
+  ) => {
     const file = e.target.files?.[0];
-    if (file) await uploadTranslation(file);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (file) await uploadTranslation(file, sourceFileId);
+    e.target.value = "";
   };
 
-  const uploadTranslation = async (file: File) => {
+  const uploadTranslation = async (file: File, sourceFileId: string | null) => {
     if (!order) return;
     const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
     if (!isPdf) {
@@ -197,14 +200,14 @@ export default function PortalOrderDetail() {
       toast({ title: "Arquivo muito grande", description: "Tamanho máximo: 50MB.", variant: "destructive" });
       return;
     }
-    setUploading(true);
+    setUploadingFor(sourceFileId ?? "__orphan__");
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `translations/${order.id}/${crypto.randomUUID()}-${safeName}`;
     const { error: upErr } = await supabase.storage
       .from("trial-uploads")
       .upload(path, file, { contentType: "application/pdf", upsert: false });
     if (upErr) {
-      setUploading(false);
+      setUploadingFor(null);
       toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" });
       return;
     }
@@ -215,8 +218,9 @@ export default function PortalOrderDetail() {
       mime_type: "application/pdf",
       size_bytes: file.size,
       kind: "translation",
+      source_file_id: sourceFileId,
     } as any);
-    setUploading(false);
+    setUploadingFor(null);
     if (insErr) {
       await supabase.storage.from("trial-uploads").remove([path]);
       toast({ title: "Erro ao salvar registro", description: insErr.message, variant: "destructive" });
