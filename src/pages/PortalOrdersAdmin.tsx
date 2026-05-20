@@ -175,16 +175,20 @@ export default function PortalOrdersAdmin() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Pedidos do Portal</h1>
-        <p className="text-muted-foreground">Pedidos enviados pelos clientes através do Portal de Traduções.</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Sidebar userRole={userRole || ""} />
+      <div className={mainContainerClass}>
+        <Header userName={user?.email || ""} userRole={userRole || ""} />
+        <main className="p-4 md:p-6 lg:p-8 space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Pedidos do Portal</h1>
+            <p className="text-muted-foreground">Pedidos enviados pelos clientes através do Portal de Traduções.</p>
+          </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de pedidos</CardTitle>
-        </CardHeader>
+          <Card>
+            <CardHeader>
+              <CardTitle>Lista de pedidos</CardTitle>
+            </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
