@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +11,10 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Require an authenticated caller before forwarding to internal n8n workflow
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
 
   try {
     const webhookUrl = Deno.env.get('N8N_WEBHOOK_URL');

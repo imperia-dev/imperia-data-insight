@@ -71,12 +71,13 @@ export function AddChecklistItemDialog({
       setOption2Label(editingItem.option_2_label);
       setOption2Description(editingItem.option_2_description || "");
       if (titleRef.current) {
-        titleRef.current.innerHTML = editingItem.title;
+        // Use textContent to prevent XSS — never assign untrusted DB data via innerHTML
+        titleRef.current.textContent = editingItem.title ?? "";
       }
     } else {
       resetForm();
       if (titleRef.current) {
-        titleRef.current.innerHTML = "";
+        titleRef.current.textContent = "";
       }
     }
   }, [editingItem, open]);

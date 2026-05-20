@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { requireRole } from "../_shared/auth.ts";
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -153,6 +155,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require authenticated caller; we ignore the client-supplied userId
+  // for rate-limiting and use the verified JWT userId instead.
+  const auth = await requireRole(req, ['owner', 'master', 'admin']);
+  if (!auth.ok) return auth.response;
+  const verifiedUserId = auth.userId;
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
@@ -168,7 +176,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const reportData: ReportData = await req.json();
-    const { phoneNumber, period, reportType, stats, financialStats, userId } = reportData;
+    const { phoneNumber, period, reportType, stats, financialStats } = reportData;
+    const userId = verifiedUserId;
 
     // Validate report data
     if (reportType === 'financial') {
