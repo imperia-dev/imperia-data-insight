@@ -352,7 +352,6 @@ function OrderDetailInner() {
                           <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                           <div className="min-w-0">
                             <div className="font-medium truncate max-w-xs">{f.original_filename}</div>
-                            <div className="text-xs text-muted-foreground">{f.mime_type}</div>
                           </div>
                         </div>
                       </TableCell>
