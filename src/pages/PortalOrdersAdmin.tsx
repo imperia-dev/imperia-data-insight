@@ -347,6 +347,8 @@ export default function PortalOrdersAdmin() {
           )}
         </SheetContent>
       </Sheet>
+        </main>
+      </div>
     </div>
   );
 }
