@@ -1,73 +1,39 @@
-# Novo fluxo de status do pedido (Portal)
+# Adequar a view do owner ao novo fluxo de etapas
 
-Substituir a timeline atual (Rascunho → Enviado → Em processamento → Concluído) por um fluxo mais rico e fiel à operação real.
+A página de detalhe do pedido no admin (`src/pages/PortalOrderDetail.tsx`) ainda exibe o cartão "Pedido" no formato antigo (status como dropdown solto, sem timeline visual). Vamos reformatar essa view para refletir o novo fluxo de 6 etapas, espelhando o visual que o cliente vê no portal — mas com os controles operacionais do owner integrados.
 
-## Etapas visíveis ao cliente
+## O que muda na tela
 
-1. **Pedido realizado** — cliente enviou o pedido.
-2. **Pedido aceito** — owner aceitou e iniciou o trabalho.
-3. **Em processamento** — exibido como `2/6`, `3/6`, etc., **sem revelar o nome de cada sub-etapa**.
-4. **Finalizado** — produção concluída internamente, pronto para entrega.
-5. **Entregue** — owner disponibilizou os arquivos finais ao cliente.
-6. **Recebido** — cliente confirmou recebimento (botão "Confirmar recebimento" no portal).
+No cartão "Pedido" (lado direito do topo), substituir o bloco atual de status por uma seção "Fluxo do pedido" com:
 
-Rascunho continua existindo, mas é interno: aparece só para o cliente que ainda não enviou o pedido, e não conta como etapa na timeline pública.
+1. **Timeline horizontal** com as 6 etapas públicas (Pedido realizado → Pedido aceito → Em processamento → Finalizado → Entregue → Recebido), destacando a etapa atual e marcando como concluídas as anteriores. Mesma linguagem visual usada pelo cliente.
+2. **Painel de ação contextual** logo abaixo da timeline, mostrando só o botão da próxima ação possível:
+   - `submitted` → "Aceitar pedido"
+   - `accepted` → "Iniciar processamento"
+   - `processing` → "Avançar etapa" (vira "Finalizar" no passo 6) + "Marcar como entregue" (atalho)
+   - `completed` → "Marcar como entregue"
+   - `delivered` → mostra aviso "Aguardando confirmação do cliente"
+   - `received` → mostra confirmação com data
+3. **Sub-etapas internas** (visível só em `processing`, e só para owner/master): lista vertical numerada das 6 sub-etapas (Diagramação, Tradução automática, Revisão tradução, Claude CQ, Assinatura, Last review) com indicador de concluída / atual / pendente. Cada item é clicável para corrigir manualmente o passo. Inclui aviso "Não visível ao cliente".
+4. **Histórico de datas-chave** compacto: Enviado em, Aceito em, Finalizado em, Entregue em, Recebido em (omitindo as que ainda não aconteceram).
+5. **Removido**: o dropdown solto "Status" e o bloco "Status atual + badge + Loader". O `<details>` "Alterar status manualmente" continua existindo como fallback escondido, mas restrito a owner/master.
 
-## Sub-etapas internas de "Em processamento" (somente owner vê)
+## Restrições e permissões
 
-Ordem fixa, 6 passos:
-
-1. Diagramação
-2. Tradução automática
-3. Revisão tradução
-4. Claude CQ
-5. Assinatura
-6. Last review
-
-Owner avança um passo por vez no painel admin. O cliente vê apenas "Em processamento — etapa X de 6" e uma barra de progresso, nunca o rótulo.
-
-## Mudanças no banco
-
-- Estender o enum `trial_order_status` com: `accepted`, `delivered`, `received` (mantém `draft`, `submitted`, `processing`, `completed`, `cancelled`; `completed` passa a significar "Finalizado" internamente).
-- Em `trial_orders` adicionar:
-  - `processing_step smallint` (1..6, nullable)
-  - `accepted_at`, `completed_at`, `delivered_at`, `received_at` timestamptz nullable
-- RPCs `SECURITY DEFINER` (owner only, via `has_role(auth.uid(),'owner')`):
-  - `accept_trial_order(order_id)` → status = `accepted`, `accepted_at = now()`
-  - `start_trial_order_processing(order_id)` → status = `processing`, `processing_step = 1`
-  - `advance_trial_order_processing(order_id)` → incrementa `processing_step`; se passar de 6, vira `completed`
-  - `set_trial_order_processing_step(order_id, step)` → para correções manuais
-  - `mark_trial_order_delivered(order_id)` → status = `delivered`, `delivered_at = now()`
-- RPC para o cliente (dono do pedido):
-  - `confirm_trial_order_received(order_id)` → status = `received`, `received_at = now()` (valida via `trial_customers.id = trial_orders.customer_id` ligado ao `auth.uid()`)
-
-Políticas RLS existentes em `trial_orders` continuam; clientes não conseguem alterar `processing_step` direto, apenas via RPCs.
-
-## Mudanças de UI
-
-### Cliente — `src/portal/pages/PortalOrderDetail.tsx`
-- Nova `TIMELINE` com os 6 estágios acima (Rascunho fica de fora quando o pedido já foi enviado).
-- Quando `status = 'processing'`, mostrar dentro do cartão da etapa um sublabel "Etapa {processing_step}/6" + barra de progresso fina (`processing_step / 6`). Sem nomes internos.
-- Quando `status = 'delivered'`, exibir botão "Confirmar recebimento" abaixo da timeline. Ao clicar, chama `confirm_trial_order_received` e dá toast de sucesso.
-- Atualizar `statusLabels`/`statusVariant` para os novos status.
-- A lista de pedidos (`PortalOrders.tsx`) recebe os novos labels para os badges (sem mudança de layout).
-
-### Admin / Owner — `src/pages/PortalOrdersAdmin.tsx` (ou detalhe equivalente)
-- Adicionar painel "Fluxo do pedido" mostrando o estágio atual e botões contextuais:
-  - "Aceitar pedido" (em `submitted`)
-  - "Iniciar processamento" (em `accepted`)
-  - "Avançar etapa" + dropdown com os 6 nomes internos (em `processing`), indicando o passo atual com destaque
-  - "Marcar como entregue" (em `completed`)
-- Lista compacta dos 6 sub-passos com check/atual/pendente, visível só para owner.
+- Sub-etapas internas e nomes (Diagramação etc.) só renderizam se `userRole` for `owner` ou `master`. Nunca aparecem no portal do cliente.
+- Botões de ação só ficam habilitados para `owner` e `master`. Outros papéis veem timeline + datas em modo leitura.
+- Todas as transições continuam via RPCs já existentes (`accept_trial_order`, `start_trial_order_processing`, `advance_trial_order_processing`, `set_trial_order_processing_step`, `mark_trial_order_delivered`). Nenhuma mudança de banco.
 
 ## Detalhes técnicos
 
-- Tipos TS: regenerados automaticamente após a migração; ajustar `Order` no `PortalOrderDetail.tsx` para incluir `processing_step` e os novos timestamps.
-- Mapas de cor/label centralizados em um helper `src/portal/lib/orderStatus.ts` para reuso entre portal e admin.
-- Toda mudança de status passa por RPC; nada de `update` direto no front.
-- Mensagens em PT-BR; sem expor nomes de sub-etapas em respostas RPC ou colunas lidas pelo cliente.
+- Extrair o componente da timeline em `src/portal/lib/orderStatus.tsx` (ou um novo `src/portal/components/OrderTimeline.tsx`) e reusar tanto no portal do cliente quanto no admin, para garantir consistência visual.
+- O componente recebe `status`, `processing_step` e um modo (`"compact" | "full"`).
+- Painel de sub-etapas vira um componente separado `OwnerProcessingStepsPanel` que encapsula a grade de botões e a chamada de `set_trial_order_processing_step`.
+- Adicionar tipagem das datas (`accepted_at`, `completed_at`, `delivered_at`, `received_at`) no tipo `OrderRow` local do admin (já existem na tabela após a migração anterior).
+- Manter o `<details>` de fallback para alterar status manualmente, mas só renderizar quando `userRole === "owner"`.
 
 ## Fora de escopo
 
-- Notificações por e-mail/WhatsApp em cada transição (pode ser feito depois).
-- Histórico textual completo por etapa (pode ser próximo passo com tabela `trial_order_status_history`).
+- Notificações automáticas em cada transição.
+- Histórico textual por mudança de status (tabela de auditoria separada).
+- Alterações na timeline do cliente — ela já está no formato novo.
