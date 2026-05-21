@@ -35,11 +35,16 @@ type Order = {
   language_pair: string;
   translation_type: string;
   status: string;
+  processing_step: number | null;
   total_documents: number;
   total_pages: number;
   total_characters: number;
   notes: string | null;
   submitted_at: string | null;
+  accepted_at: string | null;
+  completed_at: string | null;
+  delivered_at: string | null;
+  received_at: string | null;
   created_at: string;
   updated_at: string;
   customer_id: string;
@@ -54,21 +59,13 @@ type Customer = {
   company: string | null; cpf_cnpj: string | null;
 };
 
-const statusLabels: Record<string, string> = {
-  draft: "Rascunho", submitted: "Enviado", processing: "Em processamento",
-  completed: "Concluído", cancelled: "Cancelado",
-};
-const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  draft: "outline", submitted: "default", processing: "secondary",
-  completed: "default", cancelled: "destructive",
-};
-
-const TIMELINE = [
-  { key: "draft", label: "Rascunho", desc: "Pedido iniciado" },
-  { key: "submitted", label: "Enviado", desc: "Aguardando análise" },
-  { key: "processing", label: "Em processamento", desc: "Tradução em andamento" },
-  { key: "completed", label: "Concluído", desc: "Entrega finalizada" },
-] as const;
+import {
+  STATUS_LABEL as statusLabels,
+  STATUS_VARIANT as statusVariant,
+  CUSTOMER_TIMELINE as TIMELINE,
+  PROCESSING_TOTAL,
+  customerTimelineIndex,
+} from "@/portal/lib/orderStatus";
 
 function formatBytes(b: number) {
   if (!b) return "0 B";
