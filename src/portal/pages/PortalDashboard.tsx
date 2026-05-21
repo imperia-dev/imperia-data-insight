@@ -176,91 +176,107 @@ export default function PortalDashboard() {
       </TooltipProvider>
 
       {/* Pedidos por etapa */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Pedidos por etapa</CardTitle>
-          <CardDescription>Quantos pedidos estão em cada fase do fluxo</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-            {CUSTOMER_TIMELINE.map((stage) => {
-              const stageOrders = orders.filter((o) => o.status === stage.key);
-              const count = stageOrders.length;
-              const isProcessing = stage.key === "processing";
-              const avgStep = isProcessing && count > 0
-                ? Math.round(
-                    stageOrders.reduce((s, o: any) => s + Math.min(Math.max(o.processing_step ?? 1, 1), PROCESSING_TOTAL), 0) / count
-                  )
-                : null;
-              return (
-                <Link
-                  key={stage.key}
-                  to={`/portal/app/pedidos?status=${stage.key}`}
-                  className={`group rounded-lg border p-4 transition-all hover:border-primary/50 hover:shadow-sm ${count > 0 ? "bg-card" : "bg-muted/20"}`}
-                >
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
-                    {stage.label}
-                  </div>
-                  <div className={`text-3xl font-bold mt-2 ${count > 0 ? "text-foreground" : "text-muted-foreground/50"}`}>
-                    {count}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1 truncate">
-                    {count === 0
-                      ? "Nenhum pedido"
-                      : isProcessing && avgStep
-                      ? `Etapa média ${avgStep}/${PROCESSING_TOTAL}`
-                      : count === 1 ? "1 pedido" : `${count} pedidos`}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <TooltipProvider delayDuration={150}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Pedidos por etapa</CardTitle>
+            <CardDescription>Quantos pedidos estão em cada fase do fluxo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+              {CUSTOMER_TIMELINE.map((stage) => {
+                const stageOrders = orders.filter((o) => o.status === stage.key);
+                const count = stageOrders.length;
+                const isProcessing = stage.key === "processing";
+                const avgStep = isProcessing && count > 0
+                  ? Math.round(
+                      stageOrders.reduce((s, o: any) => s + Math.min(Math.max(o.processing_step ?? 1, 1), PROCESSING_TOTAL), 0) / count
+                    )
+                  : null;
+                return (
+                  <UITooltip key={stage.key}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={`/portal/app/pedidos?status=${stage.key}`}
+                        className={`group rounded-lg border p-4 transition-all hover:border-primary/50 hover:shadow-sm ${count > 0 ? "bg-card" : "bg-muted/20"}`}
+                      >
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                          {stage.label}
+                        </div>
+                        <div className={`text-3xl font-bold mt-2 ${count > 0 ? "text-foreground" : "text-muted-foreground/50"}`}>
+                          {count}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 truncate">
+                          {count === 0
+                            ? "Nenhum pedido"
+                            : isProcessing && avgStep
+                            ? `Etapa média ${avgStep}/${PROCESSING_TOTAL}`
+                            : count === 1 ? "1 pedido" : `${count} pedidos`}
+                        </div>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs p-0">
+                      <OrdersTooltipList title={stage.label} orders={stageOrders} />
+                    </TooltipContent>
+                  </UITooltip>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </TooltipProvider>
 
       {/* Sub-etapas do processamento */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Etapas do processamento</CardTitle>
-          <CardDescription>Distribuição dos pedidos em processamento por sub-etapa</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {(() => {
-            const processingOrders = orders.filter((o) => o.status === "processing");
-            return (
-              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-                {PROCESSING_STEPS.map((label, idx) => {
-                  const step = idx + 1;
-                  const stepOrders = processingOrders.filter(
-                    (o) => Math.min(Math.max(o.processing_step ?? 1, 1), PROCESSING_TOTAL) === step
-                  );
-                  const count = stepOrders.length;
-                  return (
-                    <Link
-                      key={label}
-                      to={`/portal/app/pedidos?status=processing`}
-                      className={`group rounded-lg border p-4 transition-all hover:border-primary/50 hover:shadow-sm ${count > 0 ? "bg-card" : "bg-muted/20"}`}
-                    >
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Etapa {step}/{PROCESSING_TOTAL}
-                      </div>
-                      <div className={`text-3xl font-bold mt-2 ${count > 0 ? "text-foreground" : "text-muted-foreground/50"}`}>
-                        {count}
-                      </div>
-                      <div className="text-xs font-medium mt-1 truncate" title={label}>
-                        {label}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {count === 0 ? "Nenhum pedido" : count === 1 ? "1 pedido" : `${count} pedidos`}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </CardContent>
-      </Card>
+      <TooltipProvider delayDuration={150}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Etapas do processamento</CardTitle>
+            <CardDescription>Distribuição dos pedidos em processamento por sub-etapa</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const processingOrders = orders.filter((o) => o.status === "processing");
+              return (
+                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+                  {PROCESSING_STEPS.map((label, idx) => {
+                    const step = idx + 1;
+                    const stepOrders = processingOrders.filter(
+                      (o) => Math.min(Math.max(o.processing_step ?? 1, 1), PROCESSING_TOTAL) === step
+                    );
+                    const count = stepOrders.length;
+                    return (
+                      <UITooltip key={label}>
+                        <TooltipTrigger asChild>
+                          <Link
+                            to={`/portal/app/pedidos?status=processing`}
+                            className={`group rounded-lg border p-4 transition-all hover:border-primary/50 hover:shadow-sm ${count > 0 ? "bg-card" : "bg-muted/20"}`}
+                          >
+                            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Etapa {step}/{PROCESSING_TOTAL}
+                            </div>
+                            <div className={`text-3xl font-bold mt-2 ${count > 0 ? "text-foreground" : "text-muted-foreground/50"}`}>
+                              {count}
+                            </div>
+                            <div className="text-xs font-medium mt-1 truncate" title={label}>
+                              {label}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground mt-0.5">
+                              {count === 0 ? "Nenhum pedido" : count === 1 ? "1 pedido" : `${count} pedidos`}
+                            </div>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs p-0">
+                          <OrdersTooltipList title={`${label} · Etapa ${step}/${PROCESSING_TOTAL}`} orders={stepOrders} />
+                        </TooltipContent>
+                      </UITooltip>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      </TooltipProvider>
 
 
 
@@ -486,6 +502,31 @@ function KpiCard({ icon, label, value, hint, accent, subtle, items, groups, metr
         )}
       </TooltipContent>
     </UITooltip>
+  );
+}
+
+
+function OrdersTooltipList({ title, orders }: { title: string; orders: Order[] }) {
+  const MAX = 8;
+  return (
+    <div className="p-3 w-[280px] max-h-[340px] overflow-auto">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between gap-2">
+        <span className="truncate">{title}</span>
+        <span>{orders.length}</span>
+      </div>
+      {orders.length === 0 ? (
+        <div className="text-xs text-muted-foreground py-2">Nenhum pedido nesta etapa.</div>
+      ) : (
+        <>
+          <div className="divide-y divide-border/60">
+            {orders.slice(0, MAX).map((o) => <OrderRow key={o.id} o={o} />)}
+          </div>
+          {orders.length > MAX && (
+            <div className="text-[10px] text-muted-foreground mt-2">+ {orders.length - MAX} pedido(s)</div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
