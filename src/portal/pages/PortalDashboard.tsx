@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Plus, Loader2, FileText, Activity, CheckCircle2, ArrowRight,
   Files, Languages, Clock, FileCheck2, TrendingUp, Sparkles, FilePen, Send,
@@ -150,19 +151,50 @@ export default function PortalDashboard() {
       </div>
 
       {/* Primary KPIs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard icon={<FileText className="h-4 w-4" />} label="Total de pedidos" value={stats.total} hint={`${stats.drafts} rascunho${stats.drafts === 1 ? "" : "s"}`} />
-        <KpiCard icon={<Activity className="h-4 w-4" />} label="Em andamento" value={stats.inProgress} hint={`${stats.submitted} enviado${stats.submitted === 1 ? "" : "s"}`} accent />
-        <KpiCard icon={<CheckCircle2 className="h-4 w-4" />} label="Concluídos" value={stats.completed} hint={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% do total` : "—"} />
-        <KpiCard icon={<Languages className="h-4 w-4" />} label="Idiomas" value={stats.languages} hint="Pares solicitados" />
-      </div>
+      <TooltipProvider delayDuration={150}>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard icon={<FileText className="h-4 w-4" />} label="Total de pedidos" value={stats.total} hint={`${stats.drafts} rascunho${stats.drafts === 1 ? "" : "s"}`}
+            details={[
+              { label: "Rascunhos", value: stats.drafts },
+              { label: "Enviados", value: stats.submitted },
+              { label: "Em produção", value: orders.filter(o => o.status === "processing").length },
+              { label: "Concluídos", value: stats.completed },
+              { label: "Cancelados", value: orders.filter(o => o.status === "cancelled").length },
+            ]} />
+          <KpiCard icon={<Activity className="h-4 w-4" />} label="Em andamento" value={stats.inProgress} hint={`${stats.submitted} enviado${stats.submitted === 1 ? "" : "s"}`} accent
+            details={[
+              { label: "Enviados", value: stats.submitted },
+              { label: "Em produção", value: orders.filter(o => o.status === "processing").length },
+            ]} />
+          <KpiCard icon={<CheckCircle2 className="h-4 w-4" />} label="Concluídos" value={stats.completed} hint={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% do total` : "—"}
+            details={[
+              { label: "Concluídos", value: stats.completed },
+              { label: "Total", value: stats.total },
+              { label: "Taxa", value: stats.total ? `${Math.round((stats.completed / stats.total) * 100)}%` : "—" },
+            ]} />
+          <KpiCard icon={<Languages className="h-4 w-4" />} label="Idiomas" value={stats.languages} hint="Pares solicitados"
+            details={Array.from(new Set(orders.map(o => o.language_pair).filter(Boolean) as string[])).map(lp => ({ label: lp, value: orders.filter(o => o.language_pair === lp).length }))} />
+        </div>
 
-      {/* Volume */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <KpiCard icon={<Files className="h-4 w-4" />} label="Documentos" value={stats.totalDocs} hint="Arquivos enviados" subtle />
-        <KpiCard icon={<FileCheck2 className="h-4 w-4" />} label="Páginas" value={stats.totalPages} hint="Volume total" subtle />
-        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Caracteres" value={stats.totalChars.toLocaleString("pt-BR")} hint="Volume textual" subtle />
-      </div>
+        {/* Volume */}
+        <div className="grid gap-4 sm:grid-cols-3 mt-4">
+          <KpiCard icon={<Files className="h-4 w-4" />} label="Documentos" value={stats.totalDocs} hint="Arquivos enviados" subtle
+            details={[
+              { label: "Total", value: stats.totalDocs },
+              { label: "Média por pedido", value: stats.total ? (stats.totalDocs / stats.total).toFixed(1) : "0" },
+            ]} />
+          <KpiCard icon={<FileCheck2 className="h-4 w-4" />} label="Páginas" value={stats.totalPages} hint="Volume total" subtle
+            details={[
+              { label: "Total", value: stats.totalPages },
+              { label: "Média por pedido", value: stats.total ? (stats.totalPages / stats.total).toFixed(1) : "0" },
+            ]} />
+          <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Caracteres" value={stats.totalChars.toLocaleString("pt-BR")} hint="Volume textual" subtle
+            details={[
+              { label: "Total", value: stats.totalChars.toLocaleString("pt-BR") },
+              { label: "Média por pedido", value: stats.total ? Math.round(stats.totalChars / stats.total).toLocaleString("pt-BR") : "0" },
+            ]} />
+        </div>
+      </TooltipProvider>
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-5">
@@ -301,9 +333,10 @@ export default function PortalDashboard() {
   );
 }
 
-function KpiCard({ icon, label, value, hint, accent, subtle }: { icon: React.ReactNode; label: string; value: React.ReactNode; hint?: string; accent?: boolean; subtle?: boolean }) {
-  return (
-    <Card className={accent ? "border-primary/40 bg-primary/[0.03]" : subtle ? "bg-muted/30" : ""}>
+type KpiDetail = { label: string; value: React.ReactNode };
+function KpiCard({ icon, label, value, hint, accent, subtle, details }: { icon: React.ReactNode; label: string; value: React.ReactNode; hint?: string; accent?: boolean; subtle?: boolean; details?: KpiDetail[] }) {
+  const card = (
+    <Card className={`cursor-default transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40 ${accent ? "border-primary/40 bg-primary/[0.03]" : subtle ? "bg-muted/30" : ""}`}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
@@ -314,7 +347,25 @@ function KpiCard({ icon, label, value, hint, accent, subtle }: { icon: React.Rea
       </CardContent>
     </Card>
   );
+  if (!details || details.length === 0) return card;
+  return (
+    <UITooltip>
+      <TooltipTrigger asChild><div>{card}</div></TooltipTrigger>
+      <TooltipContent side="bottom" className="p-3 min-w-[180px]">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
+        <div className="space-y-1.5">
+          {details.map((d, i) => (
+            <div key={i} className="flex items-center justify-between gap-4 text-sm">
+              <span className="text-muted-foreground">{d.label}</span>
+              <span className="font-semibold">{d.value}</span>
+            </div>
+          ))}
+        </div>
+      </TooltipContent>
+    </UITooltip>
+  );
 }
+
 
 function QuickAction({ to, icon, title, desc }: { to: string; icon: React.ReactNode; title: string; desc: string }) {
   return (
