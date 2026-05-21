@@ -63,11 +63,13 @@ type FileRow = {
 };
 
 import { STATUS_LABEL, STATUS_VARIANT, PROCESSING_STEPS, PROCESSING_TOTAL } from "@/portal/lib/orderStatus";
+import { OrderTimeline } from "@/portal/components/OrderTimeline";
 const STATUS_OPTIONS = ["draft", "submitted", "accepted", "processing", "completed", "delivered", "received", "cancelled"];
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
 const statusVariant = (s: string) => STATUS_VARIANT[s] ?? "outline";
 const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
+const fmtDate = (s: string | null) => s ? format(new Date(s), "dd/MM/yyyy HH:mm", { locale: ptBR }) : null;
 
 const formatBytes = (n: number | null) => {
   if (!n) return "-";
