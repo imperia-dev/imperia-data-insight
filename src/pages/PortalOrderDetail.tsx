@@ -40,6 +40,10 @@ type OrderRow = {
   total_characters: number | null;
   notes: string | null;
   submitted_at: string | null;
+  accepted_at: string | null;
+  completed_at: string | null;
+  delivered_at: string | null;
+  received_at: string | null;
   created_at: string;
   external_link: string | null;
   external_id: string | null;
