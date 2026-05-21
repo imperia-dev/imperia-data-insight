@@ -40,6 +40,10 @@ type OrderRow = {
   total_characters: number | null;
   notes: string | null;
   submitted_at: string | null;
+  accepted_at: string | null;
+  completed_at: string | null;
+  delivered_at: string | null;
+  received_at: string | null;
   created_at: string;
   external_link: string | null;
   external_id: string | null;
@@ -59,11 +63,13 @@ type FileRow = {
 };
 
 import { STATUS_LABEL, STATUS_VARIANT, PROCESSING_STEPS, PROCESSING_TOTAL } from "@/portal/lib/orderStatus";
+import { OrderTimeline } from "@/portal/components/OrderTimeline";
 const STATUS_OPTIONS = ["draft", "submitted", "accepted", "processing", "completed", "delivered", "received", "cancelled"];
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
 const statusVariant = (s: string) => STATUS_VARIANT[s] ?? "outline";
 const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
+const fmtDate = (s: string | null) => s ? format(new Date(s), "dd/MM/yyyy HH:mm", { locale: ptBR }) : null;
 
 const formatBytes = (n: number | null) => {
   if (!n) return "-";
@@ -343,21 +349,33 @@ export default function PortalOrderDetail() {
                   <div><span className="text-muted-foreground">Documentos:</span> {order.total_documents ?? 0}</div>
                   <div><span className="text-muted-foreground">Páginas:</span> {order.total_pages ?? 0}</div>
                   <div><span className="text-muted-foreground">Caracteres:</span> {order.total_characters ?? 0}</div>
-                  {order.submitted_at && (
-                    <div><span className="text-muted-foreground">Enviado em:</span> {format(new Date(order.submitted_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</div>
-                  )}
                   {order.notes && (
                     <div className="pt-2"><span className="text-muted-foreground">Observações:</span> {order.notes}</div>
                   )}
-                  <div className="pt-3 border-t mt-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Status atual:</span>
-                      <Badge variant={statusVariant(order.status)}>{statusLabel(order.status)}</Badge>
-                      {updatingStatus && <Loader2 className="h-4 w-4 animate-spin" />}
-                    </div>
+                </CardContent>
+              </Card>
 
-                    {/* Owner workflow controls */}
-                    <div className="flex flex-wrap gap-2">
+              {/* Fluxo do pedido — timeline + ações + sub-etapas */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Fluxo do pedido</span>
+                    {updatingStatus && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {order.status === "cancelled" ? (
+                    <div className="rounded-md border bg-destructive/5 p-4 text-sm text-destructive">
+                      Pedido cancelado.
+                    </div>
+                  ) : (
+                    <OrderTimeline status={order.status} processingStep={order.processing_step} />
+                  )}
+
+                  {/* Painel de ação contextual */}
+                  {canEditRefs && order.status !== "cancelled" && order.status !== "received" && (
+                    <div className="rounded-lg border bg-muted/30 p-4 flex flex-wrap items-center gap-2">
+                      <div className="text-sm font-medium mr-2">Próxima ação:</div>
                       {order.status === "submitted" && (
                         <Button size="sm" onClick={acceptOrder} disabled={updatingStatus}>Aceitar pedido</Button>
                       )}
@@ -365,67 +383,101 @@ export default function PortalOrderDetail() {
                         <Button size="sm" onClick={startProcessing} disabled={updatingStatus}>Iniciar processamento</Button>
                       )}
                       {order.status === "processing" && (
-                        <>
-                          <Button size="sm" onClick={advanceStep} disabled={updatingStatus}>
-                            {(order.processing_step ?? 1) >= PROCESSING_TOTAL ? "Finalizar" : "Avançar etapa"}
-                          </Button>
-                        </>
+                        <Button size="sm" onClick={advanceStep} disabled={updatingStatus}>
+                          {(order.processing_step ?? 1) >= PROCESSING_TOTAL ? "Finalizar" : "Avançar etapa"}
+                        </Button>
                       )}
                       {(order.status === "completed" || order.status === "processing") && (
                         <Button size="sm" variant="outline" onClick={markDelivered} disabled={updatingStatus}>
                           Marcar como entregue
                         </Button>
                       )}
+                      {order.status === "delivered" && (
+                        <span className="text-sm text-muted-foreground">Aguardando confirmação do cliente.</span>
+                      )}
+                      {order.status === "draft" && (
+                        <span className="text-sm text-muted-foreground">Pedido ainda em rascunho pelo cliente.</span>
+                      )}
                     </div>
+                  )}
 
-                    {order.status === "processing" && (
-                      <div className="rounded-md border bg-muted/30 p-3 space-y-2">
-                        <div className="text-xs font-medium text-muted-foreground">
-                          Sub-etapa interna ({Math.min(order.processing_step ?? 1, PROCESSING_TOTAL)}/{PROCESSING_TOTAL}) — não visível ao cliente
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                          {PROCESSING_STEPS.map((name, idx) => {
-                            const step = idx + 1;
-                            const current = step === (order.processing_step ?? 1);
-                            const done = step < (order.processing_step ?? 1);
-                            return (
-                              <button
-                                key={name}
-                                type="button"
-                                onClick={() => setStep(step)}
-                                disabled={updatingStatus}
-                                className={
-                                  "text-left text-xs rounded px-2 py-1.5 border transition-colors " +
-                                  (current
-                                    ? "border-primary bg-primary/10 text-primary font-medium"
-                                    : done
-                                    ? "border-transparent bg-muted text-muted-foreground line-through"
-                                    : "border-border hover:bg-muted")
-                                }
-                              >
-                                {step}. {name}
-                              </button>
-                            );
-                          })}
-                        </div>
+                  {order.status === "received" && order.received_at && (
+                    <div className="rounded-lg border bg-primary/5 p-4 text-sm">
+                      <span className="font-medium text-primary">Cliente confirmou o recebimento</span>{" "}
+                      <span className="text-muted-foreground">em {fmtDate(order.received_at)}.</span>
+                    </div>
+                  )}
+
+                  {/* Sub-etapas internas — só owner/master, só em processing */}
+                  {canEditRefs && order.status === "processing" && (
+                    <div className="rounded-md border bg-card p-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-muted-foreground">
+                          Sub-etapa interna ({Math.min(order.processing_step ?? 1, PROCESSING_TOTAL)}/{PROCESSING_TOTAL})
+                        </span>
+                        <span className="text-muted-foreground/70 italic">Não visível ao cliente</span>
                       </div>
-                    )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+                        {PROCESSING_STEPS.map((name, idx) => {
+                          const step = idx + 1;
+                          const current = step === (order.processing_step ?? 1);
+                          const done = step < (order.processing_step ?? 1);
+                          return (
+                            <button
+                              key={name}
+                              type="button"
+                              onClick={() => setStep(step)}
+                              disabled={updatingStatus}
+                              className={
+                                "text-left text-xs rounded px-2 py-1.5 border transition-colors " +
+                                (current
+                                  ? "border-primary bg-primary/10 text-primary font-medium"
+                                  : done
+                                  ? "border-transparent bg-muted text-muted-foreground line-through"
+                                  : "border-border hover:bg-muted")
+                              }
+                            >
+                              {step}. {name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
-                    {/* Fallback: legacy raw status changer */}
+                  {/* Histórico de datas-chave */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
+                    {[
+                      { label: "Enviado", date: order.submitted_at },
+                      { label: "Aceito", date: order.accepted_at },
+                      { label: "Finalizado", date: order.completed_at },
+                      { label: "Entregue", date: order.delivered_at },
+                      { label: "Recebido", date: order.received_at },
+                    ].filter((d) => d.date).map((d) => (
+                      <div key={d.label} className="rounded-md border bg-muted/20 p-2">
+                        <div className="text-muted-foreground uppercase tracking-wide text-[10px]">{d.label}</div>
+                        <div className="font-medium">{fmtDate(d.date)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Fallback owner-only: alterar status manualmente */}
+                  {userRole === "owner" && (
                     <details className="text-xs">
-                      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Alterar status manualmente</summary>
+                      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Alterar status manualmente (avançado)</summary>
                       <div className="flex items-center gap-2 mt-2">
                         <Select value={order.status} onValueChange={updateStatus} disabled={updatingStatus}>
-                          <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
                     </details>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
+
 
               <Card className="lg:col-span-2">
                 <CardHeader>
