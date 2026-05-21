@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,8 @@ export default function PortalOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") ?? "all");
   const [toDelete, setToDelete] = useState<Order | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -102,15 +103,13 @@ export default function PortalOrders() {
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-xs"
             />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); if (v === "all") { searchParams.delete("status"); } else { searchParams.set("status", v); } setSearchParams(searchParams, { replace: true }); }}>
+              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="draft">Rascunho</SelectItem>
-                <SelectItem value="submitted">Enviado</SelectItem>
-                <SelectItem value="processing">Em processamento</SelectItem>
-                <SelectItem value="completed">Concluído</SelectItem>
-                <SelectItem value="cancelled">Cancelado</SelectItem>
+                {Object.entries(STATUS_LABEL).map(([k, label]) => (
+                  <SelectItem key={k} value={k}>{label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

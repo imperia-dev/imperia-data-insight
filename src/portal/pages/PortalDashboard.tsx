@@ -21,6 +21,7 @@ type Order = {
   id: string;
   order_number: string;
   status: string;
+  processing_step: number | null;
   created_at: string;
   submitted_at: string | null;
   language_pair: string | null;
@@ -32,7 +33,7 @@ type Order = {
   external_id: string | null;
 };
 
-import { STATUS_LABEL } from "@/portal/lib/orderStatus";
+import { STATUS_LABEL, CUSTOMER_TIMELINE, PROCESSING_TOTAL } from "@/portal/lib/orderStatus";
 
 const STATUS_COLOR: Record<string, string> = {
   draft: "hsl(var(--muted-foreground))",
@@ -63,7 +64,7 @@ export default function PortalDashboard() {
     (async () => {
       const { data } = await supabase
         .from("trial_orders")
-        .select("id, order_number, status, created_at, submitted_at, language_pair, translation_type, total_documents, total_pages, total_characters, external_link, external_id")
+        .select("id, order_number, status, processing_step, created_at, submitted_at, language_pair, translation_type, total_documents, total_pages, total_characters, external_link, external_id")
         .eq("customer_id", customer.id)
         .order("created_at", { ascending: false });
       setOrders((data as Order[]) ?? []);
@@ -173,6 +174,49 @@ export default function PortalDashboard() {
             items={orders.filter(o => (o.total_characters ?? 0) > 0)} metric="chars" />
         </div>
       </TooltipProvider>
+
+      {/* Pedidos por etapa */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Pedidos por etapa</CardTitle>
+          <CardDescription>Quantos pedidos estão em cada fase do fluxo</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+            {CUSTOMER_TIMELINE.map((stage) => {
+              const stageOrders = orders.filter((o) => o.status === stage.key);
+              const count = stageOrders.length;
+              const isProcessing = stage.key === "processing";
+              const avgStep = isProcessing && count > 0
+                ? Math.round(
+                    stageOrders.reduce((s, o: any) => s + Math.min(Math.max(o.processing_step ?? 1, 1), PROCESSING_TOTAL), 0) / count
+                  )
+                : null;
+              return (
+                <Link
+                  key={stage.key}
+                  to={`/portal/app/pedidos?status=${stage.key}`}
+                  className={`group rounded-lg border p-4 transition-all hover:border-primary/50 hover:shadow-sm ${count > 0 ? "bg-card" : "bg-muted/20"}`}
+                >
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                    {stage.label}
+                  </div>
+                  <div className={`text-3xl font-bold mt-2 ${count > 0 ? "text-foreground" : "text-muted-foreground/50"}`}>
+                    {count}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 truncate">
+                    {count === 0
+                      ? "Nenhum pedido"
+                      : isProcessing && avgStep
+                      ? `Etapa média ${avgStep}/${PROCESSING_TOTAL}`
+                      : count === 1 ? "1 pedido" : `${count} pedidos`}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-5">
