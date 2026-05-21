@@ -32,19 +32,16 @@ type Order = {
   external_id: string | null;
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  draft: "Rascunho",
-  submitted: "Enviado",
-  processing: "Em produção",
-  completed: "Concluído",
-  cancelled: "Cancelado",
-};
+import { STATUS_LABEL } from "@/portal/lib/orderStatus";
 
 const STATUS_COLOR: Record<string, string> = {
   draft: "hsl(var(--muted-foreground))",
   submitted: "hsl(var(--primary))",
+  accepted: "hsl(var(--chart-3, 47 96% 53%))",
   processing: "hsl(var(--chart-2, 217 91% 60%))",
   completed: "hsl(142 71% 45%)",
+  delivered: "hsl(142 71% 45%)",
+  received: "hsl(142 71% 45%)",
   cancelled: "hsl(var(--destructive))",
 };
 
