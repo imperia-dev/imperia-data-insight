@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { OrderTimeline } from "@/portal/components/OrderTimeline";
 
 type PreviewState = { url: string; name: string; mime: string; kind: "pdf" | "image" | "office" | "text" | "unsupported"; blobUrl?: string } | null;
 
