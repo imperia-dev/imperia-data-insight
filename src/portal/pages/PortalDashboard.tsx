@@ -154,45 +154,26 @@ export default function PortalDashboard() {
       <TooltipProvider delayDuration={150}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard icon={<FileText className="h-4 w-4" />} label="Total de pedidos" value={stats.total} hint={`${stats.drafts} rascunho${stats.drafts === 1 ? "" : "s"}`}
-            details={[
-              { label: "Rascunhos", value: stats.drafts },
-              { label: "Enviados", value: stats.submitted },
-              { label: "Em produção", value: orders.filter(o => o.status === "processing").length },
-              { label: "Concluídos", value: stats.completed },
-              { label: "Cancelados", value: orders.filter(o => o.status === "cancelled").length },
-            ]} />
+            items={orders} />
           <KpiCard icon={<Activity className="h-4 w-4" />} label="Em andamento" value={stats.inProgress} hint={`${stats.submitted} enviado${stats.submitted === 1 ? "" : "s"}`} accent
-            details={[
-              { label: "Enviados", value: stats.submitted },
-              { label: "Em produção", value: orders.filter(o => o.status === "processing").length },
-            ]} />
+            items={orders.filter(o => ["submitted", "processing"].includes(o.status))} />
           <KpiCard icon={<CheckCircle2 className="h-4 w-4" />} label="Concluídos" value={stats.completed} hint={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% do total` : "—"}
-            details={[
-              { label: "Concluídos", value: stats.completed },
-              { label: "Total", value: stats.total },
-              { label: "Taxa", value: stats.total ? `${Math.round((stats.completed / stats.total) * 100)}%` : "—" },
-            ]} />
+            items={orders.filter(o => o.status === "completed")} />
           <KpiCard icon={<Languages className="h-4 w-4" />} label="Idiomas" value={stats.languages} hint="Pares solicitados"
-            details={Array.from(new Set(orders.map(o => o.language_pair).filter(Boolean) as string[])).map(lp => ({ label: lp, value: orders.filter(o => o.language_pair === lp).length }))} />
+            groups={Array.from(new Set(orders.map(o => o.language_pair).filter(Boolean) as string[])).map(lp => ({
+              title: lp,
+              items: orders.filter(o => o.language_pair === lp),
+            }))} />
         </div>
 
         {/* Volume */}
         <div className="grid gap-4 sm:grid-cols-3 mt-4">
           <KpiCard icon={<Files className="h-4 w-4" />} label="Documentos" value={stats.totalDocs} hint="Arquivos enviados" subtle
-            details={[
-              { label: "Total", value: stats.totalDocs },
-              { label: "Média por pedido", value: stats.total ? (stats.totalDocs / stats.total).toFixed(1) : "0" },
-            ]} />
+            items={orders.filter(o => (o.total_documents ?? 0) > 0)} metric="docs" />
           <KpiCard icon={<FileCheck2 className="h-4 w-4" />} label="Páginas" value={stats.totalPages} hint="Volume total" subtle
-            details={[
-              { label: "Total", value: stats.totalPages },
-              { label: "Média por pedido", value: stats.total ? (stats.totalPages / stats.total).toFixed(1) : "0" },
-            ]} />
+            items={orders.filter(o => (o.total_pages ?? 0) > 0)} metric="pages" />
           <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Caracteres" value={stats.totalChars.toLocaleString("pt-BR")} hint="Volume textual" subtle
-            details={[
-              { label: "Total", value: stats.totalChars.toLocaleString("pt-BR") },
-              { label: "Média por pedido", value: stats.total ? Math.round(stats.totalChars / stats.total).toLocaleString("pt-BR") : "0" },
-            ]} />
+            items={orders.filter(o => (o.total_characters ?? 0) > 0)} metric="chars" />
         </div>
       </TooltipProvider>
 
