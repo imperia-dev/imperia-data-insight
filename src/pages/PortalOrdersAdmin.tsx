@@ -44,17 +44,10 @@ type OrderRow = {
   trial_customers: Customer | null;
 };
 
-const STATUS_OPTIONS = ["draft", "submitted", "processing", "completed", "cancelled"];
-
-const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (s) {
-    case "completed": return "default";
-    case "processing": return "secondary";
-    case "submitted": return "outline";
-    case "cancelled": return "destructive";
-    default: return "outline";
-  }
-};
+import { STATUS_LABEL, STATUS_VARIANT } from "@/portal/lib/orderStatus";
+const STATUS_OPTIONS = ["draft", "submitted", "accepted", "processing", "completed", "delivered", "received", "cancelled"];
+const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => STATUS_VARIANT[s] ?? "outline";
+const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
 
 export default function PortalOrdersAdmin() {
   const { toast } = useToast();
