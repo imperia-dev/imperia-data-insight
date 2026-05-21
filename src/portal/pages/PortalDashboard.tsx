@@ -506,6 +506,31 @@ function KpiCard({ icon, label, value, hint, accent, subtle, items, groups, metr
 }
 
 
+function OrdersTooltipList({ title, orders }: { title: string; orders: Order[] }) {
+  const MAX = 8;
+  return (
+    <div className="p-3 w-[280px] max-h-[340px] overflow-auto">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between gap-2">
+        <span className="truncate">{title}</span>
+        <span>{orders.length}</span>
+      </div>
+      {orders.length === 0 ? (
+        <div className="text-xs text-muted-foreground py-2">Nenhum pedido nesta etapa.</div>
+      ) : (
+        <>
+          <div className="divide-y divide-border/60">
+            {orders.slice(0, MAX).map((o) => <OrderRow key={o.id} o={o} />)}
+          </div>
+          {orders.length > MAX && (
+            <div className="text-[10px] text-muted-foreground mt-2">+ {orders.length - MAX} pedido(s)</div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+
 
 function QuickAction({ to, icon, title, desc }: { to: string; icon: React.ReactNode; title: string; desc: string }) {
   return (
