@@ -273,35 +273,7 @@ function OrderDetailInner() {
         {/* Timeline */}
         {order.status !== "cancelled" && (
           <div className="mt-6 pt-6 border-t space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {TIMELINE.map((step, i) => {
-                const done = i < activeIdx;
-                const current = i === activeIdx;
-                const isProcessingStep = step.key === "processing" && current;
-                const step6 = Math.min(Math.max(order.processing_step ?? 1, 1), PROCESSING_TOTAL);
-                return (
-                  <div key={step.key} className="flex items-start gap-2">
-                    <div className={cn(
-                      "shrink-0 mt-0.5",
-                      done ? "text-primary" : current ? "text-primary" : "text-muted-foreground/40",
-                    )}>
-                      {done ? <CheckCircle2 className="h-5 w-5" /> : current ? <CircleDot className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className={cn("text-sm font-medium", !done && !current && "text-muted-foreground")}>{step.label}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {isProcessingStep ? `Etapa ${step6} de ${PROCESSING_TOTAL}` : step.desc}
-                      </div>
-                      {isProcessingStep && (
-                        <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full bg-primary transition-all" style={{ width: `${(step6 / PROCESSING_TOTAL) * 100}%` }} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <OrderTimeline status={order.status} processingStep={order.processing_step} />
 
             {order.status === "delivered" && (
               <div className="flex items-center justify-between gap-3 rounded-lg border bg-primary/5 p-4">
