@@ -154,11 +154,18 @@ function OrderDetailInner() {
   };
 
   const totalSize = useMemo(() => files.reduce((s, f) => s + (f.size_bytes || 0), 0), [files]);
-  const activeIdx = useMemo(() => {
-    if (!order) return -1;
-    if (order.status === "cancelled") return -1;
-    return TIMELINE.findIndex((t) => t.key === order.status);
-  }, [order]);
+  const activeIdx = useMemo(() => order ? customerTimelineIndex(order.status) : -1, [order]);
+  const [confirming, setConfirming] = useState(false);
+
+  const confirmReceived = async () => {
+    if (!order) return;
+    setConfirming(true);
+    const { error } = await supabase.rpc("confirm_trial_order_received" as any, { p_order_id: order.id });
+    setConfirming(false);
+    if (error) { toast.error("Não foi possível confirmar o recebimento"); return; }
+    toast.success("Recebimento confirmado. Obrigado!");
+    await reloadOrder(order.id);
+  };
 
   const downloadFile = async (f: FileRow) => {
     setDownloadingId(f.id);
