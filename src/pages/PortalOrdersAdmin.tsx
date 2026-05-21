@@ -162,7 +162,7 @@ export default function PortalOrdersAdmin() {
                         <TableCell className="text-sm">{o.language_pair ?? "-"}</TableCell>
                         <TableCell className="text-right">{o.total_documents ?? 0}</TableCell>
                         <TableCell className="text-right">{o.total_pages ?? 0}</TableCell>
-                        <TableCell><Badge variant={statusVariant(o.status)}>{o.status}</Badge></TableCell>
+                        <TableCell><Badge variant={statusVariant(o.status)}>{statusLabel(o.status)}</Badge></TableCell>
                         <TableCell className="text-sm max-w-[180px]" onClick={(e) => e.stopPropagation()}>
                           {o.external_link ? (
                             <a href={o.external_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 truncate">
