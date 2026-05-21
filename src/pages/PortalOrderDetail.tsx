@@ -57,18 +57,12 @@ type FileRow = {
   source_file_id?: string | null;
 };
 
-const STATUS_OPTIONS = ["draft", "submitted", "processing", "completed", "cancelled"];
+import { STATUS_LABEL, STATUS_VARIANT, PROCESSING_STEPS, PROCESSING_TOTAL } from "@/portal/lib/orderStatus";
+const STATUS_OPTIONS = ["draft", "submitted", "accepted", "processing", "completed", "delivered", "received", "cancelled"];
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
-const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (s) {
-    case "completed": return "default";
-    case "processing": return "secondary";
-    case "submitted": return "outline";
-    case "cancelled": return "destructive";
-    default: return "outline";
-  }
-};
+const statusVariant = (s: string) => STATUS_VARIANT[s] ?? "outline";
+const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
 
 const formatBytes = (n: number | null) => {
   if (!n) return "-";
