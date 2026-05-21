@@ -154,45 +154,26 @@ export default function PortalDashboard() {
       <TooltipProvider delayDuration={150}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard icon={<FileText className="h-4 w-4" />} label="Total de pedidos" value={stats.total} hint={`${stats.drafts} rascunho${stats.drafts === 1 ? "" : "s"}`}
-            details={[
-              { label: "Rascunhos", value: stats.drafts },
-              { label: "Enviados", value: stats.submitted },
-              { label: "Em produção", value: orders.filter(o => o.status === "processing").length },
-              { label: "Concluídos", value: stats.completed },
-              { label: "Cancelados", value: orders.filter(o => o.status === "cancelled").length },
-            ]} />
+            items={orders} />
           <KpiCard icon={<Activity className="h-4 w-4" />} label="Em andamento" value={stats.inProgress} hint={`${stats.submitted} enviado${stats.submitted === 1 ? "" : "s"}`} accent
-            details={[
-              { label: "Enviados", value: stats.submitted },
-              { label: "Em produção", value: orders.filter(o => o.status === "processing").length },
-            ]} />
+            items={orders.filter(o => ["submitted", "processing"].includes(o.status))} />
           <KpiCard icon={<CheckCircle2 className="h-4 w-4" />} label="Concluídos" value={stats.completed} hint={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% do total` : "—"}
-            details={[
-              { label: "Concluídos", value: stats.completed },
-              { label: "Total", value: stats.total },
-              { label: "Taxa", value: stats.total ? `${Math.round((stats.completed / stats.total) * 100)}%` : "—" },
-            ]} />
+            items={orders.filter(o => o.status === "completed")} />
           <KpiCard icon={<Languages className="h-4 w-4" />} label="Idiomas" value={stats.languages} hint="Pares solicitados"
-            details={Array.from(new Set(orders.map(o => o.language_pair).filter(Boolean) as string[])).map(lp => ({ label: lp, value: orders.filter(o => o.language_pair === lp).length }))} />
+            groups={Array.from(new Set(orders.map(o => o.language_pair).filter(Boolean) as string[])).map(lp => ({
+              title: lp,
+              items: orders.filter(o => o.language_pair === lp),
+            }))} />
         </div>
 
         {/* Volume */}
         <div className="grid gap-4 sm:grid-cols-3 mt-4">
           <KpiCard icon={<Files className="h-4 w-4" />} label="Documentos" value={stats.totalDocs} hint="Arquivos enviados" subtle
-            details={[
-              { label: "Total", value: stats.totalDocs },
-              { label: "Média por pedido", value: stats.total ? (stats.totalDocs / stats.total).toFixed(1) : "0" },
-            ]} />
+            items={orders.filter(o => (o.total_documents ?? 0) > 0)} metric="docs" />
           <KpiCard icon={<FileCheck2 className="h-4 w-4" />} label="Páginas" value={stats.totalPages} hint="Volume total" subtle
-            details={[
-              { label: "Total", value: stats.totalPages },
-              { label: "Média por pedido", value: stats.total ? (stats.totalPages / stats.total).toFixed(1) : "0" },
-            ]} />
+            items={orders.filter(o => (o.total_pages ?? 0) > 0)} metric="pages" />
           <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Caracteres" value={stats.totalChars.toLocaleString("pt-BR")} hint="Volume textual" subtle
-            details={[
-              { label: "Total", value: stats.totalChars.toLocaleString("pt-BR") },
-              { label: "Média por pedido", value: stats.total ? Math.round(stats.totalChars / stats.total).toLocaleString("pt-BR") : "0" },
-            ]} />
+            items={orders.filter(o => (o.total_characters ?? 0) > 0)} metric="chars" />
         </div>
       </TooltipProvider>
 
@@ -333,8 +314,40 @@ export default function PortalDashboard() {
   );
 }
 
-type KpiDetail = { label: string; value: React.ReactNode };
-function KpiCard({ icon, label, value, hint, accent, subtle, details }: { icon: React.ReactNode; label: string; value: React.ReactNode; hint?: string; accent?: boolean; subtle?: boolean; details?: KpiDetail[] }) {
+type Metric = "docs" | "pages" | "chars";
+type KpiGroup = { title: string; items: Order[] };
+
+function metricValue(o: Order, m?: Metric): string {
+  const v = m === "docs" ? (o.total_documents ?? 0) : m === "pages" ? (o.total_pages ?? 0) : m === "chars" ? (o.total_characters ?? 0) : 0;
+  return m === "chars" ? v.toLocaleString("pt-BR") : String(v);
+}
+
+function OrderRow({ o, metric }: { o: Order; metric?: Metric }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-xs py-1">
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold truncate">{o.order_number}</div>
+        <div className="text-muted-foreground truncate">
+          {format(new Date(o.created_at), "dd/MM/yy", { locale: ptBR })}
+          {o.language_pair ? ` · ${o.language_pair}` : ""}
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        {metric ? (
+          <span className="font-semibold">{metricValue(o, metric)}</span>
+        ) : (
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[o.status] ?? o.status}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({ icon, label, value, hint, accent, subtle, items, groups, metric }: {
+  icon: React.ReactNode; label: string; value: React.ReactNode; hint?: string;
+  accent?: boolean; subtle?: boolean;
+  items?: Order[]; groups?: KpiGroup[]; metric?: Metric;
+}) {
   const card = (
     <Card className={`cursor-default transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40 ${accent ? "border-primary/40 bg-primary/[0.03]" : subtle ? "bg-muted/30" : ""}`}>
       <CardContent className="p-5">
@@ -347,24 +360,48 @@ function KpiCard({ icon, label, value, hint, accent, subtle, details }: { icon: 
       </CardContent>
     </Card>
   );
-  if (!details || details.length === 0) return card;
+
+  const hasItems = (items && items.length > 0) || (groups && groups.some(g => g.items.length > 0));
+  if (!hasItems) return card;
+
+  const MAX = 6;
   return (
     <UITooltip>
       <TooltipTrigger asChild><div>{card}</div></TooltipTrigger>
-      <TooltipContent side="bottom" className="p-3 min-w-[180px]">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
-        <div className="space-y-1.5">
-          {details.map((d, i) => (
-            <div key={i} className="flex items-center justify-between gap-4 text-sm">
-              <span className="text-muted-foreground">{d.label}</span>
-              <span className="font-semibold">{d.value}</span>
+      <TooltipContent side="bottom" align="start" className="p-3 w-[280px] max-h-[340px] overflow-auto">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
+        {groups ? (
+          <div className="space-y-3">
+            {groups.map((g) => (
+              <div key={g.title}>
+                <div className="text-xs font-semibold mb-1 flex items-center justify-between">
+                  <span>{g.title}</span>
+                  <span className="text-muted-foreground">{g.items.length}</span>
+                </div>
+                <div className="divide-y divide-border/60">
+                  {g.items.slice(0, MAX).map((o) => <OrderRow key={o.id} o={o} metric={metric} />)}
+                </div>
+                {g.items.length > MAX && (
+                  <div className="text-[10px] text-muted-foreground mt-1">+ {g.items.length - MAX} pedido(s)</div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="divide-y divide-border/60">
+              {items!.slice(0, MAX).map((o) => <OrderRow key={o.id} o={o} metric={metric} />)}
             </div>
-          ))}
-        </div>
+            {items!.length > MAX && (
+              <div className="text-[10px] text-muted-foreground mt-2">+ {items!.length - MAX} pedido(s)</div>
+            )}
+          </>
+        )}
       </TooltipContent>
     </UITooltip>
   );
 }
+
 
 
 function QuickAction({ to, icon, title, desc }: { to: string; icon: React.ReactNode; title: string; desc: string }) {
