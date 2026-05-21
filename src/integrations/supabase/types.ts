@@ -6324,6 +6324,9 @@ export type Database = {
         | "processing"
         | "completed"
         | "cancelled"
+        | "accepted"
+        | "delivered"
+        | "received"
       user_role:
         | "master"
         | "admin"
@@ -6541,6 +6544,9 @@ export const Constants = {
         "processing",
         "completed",
         "cancelled",
+        "accepted",
+        "delivered",
+        "received",
       ],
       user_role: [
         "master",
