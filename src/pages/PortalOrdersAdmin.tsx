@@ -122,7 +122,7 @@ export default function PortalOrdersAdmin() {
                   <SelectContent>
                     <SelectItem value="all">Todos os status</SelectItem>
                     {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                      <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
