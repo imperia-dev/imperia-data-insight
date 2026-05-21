@@ -39,7 +39,8 @@ export default function PortalOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") ?? "all");
   const [toDelete, setToDelete] = useState<Order | null>(null);
   const [deleting, setDeleting] = useState(false);
 
