@@ -333,9 +333,10 @@ export default function PortalDashboard() {
   );
 }
 
-function KpiCard({ icon, label, value, hint, accent, subtle }: { icon: React.ReactNode; label: string; value: React.ReactNode; hint?: string; accent?: boolean; subtle?: boolean }) {
-  return (
-    <Card className={accent ? "border-primary/40 bg-primary/[0.03]" : subtle ? "bg-muted/30" : ""}>
+type KpiDetail = { label: string; value: React.ReactNode };
+function KpiCard({ icon, label, value, hint, accent, subtle, details }: { icon: React.ReactNode; label: string; value: React.ReactNode; hint?: string; accent?: boolean; subtle?: boolean; details?: KpiDetail[] }) {
+  const card = (
+    <Card className={`cursor-default transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40 ${accent ? "border-primary/40 bg-primary/[0.03]" : subtle ? "bg-muted/30" : ""}`}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
@@ -346,7 +347,25 @@ function KpiCard({ icon, label, value, hint, accent, subtle }: { icon: React.Rea
       </CardContent>
     </Card>
   );
+  if (!details || details.length === 0) return card;
+  return (
+    <UITooltip>
+      <TooltipTrigger asChild><div>{card}</div></TooltipTrigger>
+      <TooltipContent side="bottom" className="p-3 min-w-[180px]">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
+        <div className="space-y-1.5">
+          {details.map((d, i) => (
+            <div key={i} className="flex items-center justify-between gap-4 text-sm">
+              <span className="text-muted-foreground">{d.label}</span>
+              <span className="font-semibold">{d.value}</span>
+            </div>
+          ))}
+        </div>
+      </TooltipContent>
+    </UITooltip>
+  );
 }
+
 
 function QuickAction({ to, icon, title, desc }: { to: string; icon: React.ReactNode; title: string; desc: string }) {
   return (
