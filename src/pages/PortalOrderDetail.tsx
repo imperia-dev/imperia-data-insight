@@ -34,6 +34,7 @@ type OrderRow = {
   language_pair: string | null;
   translation_type: string | null;
   status: string;
+  processing_step: number | null;
   total_documents: number | null;
   total_pages: number | null;
   total_characters: number | null;
@@ -57,18 +58,12 @@ type FileRow = {
   source_file_id?: string | null;
 };
 
-const STATUS_OPTIONS = ["draft", "submitted", "processing", "completed", "cancelled"];
+import { STATUS_LABEL, STATUS_VARIANT, PROCESSING_STEPS, PROCESSING_TOTAL } from "@/portal/lib/orderStatus";
+const STATUS_OPTIONS = ["draft", "submitted", "accepted", "processing", "completed", "delivered", "received", "cancelled"];
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
-const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (s) {
-    case "completed": return "default";
-    case "processing": return "secondary";
-    case "submitted": return "outline";
-    case "cancelled": return "destructive";
-    default: return "outline";
-  }
-};
+const statusVariant = (s: string) => STATUS_VARIANT[s] ?? "outline";
+const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
 
 const formatBytes = (n: number | null) => {
   if (!n) return "-";
@@ -157,6 +152,24 @@ export default function PortalOrderDetail() {
     toast({ title: "Status atualizado" });
     setOrder({ ...order, status: newStatus });
   };
+
+  const runRpc = async (fn: string, params: Record<string, any>, successMsg: string) => {
+    if (!order) return;
+    setUpdatingStatus(true);
+    const { error } = await supabase.rpc(fn as any, params);
+    setUpdatingStatus(false);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: successMsg });
+    await load();
+  };
+  const acceptOrder = () => runRpc("accept_trial_order", { p_order_id: order!.id }, "Pedido aceito");
+  const startProcessing = () => runRpc("start_trial_order_processing", { p_order_id: order!.id }, "Processamento iniciado");
+  const advanceStep = () => runRpc("advance_trial_order_processing", { p_order_id: order!.id }, "Etapa avançada");
+  const setStep = (step: number) => runRpc("set_trial_order_processing_step", { p_order_id: order!.id, p_step: step }, "Etapa atualizada");
+  const markDelivered = () => runRpc("mark_trial_order_delivered", { p_order_id: order!.id }, "Pedido entregue");
 
   const saveRefs = async () => {
     if (!order) return;
@@ -321,7 +334,7 @@ export default function PortalOrderDetail() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Pedido</span>
-                    <Badge variant={statusVariant(order.status)}>{order.status}</Badge>
+                    <Badge variant={statusVariant(order.status)}>{statusLabel(order.status)}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-1">
@@ -336,15 +349,80 @@ export default function PortalOrderDetail() {
                   {order.notes && (
                     <div className="pt-2"><span className="text-muted-foreground">Observações:</span> {order.notes}</div>
                   )}
-                  <div className="flex items-center gap-2 pt-3">
-                    <span className="text-sm text-muted-foreground">Status:</span>
-                    <Select value={order.status} onValueChange={updateStatus} disabled={updatingStatus}>
-                      <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {updatingStatus && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <div className="pt-3 border-t mt-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Status atual:</span>
+                      <Badge variant={statusVariant(order.status)}>{statusLabel(order.status)}</Badge>
+                      {updatingStatus && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </div>
+
+                    {/* Owner workflow controls */}
+                    <div className="flex flex-wrap gap-2">
+                      {order.status === "submitted" && (
+                        <Button size="sm" onClick={acceptOrder} disabled={updatingStatus}>Aceitar pedido</Button>
+                      )}
+                      {order.status === "accepted" && (
+                        <Button size="sm" onClick={startProcessing} disabled={updatingStatus}>Iniciar processamento</Button>
+                      )}
+                      {order.status === "processing" && (
+                        <>
+                          <Button size="sm" onClick={advanceStep} disabled={updatingStatus}>
+                            {(order.processing_step ?? 1) >= PROCESSING_TOTAL ? "Finalizar" : "Avançar etapa"}
+                          </Button>
+                        </>
+                      )}
+                      {(order.status === "completed" || order.status === "processing") && (
+                        <Button size="sm" variant="outline" onClick={markDelivered} disabled={updatingStatus}>
+                          Marcar como entregue
+                        </Button>
+                      )}
+                    </div>
+
+                    {order.status === "processing" && (
+                      <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Sub-etapa interna ({Math.min(order.processing_step ?? 1, PROCESSING_TOTAL)}/{PROCESSING_TOTAL}) — não visível ao cliente
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {PROCESSING_STEPS.map((name, idx) => {
+                            const step = idx + 1;
+                            const current = step === (order.processing_step ?? 1);
+                            const done = step < (order.processing_step ?? 1);
+                            return (
+                              <button
+                                key={name}
+                                type="button"
+                                onClick={() => setStep(step)}
+                                disabled={updatingStatus}
+                                className={
+                                  "text-left text-xs rounded px-2 py-1.5 border transition-colors " +
+                                  (current
+                                    ? "border-primary bg-primary/10 text-primary font-medium"
+                                    : done
+                                    ? "border-transparent bg-muted text-muted-foreground line-through"
+                                    : "border-border hover:bg-muted")
+                                }
+                              >
+                                {step}. {name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback: legacy raw status changer */}
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Alterar status manualmente</summary>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Select value={order.status} onValueChange={updateStatus} disabled={updatingStatus}>
+                          <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </details>
                   </div>
                 </CardContent>
               </Card>

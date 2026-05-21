@@ -44,17 +44,10 @@ type OrderRow = {
   trial_customers: Customer | null;
 };
 
-const STATUS_OPTIONS = ["draft", "submitted", "processing", "completed", "cancelled"];
-
-const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (s) {
-    case "completed": return "default";
-    case "processing": return "secondary";
-    case "submitted": return "outline";
-    case "cancelled": return "destructive";
-    default: return "outline";
-  }
-};
+import { STATUS_LABEL, STATUS_VARIANT } from "@/portal/lib/orderStatus";
+const STATUS_OPTIONS = ["draft", "submitted", "accepted", "processing", "completed", "delivered", "received", "cancelled"];
+const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => STATUS_VARIANT[s] ?? "outline";
+const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
 
 export default function PortalOrdersAdmin() {
   const { toast } = useToast();
@@ -129,7 +122,7 @@ export default function PortalOrdersAdmin() {
                   <SelectContent>
                     <SelectItem value="all">Todos os status</SelectItem>
                     {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                      <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -169,7 +162,7 @@ export default function PortalOrdersAdmin() {
                         <TableCell className="text-sm">{o.language_pair ?? "-"}</TableCell>
                         <TableCell className="text-right">{o.total_documents ?? 0}</TableCell>
                         <TableCell className="text-right">{o.total_pages ?? 0}</TableCell>
-                        <TableCell><Badge variant={statusVariant(o.status)}>{o.status}</Badge></TableCell>
+                        <TableCell><Badge variant={statusVariant(o.status)}>{statusLabel(o.status)}</Badge></TableCell>
                         <TableCell className="text-sm max-w-[180px]" onClick={(e) => e.stopPropagation()}>
                           {o.external_link ? (
                             <a href={o.external_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 truncate">

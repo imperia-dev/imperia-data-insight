@@ -30,13 +30,9 @@ type Order = {
   created_at: string;
 };
 
-const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  draft: { label: "Rascunho", variant: "outline" },
-  submitted: { label: "Enviado", variant: "default" },
-  processing: { label: "Em processamento", variant: "secondary" },
-  completed: { label: "Concluído", variant: "default" },
-  cancelled: { label: "Cancelado", variant: "destructive" },
-};
+import { STATUS_LABEL, STATUS_VARIANT } from "@/portal/lib/orderStatus";
+const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> =
+  Object.fromEntries(Object.keys(STATUS_LABEL).map((k) => [k, { label: STATUS_LABEL[k], variant: STATUS_VARIANT[k] ?? "outline" }]));
 
 export default function PortalOrders() {
   const { customer } = useTrialCustomer();
