@@ -334,7 +334,7 @@ export default function PortalOrderDetail() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Pedido</span>
-                    <Badge variant={statusVariant(order.status)}>{order.status}</Badge>
+                    <Badge variant={statusVariant(order.status)}>{statusLabel(order.status)}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-1">
