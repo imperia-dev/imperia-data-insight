@@ -33,7 +33,7 @@ type Order = {
   external_id: string | null;
 };
 
-import { STATUS_LABEL, CUSTOMER_TIMELINE, PROCESSING_TOTAL } from "@/portal/lib/orderStatus";
+import { STATUS_LABEL, CUSTOMER_TIMELINE, PROCESSING_TOTAL, PROCESSING_STEPS } from "@/portal/lib/orderStatus";
 
 const STATUS_COLOR: Record<string, string> = {
   draft: "hsl(var(--muted-foreground))",
