@@ -64,7 +64,7 @@ export default function PortalDashboard() {
     (async () => {
       const { data } = await supabase
         .from("trial_orders")
-        .select("id, order_number, status, created_at, submitted_at, language_pair, translation_type, total_documents, total_pages, total_characters, external_link, external_id")
+        .select("id, order_number, status, processing_step, created_at, submitted_at, language_pair, translation_type, total_documents, total_pages, total_characters, external_link, external_id")
         .eq("customer_id", customer.id)
         .order("created_at", { ascending: false });
       setOrders((data as Order[]) ?? []);
