@@ -314,8 +314,40 @@ export default function PortalDashboard() {
   );
 }
 
-type KpiDetail = { label: string; value: React.ReactNode };
-function KpiCard({ icon, label, value, hint, accent, subtle, details }: { icon: React.ReactNode; label: string; value: React.ReactNode; hint?: string; accent?: boolean; subtle?: boolean; details?: KpiDetail[] }) {
+type Metric = "docs" | "pages" | "chars";
+type KpiGroup = { title: string; items: Order[] };
+
+function metricValue(o: Order, m?: Metric): string {
+  const v = m === "docs" ? (o.total_documents ?? 0) : m === "pages" ? (o.total_pages ?? 0) : m === "chars" ? (o.total_characters ?? 0) : 0;
+  return m === "chars" ? v.toLocaleString("pt-BR") : String(v);
+}
+
+function OrderRow({ o, metric }: { o: Order; metric?: Metric }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-xs py-1">
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold truncate">{o.order_number}</div>
+        <div className="text-muted-foreground truncate">
+          {format(new Date(o.created_at), "dd/MM/yy", { locale: ptBR })}
+          {o.language_pair ? ` · ${o.language_pair}` : ""}
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        {metric ? (
+          <span className="font-semibold">{metricValue(o, metric)}</span>
+        ) : (
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[o.status] ?? o.status}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({ icon, label, value, hint, accent, subtle, items, groups, metric }: {
+  icon: React.ReactNode; label: string; value: React.ReactNode; hint?: string;
+  accent?: boolean; subtle?: boolean;
+  items?: Order[]; groups?: KpiGroup[]; metric?: Metric;
+}) {
   const card = (
     <Card className={`cursor-default transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40 ${accent ? "border-primary/40 bg-primary/[0.03]" : subtle ? "bg-muted/30" : ""}`}>
       <CardContent className="p-5">
@@ -328,24 +360,48 @@ function KpiCard({ icon, label, value, hint, accent, subtle, details }: { icon: 
       </CardContent>
     </Card>
   );
-  if (!details || details.length === 0) return card;
+
+  const hasItems = (items && items.length > 0) || (groups && groups.some(g => g.items.length > 0));
+  if (!hasItems) return card;
+
+  const MAX = 6;
   return (
     <UITooltip>
       <TooltipTrigger asChild><div>{card}</div></TooltipTrigger>
-      <TooltipContent side="bottom" className="p-3 min-w-[180px]">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
-        <div className="space-y-1.5">
-          {details.map((d, i) => (
-            <div key={i} className="flex items-center justify-between gap-4 text-sm">
-              <span className="text-muted-foreground">{d.label}</span>
-              <span className="font-semibold">{d.value}</span>
+      <TooltipContent side="bottom" align="start" className="p-3 w-[280px] max-h-[340px] overflow-auto">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
+        {groups ? (
+          <div className="space-y-3">
+            {groups.map((g) => (
+              <div key={g.title}>
+                <div className="text-xs font-semibold mb-1 flex items-center justify-between">
+                  <span>{g.title}</span>
+                  <span className="text-muted-foreground">{g.items.length}</span>
+                </div>
+                <div className="divide-y divide-border/60">
+                  {g.items.slice(0, MAX).map((o) => <OrderRow key={o.id} o={o} metric={metric} />)}
+                </div>
+                {g.items.length > MAX && (
+                  <div className="text-[10px] text-muted-foreground mt-1">+ {g.items.length - MAX} pedido(s)</div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="divide-y divide-border/60">
+              {items!.slice(0, MAX).map((o) => <OrderRow key={o.id} o={o} metric={metric} />)}
             </div>
-          ))}
-        </div>
+            {items!.length > MAX && (
+              <div className="text-[10px] text-muted-foreground mt-2">+ {items!.length - MAX} pedido(s)</div>
+            )}
+          </>
+        )}
       </TooltipContent>
     </UITooltip>
   );
 }
+
 
 
 function QuickAction({ to, icon, title, desc }: { to: string; icon: React.ReactNode; title: string; desc: string }) {
