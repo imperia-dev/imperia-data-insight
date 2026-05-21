@@ -153,6 +153,24 @@ export default function PortalOrderDetail() {
     setOrder({ ...order, status: newStatus });
   };
 
+  const runRpc = async (fn: string, params: Record<string, any>, successMsg: string) => {
+    if (!order) return;
+    setUpdatingStatus(true);
+    const { error } = await supabase.rpc(fn as any, params);
+    setUpdatingStatus(false);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: successMsg });
+    await load();
+  };
+  const acceptOrder = () => runRpc("accept_trial_order", { p_order_id: order!.id }, "Pedido aceito");
+  const startProcessing = () => runRpc("start_trial_order_processing", { p_order_id: order!.id }, "Processamento iniciado");
+  const advanceStep = () => runRpc("advance_trial_order_processing", { p_order_id: order!.id }, "Etapa avançada");
+  const setStep = (step: number) => runRpc("set_trial_order_processing_step", { p_order_id: order!.id, p_step: step }, "Etapa atualizada");
+  const markDelivered = () => runRpc("mark_trial_order_delivered", { p_order_id: order!.id }, "Pedido entregue");
+
   const saveRefs = async () => {
     if (!order) return;
     const link = externalLink.trim();
