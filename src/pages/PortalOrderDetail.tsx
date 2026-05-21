@@ -34,6 +34,7 @@ type OrderRow = {
   language_pair: string | null;
   translation_type: string | null;
   status: string;
+  processing_step: number | null;
   total_documents: number | null;
   total_pages: number | null;
   total_characters: number | null;
