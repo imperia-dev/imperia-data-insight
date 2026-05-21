@@ -21,6 +21,7 @@ type Order = {
   id: string;
   order_number: string;
   status: string;
+  processing_step: number | null;
   created_at: string;
   submitted_at: string | null;
   language_pair: string | null;
