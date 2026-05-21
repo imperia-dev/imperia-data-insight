@@ -5561,14 +5561,19 @@ export type Database = {
       }
       trial_orders: {
         Row: {
+          accepted_at: string | null
+          completed_at: string | null
           created_at: string
           customer_id: string
+          delivered_at: string | null
           external_id: string | null
           external_link: string | null
           id: string
           language_pair: string
           notes: string | null
           order_number: string
+          processing_step: number | null
+          received_at: string | null
           status: Database["public"]["Enums"]["trial_order_status"]
           submitted_at: string | null
           total_characters: number
@@ -5578,14 +5583,19 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
+          completed_at?: string | null
           created_at?: string
           customer_id: string
+          delivered_at?: string | null
           external_id?: string | null
           external_link?: string | null
           id?: string
           language_pair: string
           notes?: string | null
           order_number: string
+          processing_step?: number | null
+          received_at?: string | null
           status?: Database["public"]["Enums"]["trial_order_status"]
           submitted_at?: string | null
           total_characters?: number
@@ -5595,14 +5605,19 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
+          completed_at?: string | null
           created_at?: string
           customer_id?: string
+          delivered_at?: string | null
           external_id?: string | null
           external_link?: string | null
           id?: string
           language_pair?: string
           notes?: string | null
           order_number?: string
+          processing_step?: number | null
+          received_at?: string | null
           status?: Database["public"]["Enums"]["trial_order_status"]
           submitted_at?: string | null
           total_characters?: number
@@ -6000,6 +6015,11 @@ export type Database = {
       }
     }
     Functions: {
+      accept_trial_order: { Args: { p_order_id: string }; Returns: undefined }
+      advance_trial_order_processing: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       approve_trial_customer: {
         Args: { _customer_id: string }
         Returns: undefined
@@ -6052,6 +6072,10 @@ export type Database = {
       company_role: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: Database["public"]["Enums"]["studio_role"]
+      }
+      confirm_trial_order_received: {
+        Args: { p_order_id: string }
+        Returns: undefined
       }
       create_company: {
         Args: { p_description?: string; p_name: string }
@@ -6203,6 +6227,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_trial_order_delivered: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       mask_sensitive_string: {
         Args: { input_text: string; mask_type?: string }
         Returns: string
@@ -6224,6 +6252,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: number
+      }
+      set_trial_order_processing_step: {
+        Args: { p_order_id: string; p_step: number }
+        Returns: undefined
+      }
+      start_trial_order_processing: {
+        Args: { p_order_id: string }
+        Returns: undefined
       }
       sync_protocol_workflow_steps: {
         Args: { p_protocol_id: string }
