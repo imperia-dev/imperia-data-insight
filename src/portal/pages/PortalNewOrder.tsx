@@ -18,7 +18,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrialCustomer } from "../TrialPortalGuard";
+import { useTrialUsage } from "../lib/useTrialUsage";
 import { cn } from "@/lib/utils";
+
 
 type FileRow = {
   id: string;
@@ -49,6 +51,7 @@ function NewOrderInner() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { customer } = useTrialCustomer();
+  const { usage, refresh: refreshUsage } = useTrialUsage(customer?.id);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [languagePair, setLanguagePair] = useState<"pt-it" | "it-pt">("pt-it");
   const [notes, setNotes] = useState("");
@@ -59,8 +62,19 @@ function NewOrderInner() {
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<StepId>("idioma");
 
+  const pageLimit = usage?.pages_per_doc_limit ?? 3;
+  const docLimit = usage?.docs_limit ?? 10;
+  const docsUsed = usage?.docs_used ?? 0;
+  const remaining = Math.max(docLimit - docsUsed, 0);
+  const overLimitCount = files.filter((f) => (f.pages ?? 0) > pageLimit).length;
+  const wouldExceed = files.length > remaining;
+  const trialBlocked = usage?.blocked === true;
+
+
   useEffect(() => {
     if (!customer || orderId || creating) return;
+    if (usage === null) return; // wait for usage to load
+    if (trialBlocked) return; // do not create a draft if blocked
     setCreating(true);
     (async () => {
       const { data: numberData } = await supabase.rpc("generate_trial_order_number");
@@ -82,7 +96,8 @@ function NewOrderInner() {
       }
       setOrderId(data.id);
     })();
-  }, [customer, orderId, creating, languagePair]);
+  }, [customer, orderId, creating, languagePair, usage, trialBlocked]);
+
 
   useEffect(() => {
     if (!orderId) return;
@@ -96,8 +111,22 @@ function NewOrderInner() {
 
   const handleFiles = async (selected: FileList | null) => {
     if (!selected || !orderId || !user) return;
+    const incoming = Array.from(selected);
+    const slotsLeft = Math.max(remaining - files.length, 0);
+    if (slotsLeft <= 0) {
+      toast.error("Limite do trial atingido", {
+        description: `Você só pode incluir ${docLimit} documentos no total durante o trial.`,
+      });
+      return;
+    }
+    const toUpload = incoming.slice(0, slotsLeft);
+    if (toUpload.length < incoming.length) {
+      toast.warning(`Apenas ${toUpload.length} arquivo(s) serão enviados`, {
+        description: `Restam ${slotsLeft} documento(s) no seu trial.`,
+      });
+    }
     setUploading(true);
-    for (const file of Array.from(selected)) {
+    for (const file of toUpload) {
       if (file.size > MAX_SIZE) {
         toast.error(`${file.name} excede 20MB`);
         continue;
@@ -130,6 +159,7 @@ function NewOrderInner() {
     setUploading(false);
   };
 
+
   useEffect(() => {
     if (!orderId) return;
     const hasPending = files.some((f) => f.analysis_status === "pending");
@@ -149,7 +179,14 @@ function NewOrderInner() {
     { docs: 0, pages: 0, chars: 0 },
   );
 
-  const canSubmit = !!orderId && files.length > 0 && files.every((f) => f.analysis_status !== "pending") && !submitting;
+  const canSubmit =
+    !!orderId &&
+    files.length > 0 &&
+    files.every((f) => f.analysis_status !== "pending") &&
+    overLimitCount === 0 &&
+    !wouldExceed &&
+    !trialBlocked &&
+    !submitting;
 
   const completion: Record<StepId, boolean> = useMemo(() => ({
     idioma: true,
@@ -168,21 +205,62 @@ function NewOrderInner() {
     if (ref) {
       await supabase.from("trial_orders").update({ customer_reference: ref.slice(0, 120) }).eq("id", orderId);
     }
-    const { error } = await supabase.functions.invoke("submit-trial-order", { body: { order_id: orderId, notes } });
+    const { data, error } = await supabase.functions.invoke("submit-trial-order", { body: { order_id: orderId, notes } });
     setSubmitting(false);
-    if (error) {
-      toast.error("Erro ao enviar pedido", { description: error.message });
+    const payload = (data ?? {}) as { error?: string; message?: string };
+    if (error || payload.error) {
+      toast.error("Erro ao enviar pedido", { description: payload.message || error?.message || "Tente novamente." });
+      refreshUsage();
       return;
     }
     toast.success("Pedido enviado!");
+    refreshUsage();
     navigate(`/portal/app/pedido/${orderId}`, { replace: true });
   };
+
 
   const idx = STEPS.findIndex((s) => s.id === step);
   const goPrev = () => idx > 0 && setStep(STEPS[idx - 1].id);
   const goNext = () => idx < STEPS.length - 1 && setStep(STEPS[idx + 1].id);
 
   const langLabel = languagePair === "pt-it" ? "Português → Italiano" : "Italiano → Português";
+
+  if (trialBlocked) {
+    return (
+      <div className="max-w-2xl mx-auto py-12">
+        <Card className="border-destructive/30">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-destructive/10 p-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <CardTitle>Limite do período trial atingido</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Você já enviou {docsUsed} de {docLimit} documentos permitidos no período de testes.
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm">
+              Não é possível criar novos pedidos no momento. Os pedidos já em andamento continuarão normalmente
+              até a entrega.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Precisa enviar mais documentos? Entre em contato com a nossa equipe para liberar volume adicional.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => navigate("/portal/app/pedidos")}>Ver meus pedidos</Button>
+              <Button asChild>
+                <a href="mailto:contato@imperiatraducoes.com.br?subject=Aumentar%20limite%20do%20trial">Falar com a equipe</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="portal-new-order max-w-5xl mx-auto space-y-10">
@@ -195,6 +273,26 @@ function NewOrderInner() {
           Tradução juramentada PT ↔ IT
         </p>
       </header>
+
+      {usage && (
+        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span>
+              Trial: <strong>{docsUsed}/{docLimit}</strong> documentos enviados —{" "}
+              restam <strong>{remaining}</strong>. Máximo de <strong>{pageLimit} páginas</strong> por documento.
+            </span>
+          </div>
+          {(overLimitCount > 0 || wouldExceed) && (
+            <span className="text-xs font-semibold text-destructive">
+              {overLimitCount > 0 && `${overLimitCount} arquivo(s) acima de ${pageLimit} páginas`}
+              {overLimitCount > 0 && wouldExceed && " · "}
+              {wouldExceed && `${files.length} > ${remaining} restantes`}
+            </span>
+          )}
+        </div>
+      )}
+
 
       <Tabs value={step} onValueChange={(v) => setStep(v as StepId)} className="space-y-6">
         <TabsList className="h-auto w-full bg-transparent p-0 flex items-center justify-between gap-1 overflow-x-auto">
@@ -275,7 +373,7 @@ function NewOrderInner() {
                 <Upload className="h-8 w-8 text-muted-foreground" />
                 <span className="font-medium">Selecionar arquivos</span>
                 <span className="text-xs text-muted-foreground">PDF, DOCX, XLSX, PNG, JPG — até 20MB cada</span>
-                <input type="file" multiple accept={ACCEPTED} className="hidden" onChange={(e) => handleFiles(e.target.files)} disabled={!orderId || uploading} />
+                <input type="file" multiple accept={ACCEPTED} className="hidden" onChange={(e) => handleFiles(e.target.files)} disabled={!orderId || uploading || files.length >= remaining} />
               </label>
               {(uploading || creating) && (
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -284,23 +382,38 @@ function NewOrderInner() {
               )}
               {files.length > 0 && (
                 <div className="space-y-2">
-                  {files.map((f) => (
-                    <div key={f.id} className="flex items-center gap-3 border rounded-md p-3 text-sm">
-                      <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{f.original_filename}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {f.analysis_status === "pending" && "Analisando..."}
-                          {f.analysis_status === "done" && `${f.pages} págs · ${f.characters.toLocaleString("pt-BR")} caracteres`}
-                          {f.analysis_status === "failed" && (f.analysis_error || "Falha na análise")}
+                  {files.map((f) => {
+                    const over = (f.pages ?? 0) > pageLimit;
+                    return (
+                      <div
+                        key={f.id}
+                        className={cn(
+                          "flex items-center gap-3 border rounded-md p-3 text-sm",
+                          over && "border-destructive/40 bg-destructive/5",
+                        )}
+                      >
+                        <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{f.original_filename}</div>
+                          <div className={cn("text-xs", over ? "text-destructive font-medium" : "text-muted-foreground")}>
+                            {f.analysis_status === "pending" && "Analisando..."}
+                            {f.analysis_status === "done" && (
+                              over
+                                ? `${f.pages} págs · acima do limite de ${pageLimit} páginas — remova este arquivo`
+                                : `${f.pages} págs · ${f.characters.toLocaleString("pt-BR")} caracteres`
+                            )}
+                            {f.analysis_status === "failed" && (f.analysis_error || "Falha na análise")}
+                          </div>
                         </div>
+                        {f.analysis_status === "pending" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                        {f.analysis_status === "done" && !over && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                        {f.analysis_status === "done" && over && <AlertCircle className="h-4 w-4 text-destructive" />}
+                        {f.analysis_status === "failed" && <AlertCircle className="h-4 w-4 text-destructive" />}
+                        <Button variant="ghost" size="icon" onClick={() => removeFile(f)}><X className="h-4 w-4" /></Button>
                       </div>
-                      {f.analysis_status === "pending" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                      {f.analysis_status === "done" && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                      {f.analysis_status === "failed" && <AlertCircle className="h-4 w-4 text-destructive" />}
-                      <Button variant="ghost" size="icon" onClick={() => removeFile(f)}><X className="h-4 w-4" /></Button>
-                    </div>
-                  ))}
+                    );
+                  })}
+
                 </div>
               )}
             </CardContent>
