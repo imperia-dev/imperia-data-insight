@@ -5458,6 +5458,8 @@ export type Database = {
           phone: string
           rejection_reason: string | null
           status: Database["public"]["Enums"]["trial_customer_status"]
+          trial_doc_limit: number
+          trial_pages_per_doc_limit: number
           updated_at: string
           user_id: string
         }
@@ -5473,6 +5475,8 @@ export type Database = {
           phone: string
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["trial_customer_status"]
+          trial_doc_limit?: number
+          trial_pages_per_doc_limit?: number
           updated_at?: string
           user_id: string
         }
@@ -5488,6 +5492,8 @@ export type Database = {
           phone?: string
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["trial_customer_status"]
+          trial_doc_limit?: number
+          trial_pages_per_doc_limit?: number
           updated_at?: string
           user_id?: string
         }
@@ -6150,6 +6156,7 @@ export type Database = {
           pix_key: string
         }[]
       }
+      get_trial_usage: { Args: { p_customer_id?: string }; Returns: Json }
       get_user_approval_status: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["approval_status"]
