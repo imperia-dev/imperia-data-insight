@@ -18,7 +18,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrialCustomer } from "../TrialPortalGuard";
+import { useTrialUsage } from "../lib/useTrialUsage";
 import { cn } from "@/lib/utils";
+
 
 type FileRow = {
   id: string;
