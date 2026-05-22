@@ -223,7 +223,7 @@ function NewOrderInner() {
   const goPrev = () => idx > 0 && setStep(STEPS[idx - 1].id);
   const goNext = () => idx < STEPS.length - 1 && setStep(STEPS[idx + 1].id);
 
-  const langLabel = languagePair === "pt-it" ? "Português → Italiano" : "Italiano → Português";
+  const langLabel = "Tradução juramentada Português → Italiano";
 
   if (trialBlocked) {
     return (
