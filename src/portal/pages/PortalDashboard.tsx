@@ -312,8 +312,9 @@ export default function PortalDashboard() {
                     <FileText className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-medium truncate">{o.order_number}</div>
+                    <div className="font-medium truncate">{o.customer_reference || o.order_number}</div>
                     <div className="text-xs text-muted-foreground flex items-center gap-2">
+                      {o.customer_reference && <span className="font-mono">{o.order_number}</span>}
                       <Clock className="h-3 w-3" />
                       {format(new Date(o.created_at), "dd MMM yyyy 'às' HH:mm", { locale: ptBR })}
                       {o.language_pair && <span className="hidden sm:inline">· {o.language_pair}</span>}
