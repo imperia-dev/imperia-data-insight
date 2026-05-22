@@ -21,7 +21,7 @@ import {
   Plus,
   
   DollarSign,
-  Users,
+  
   Settings,
   LogOut,
 } from "lucide-react";
