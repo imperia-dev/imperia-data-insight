@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 type Order = {
   id: string;
   order_number: string;
+  customer_reference: string | null;
   status: string;
   processing_step: number | null;
   created_at: string;
