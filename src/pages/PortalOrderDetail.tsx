@@ -30,6 +30,7 @@ type Customer = {
 type OrderRow = {
   id: string;
   order_number: string;
+  customer_reference: string | null;
   customer_id: string;
   language_pair: string | null;
   translation_type: string | null;
