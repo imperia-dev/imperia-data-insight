@@ -358,7 +358,7 @@ export default function PortalDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Número" value={last.order_number} />
+              <Field label={last.customer_reference ? "Referência" : "Número"} value={last.customer_reference || last.order_number} />
               <Field label="Status" value={<StatusBadge status={last.status} />} />
               <Field label="Idioma" value={last.language_pair ?? "—"} />
               <Field label="Documentos" value={String(last.total_documents ?? 0)} />
