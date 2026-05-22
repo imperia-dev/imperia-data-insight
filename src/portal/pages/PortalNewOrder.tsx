@@ -373,7 +373,7 @@ function NewOrderInner() {
                 <Upload className="h-8 w-8 text-muted-foreground" />
                 <span className="font-medium">Selecionar arquivos</span>
                 <span className="text-xs text-muted-foreground">PDF, DOCX, XLSX, PNG, JPG — até 20MB cada</span>
-                <input type="file" multiple accept={ACCEPTED} className="hidden" onChange={(e) => handleFiles(e.target.files)} disabled={!orderId || uploading} />
+                <input type="file" multiple accept={ACCEPTED} className="hidden" onChange={(e) => handleFiles(e.target.files)} disabled={!orderId || uploading || files.length >= remaining} />
               </label>
               {(uploading || creating) && (
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
