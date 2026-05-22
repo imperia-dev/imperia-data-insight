@@ -223,7 +223,7 @@ function NewOrderInner() {
   const goPrev = () => idx > 0 && setStep(STEPS[idx - 1].id);
   const goNext = () => idx < STEPS.length - 1 && setStep(STEPS[idx + 1].id);
 
-  const langLabel = languagePair === "pt-it" ? "Português → Italiano" : "Italiano → Português";
+  const langLabel = "Tradução juramentada Português → Italiano";
 
   if (trialBlocked) {
     return (
@@ -339,14 +339,10 @@ function NewOrderInner() {
           <Card>
             <CardHeader><CardTitle>Par de idioma</CardTitle></CardHeader>
             <CardContent>
-              <RadioGroup value={languagePair} onValueChange={(v) => setLanguagePair(v as "pt-it" | "it-pt")} className="grid gap-3 md:grid-cols-2">
+              <RadioGroup value={languagePair} onValueChange={(v) => setLanguagePair(v as "pt-it")} className="grid gap-3">
                 <Label className="flex items-center gap-3 border rounded-md p-4 cursor-pointer hover:bg-muted/30 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                   <RadioGroupItem value="pt-it" />
-                  <span className="font-medium">Português → Italiano</span>
-                </Label>
-                <Label className="flex items-center gap-3 border rounded-md p-4 cursor-pointer hover:bg-muted/30 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                  <RadioGroupItem value="it-pt" />
-                  <span className="font-medium">Italiano → Português</span>
+                  <span className="font-medium">Tradução juramentada Português → Italiano</span>
                 </Label>
               </RadioGroup>
             </CardContent>
