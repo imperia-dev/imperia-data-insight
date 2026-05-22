@@ -22,17 +22,61 @@ serve(async (req) => {
 
     const { data: order } = await supabase
       .from("trial_orders")
-      .select("id, status, customer_id, trial_customers!inner(user_id, full_name, email)")
+      .select("id, status, customer_id, trial_customers!inner(user_id, full_name, email, trial_doc_limit, trial_pages_per_doc_limit)")
       .eq("id", order_id)
       .maybeSingle();
     if (!order) throw new Error("order not found");
-    if ((order as any).trial_customers.user_id !== userData.user.id) {
+    const tc: any = (order as any).trial_customers;
+    if (tc.user_id !== userData.user.id) {
       return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (order.status !== "draft") throw new Error("Pedido já enviado");
 
-    const { data: files } = await supabase.from("trial_order_files").select("id").eq("order_id", order_id);
+    const docLimit: number = tc.trial_doc_limit ?? 10;
+    const pageLimit: number = tc.trial_pages_per_doc_limit ?? 3;
+
+    const { data: files } = await supabase
+      .from("trial_order_files")
+      .select("id, pages, original_filename, kind")
+      .eq("order_id", order_id);
     if (!files || files.length === 0) throw new Error("Adicione ao menos um arquivo");
+
+    const sourceFiles = files.filter((f: any) => (f.kind ?? "source") === "source");
+
+    // Per-document page cap
+    const overLimit = sourceFiles.filter((f: any) => (f.pages ?? 0) > pageLimit);
+    if (overLimit.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error: "trial_page_limit_exceeded",
+          message: `Cada documento pode ter no máximo ${pageLimit} páginas. Documentos acima do limite: ${overLimit.map((f: any) => f.original_filename).join(", ")}`,
+          details: { page_limit: pageLimit, files: overLimit.map((f: any) => ({ name: f.original_filename, pages: f.pages })) },
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Total documents cap (only count already submitted orders, exclude current draft)
+    const { data: usedRows } = await supabase
+      .from("trial_order_files")
+      .select("id, trial_orders!inner(status, customer_id)")
+      .eq("trial_orders.customer_id", order.customer_id)
+      .eq("kind", "source");
+    const docsUsed = (usedRows ?? []).filter((r: any) => {
+      const st = r.trial_orders?.status;
+      return st && st !== "draft" && st !== "cancelled";
+    }).length;
+    const totalAfter = docsUsed + sourceFiles.length;
+    if (totalAfter > docLimit) {
+      return new Response(
+        JSON.stringify({
+          error: "trial_doc_limit_exceeded",
+          message: `Você atingiria ${totalAfter} de ${docLimit} documentos do trial. Remova ${totalAfter - docLimit} arquivo(s) e tente novamente.`,
+          details: { docs_used: docsUsed, docs_in_order: sourceFiles.length, docs_limit: docLimit },
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     await supabase.from("trial_orders").update({
       status: "submitted",
@@ -48,7 +92,7 @@ serve(async (req) => {
         await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", ...(webhookSecret ? { "x-webhook-secret": webhookSecret } : {}) },
-          body: JSON.stringify({ event: "trial_order_submitted", order_id, customer: (order as any).trial_customers }),
+          body: JSON.stringify({ event: "trial_order_submitted", order_id, customer: { user_id: tc.user_id, full_name: tc.full_name, email: tc.email } }),
         });
       } catch (e) {
         console.error("webhook failed", e);
