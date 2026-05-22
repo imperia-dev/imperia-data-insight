@@ -51,6 +51,7 @@ function NewOrderInner() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [languagePair, setLanguagePair] = useState<"pt-it" | "it-pt">("pt-it");
   const [notes, setNotes] = useState("");
+  const [customerReference, setCustomerReference] = useState("");
   const [files, setFiles] = useState<FileRow[]>([]);
   const [creating, setCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
