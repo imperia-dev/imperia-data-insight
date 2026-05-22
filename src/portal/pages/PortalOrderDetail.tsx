@@ -253,16 +253,24 @@ function OrderDetailInner() {
       {/* Header */}
       <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0 flex-1">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Hash className="h-3 w-3" /> Protocolo
-            </div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight">{order.order_number}</h1>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copyNumber}>
-                <Copy className="h-3.5 w-3.5" />
+              <span className="font-mono text-foreground">{order.order_number}</span>
+              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={copyNumber}>
+                <Copy className="h-3 w-3" />
               </Button>
             </div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {order.customer_reference || order.order_number}
+            </h1>
+            <EditableReference
+              orderId={order.id}
+              value={order.customer_reference}
+              onChange={(v) => setOrder({ ...order, customer_reference: v })}
+              placeholder="Adicionar referência (ex.: nome do destinatário, processo…)"
+              className="text-sm"
+            />
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Criado em {createdFull}</span>
               {submittedFull && <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Enviado em {submittedFull}</span>}
