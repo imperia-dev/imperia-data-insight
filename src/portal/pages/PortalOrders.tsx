@@ -144,7 +144,12 @@ export default function PortalOrders() {
                     const s = statusLabels[o.status] ?? { label: o.status, variant: "outline" as const };
                     return (
                       <tr key={o.id} className="border-b last:border-0 hover:bg-muted/30">
-                        <td className="py-3 pr-4 font-medium">{o.order_number}</td>
+                        <td className="py-3 pr-4">
+                          <div className="font-medium">{o.customer_reference || o.order_number}</div>
+                          {o.customer_reference && (
+                            <div className="text-[11px] text-muted-foreground font-mono">{o.order_number}</div>
+                          )}
+                        </td>
                         <td className="py-3 pr-4">{o.language_pair === "pt-it" ? "PT → IT" : "IT → PT"}</td>
                         <td className="py-3 pr-4">{o.total_documents} / {o.total_pages}</td>
                         <td className="py-3 pr-4"><Badge variant={s.variant}>{s.label}</Badge></td>
