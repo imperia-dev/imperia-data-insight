@@ -1,0 +1,2 @@
+DELETE FROM trial_order_files WHERE order_id IN ('4249d20b-22f5-457b-b6d3-124fbe6ff949','8d5d8bcc-4324-4939-8cb1-65a126b50555','8c0a3d0b-d4a1-4252-a15f-f85c3f06fd0e');
+DELETE FROM trial_orders WHERE id IN ('4249d20b-22f5-457b-b6d3-124fbe6ff949','8d5d8bcc-4324-4939-8cb1-65a126b50555','8c0a3d0b-d4a1-4252-a15f-f85c3f06fd0e');
