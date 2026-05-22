@@ -112,7 +112,7 @@ export default function PortalOrdersAdmin() {
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3">
                 <Input
-                  placeholder="Buscar por número, cliente, email ou empresa..."
+                  placeholder="Buscar por número, referência, cliente, email ou empresa..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="max-w-md"
