@@ -308,13 +308,22 @@ export default function PortalOrderDetail() {
             <Button variant="outline" size="sm" onClick={() => navigate("/portal-orders")}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold">
-                {loading ? "Carregando..." : order ? `Pedido ${order.order_number}` : "Pedido não encontrado"}
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold truncate">
+                {loading
+                  ? "Carregando..."
+                  : order
+                  ? order.customer_reference || `Pedido ${order.order_number}`
+                  : "Pedido não encontrado"}
               </h1>
               {order && (
-                <p className="text-muted-foreground text-sm">
-                  Criado em {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                <p className="text-muted-foreground text-sm flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="font-mono">{order.order_number}</span>
+                  <span>·</span>
+                  <span>Criado em {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                  {order.customer_reference && (
+                    <span className="text-xs italic">Referência do cliente</span>
+                  )}
                 </p>
               )}
             </div>
