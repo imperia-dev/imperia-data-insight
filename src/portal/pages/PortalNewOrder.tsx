@@ -163,6 +163,10 @@ function NewOrderInner() {
   const submit = async () => {
     if (!orderId) return;
     setSubmitting(true);
+    const ref = customerReference.trim();
+    if (ref) {
+      await supabase.from("trial_orders").update({ customer_reference: ref.slice(0, 120) }).eq("id", orderId);
+    }
     const { error } = await supabase.functions.invoke("submit-trial-order", { body: { order_id: orderId, notes } });
     setSubmitting(false);
     if (error) {
