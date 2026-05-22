@@ -147,12 +147,46 @@ export default function PortalDashboard() {
             <Button asChild variant="outline" size="lg">
               <Link to="/portal/app/pedidos"><FileText className="h-4 w-4 mr-2" /> Meus pedidos</Link>
             </Button>
-            <Button asChild size="lg" className="shadow-lg shadow-primary/20">
-              <Link to="/portal/app/novo"><Plus className="h-4 w-4 mr-2" /> Novo pedido</Link>
-            </Button>
+            {usage?.blocked ? (
+              <Button size="lg" variant="secondary" disabled title="Limite do trial atingido">
+                <Plus className="h-4 w-4 mr-2" /> Limite atingido
+              </Button>
+            ) : (
+              <Button asChild size="lg" className="shadow-lg shadow-primary/20">
+                <Link to="/portal/app/novo"><Plus className="h-4 w-4 mr-2" /> Novo pedido</Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>
+
+      {usage && (
+        <Card className={usage.blocked ? "border-destructive/40" : usage.docs_used / usage.docs_limit >= 0.8 ? "border-amber-300" : undefined}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">Uso do período trial</CardTitle>
+                <CardDescription>
+                  Até {usage.docs_limit} documentos no total, com no máximo {usage.pages_per_doc_limit} páginas por documento.
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold tabular-nums">{usage.docs_used}<span className="text-muted-foreground text-base font-medium">/{usage.docs_limit}</span></div>
+                <div className="text-xs text-muted-foreground">{usage.remaining} restante{usage.remaining === 1 ? "" : "s"}</div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Progress value={usage.docs_limit > 0 ? (usage.docs_used / usage.docs_limit) * 100 : 0} className="h-2" />
+            {usage.blocked && (
+              <p className="text-xs text-destructive mt-3 font-medium">
+                Limite atingido. Pedidos em andamento continuam normalmente, mas novos pedidos estão bloqueados.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Primary KPIs */}
       <TooltipProvider delayDuration={150}>
