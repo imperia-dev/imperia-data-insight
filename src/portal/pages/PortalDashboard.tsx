@@ -60,8 +60,10 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function PortalDashboard() {
   const { customer } = useTrialCustomer();
+  const { usage } = useTrialUsage(customer?.id);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     if (!customer) return;
