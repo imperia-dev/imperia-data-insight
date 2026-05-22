@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { PortalSidebar } from "./components/PortalSidebar";
 import { TrialPortalGuard } from "./TrialPortalGuard";
+import { TrialUsageChip } from "./components/TrialUsageChip";
 
 export function PortalAppLayout({ children }: { children?: ReactNode }) {
   return (
@@ -14,6 +15,9 @@ export function PortalAppLayout({ children }: { children?: ReactNode }) {
             <header className="h-14 flex items-center gap-3 border-b bg-background/80 backdrop-blur px-4 sticky top-0 z-20">
               <SidebarTrigger />
               <span className="text-sm font-medium text-muted-foreground">Portal do Cliente</span>
+              <div className="ml-auto">
+                <TrialUsageChip />
+              </div>
             </header>
             <main className="p-4 md:p-6 lg:p-8">{children ?? <Outlet />}</main>
           </SidebarInset>
