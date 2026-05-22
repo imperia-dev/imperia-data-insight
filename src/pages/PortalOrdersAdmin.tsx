@@ -86,6 +86,7 @@ export default function PortalOrdersAdmin() {
       const q = search.toLowerCase();
       return (
         o.order_number?.toLowerCase().includes(q) ||
+        o.customer_reference?.toLowerCase().includes(q) ||
         o.trial_customers?.full_name?.toLowerCase().includes(q) ||
         o.trial_customers?.email?.toLowerCase().includes(q) ||
         o.trial_customers?.company?.toLowerCase().includes(q)
