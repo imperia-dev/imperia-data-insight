@@ -23,6 +23,7 @@ import { useTrialCustomer } from "../TrialPortalGuard";
 type Order = {
   id: string;
   order_number: string;
+  customer_reference: string | null;
   language_pair: string;
   status: string;
   total_documents: number;
