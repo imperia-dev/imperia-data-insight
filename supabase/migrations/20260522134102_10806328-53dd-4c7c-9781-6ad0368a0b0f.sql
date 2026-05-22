@@ -1,0 +1,2 @@
+DELETE FROM public.trial_order_files WHERE order_id IN (SELECT id FROM public.trial_orders WHERE order_number IN ('TR-202605-0004','TR-202605-0003'));
+DELETE FROM public.trial_orders WHERE order_number IN ('TR-202605-0004','TR-202605-0003');
