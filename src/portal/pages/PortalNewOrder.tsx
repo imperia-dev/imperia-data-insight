@@ -51,6 +51,7 @@ function NewOrderInner() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { customer } = useTrialCustomer();
+  const { usage, refresh: refreshUsage } = useTrialUsage(customer?.id);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [languagePair, setLanguagePair] = useState<"pt-it" | "it-pt">("pt-it");
   const [notes, setNotes] = useState("");
@@ -60,6 +61,15 @@ function NewOrderInner() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<StepId>("idioma");
+
+  const pageLimit = usage?.pages_per_doc_limit ?? 3;
+  const docLimit = usage?.docs_limit ?? 10;
+  const docsUsed = usage?.docs_used ?? 0;
+  const remaining = Math.max(docLimit - docsUsed, 0);
+  const overLimitCount = files.filter((f) => (f.pages ?? 0) > pageLimit).length;
+  const wouldExceed = files.length > remaining;
+  const trialBlocked = usage?.blocked === true;
+
 
   useEffect(() => {
     if (!customer || orderId || creating) return;
