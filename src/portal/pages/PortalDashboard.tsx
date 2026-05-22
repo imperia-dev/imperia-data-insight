@@ -382,8 +382,9 @@ function OrderRow({ o, metric }: { o: Order; metric?: Metric }) {
   return (
     <div className="flex items-center justify-between gap-3 text-xs py-1">
       <div className="min-w-0 flex-1">
-        <div className="font-semibold truncate">{o.order_number}</div>
+        <div className="font-semibold truncate">{o.customer_reference || o.order_number}</div>
         <div className="text-muted-foreground truncate">
+          {o.customer_reference && <span className="font-mono">{o.order_number} · </span>}
           {format(new Date(o.created_at), "dd/MM/yy", { locale: ptBR })}
           {o.language_pair ? ` · ${o.language_pair}` : ""}
         </div>
