@@ -33,6 +33,7 @@ function detectKind(mime: string, name: string): "pdf" | "image" | "office" | "t
 type Order = {
   id: string;
   order_number: string;
+  customer_reference: string | null;
   language_pair: string;
   translation_type: string;
   status: string;
