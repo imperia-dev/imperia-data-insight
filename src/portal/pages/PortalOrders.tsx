@@ -77,11 +77,15 @@ export default function PortalOrders() {
 
   const filtered = useMemo(
     () =>
-      orders.filter(
-        (o) =>
-          (statusFilter === "all" || o.status === statusFilter) &&
-          (!search || o.order_number.toLowerCase().includes(search.toLowerCase())),
-      ),
+      orders.filter((o) => {
+        if (statusFilter !== "all" && o.status !== statusFilter) return false;
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return (
+          o.order_number.toLowerCase().includes(q) ||
+          (o.customer_reference?.toLowerCase().includes(q) ?? false)
+        );
+      }),
     [orders, search, statusFilter],
   );
 
