@@ -397,6 +397,22 @@ function NewOrderInner() {
           </Card>
 
           <Card>
+            <CardHeader><CardTitle>Sua referência (opcional)</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Dê um nome ou código próprio a este pedido (ex.: nome do destinatário, número de processo). Você poderá editar depois.
+              </Label>
+              <Input
+                value={customerReference}
+                onChange={(e) => setCustomerReference(e.target.value.slice(0, 120))}
+                maxLength={120}
+                placeholder="Ex.: Processo João Silva 2026"
+              />
+              <div className="text-[11px] text-muted-foreground text-right">{customerReference.length}/120</div>
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader><CardTitle>Observações (opcional)</CardTitle></CardHeader>
             <CardContent>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} rows={4} placeholder="Algo importante sobre o pedido?" />
