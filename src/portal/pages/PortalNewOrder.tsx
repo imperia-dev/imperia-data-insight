@@ -73,6 +73,8 @@ function NewOrderInner() {
 
   useEffect(() => {
     if (!customer || orderId || creating) return;
+    if (usage === null) return; // wait for usage to load
+    if (trialBlocked) return; // do not create a draft if blocked
     setCreating(true);
     (async () => {
       const { data: numberData } = await supabase.rpc("generate_trial_order_number");
@@ -94,7 +96,8 @@ function NewOrderInner() {
       }
       setOrderId(data.id);
     })();
-  }, [customer, orderId, creating, languagePair]);
+  }, [customer, orderId, creating, languagePair, usage, trialBlocked]);
+
 
   useEffect(() => {
     if (!orderId) return;
