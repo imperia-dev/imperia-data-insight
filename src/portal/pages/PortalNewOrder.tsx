@@ -550,6 +550,7 @@ function NewOrderInner() {
             {step !== "revisao" ? (
               <Button
                 onClick={goNext}
+                disabled={step === "arquivos" && (overLimitCount > 0 || wouldExceed)}
                 className="px-10 py-3 text-xs font-bold uppercase tracking-[0.18em] shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:-translate-y-0.5 transition-all"
               >
                 Próximo
