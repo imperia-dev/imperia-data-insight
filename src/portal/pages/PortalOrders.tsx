@@ -103,7 +103,7 @@ export default function PortalOrders() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <Input
-              placeholder="Buscar pelo número..."
+              placeholder="Buscar por número ou referência…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-xs"
