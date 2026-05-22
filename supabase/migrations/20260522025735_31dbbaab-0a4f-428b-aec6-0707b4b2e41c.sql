@@ -1,0 +1,2 @@
+ALTER TABLE public.trial_orders ADD COLUMN IF NOT EXISTS customer_reference text;
+ALTER TABLE public.trial_orders ADD CONSTRAINT trial_orders_customer_reference_length CHECK (customer_reference IS NULL OR char_length(customer_reference) <= 120);
