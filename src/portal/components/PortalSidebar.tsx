@@ -21,7 +21,7 @@ import {
   Plus,
   
   DollarSign,
-  Users,
+  
   Settings,
   LogOut,
 } from "lucide-react";
@@ -33,7 +33,7 @@ const items = [
   { title: "Novo pedido", url: "/portal/app/novo", icon: Plus },
   
   { title: "Financeiro", url: "/portal/app/financeiro", icon: DollarSign },
-  { title: "Clientes", url: "/portal/app/clientes", icon: Users },
+  
   { title: "Configurações", url: "/portal/app/configuracoes", icon: Settings },
 ];
 

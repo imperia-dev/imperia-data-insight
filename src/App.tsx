@@ -91,7 +91,7 @@ import PortalOrderDetail from "./portal/pages/PortalOrderDetail";
 import PortalOrders from "./portal/pages/PortalOrders";
 
 import PortalFinance from "./portal/pages/PortalFinance";
-import PortalClients from "./portal/pages/PortalClients";
+
 import PortalSettings from "./portal/pages/PortalSettings";
 import { PortalAppLayout } from "./portal/PortalAppLayout";
 import TrialApprovals from "./pages/TrialApprovals";
@@ -126,7 +126,7 @@ const App = () => (
               <Route path="novo" element={<PortalNewOrder />} />
               
               <Route path="financeiro" element={<PortalFinance />} />
-              <Route path="clientes" element={<PortalClients />} />
+              
               <Route path="configuracoes" element={<PortalSettings />} />
               <Route path="pedido/:id" element={<PortalOrderDetail />} />
             </Route>
