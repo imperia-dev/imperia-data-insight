@@ -126,7 +126,7 @@ const App = () => (
               <Route path="novo" element={<PortalNewOrder />} />
               
               <Route path="financeiro" element={<PortalFinance />} />
-              <Route path="clientes" element={<PortalClients />} />
+              
               <Route path="configuracoes" element={<PortalSettings />} />
               <Route path="pedido/:id" element={<PortalOrderDetail />} />
             </Route>
