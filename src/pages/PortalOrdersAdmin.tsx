@@ -29,6 +29,7 @@ type Customer = {
 type OrderRow = {
   id: string;
   order_number: string;
+  customer_reference: string | null;
   customer_id: string;
   language_pair: string | null;
   translation_type: string | null;
@@ -85,6 +86,7 @@ export default function PortalOrdersAdmin() {
       const q = search.toLowerCase();
       return (
         o.order_number?.toLowerCase().includes(q) ||
+        o.customer_reference?.toLowerCase().includes(q) ||
         o.trial_customers?.full_name?.toLowerCase().includes(q) ||
         o.trial_customers?.email?.toLowerCase().includes(q) ||
         o.trial_customers?.company?.toLowerCase().includes(q)
@@ -110,7 +112,7 @@ export default function PortalOrdersAdmin() {
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3">
                 <Input
-                  placeholder="Buscar por número, cliente, email ou empresa..."
+                  placeholder="Buscar por número, referência, cliente, email ou empresa..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="max-w-md"
@@ -154,7 +156,14 @@ export default function PortalOrdersAdmin() {
                       <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">Nenhum pedido encontrado.</TableCell></TableRow>
                     ) : filtered.map((o) => (
                       <TableRow key={o.id} className="cursor-pointer" onClick={() => navigate(`/portal-orders/${o.id}`)}>
-                        <TableCell className="font-mono text-sm">{o.order_number}</TableCell>
+                        <TableCell className="text-sm">
+                          <div className="font-mono text-xs text-muted-foreground">{o.order_number}</div>
+                          {o.customer_reference && (
+                            <div className="font-medium text-sm truncate max-w-[220px]" title={o.customer_reference}>
+                              {o.customer_reference}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div className="font-medium">{o.trial_customers?.full_name ?? "-"}</div>
                           <div className="text-xs text-muted-foreground">{o.trial_customers?.email}</div>

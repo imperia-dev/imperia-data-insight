@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 type Order = {
   id: string;
   order_number: string;
+  customer_reference: string | null;
   status: string;
   processing_step: number | null;
   created_at: string;
@@ -64,7 +65,7 @@ export default function PortalDashboard() {
     (async () => {
       const { data } = await supabase
         .from("trial_orders")
-        .select("id, order_number, status, processing_step, created_at, submitted_at, language_pair, translation_type, total_documents, total_pages, total_characters, external_link, external_id")
+        .select("id, order_number, customer_reference, status, processing_step, created_at, submitted_at, language_pair, translation_type, total_documents, total_pages, total_characters, external_link, external_id")
         .eq("customer_id", customer.id)
         .order("created_at", { ascending: false });
       setOrders((data as Order[]) ?? []);
@@ -311,8 +312,9 @@ export default function PortalDashboard() {
                     <FileText className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-medium truncate">{o.order_number}</div>
+                    <div className="font-medium truncate">{o.customer_reference || o.order_number}</div>
                     <div className="text-xs text-muted-foreground flex items-center gap-2">
+                      {o.customer_reference && <span className="font-mono">{o.order_number}</span>}
                       <Clock className="h-3 w-3" />
                       {format(new Date(o.created_at), "dd MMM yyyy 'às' HH:mm", { locale: ptBR })}
                       {o.language_pair && <span className="hidden sm:inline">· {o.language_pair}</span>}
@@ -356,7 +358,7 @@ export default function PortalDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Número" value={last.order_number} />
+              <Field label={last.customer_reference ? "Referência" : "Número"} value={last.customer_reference || last.order_number} />
               <Field label="Status" value={<StatusBadge status={last.status} />} />
               <Field label="Idioma" value={last.language_pair ?? "—"} />
               <Field label="Documentos" value={String(last.total_documents ?? 0)} />
@@ -380,8 +382,9 @@ function OrderRow({ o, metric }: { o: Order; metric?: Metric }) {
   return (
     <div className="flex items-center justify-between gap-3 text-xs py-1">
       <div className="min-w-0 flex-1">
-        <div className="font-semibold truncate">{o.order_number}</div>
+        <div className="font-semibold truncate">{o.customer_reference || o.order_number}</div>
         <div className="text-muted-foreground truncate">
+          {o.customer_reference && <span className="font-mono">{o.order_number} · </span>}
           {format(new Date(o.created_at), "dd/MM/yy", { locale: ptBR })}
           {o.language_pair ? ` · ${o.language_pair}` : ""}
         </div>

@@ -5565,6 +5565,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           customer_id: string
+          customer_reference: string | null
           delivered_at: string | null
           external_id: string | null
           external_link: string | null
@@ -5587,6 +5588,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           customer_id: string
+          customer_reference?: string | null
           delivered_at?: string | null
           external_id?: string | null
           external_link?: string | null
@@ -5609,6 +5611,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           customer_id?: string
+          customer_reference?: string | null
           delivered_at?: string | null
           external_id?: string | null
           external_link?: string | null

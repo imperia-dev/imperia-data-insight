@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -51,6 +52,7 @@ function NewOrderInner() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [languagePair, setLanguagePair] = useState<"pt-it" | "it-pt">("pt-it");
   const [notes, setNotes] = useState("");
+  const [customerReference, setCustomerReference] = useState("");
   const [files, setFiles] = useState<FileRow[]>([]);
   const [creating, setCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -162,6 +164,10 @@ function NewOrderInner() {
   const submit = async () => {
     if (!orderId) return;
     setSubmitting(true);
+    const ref = customerReference.trim();
+    if (ref) {
+      await supabase.from("trial_orders").update({ customer_reference: ref.slice(0, 120) }).eq("id", orderId);
+    }
     const { error } = await supabase.functions.invoke("submit-trial-order", { body: { order_id: orderId, notes } });
     setSubmitting(false);
     if (error) {
@@ -388,6 +394,22 @@ function NewOrderInner() {
               <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">Documentos</span><span className="font-medium">{totals.docs}</span></div>
               <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">Páginas</span><span className="font-medium">{totals.pages}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Caracteres</span><span className="font-medium">{totals.chars.toLocaleString("pt-BR")}</span></div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Sua referência (opcional)</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Dê um nome ou código próprio a este pedido (ex.: nome do destinatário, número de processo). Você poderá editar depois.
+              </Label>
+              <Input
+                value={customerReference}
+                onChange={(e) => setCustomerReference(e.target.value.slice(0, 120))}
+                maxLength={120}
+                placeholder="Ex.: Processo João Silva 2026"
+              />
+              <div className="text-[11px] text-muted-foreground text-right">{customerReference.length}/120</div>
             </CardContent>
           </Card>
 

@@ -23,6 +23,7 @@ import { useTrialCustomer } from "../TrialPortalGuard";
 type Order = {
   id: string;
   order_number: string;
+  customer_reference: string | null;
   language_pair: string;
   status: string;
   total_documents: number;
@@ -76,11 +77,15 @@ export default function PortalOrders() {
 
   const filtered = useMemo(
     () =>
-      orders.filter(
-        (o) =>
-          (statusFilter === "all" || o.status === statusFilter) &&
-          (!search || o.order_number.toLowerCase().includes(search.toLowerCase())),
-      ),
+      orders.filter((o) => {
+        if (statusFilter !== "all" && o.status !== statusFilter) return false;
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return (
+          o.order_number.toLowerCase().includes(q) ||
+          (o.customer_reference?.toLowerCase().includes(q) ?? false)
+        );
+      }),
     [orders, search, statusFilter],
   );
 
@@ -98,7 +103,7 @@ export default function PortalOrders() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <Input
-              placeholder="Buscar pelo número..."
+              placeholder="Buscar por número ou referência…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-xs"
@@ -139,7 +144,12 @@ export default function PortalOrders() {
                     const s = statusLabels[o.status] ?? { label: o.status, variant: "outline" as const };
                     return (
                       <tr key={o.id} className="border-b last:border-0 hover:bg-muted/30">
-                        <td className="py-3 pr-4 font-medium">{o.order_number}</td>
+                        <td className="py-3 pr-4">
+                          <div className="font-medium">{o.customer_reference || o.order_number}</div>
+                          {o.customer_reference && (
+                            <div className="text-[11px] text-muted-foreground font-mono">{o.order_number}</div>
+                          )}
+                        </td>
                         <td className="py-3 pr-4">{o.language_pair === "pt-it" ? "PT → IT" : "IT → PT"}</td>
                         <td className="py-3 pr-4">{o.total_documents} / {o.total_pages}</td>
                         <td className="py-3 pr-4"><Badge variant={s.variant}>{s.label}</Badge></td>
