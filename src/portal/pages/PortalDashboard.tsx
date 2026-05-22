@@ -226,57 +226,8 @@ export default function PortalDashboard() {
         </Card>
       </TooltipProvider>
 
-      {/* Sub-etapas do processamento */}
-      <TooltipProvider delayDuration={150}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Etapas do processamento</CardTitle>
-            <CardDescription>Distribuição dos pedidos em processamento por sub-etapa</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const processingOrders = orders.filter((o) => o.status === "processing");
-              return (
-                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-                  {PROCESSING_STEPS.map((label, idx) => {
-                    const step = idx + 1;
-                    const stepOrders = processingOrders.filter(
-                      (o) => Math.min(Math.max(o.processing_step ?? 1, 1), PROCESSING_TOTAL) === step
-                    );
-                    const count = stepOrders.length;
-                    return (
-                      <UITooltip key={label}>
-                        <TooltipTrigger asChild>
-                          <Link
-                            to={`/portal/app/pedidos?status=processing`}
-                            className={`group rounded-lg border p-4 transition-all hover:border-primary/50 hover:shadow-sm ${count > 0 ? "bg-card" : "bg-muted/20"}`}
-                          >
-                            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                              Etapa {step}/{PROCESSING_TOTAL}
-                            </div>
-                            <div className={`text-3xl font-bold mt-2 ${count > 0 ? "text-foreground" : "text-muted-foreground/50"}`}>
-                              {count}
-                            </div>
-                            <div className="text-xs font-medium mt-1 truncate" title={label}>
-                              {label}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground mt-0.5">
-                              {count === 0 ? "Nenhum pedido" : count === 1 ? "1 pedido" : `${count} pedidos`}
-                            </div>
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-xs p-0">
-                          <OrdersTooltipList title={`${label} · Etapa ${step}/${PROCESSING_TOTAL}`} orders={stepOrders} />
-                        </TooltipContent>
-                      </UITooltip>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
-      </TooltipProvider>
+
+
 
 
 
