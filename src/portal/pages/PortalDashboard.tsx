@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTrialCustomer } from "../TrialPortalGuard";
+import { useTrialUsage } from "../lib/useTrialUsage";
+import { Progress } from "@/components/ui/progress";
+
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell, Legend,
