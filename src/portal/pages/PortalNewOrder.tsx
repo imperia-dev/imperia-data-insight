@@ -225,6 +225,43 @@ function NewOrderInner() {
 
   const langLabel = languagePair === "pt-it" ? "Português → Italiano" : "Italiano → Português";
 
+  if (trialBlocked) {
+    return (
+      <div className="max-w-2xl mx-auto py-12">
+        <Card className="border-destructive/30">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-destructive/10 p-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <CardTitle>Limite do período trial atingido</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Você já enviou {docsUsed} de {docLimit} documentos permitidos no período de testes.
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm">
+              Não é possível criar novos pedidos no momento. Os pedidos já em andamento continuarão normalmente
+              até a entrega.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Precisa enviar mais documentos? Entre em contato com a nossa equipe para liberar volume adicional.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => navigate("/portal/app/pedidos")}>Ver meus pedidos</Button>
+              <Button asChild>
+                <a href="mailto:contato@imperiatraducoes.com.br?subject=Aumentar%20limite%20do%20trial">Falar com a equipe</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="portal-new-order max-w-5xl mx-auto space-y-10">
       <style>{`.portal-new-order h3{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;letter-spacing:-0.01em}`}</style>
@@ -236,6 +273,26 @@ function NewOrderInner() {
           Tradução juramentada PT ↔ IT
         </p>
       </header>
+
+      {usage && (
+        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span>
+              Trial: <strong>{docsUsed}/{docLimit}</strong> documentos enviados —{" "}
+              restam <strong>{remaining}</strong>. Máximo de <strong>{pageLimit} páginas</strong> por documento.
+            </span>
+          </div>
+          {(overLimitCount > 0 || wouldExceed) && (
+            <span className="text-xs font-semibold text-destructive">
+              {overLimitCount > 0 && `${overLimitCount} arquivo(s) acima de ${pageLimit} páginas`}
+              {overLimitCount > 0 && wouldExceed && " · "}
+              {wouldExceed && `${files.length} > ${remaining} restantes`}
+            </span>
+          )}
+        </div>
+      )}
+
 
       <Tabs value={step} onValueChange={(v) => setStep(v as StepId)} className="space-y-6">
         <TabsList className="h-auto w-full bg-transparent p-0 flex items-center justify-between gap-1 overflow-x-auto">
