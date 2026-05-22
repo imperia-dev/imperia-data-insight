@@ -179,7 +179,14 @@ function NewOrderInner() {
     { docs: 0, pages: 0, chars: 0 },
   );
 
-  const canSubmit = !!orderId && files.length > 0 && files.every((f) => f.analysis_status !== "pending") && !submitting;
+  const canSubmit =
+    !!orderId &&
+    files.length > 0 &&
+    files.every((f) => f.analysis_status !== "pending") &&
+    overLimitCount === 0 &&
+    !wouldExceed &&
+    !trialBlocked &&
+    !submitting;
 
   const completion: Record<StepId, boolean> = useMemo(() => ({
     idioma: true,
@@ -198,15 +205,19 @@ function NewOrderInner() {
     if (ref) {
       await supabase.from("trial_orders").update({ customer_reference: ref.slice(0, 120) }).eq("id", orderId);
     }
-    const { error } = await supabase.functions.invoke("submit-trial-order", { body: { order_id: orderId, notes } });
+    const { data, error } = await supabase.functions.invoke("submit-trial-order", { body: { order_id: orderId, notes } });
     setSubmitting(false);
-    if (error) {
-      toast.error("Erro ao enviar pedido", { description: error.message });
+    const payload = (data ?? {}) as { error?: string; message?: string };
+    if (error || payload.error) {
+      toast.error("Erro ao enviar pedido", { description: payload.message || error?.message || "Tente novamente." });
+      refreshUsage();
       return;
     }
     toast.success("Pedido enviado!");
+    refreshUsage();
     navigate(`/portal/app/pedido/${orderId}`, { replace: true });
   };
+
 
   const idx = STEPS.findIndex((s) => s.id === step);
   const goPrev = () => idx > 0 && setStep(STEPS[idx - 1].id);
