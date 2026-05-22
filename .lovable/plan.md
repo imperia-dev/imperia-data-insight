@@ -1,35 +1,68 @@
-# Referência personalizada do cliente nos pedidos
+# Limites do período de Trial
 
-Hoje o pedido é identificado apenas pelo código gerado pelo sistema (ex: `TR-202605-0004`). O cliente quer poder adicionar uma referência própria — um nome, número de processo interno, nome do destinatário, etc. — para reconhecer o pedido mais facilmente.
+Durante a fase trial, cada cliente do portal pode enviar no máximo:
+
+- **10 documentos no total** (somando todos os pedidos enviados)
+- **3 páginas por documento** (limite individual)
+
+Quando o cliente atingir o limite (10 documentos), o sistema **bloqueia a criação de novos pedidos**. Os pedidos já em andamento continuam normalmente até a entrega.
 
 ## O que muda
 
-1. **Novo campo livre "Referência" no pedido** (opcional, até 120 caracteres).
-   - Cliente pode preencher na criação do pedido (`/portal/app/novo-pedido`).
-   - Cliente pode editar a qualquer momento na tela de detalhe do pedido (`/portal/app/pedidos/:id`), clicando num ícone de lápis ao lado do título.
-   - Campo permanece editável independentemente do status (não é parte do fluxo operacional).
+### 1. Regras de negócio (banco)
 
-2. **Exibição em duas camadas**:
-   - **Título principal**: a referência do cliente quando preenchida, senão o código `TR-...`.
-   - **Subtítulo / chip**: sempre mostra o código `TR-...` como identificador oficial (para suporte e rastreio).
+- Novos campos na tabela `trial_customers`:
+  - `trial_doc_limit` (default 10) — total de documentos permitidos
+  - `trial_pages_per_doc_limit` (default 3) — páginas máximas por documento
+- Função SQL `get_trial_usage(p_customer_id uuid)` retornando `{ docs_used, docs_limit, pages_per_doc_limit, remaining, blocked }`.
+  - Conta apenas pedidos com status **diferente de `draft` e `cancelled`** (ou seja, tudo que foi efetivamente enviado).
+- Edge function `submit-trial-order` passa a validar antes de submeter:
+  - Recusa se algum arquivo do pedido tem `pages > 3`.
+  - Recusa se `(docs_usados_já_enviados + docs_deste_pedido) > 10`.
+- Trigger de upload em `trial_order_files` (ou validação no `analyze-trial-document`) marca o arquivo como `over_limit` quando `pages > 3`, para feedback claro no fluxo.
 
-3. **Locais que passam a mostrar a referência**:
-   - Lista de pedidos `/portal/app/pedidos` — coluna "Pedido" passa a mostrar a referência (quando houver) com o código `TR-...` abaixo em texto menor.
-   - Busca no topo da lista — passa a procurar tanto no código quanto na referência.
-   - Tela de detalhe do pedido — referência como título, código `TR-...` como subtítulo copiável.
-   - Dashboard do cliente (tooltips de "Pedidos por etapa") — referência + código.
-   - Painel do owner (`/portal-orders` e detalhe) — exibe a referência do cliente ao lado do código, para que a equipe saiba como o cliente chama aquele pedido.
+### 2. Contador visível para o cliente
+
+**Header do portal** (`PortalAppLayout`): chip permanente à direita mostrando `X / 10 documentos`, com cor:
+- verde quando `< 80%`,
+- âmbar entre 80% e 99%,
+- vermelho/destructive quando 100% (com texto "Limite atingido").
+
+Ao clicar, abre um popover com:
+- Quantos documentos usados / restantes
+- Regra: "até 3 páginas por documento"
+- Link para "Falar com a equipe" (mailto) caso queira aumentar o limite
+
+**Dashboard** (`/portal/app`): card destacado no topo com barra de progresso, mesmas informações e CTA "Novo pedido" desabilitado quando bloqueado.
+
+### 3. Bloqueio na criação de pedido (`/portal/app/novo`)
+
+- Ao montar a página, busca `get_trial_usage`. Se `blocked = true`, mostra tela bloqueante com explicação + botão "Voltar para pedidos". Não cria rascunho.
+- Durante o upload de arquivos:
+  - Se um arquivo analisado vier com `pages > 3`, marca visualmente como "Acima do limite (3 pág.)" e impede avançar para o próximo passo até remover.
+  - Se a soma `documentos do rascunho + documentos já enviados` ultrapassar 10, bloqueia novos uploads com toast.
+- No passo final ("Revisão e envio"), revalida usage server-side via edge function.
+
+### 4. Painel do owner
+
+- Em `/portal-orders` (admin): nova coluna "Uso trial" mostrando `X/10` por cliente.
+- Em `Settings` (owner): possibilidade de editar `trial_doc_limit` e `trial_pages_per_doc_limit` por cliente, caso queira liberar mais para um cliente específico.
 
 ## Detalhes técnicos
 
-- Migration: adicionar coluna `customer_reference text` (nullable, check length ≤ 120) na tabela `trial_orders`.
-- RLS: nenhuma mudança — política existente já cobre updates do dono do pedido.
-- Sanitização: aplicar o mesmo pipeline Zod+DOMPurify usado em `validations/sanitized.ts` antes de gravar.
-- Tipos Supabase: regenerados automaticamente após a migration.
-- Componente novo: pequeno `EditableReference` (input inline com salvar/cancelar) reutilizado no detalhe do cliente e no detalhe do owner.
+- Hook React `useTrialUsage()` que faz `supabase.rpc("get_trial_usage", { p_customer_id })` com cache via TanStack Query (`staleTime: 30s`) e revalidação em foco, para o chip atualizar sem reload.
+- Componente `TrialUsageChip` no header + `TrialUsageCard` no dashboard, ambos consumindo o mesmo hook.
+- A edge function devolve `{ error: "trial_limit_exceeded", details }` com 422, e o frontend mostra mensagem amigável.
+- RLS: a função SQL é `security definer` e só retorna dados do próprio `customer_id` (validação `auth.uid()` interna).
 
 ## Fora do escopo
 
-- Múltiplas referências/tags por pedido.
-- Busca global da referência fora do módulo de pedidos.
-- Histórico de alterações do campo.
+- Cobrança/upgrade automático para sair do trial.
+- Histórico de alterações de limite por cliente.
+- Limite por período (mensal/semanal) — é um limite total acumulado por enquanto.
+
+## Perguntas rápidas (responda antes de aprovar se quiser ajustar)
+
+1. **Rascunhos contam?** Plano atual: **não** — só conta o que foi efetivamente enviado.
+2. **Pedido cancelado libera o slot?** Plano atual: **sim** — `cancelled` não conta no uso.
+3. **Páginas por doc > 3:** Plano atual: **bloqueia o envio** do pedido (não trunca). Confirma?
