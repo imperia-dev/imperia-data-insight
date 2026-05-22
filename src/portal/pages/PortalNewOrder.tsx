@@ -111,8 +111,22 @@ function NewOrderInner() {
 
   const handleFiles = async (selected: FileList | null) => {
     if (!selected || !orderId || !user) return;
+    const incoming = Array.from(selected);
+    const slotsLeft = Math.max(remaining - files.length, 0);
+    if (slotsLeft <= 0) {
+      toast.error("Limite do trial atingido", {
+        description: `Você só pode incluir ${docLimit} documentos no total durante o trial.`,
+      });
+      return;
+    }
+    const toUpload = incoming.slice(0, slotsLeft);
+    if (toUpload.length < incoming.length) {
+      toast.warning(`Apenas ${toUpload.length} arquivo(s) serão enviados`, {
+        description: `Restam ${slotsLeft} documento(s) no seu trial.`,
+      });
+    }
     setUploading(true);
-    for (const file of Array.from(selected)) {
+    for (const file of toUpload) {
       if (file.size > MAX_SIZE) {
         toast.error(`${file.name} excede 20MB`);
         continue;
@@ -144,6 +158,7 @@ function NewOrderInner() {
     await refreshFiles(orderId);
     setUploading(false);
   };
+
 
   useEffect(() => {
     if (!orderId) return;
