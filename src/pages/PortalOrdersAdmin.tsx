@@ -156,7 +156,14 @@ export default function PortalOrdersAdmin() {
                       <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">Nenhum pedido encontrado.</TableCell></TableRow>
                     ) : filtered.map((o) => (
                       <TableRow key={o.id} className="cursor-pointer" onClick={() => navigate(`/portal-orders/${o.id}`)}>
-                        <TableCell className="font-mono text-sm">{o.order_number}</TableCell>
+                        <TableCell className="text-sm">
+                          <div className="font-mono text-xs text-muted-foreground">{o.order_number}</div>
+                          {o.customer_reference && (
+                            <div className="font-medium text-sm truncate max-w-[220px]" title={o.customer_reference}>
+                              {o.customer_reference}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div className="font-medium">{o.trial_customers?.full_name ?? "-"}</div>
                           <div className="text-xs text-muted-foreground">{o.trial_customers?.email}</div>
