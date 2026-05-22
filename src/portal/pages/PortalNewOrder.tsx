@@ -382,23 +382,38 @@ function NewOrderInner() {
               )}
               {files.length > 0 && (
                 <div className="space-y-2">
-                  {files.map((f) => (
-                    <div key={f.id} className="flex items-center gap-3 border rounded-md p-3 text-sm">
-                      <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{f.original_filename}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {f.analysis_status === "pending" && "Analisando..."}
-                          {f.analysis_status === "done" && `${f.pages} págs · ${f.characters.toLocaleString("pt-BR")} caracteres`}
-                          {f.analysis_status === "failed" && (f.analysis_error || "Falha na análise")}
+                  {files.map((f) => {
+                    const over = (f.pages ?? 0) > pageLimit;
+                    return (
+                      <div
+                        key={f.id}
+                        className={cn(
+                          "flex items-center gap-3 border rounded-md p-3 text-sm",
+                          over && "border-destructive/40 bg-destructive/5",
+                        )}
+                      >
+                        <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{f.original_filename}</div>
+                          <div className={cn("text-xs", over ? "text-destructive font-medium" : "text-muted-foreground")}>
+                            {f.analysis_status === "pending" && "Analisando..."}
+                            {f.analysis_status === "done" && (
+                              over
+                                ? `${f.pages} págs · acima do limite de ${pageLimit} páginas — remova este arquivo`
+                                : `${f.pages} págs · ${f.characters.toLocaleString("pt-BR")} caracteres`
+                            )}
+                            {f.analysis_status === "failed" && (f.analysis_error || "Falha na análise")}
+                          </div>
                         </div>
+                        {f.analysis_status === "pending" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                        {f.analysis_status === "done" && !over && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                        {f.analysis_status === "done" && over && <AlertCircle className="h-4 w-4 text-destructive" />}
+                        {f.analysis_status === "failed" && <AlertCircle className="h-4 w-4 text-destructive" />}
+                        <Button variant="ghost" size="icon" onClick={() => removeFile(f)}><X className="h-4 w-4" /></Button>
                       </div>
-                      {f.analysis_status === "pending" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                      {f.analysis_status === "done" && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                      {f.analysis_status === "failed" && <AlertCircle className="h-4 w-4 text-destructive" />}
-                      <Button variant="ghost" size="icon" onClick={() => removeFile(f)}><X className="h-4 w-4" /></Button>
-                    </div>
-                  ))}
+                    );
+                  })}
+
                 </div>
               )}
             </CardContent>
