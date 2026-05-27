@@ -5459,7 +5459,9 @@ export type Database = {
           rejection_reason: string | null
           status: Database["public"]["Enums"]["trial_customer_status"]
           trial_doc_limit: number
+          trial_pages_limit: number
           trial_pages_per_doc_limit: number
+          trial_single_doc_pages_limit: number
           updated_at: string
           user_id: string
         }
@@ -5476,7 +5478,9 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["trial_customer_status"]
           trial_doc_limit?: number
+          trial_pages_limit?: number
           trial_pages_per_doc_limit?: number
+          trial_single_doc_pages_limit?: number
           updated_at?: string
           user_id: string
         }
@@ -5493,7 +5497,9 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["trial_customer_status"]
           trial_doc_limit?: number
+          trial_pages_limit?: number
           trial_pages_per_doc_limit?: number
+          trial_single_doc_pages_limit?: number
           updated_at?: string
           user_id?: string
         }

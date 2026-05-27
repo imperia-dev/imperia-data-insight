@@ -160,32 +160,51 @@ export default function PortalDashboard() {
         </div>
       </div>
 
-      {usage && (
-        <Card className={usage.blocked ? "border-destructive/40" : usage.docs_used / usage.docs_limit >= 0.8 ? "border-amber-300" : undefined}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-base">Uso do período trial</CardTitle>
-                <CardDescription>
-                  Até {usage.docs_limit} documentos no total, com no máximo {usage.pages_per_doc_limit} páginas por documento.
-                </CardDescription>
+      {usage && (() => {
+        const docsPct = usage.docs_limit > 0 ? (usage.docs_used / usage.docs_limit) * 100 : 0;
+        const pagesPct = usage.pages_limit > 0 ? (usage.pages_used / usage.pages_limit) * 100 : 0;
+        const maxPct = Math.max(docsPct, pagesPct);
+        return (
+          <Card className={usage.blocked ? "border-destructive/40" : maxPct >= 80 ? "border-amber-300" : undefined}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Uso do período trial</CardTitle>
+              <CardDescription>
+                Envie até <strong>{usage.docs_limit} documentos de {usage.pages_per_doc_limit} páginas</strong> ou <strong>1 único documento de até {usage.single_doc_pages_limit} páginas</strong>.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Documentos</span>
+                    <span className="text-sm tabular-nums">
+                      <strong>{usage.docs_used}</strong><span className="text-muted-foreground">/{usage.docs_limit}</span>
+                    </span>
+                  </div>
+                  <Progress value={Math.min(100, docsPct)} className="h-2" />
+                  <div className="text-[11px] text-muted-foreground">{usage.remaining_docs ?? usage.remaining} restante{(usage.remaining_docs ?? usage.remaining) === 1 ? "" : "s"}</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Páginas totais</span>
+                    <span className="text-sm tabular-nums">
+                      <strong>{usage.pages_used}</strong><span className="text-muted-foreground">/{usage.pages_limit}</span>
+                    </span>
+                  </div>
+                  <Progress value={Math.min(100, pagesPct)} className="h-2" />
+                  <div className="text-[11px] text-muted-foreground">{usage.remaining_pages} restante{usage.remaining_pages === 1 ? "" : "s"}</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold tabular-nums">{usage.docs_used}<span className="text-muted-foreground text-base font-medium">/{usage.docs_limit}</span></div>
-                <div className="text-xs text-muted-foreground">{usage.remaining} restante{usage.remaining === 1 ? "" : "s"}</div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Progress value={usage.docs_limit > 0 ? (usage.docs_used / usage.docs_limit) * 100 : 0} className="h-2" />
-            {usage.blocked && (
-              <p className="text-xs text-destructive mt-3 font-medium">
-                Limite atingido. Pedidos em andamento continuam normalmente, mas novos pedidos estão bloqueados.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              {usage.blocked && (
+                <p className="text-xs text-destructive font-medium">
+                  Limite atingido. Pedidos em andamento continuam normalmente, mas novos pedidos estão bloqueados.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
 
 
       {/* Primary KPIs */}

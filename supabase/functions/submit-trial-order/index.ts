@@ -22,7 +22,7 @@ serve(async (req) => {
 
     const { data: order } = await supabase
       .from("trial_orders")
-      .select("id, status, customer_id, trial_customers!inner(user_id, full_name, email, trial_doc_limit, trial_pages_per_doc_limit)")
+      .select("id, status, customer_id, trial_customers!inner(user_id, full_name, email, trial_doc_limit, trial_pages_per_doc_limit, trial_pages_limit, trial_single_doc_pages_limit)")
       .eq("id", order_id)
       .maybeSingle();
     if (!order) throw new Error("order not found");
@@ -33,7 +33,9 @@ serve(async (req) => {
     if (order.status !== "draft") throw new Error("Pedido já enviado");
 
     const docLimit: number = tc.trial_doc_limit ?? 10;
-    const pageLimit: number = tc.trial_pages_per_doc_limit ?? 3;
+    const multiDocPageLimit: number = tc.trial_pages_per_doc_limit ?? 3;
+    const pagesLimit: number = tc.trial_pages_limit ?? 30;
+    const singleDocPageLimit: number = tc.trial_single_doc_pages_limit ?? 30;
 
     const { data: files } = await supabase
       .from("trial_order_files")
@@ -43,36 +45,58 @@ serve(async (req) => {
 
     const sourceFiles = files.filter((f: any) => (f.kind ?? "source") === "source");
 
-    // Per-document page cap
-    const overLimit = sourceFiles.filter((f: any) => (f.pages ?? 0) > pageLimit);
-    if (overLimit.length > 0) {
+    // Already submitted docs/pages (excluding current draft)
+    const { data: usedRows } = await supabase
+      .from("trial_order_files")
+      .select("pages, trial_orders!inner(status, customer_id)")
+      .eq("trial_orders.customer_id", order.customer_id)
+      .eq("kind", "source");
+    const submitted = (usedRows ?? []).filter((r: any) => {
+      const st = r.trial_orders?.status;
+      return st && st !== "draft" && st !== "cancelled";
+    });
+    const docsUsed = submitted.length;
+    const pagesUsed = submitted.reduce((s: number, r: any) => s + (r.pages ?? 0), 0);
+
+    const docsAfter = docsUsed + sourceFiles.length;
+    const pagesAfter = pagesUsed + sourceFiles.reduce((s: number, f: any) => s + (f.pages ?? 0), 0);
+
+    // Total documents cap
+    if (docsAfter > docLimit) {
       return new Response(
         JSON.stringify({
-          error: "trial_page_limit_exceeded",
-          message: `Cada documento pode ter no máximo ${pageLimit} páginas. Documentos acima do limite: ${overLimit.map((f: any) => f.original_filename).join(", ")}`,
-          details: { page_limit: pageLimit, files: overLimit.map((f: any) => ({ name: f.original_filename, pages: f.pages })) },
+          error: "trial_doc_limit_exceeded",
+          message: `Você atingiria ${docsAfter} de ${docLimit} documentos do trial. Remova ${docsAfter - docLimit} arquivo(s) e tente novamente.`,
+          details: { docs_used: docsUsed, docs_in_order: sourceFiles.length, docs_limit: docLimit },
         }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Total documents cap (only count already submitted orders, exclude current draft)
-    const { data: usedRows } = await supabase
-      .from("trial_order_files")
-      .select("id, trial_orders!inner(status, customer_id)")
-      .eq("trial_orders.customer_id", order.customer_id)
-      .eq("kind", "source");
-    const docsUsed = (usedRows ?? []).filter((r: any) => {
-      const st = r.trial_orders?.status;
-      return st && st !== "draft" && st !== "cancelled";
-    }).length;
-    const totalAfter = docsUsed + sourceFiles.length;
-    if (totalAfter > docLimit) {
+    // Total pages cap
+    if (pagesAfter > pagesLimit) {
       return new Response(
         JSON.stringify({
-          error: "trial_doc_limit_exceeded",
-          message: `Você atingiria ${totalAfter} de ${docLimit} documentos do trial. Remova ${totalAfter - docLimit} arquivo(s) e tente novamente.`,
-          details: { docs_used: docsUsed, docs_in_order: sourceFiles.length, docs_limit: docLimit },
+          error: "trial_total_pages_exceeded",
+          message: `Você atingiria ${pagesAfter} de ${pagesLimit} páginas no total do trial. Reduza o volume e tente novamente.`,
+          details: { pages_used: pagesUsed, pages_in_order: pagesAfter - pagesUsed, pages_limit: pagesLimit },
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Per-document page cap (conditional on total docs)
+    const perDocCap = docsAfter <= 1 ? singleDocPageLimit : multiDocPageLimit;
+    const overLimit = sourceFiles.filter((f: any) => (f.pages ?? 0) > perDocCap);
+    if (overLimit.length > 0) {
+      const msg = docsAfter <= 1
+        ? `Como um único documento, o limite é ${singleDocPageLimit} páginas. Acima do limite: ${overLimit.map((f: any) => f.original_filename).join(", ")}`
+        : `Quando há mais de um documento, cada um pode ter no máximo ${multiDocPageLimit} páginas (ou envie um único documento de até ${singleDocPageLimit} páginas). Acima do limite: ${overLimit.map((f: any) => f.original_filename).join(", ")}`;
+      return new Response(
+        JSON.stringify({
+          error: "trial_page_limit_exceeded",
+          message: msg,
+          details: { per_doc_limit: perDocCap, docs_after: docsAfter, files: overLimit.map((f: any) => ({ name: f.original_filename, pages: f.pages })) },
         }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );

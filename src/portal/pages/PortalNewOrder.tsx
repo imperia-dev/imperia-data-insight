@@ -62,13 +62,23 @@ function NewOrderInner() {
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<StepId>("idioma");
 
-  const pageLimit = usage?.pages_per_doc_limit ?? 3;
   const docLimit = usage?.docs_limit ?? 10;
+  const pagesLimit = usage?.pages_limit ?? 30;
+  const multiDocPageLimit = usage?.pages_per_doc_limit ?? 3;
+  const singleDocPageLimit = usage?.single_doc_pages_limit ?? 30;
   const docsUsed = usage?.docs_used ?? 0;
-  const remaining = Math.max(docLimit - docsUsed, 0);
-  const overLimitCount = files.filter((f) => (f.pages ?? 0) > pageLimit).length;
-  const wouldExceed = files.length > remaining;
+  const pagesUsed = usage?.pages_used ?? 0;
+  const remainingDocs = Math.max(docLimit - docsUsed, 0);
+  const remainingPages = Math.max(pagesLimit - pagesUsed, 0);
+  const docsAfter = docsUsed + files.length;
+  const perDocCap = docsAfter <= 1 ? singleDocPageLimit : multiDocPageLimit;
+  const overLimitCount = files.filter((f) => (f.pages ?? 0) > perDocCap).length;
+  const pagesInOrder = files.reduce((s, f) => s + (f.pages ?? 0), 0);
+  const wouldExceedDocs = files.length > remainingDocs;
+  const wouldExceedPages = pagesInOrder > remainingPages;
+  const wouldExceed = wouldExceedDocs || wouldExceedPages;
   const trialBlocked = usage?.blocked === true;
+
 
 
   useEffect(() => {
@@ -112,7 +122,7 @@ function NewOrderInner() {
   const handleFiles = async (selected: FileList | null) => {
     if (!selected || !orderId || !user) return;
     const incoming = Array.from(selected);
-    const slotsLeft = Math.max(remaining - files.length, 0);
+    const slotsLeft = Math.max(remainingDocs - files.length, 0);
     if (slotsLeft <= 0) {
       toast.error("Limite do trial atingido", {
         description: `Você só pode incluir ${docLimit} documentos no total durante o trial.`,
@@ -123,6 +133,7 @@ function NewOrderInner() {
     if (toUpload.length < incoming.length) {
       toast.warning(`Apenas ${toUpload.length} arquivo(s) serão enviados`, {
         description: `Restam ${slotsLeft} documento(s) no seu trial.`,
+
       });
     }
     setUploading(true);
@@ -275,23 +286,28 @@ function NewOrderInner() {
       </header>
 
       {usage && (
-        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-muted-foreground" />
+        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <span>
-              Trial: <strong>{docsUsed}/{docLimit}</strong> documentos enviados —{" "}
-              restam <strong>{remaining}</strong>. Máximo de <strong>{pageLimit} páginas</strong> por documento.
+              Trial: <strong>{docsUsed}/{docLimit}</strong> docs · <strong>{pagesUsed}/{pagesLimit}</strong> págs.{" "}
+              <span className="text-muted-foreground">
+                Até {docLimit} documentos de {multiDocPageLimit} páginas <em>ou</em> 1 único documento de até {singleDocPageLimit} páginas.
+              </span>
             </span>
           </div>
           {(overLimitCount > 0 || wouldExceed) && (
-            <span className="text-xs font-semibold text-destructive">
-              {overLimitCount > 0 && `${overLimitCount} arquivo(s) acima de ${pageLimit} páginas`}
+            <span className="text-xs font-semibold text-destructive shrink-0">
+              {overLimitCount > 0 && `${overLimitCount} arquivo(s) acima de ${perDocCap} págs`}
               {overLimitCount > 0 && wouldExceed && " · "}
-              {wouldExceed && `${files.length} > ${remaining} restantes`}
+              {wouldExceedDocs && `${files.length} > ${remainingDocs} docs restantes`}
+              {wouldExceedDocs && wouldExceedPages && " · "}
+              {wouldExceedPages && `${pagesInOrder} > ${remainingPages} págs restantes`}
             </span>
           )}
         </div>
       )}
+
 
 
       <Tabs value={step} onValueChange={(v) => setStep(v as StepId)} className="space-y-6">
@@ -369,7 +385,7 @@ function NewOrderInner() {
                 <Upload className="h-8 w-8 text-muted-foreground" />
                 <span className="font-medium">Selecionar arquivos</span>
                 <span className="text-xs text-muted-foreground">PDF, DOCX, XLSX, PNG, JPG — até 20MB cada</span>
-                <input type="file" multiple accept={ACCEPTED} className="hidden" onChange={(e) => handleFiles(e.target.files)} disabled={!orderId || uploading || files.length >= remaining} />
+                <input type="file" multiple accept={ACCEPTED} className="hidden" onChange={(e) => handleFiles(e.target.files)} disabled={!orderId || uploading || files.length >= remainingDocs} />
               </label>
               {(uploading || creating) && (
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -379,7 +395,7 @@ function NewOrderInner() {
               {files.length > 0 && (
                 <div className="space-y-2">
                   {files.map((f) => {
-                    const over = (f.pages ?? 0) > pageLimit;
+                    const over = (f.pages ?? 0) > perDocCap;
                     return (
                       <div
                         key={f.id}
@@ -395,7 +411,7 @@ function NewOrderInner() {
                             {f.analysis_status === "pending" && "Analisando..."}
                             {f.analysis_status === "done" && (
                               over
-                                ? `${f.pages} págs · acima do limite de ${pageLimit} páginas — remova este arquivo`
+                                ? `${f.pages} págs · acima do limite de ${perDocCap} páginas — remova este arquivo`
                                 : `${f.pages} págs · ${f.characters.toLocaleString("pt-BR")} caracteres`
                             )}
                             {f.analysis_status === "failed" && (f.analysis_error || "Falha na análise")}
