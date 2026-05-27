@@ -411,7 +411,7 @@ function NewOrderInner() {
                             {f.analysis_status === "pending" && "Analisando..."}
                             {f.analysis_status === "done" && (
                               over
-                                ? `${f.pages} págs · acima do limite de ${pageLimit} páginas — remova este arquivo`
+                                ? `${f.pages} págs · acima do limite de ${perDocCap} páginas — remova este arquivo`
                                 : `${f.pages} págs · ${f.characters.toLocaleString("pt-BR")} caracteres`
                             )}
                             {f.analysis_status === "failed" && (f.analysis_error || "Falha na análise")}
