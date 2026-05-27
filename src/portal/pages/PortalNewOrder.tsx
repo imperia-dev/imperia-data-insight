@@ -62,13 +62,23 @@ function NewOrderInner() {
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<StepId>("idioma");
 
-  const pageLimit = usage?.pages_per_doc_limit ?? 3;
   const docLimit = usage?.docs_limit ?? 10;
+  const pagesLimit = usage?.pages_limit ?? 30;
+  const multiDocPageLimit = usage?.pages_per_doc_limit ?? 3;
+  const singleDocPageLimit = usage?.single_doc_pages_limit ?? 30;
   const docsUsed = usage?.docs_used ?? 0;
-  const remaining = Math.max(docLimit - docsUsed, 0);
-  const overLimitCount = files.filter((f) => (f.pages ?? 0) > pageLimit).length;
-  const wouldExceed = files.length > remaining;
+  const pagesUsed = usage?.pages_used ?? 0;
+  const remainingDocs = Math.max(docLimit - docsUsed, 0);
+  const remainingPages = Math.max(pagesLimit - pagesUsed, 0);
+  const docsAfter = docsUsed + files.length;
+  const perDocCap = docsAfter <= 1 ? singleDocPageLimit : multiDocPageLimit;
+  const overLimitCount = files.filter((f) => (f.pages ?? 0) > perDocCap).length;
+  const pagesInOrder = files.reduce((s, f) => s + (f.pages ?? 0), 0);
+  const wouldExceedDocs = files.length > remainingDocs;
+  const wouldExceedPages = pagesInOrder > remainingPages;
+  const wouldExceed = wouldExceedDocs || wouldExceedPages;
   const trialBlocked = usage?.blocked === true;
+
 
 
   useEffect(() => {
