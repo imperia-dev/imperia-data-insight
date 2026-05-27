@@ -395,7 +395,7 @@ function NewOrderInner() {
               {files.length > 0 && (
                 <div className="space-y-2">
                   {files.map((f) => {
-                    const over = (f.pages ?? 0) > pageLimit;
+                    const over = (f.pages ?? 0) > perDocCap;
                     return (
                       <div
                         key={f.id}
