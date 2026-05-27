@@ -286,23 +286,28 @@ function NewOrderInner() {
       </header>
 
       {usage && (
-        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-muted-foreground" />
+        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <span>
-              Trial: <strong>{docsUsed}/{docLimit}</strong> documentos enviados —{" "}
-              restam <strong>{remaining}</strong>. Máximo de <strong>{pageLimit} páginas</strong> por documento.
+              Trial: <strong>{docsUsed}/{docLimit}</strong> docs · <strong>{pagesUsed}/{pagesLimit}</strong> págs.{" "}
+              <span className="text-muted-foreground">
+                Até {docLimit} documentos de {multiDocPageLimit} páginas <em>ou</em> 1 único documento de até {singleDocPageLimit} páginas.
+              </span>
             </span>
           </div>
           {(overLimitCount > 0 || wouldExceed) && (
-            <span className="text-xs font-semibold text-destructive">
-              {overLimitCount > 0 && `${overLimitCount} arquivo(s) acima de ${pageLimit} páginas`}
+            <span className="text-xs font-semibold text-destructive shrink-0">
+              {overLimitCount > 0 && `${overLimitCount} arquivo(s) acima de ${perDocCap} págs`}
               {overLimitCount > 0 && wouldExceed && " · "}
-              {wouldExceed && `${files.length} > ${remaining} restantes`}
+              {wouldExceedDocs && `${files.length} > ${remainingDocs} docs restantes`}
+              {wouldExceedDocs && wouldExceedPages && " · "}
+              {wouldExceedPages && `${pagesInOrder} > ${remainingPages} págs restantes`}
             </span>
           )}
         </div>
       )}
+
 
 
       <Tabs value={step} onValueChange={(v) => setStep(v as StepId)} className="space-y-6">
