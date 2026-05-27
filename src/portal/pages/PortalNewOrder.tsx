@@ -122,7 +122,7 @@ function NewOrderInner() {
   const handleFiles = async (selected: FileList | null) => {
     if (!selected || !orderId || !user) return;
     const incoming = Array.from(selected);
-    const slotsLeft = Math.max(remaining - files.length, 0);
+    const slotsLeft = Math.max(remainingDocs - files.length, 0);
     if (slotsLeft <= 0) {
       toast.error("Limite do trial atingido", {
         description: `Você só pode incluir ${docLimit} documentos no total durante o trial.`,
@@ -133,6 +133,7 @@ function NewOrderInner() {
     if (toUpload.length < incoming.length) {
       toast.warning(`Apenas ${toUpload.length} arquivo(s) serão enviados`, {
         description: `Restam ${slotsLeft} documento(s) no seu trial.`,
+
       });
     }
     setUploading(true);
