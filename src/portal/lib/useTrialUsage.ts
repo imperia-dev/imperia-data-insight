@@ -5,8 +5,13 @@ export type TrialUsage = {
   customer_id: string;
   docs_used: number;
   docs_limit: number;
+  pages_used: number;
+  pages_limit: number;
   pages_per_doc_limit: number;
+  single_doc_pages_limit: number;
   remaining: number;
+  remaining_docs: number;
+  remaining_pages: number;
   blocked: boolean;
 };
 
