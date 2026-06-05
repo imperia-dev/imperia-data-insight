@@ -148,8 +148,8 @@ export default function OperationProtocolData() {
     try {
       setUploading(true);
       const fileExt = invoiceFile.name.split('.').pop();
-      const fileName = `${selectedProtocol.protocol_number}_nota_fiscal_${Date.now()}.${fileExt}`;
-      const filePath = `invoices/reviewer-protocols/${fileName}`;
+      const fileName = `nota_fiscal_${Date.now()}.${fileExt}`;
+      const filePath = `invoices/${selectedProtocol.id}/${fileName}`;
 
       const { error: uploadError, data } = await supabase.storage
         .from('service-provider-files')
