@@ -50,8 +50,8 @@ export function ProviderDataFormDialog({
     setUploading(true);
     try {
       const fileExt = invoiceFile.name.split(".").pop();
-      const fileName = `${protocolId}-${Date.now()}.${fileExt}`;
-      const filePath = `invoices/${fileName}`;
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `invoices/${protocolId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("service-provider-files")
