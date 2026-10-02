@@ -396,16 +396,16 @@ const TranslationOrders = () => {
     }
   };
 
+  // Revisor padrão usado quando o pedido não tem revisor atribuído
+  const DEFAULT_REVIEWER = {
+    id: '4cbcc088-4998-4879-b204-31bb55c9cbba',
+    name: 'Hellem',
+    email: null as string | null,
+  };
+
   const handleSaveDraftProtocol = async () => {
     if (orders.length === 0) {
       toast.error("Nenhum pedido filtrado para criar protocolo");
-      return;
-    }
-
-    // Check if orders have reviewers
-    const hasReviewers = orders.every(order => order.review_id);
-    if (!hasReviewers) {
-      toast.error("Todos os pedidos devem ter um revisor atribuído");
       return;
     }
 
@@ -458,6 +458,23 @@ const TranslationOrders = () => {
       }
 
       setSavingProgress(40);
+
+      // Assign default reviewer (Hellem) to orders without one
+      const ordersWithoutReviewer = allFilteredOrders.filter(o => !o.review_id);
+      if (ordersWithoutReviewer.length > 0) {
+        const { error: assignError } = await supabase
+          .from('translation_orders')
+          .update({
+            review_id: DEFAULT_REVIEWER.id,
+            review_name: DEFAULT_REVIEWER.name,
+            review_email: DEFAULT_REVIEWER.email,
+          })
+          .in('id', ordersWithoutReviewer.map(o => o.id));
+
+        if (assignError) throw assignError;
+
+        toast.info(`${ordersWithoutReviewer.length} pedido(s) sem revisor foram atribuídos a ${DEFAULT_REVIEWER.name}`);
+      }
 
       // Get order IDs
       const orderIds = allFilteredOrders.map(o => o.id);
