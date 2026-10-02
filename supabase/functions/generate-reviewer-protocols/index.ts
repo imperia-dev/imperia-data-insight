@@ -101,6 +101,23 @@ serve(async (req) => {
 
     console.log(`Found ${orders.length} orders to process`);
 
+    // Default reviewer (Hellem) for orders without one — only fills empty rows
+    const DEFAULT_REVIEWER_ID = '4cbcc088-4998-4879-b204-31bb55c9cbba';
+    const DEFAULT_REVIEWER_NAME = 'Hellem';
+    const missingReviewer = orders.filter((o: any) => !o.review_id);
+    if (missingReviewer.length > 0 && !preview) {
+      const { error: assignErr } = await supabase
+        .from('translation_orders')
+        .update({ review_id: DEFAULT_REVIEWER_ID, review_name: DEFAULT_REVIEWER_NAME })
+        .in('id', missingReviewer.map((o: any) => o.id))
+        .is('review_id', null);
+      if (assignErr) console.error('Error assigning default reviewer:', assignErr);
+    }
+    for (const o of missingReviewer) {
+      o.review_id = DEFAULT_REVIEWER_ID;
+      o.review_name = o.review_name || DEFAULT_REVIEWER_NAME;
+    }
+
     // Group orders by reviewer - use review_name directly from orders
     const providerMap = new Map<string, ProviderData>();
 
