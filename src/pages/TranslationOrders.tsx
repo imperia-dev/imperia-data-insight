@@ -396,16 +396,16 @@ const TranslationOrders = () => {
     }
   };
 
+  // Revisor padrão usado quando o pedido não tem revisor atribuído
+  const DEFAULT_REVIEWER = {
+    id: '4cbcc088-4998-4879-b204-31bb55c9cbba',
+    name: 'Hellem',
+    email: null as string | null,
+  };
+
   const handleSaveDraftProtocol = async () => {
     if (orders.length === 0) {
       toast.error("Nenhum pedido filtrado para criar protocolo");
-      return;
-    }
-
-    // Check if orders have reviewers
-    const hasReviewers = orders.every(order => order.review_id);
-    if (!hasReviewers) {
-      toast.error("Todos os pedidos devem ter um revisor atribuído");
       return;
     }
 
