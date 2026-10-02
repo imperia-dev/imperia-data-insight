@@ -459,6 +459,23 @@ const TranslationOrders = () => {
 
       setSavingProgress(40);
 
+      // Assign default reviewer (Hellem) to orders without one
+      const ordersWithoutReviewer = allFilteredOrders.filter(o => !o.review_id);
+      if (ordersWithoutReviewer.length > 0) {
+        const { error: assignError } = await supabase
+          .from('translation_orders')
+          .update({
+            review_id: DEFAULT_REVIEWER.id,
+            review_name: DEFAULT_REVIEWER.name,
+            review_email: DEFAULT_REVIEWER.email,
+          })
+          .in('id', ordersWithoutReviewer.map(o => o.id));
+
+        if (assignError) throw assignError;
+
+        toast.info(`${ordersWithoutReviewer.length} pedido(s) sem revisor foram atribuídos a ${DEFAULT_REVIEWER.name}`);
+      }
+
       // Get order IDs
       const orderIds = allFilteredOrders.map(o => o.id);
 
