@@ -32,11 +32,14 @@ serve(async (req) => {
     console.log('Proxying request to n8n webhook');
     console.log('Payload keys:', Object.keys(payload));
 
+    const outHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    const authName = Deno.env.get('N8N_WEBHOOK_HEADER_NAME') || 'x-webhook-secret';
+    const authValue = Deno.env.get('N8N_WEBHOOK_SECRET');
+    if (authValue) outHeaders[authName] = authValue;
+
     const webhookResponse = await fetch(webhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: outHeaders,
       body: JSON.stringify(payload),
     });
 
