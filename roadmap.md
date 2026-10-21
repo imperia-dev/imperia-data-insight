@@ -1,8 +1,8 @@
 # Confidentiality commitment
 ## Security audit requested
-- [ ] Classify existing database advisor findings and validate actual public exposure without modifying production data.
-- [ ] Inspect integration authorization and vulnerable production dependencies.
-- [ ] Report verified risks, existing protections and remediation priorities without claiming a breach or complete security.
+- [x] Classify existing database advisor findings and validate actual public exposure without modifying production data.
+- [x] Inspect integration authorization and vulnerable production dependencies.
+- [x] Report verified risks, existing protections and remediation priorities without claiming a breach or complete security.
 
 ## Confidentiality implementation
 - [x] Store a versioned confidentiality policy and immutable, authenticated acceptance evidence.
