@@ -1128,6 +1128,89 @@ export type Database = {
           },
         ]
       }
+      confidentiality_acceptances: {
+        Row: {
+          accepted_at: string
+          account_email: string | null
+          authentication_method: Json | null
+          created_at: string
+          declaration: string
+          id: string
+          policy_id: string
+          policy_sha256: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          account_email?: string | null
+          authentication_method?: Json | null
+          created_at?: string
+          declaration: string
+          id?: string
+          policy_id: string
+          policy_sha256: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          account_email?: string | null
+          authentication_method?: Json | null
+          created_at?: string
+          declaration?: string
+          id?: string
+          policy_id?: string
+          policy_sha256?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confidentiality_acceptances_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "confidentiality_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      confidentiality_policies: {
+        Row: {
+          body: string
+          body_sha256: string
+          created_at: string
+          id: string
+          published_at: string
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          body: string
+          body_sha256: string
+          created_at?: string
+          id?: string
+          published_at?: string
+          title: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          body?: string
+          body_sha256?: string
+          created_at?: string
+          id?: string
+          published_at?: string
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       consolidated_protocols: {
         Row: {
           approval_notes: string | null
@@ -6030,6 +6113,15 @@ export type Database = {
       }
     }
     Functions: {
+      accept_confidentiality_policy: {
+        Args: {
+          p_confirmed: boolean
+          p_policy_id: string
+          p_policy_sha256: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
       accept_trial_order: { Args: { p_order_id: string }; Returns: undefined }
       advance_trial_order_processing: {
         Args: { p_order_id: string }
