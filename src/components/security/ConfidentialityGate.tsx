@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { ShieldCheck, Download, Loader2, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,7 @@ function RequiredAcceptance({ children, userId }: { children: ReactNode; userId:
   const policy = query.data?.policy ?? null;
   const receipt = query.data?.receipt ?? null;
   const busy = saving || query.isFetching;
+  useEffect(() => { setConfirmed(false); }, [policy?.id, policy?.body_sha256]);
 
   async function accept() {
     if (!policy || !canAcceptConfidentiality(confirmed, policy, busy)) return;
