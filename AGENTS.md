@@ -1,0 +1,3 @@
+# Architecture rules
+- Store confidentiality policy versions and immutable acceptance receipts in dedicated tables; record acceptance through an authenticated, version-and-hash-validated RPC so clients cannot choose an actor or acceptance timestamp.
+- Wrap internal application content in the confidentiality gate before mounting page components; legal and authentication routes remain available, and existing authorization policies remain the security boundary for data access.
