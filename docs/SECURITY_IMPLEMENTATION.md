@@ -1,5 +1,13 @@
 # 🔐 Security Implementation - Complete
 
+## Confidentiality commitment — 21 October 2026
+- Dedicated versioned, append-only policy and acceptance tables, with explicit grants and RLS. Own receipts are readable by the account and all receipts by owner via get_user_role().
+- Authenticated SECURITY INVOKER RPC validates current policy, SHA-256 and affirmative confirmation. Insert trigger enforces actor, declaration, server timestamps and JWT-derived identity/method; receipts and policy text cannot be updated or deleted.
+- Global gate delays mounting internal pages (including trial portal) until receipt is read back. Missing policy, failed lookup or failed persistence does not release the screen; authentication and legal pages remain available.
+- Public /confidentiality-policy serves the exact database text and account receipt download. This is governance/evidence, not an exfiltration prevention guarantee: existing data RLS, RPCs, Edge Functions and storage permissions remain the data authorization boundary. The gate alone does not forbid direct authorized API calls before acceptance.
+- No IP address is claimed or recorded; browser user-agent is client-supplied, and a JWT authentication method is not an independent digital signature. Legal review is required; electronic evidence does not guarantee organizational immunity or enforceability.
+- External Supabase does not support managed authenticated browser verification here; live authenticated acceptance must be checked by a real user. Existing database advisor findings are separate from this feature.
+
 ## ✅ Implemented Security Layers
 
 ### 1. Security Headers & Middleware

@@ -7,6 +7,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { ErrorBoundary } from "./components/security/ErrorBoundary";
 import { MFAEnforcement } from "./components/security/MFAEnforcement";
+import { ConfidentialityGate } from "./components/security/ConfidentialityGate";
+import ConfidentialityPolicyPage from "./pages/ConfidentialityPolicy";
 import { MainAnnouncementModal } from "./components/announcements/MainAnnouncementModal";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ProtectedRouteWithApproval } from "./components/ProtectedRouteWithApproval";
@@ -106,6 +108,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <ConfidentialityGate>
             <MFAEnforcement />
             <MainAnnouncementModal />
             <SidebarProvider>
@@ -116,6 +119,7 @@ const App = () => (
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/confidentiality-policy" element={<ConfidentialityPolicyPage />} />
             <Route path="/portal" element={<PortalLanding />} />
             <Route path="/portal/login" element={<PortalLogin />} />
             <Route path="/portal/cadastro" element={<PortalSignup />} />
@@ -446,6 +450,7 @@ const App = () => (
             </Routes>
             </ActiveCompanyProvider>
            </SidebarProvider>
+            </ConfidentialityGate>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

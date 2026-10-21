@@ -67,6 +67,7 @@ export default function PrivacyPolicy() {
         </Link>
 
         <div className="mb-8">
+          <Link to="/confidentiality-policy" className="text-primary hover:underline block mb-4">Compromisso de confidencialidade e acesso a informações</Link>
           <h1 className="text-3xl font-bold mb-2">Política de Privacidade</h1>
           <p className="text-muted-foreground">
             Última atualização: {new Date().toLocaleDateString('pt-BR')} • Versão 1.0
