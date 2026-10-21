@@ -1,0 +1,32 @@
+# Security verification — 21 October 2026
+
+## Scope and method
+Read-only deployed schema/grant/policy/function review; fresh backend and dependency scans; source review of integration boundaries. Anonymous HTTP tests returned only counts (limit=0), never row contents. No production business data, grants, credentials or dependencies changed. Authenticated path: UNVERIFIED — external unmanaged Supabase has no managed test session. No incident-history or forensic assessment was performed; this report neither proves nor disproves previous exploitation.
+
+## Critical/high-priority findings
+1. **Confirmed anonymous company-cost RPC access.** GET /rest/v1/rpc/get_company_costs_view with the public anon key and limit=0 returned HTTP 206 and Content-Range */37. The routine is SECURITY DEFINER and executable by anon; its `IF get_user_role(auth.uid()) != 'owner'` guard evaluates to NULL when no role exists and therefore does not reject the call. No financial row was fetched. Missing-role SQL evaluation was independently checked read-only.
+2. **Same NULL fail-open family.** Deployed approve_user/reject_user use NOT IN guards; get_service_provider_sensitive_data, get_active_secrets_summary and log_secret_rotation use nullable != guards. These are not safe denial conditions. Provider CPF/CNPJ/PIX retrieval and account-approval mutations were not executed. The secret-summary anonymous GET returned 400, not readable rows; source-level authorization flaw is distinct from a successful data disclosure. Correct with explicit authentication and NULL-safe role denial; restrict execution deliberately.
+3. **Unbound privileged mutations.** revoke_user_sessions accepts any p_user_id with no authorization. reset_failed_attempts/track_failed_access and sync_protocol_workflow_steps also accept caller-chosen targets without an actor check. get_user_email accepts any account ID and bypasses normal table access via SECURITY DEFINER. Do not validate against live victims; add own-account/privileged-role checks and isolated regression tests.
+4. **Public inserts into operational/security history.** Live grants and permissive INSERT policies allow anonymous writes to lead_conversions, lead_events, lead_sessions, lead_pricing_analysis, protocol_history, sms_verification_logs and several security/login log tables. These are integrity, spam and audit-forgery risks, not proof of anonymous reading. Public contact/tracking intake may be intentional but should be isolated behind validated/rate-limited server entrypoints; security/protocol history should not be caller-forgeable. No inserts were attempted.
+5. **n8n proxy payload not actor-bound.** n8n-webhook-proxy validates a real session via requireAuth, but forwards arbitrary caller JSON without enforcing allowed roles, assigned order or provider identity. It is not an anonymous endpoint; any valid account can submit workflow input. Review both inbound n8n validation and server-side derivation of order/provider data before claiming isolation.
+
+## Other confirmed configuration findings
+- All 112 public tables have RLS enabled. Anonymous count-only reads of profiles, orders, documents, payment_receipts, service_provider_protocols and confidentiality_acceptances returned zero visible rows. This is a narrow test, not an all-data clearance; exposed RPCs can bypass table RLS.
+- Document, invoice, payment, backup and trial-upload buckets are private. announcement-images, avatars and company-assets are public; whether their actual content should be public remains unverified (files not opened).
+- Some Facebook, finance and legacy-chat tables allow broad authenticated reads. Chat is a rejected/removed feature, not a proposal to restore it. Review the legacy tables and determine intended audience before changing permissions.
+- Password-leak protection is disabled in hosted configuration according to the fresh scanner; the separate app password-check endpoint does not establish a global hosted auth safeguard.
+- The 135 advisor warnings consist of 67 anonymous-executable and 67 authenticated-executable SECURITY DEFINER routines plus disabled leaked-password protection. The authenticated-executable category alone is not a vulnerability: many role-checked RPCs intentionally require it. has_role returns EXISTS (false for NULL user), so its use in `IF NOT has_role(...)` does not share the nullable get_user_role failure.
+- Fresh dependency scan: 55 advisory entries (3 high, 52 moderate), including duplicates/transitive paths across seven direct groups: Supabase SDK/ws, React Router, Recharts/lodash, Drei/fflate, DOMPurify and its type stub, and jsPDF. Not 55 distinct exploitable app issues; affected runtime usage matters. Upgrade to mutually compatible patched versions and rescan lockfile before marking fixed.
+
+## Integration review and incident context
+- webhook-translation-orders intentionally has verify_jwt=false and strictly requires TRANSLATION_WEBHOOK_SECRET. A holder of that secret can upsert order/payment fields. Rotation after the n8n compromise remains unverified/unresolved from conversation; a new URL alone does not invalidate a leaked inbound credential. Source logs entire incoming/prepared/saved rows; redact personal/financial payloads in remediation.
+- register-trial-customer intentionally exposes registration, confirms new emails immediately and has no visible CAPTCHA/rate limit in handler; abuse and impersonation hardening needed. Hosted signup settings beyond scanned flags were not read.
+- generate-reviewer-protocols validates user and owner/master/admin/financeiro roles before service-role access. This is a positive server-side boundary, not proof all integrations have one.
+
+## Remediation order
+1. Close anonymous/null-role sensitive RPC paths and unauthorized target mutations, preserving required server and authenticated callers.
+2. Protect log/history creation; actor-bind and role-restrict the n8n provider workflow; rotate compromised webhook credentials through secure credential forms, never chat.
+3. Patch dependencies, enable leaked-password protection where supported, and restrict broad reads after intended-role review.
+4. Verify with anonymous denial tests and authenticated correct-role/wrong-role/wrong-owner tests. Authenticated end-to-end remains UNVERIFIED.
+
+No finding was suppressed or marked fixed by this audit.
