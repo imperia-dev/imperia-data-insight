@@ -15,12 +15,12 @@ serve(async (req) => {
 
   try {
     // Get environment variables
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const webhookSecret = Deno.env.get('TRANSLATION_WEBHOOK_SECRET');
 
     // SECURITY: Webhook secret is REQUIRED - fail if not configured
-    if (!webhookSecret) {
+    if (!webhookSecret || !supabaseUrl || !supabaseServiceKey) {
       console.error('CRITICAL: TRANSLATION_WEBHOOK_SECRET not configured - rejecting all requests');
       return new Response(
         JSON.stringify({ error: 'Webhook not configured' }),
@@ -46,11 +46,10 @@ serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    console.log('Received webhook data:', body);
 
     // Validate required fields
     const requiredFields = ['pedido_id', 'pedido_status', 'pedido_data', 'valor_pedido', 'valor_pago', 'status_pagamento'];
-    const missingFields = requiredFields.filter(field => !body[field]);
+    const missingFields = requiredFields.filter(field => body[field] === null || body[field] === undefined || body[field] === '');
     
     if (missingFields.length > 0) {
       console.error('Missing required fields:', missingFields);
@@ -87,7 +86,6 @@ serve(async (req) => {
       updated_at: new Date().toISOString()
     };
 
-    console.log('Prepared data for upsert:', translationOrder);
 
     // Upsert the translation order
     const { data, error } = await supabase
@@ -100,11 +98,10 @@ serve(async (req) => {
       .single();
 
     if (error) {
-      console.error('Error upserting translation order:', error);
+      console.error('Translation upsert failed');
       return new Response(
         JSON.stringify({ 
           error: 'Failed to save translation order',
-          details: error.message 
         }),
         { 
           status: 500,
@@ -113,7 +110,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Translation order saved successfully:', data);
+    console.log('Translation order saved successfully');
 
     return new Response(
       JSON.stringify({ 
@@ -128,11 +125,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('Translation webhook failed');
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
       }),
       { 
         status: 500,
