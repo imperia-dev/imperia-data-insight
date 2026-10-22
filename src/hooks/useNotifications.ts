@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -18,6 +18,7 @@ export interface Notification {
 }
 
 export function useNotifications() {
+  const subscriptionId = useId();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -92,7 +93,7 @@ export function useNotifications() {
 
     // Set up real-time subscriptions
     const ordersChannel = supabase
-      .channel('orders-notifications')
+      .channel(`orders-notifications:${subscriptionId}`)
       .on(
         'postgres_changes',
         {
@@ -109,7 +110,7 @@ export function useNotifications() {
       .subscribe();
 
     const pendenciesChannel = supabase
-      .channel('pendencies-notifications')
+      .channel(`pendencies-notifications:${subscriptionId}`)
       .on(
         'postgres_changes',
         {
@@ -126,7 +127,7 @@ export function useNotifications() {
       .subscribe();
 
     const financialChannel = supabase
-      .channel('financial-notifications')
+      .channel(`financial-notifications:${subscriptionId}`)
       .on(
         'postgres_changes',
         {
@@ -147,7 +148,7 @@ export function useNotifications() {
       supabase.removeChannel(pendenciesChannel);
       supabase.removeChannel(financialChannel);
     };
-  }, [user, userRole]);
+  }, [user, userRole, subscriptionId]);
 
   async function fetchNotifications() {
     if (!user?.id) return;

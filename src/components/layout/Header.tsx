@@ -18,7 +18,7 @@ import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { AnimatedAvatar } from "@/components/ui/animated-avatar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface HeaderProps {
@@ -27,6 +27,7 @@ interface HeaderProps {
 }
 
 export function Header({ userName, userRole }: HeaderProps) {
+  const subscriptionId = useId();
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, getTimeAgo } = useNotifications();
@@ -53,7 +54,7 @@ export function Header({ userName, userRole }: HeaderProps) {
     const interval = setInterval(check, 30000);
 
     const channel = supabase
-      .channel("portal-orders-header")
+      .channel(`portal-orders-header:${subscriptionId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "trial_orders" }, check)
       .subscribe();
 
@@ -61,7 +62,7 @@ export function Header({ userName, userRole }: HeaderProps) {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, subscriptionId]);
 
   const handlePortalOrdersClick = () => {
     if (user) {
