@@ -173,7 +173,7 @@ export default function OwnerFinalApproval() {
           .from("reviewer_protocols")
           .update({
             status: "master_initial",
-            return_reason: sanitizeInput(returnReason),
+            owner_approval_notes: sanitizeInput(returnReason),
           })
           .eq("id", selectedProtocol.id);
 
