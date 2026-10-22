@@ -111,11 +111,12 @@ serve(async (req) => {
     // Fire webhook (best effort)
     const webhookUrl = Deno.env.get("N8N_WEBHOOK_URL");
     const webhookSecret = Deno.env.get("N8N_WEBHOOK_SECRET");
+    const webhookHeaderName = Deno.env.get("N8N_WEBHOOK_HEADER_NAME") || "x-webhook-secret";
     if (webhookUrl) {
       try {
         await fetch(webhookUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...(webhookSecret ? { "x-webhook-secret": webhookSecret } : {}) },
+          headers: { "Content-Type": "application/json", ...(webhookSecret ? { [webhookHeaderName]: webhookSecret } : {}) },
           body: JSON.stringify({ event: "trial_order_submitted", order_id, customer: { user_id: tc.user_id, full_name: tc.full_name, email: tc.email } }),
         });
       } catch (e) {
