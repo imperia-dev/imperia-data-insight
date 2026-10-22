@@ -1,106 +1,28 @@
+# Auditoria completa pelo checklist de segurança enviado
 
-# Trial com dois caminhos (10×3 ou 1×30)
+Objetivo: passar item por item do checklist, provar cada um com uma checagem real (banco, código, funções) e corrigir o que falhar. No fim, um relatório "OK / corrigido / depende de você".
 
-Hoje o trial bloqueia em **10 documentos com no máximo 3 páginas cada**. Vou ampliar para aceitar automaticamente qualquer um dos dois cenários, sem o cliente precisar escolher:
+## O que não se aplica (e por quê)
+- Flask, "gem JWT", segredos JWT separados, refresh token rotativo de uso único: o login já é do Supabase Auth, que faz isso nativamente (refresh token rotativo e revogado no logout). Vamos apenas **confirmar** que logout revoga a sessão no servidor (escopo global) e que voltar no navegador não reabre.
+- CAPTCHA, confirmação de e-mail, rate limit nativo, senha vazada, redirect URLs, MFA no painel: ficam no painel do Supabase (bloqueado pelo 2FA). Listo exatamente o que ligar.
 
-- **Caminho A:** até **10 documentos**, cada um com no máximo **3 páginas**
-- **Caminho B:** **1 único documento** com até **30 páginas**
+## Etapas
+1. **Banco (RLS e policies)** — listar todas as tabelas: RLS ativa, nenhuma `using (true)` em dado de usuário, policies separadas para SELECT/INSERT/UPDATE/DELETE, UPDATE com `with check` que impede trocar `user_id`/papel, filtro sempre por `auth.uid()`. Rodar linter e scan e zerar críticos.
+2. **Funções e views** — toda função security definer com `search_path` fixo e checagem de quem chama; views sensíveis com `security_invoker`; RPCs públicas validando ator.
+3. **IDOR / mass assignment / corrida** — revisar updates feitos pelo navegador (pedidos, protocolos, pendências, prestadores) e mover regras de negócio críticas (pegar pedido, limites de demanda, aprovação) para operações atômicas no banco com trava de linha.
+4. **Tamanho de entradas** — limites no banco (`check` de tamanho) nos campos de texto livres e URLs, além do limite que já existe nos formulários.
+5. **Imagens e URLs (os dois casos do arquivo)** — aceitar só arquivos do próprio armazenamento (caminho interno, não URL livre), tamanho máximo de URL, bloqueio de `javascript:`/`data:` maliciosos; imagens em texto rico sanitizadas para não virarem rastreador.
+6. **Uploads e storage** — buckets privados, policies por dono, links assinados com expiração curta, tipo e tamanho validados no servidor.
+7. **Funções de servidor** — JWT obrigatório (exceto webhooks com segredo), autorização por registro, validação de payload, CORS restrito aos domínios da Imperia, erros sem detalhes internos, rate limit por usuário nas funções de IA.
+8. **Navegador** — nenhuma chave secreta no código publicado, sem `select('*')` em tabelas sensíveis, sem HTML de usuário sem sanitizar, source maps desligados em produção, `bun audit` sem críticos.
+9. **Testes de ataque automatizados** — testes que tentam: ler dados de outra conta (duas contas), trocar o próprio papel, enviar campos extras, textos gigantes, URL externa de imagem, chamar RPC sem login. Mantidos no projeto.
+10. **Relatório** — atualizar `docs/SECURITY_IMPLEMENTATION.md` com o resultado de cada item.
 
-O sistema aceita o que vier primeiro e bloqueia quando o teto for atingido.
+## Depende de você (painel Supabase / externos)
+Proteção de senha vazada, confirmação de e-mail, CAPTCHA, rate limits de Auth, redirect URLs restritas, limite de gasto nas APIs pagas (OpenAI, ElevenLabs, Higgsfield), projeto Lovable privado.
 
-## Regra unificada
-
-Para suportar os dois caminhos com uma única lógica:
-
-- Teto global: **30 páginas no total** e **10 documentos no total** (o que ocorrer primeiro).
-- Limite de páginas por documento é **condicional**:
-  - Se for o **único documento** do trial → pode ter até **30 páginas**.
-  - Se houver/passar a haver **mais de um documento** → cada documento precisa ter no máximo **3 páginas**.
-
-Isso cobre exatamente os dois caminhos pedidos sem forçar o cliente a escolher modo no cadastro.
-
-## Mudanças no banco
-
-Novos campos em `trial_customers` (mantém compatibilidade com clientes existentes):
-
-- `trial_pages_limit int default 30` — teto total de páginas
-- `trial_single_doc_pages_limit int default 30` — limite quando é o único doc
-- (mantém) `trial_doc_limit int default 10`
-- (mantém) `trial_pages_per_doc_limit int default 3` — limite quando há múltiplos docs
-
-Atualizar a função `get_trial_usage(p_customer_id uuid)` para retornar:
-
-```json
-{
-  "customer_id": "…",
-  "docs_used": 0,
-  "docs_limit": 10,
-  "pages_used": 0,
-  "pages_limit": 30,
-  "pages_per_doc_limit": 3,
-  "single_doc_pages_limit": 30,
-  "remaining_docs": 10,
-  "remaining_pages": 30,
-  "blocked": false
-}
-```
-
-`blocked = docs_used >= docs_limit OR pages_used >= pages_limit`.
-Contagem continua considerando apenas pedidos `status NOT IN ('draft','cancelled')` e arquivos `kind = 'source'`.
-
-## Edge function `submit-trial-order`
-
-Trocar a validação atual por:
-
-1. Calcular `docs_used` e `pages_used` já enviados (excluindo o rascunho atual).
-2. `docs_after = docs_used + sourceFiles.length`
-3. `pages_after = pages_used + sum(sourceFiles.pages)`
-4. Bloquear se `docs_after > 10` (`trial_doc_limit_exceeded`).
-5. Bloquear se `pages_after > 30` (`trial_total_pages_exceeded`, mensagem nova).
-6. Validar por documento:
-   - Se `docs_after == 1` → cada arquivo pode ter até `single_doc_pages_limit` (30).
-   - Se `docs_after >= 2` → cada arquivo precisa ter `pages <= pages_per_doc_limit` (3). Mensagem explica que o limite de 30 páginas vale **somente** quando o pedido tem um único documento no trial inteiro.
-
-## Frontend
-
-### Hook `useTrialUsage`
-Estender o tipo `TrialUsage` com `pages_used`, `pages_limit`, `single_doc_pages_limit`, `remaining_pages`.
-
-### Chip no header (`TrialUsageChip`)
-Mostrar os dois saldos lado a lado:
-
-```text
-[icon] 0/10 docs · 0/30 págs
-```
-
-Cor:
-- verde: ambos < 80%
-- âmbar: qualquer um ≥ 80%
-- vermelho/`Limite`: `blocked = true`
-
-Popover explica os dois caminhos em linguagem natural:
-> No trial você pode enviar **até 10 documentos de 3 páginas** ou **1 único documento de até 30 páginas**. Quando atingir 10 documentos ou 30 páginas no total, novos pedidos ficam bloqueados.
-
-E mostra dois mini-progressos (docs e páginas) + CTA "Falar com a equipe".
-
-### Card no dashboard (`PortalDashboard`)
-Trocar o card "Uso do período trial" para exibir as duas barras (documentos e páginas) e o texto explicativo dos dois caminhos.
-
-### Tela de novo pedido (`/portal/app/novo`)
-- Se `blocked`, mantém a tela bloqueante atual com mensagem nova ("você atingiu o limite do período trial").
-- Durante upload:
-  - Se `docs_after` (incluindo arquivos do rascunho) for **1**, permite até 30 páginas por arquivo.
-  - Se `docs_after` for **≥ 2**, qualquer arquivo > 3 páginas é marcado como "Acima do limite (3 págs por documento quando há mais de um)" e impede avançar.
-  - Bloqueia novos uploads quando `docs_after > 10` ou `pages_after > 30`, com toast explicando qual teto foi atingido.
-
-### Painel do owner (`Settings`, `/portal-orders`)
-- Mostrar `docs_used/10` e `pages_used/30` por cliente.
-- Permitir editar `trial_doc_limit`, `trial_pages_limit`, `trial_pages_per_doc_limit`, `trial_single_doc_pages_limit` por cliente.
-
-## Fora do escopo
-- Não muda preço, cobrança ou processo de aprovação.
-- Não migra cliente nenhum para outro plano; só ajusta o cálculo de limite.
-
-## Perguntas de validação (responda só se quiser ajustar)
-1. Se o cliente já enviou 1 documento de 5 páginas, o próximo envio precisa respeitar 3 págs/doc (porque agora terá ≥ 2 docs no trial). Confirma essa leitura?
-2. O teto total é mesmo **30 páginas** (= 10×3)? Se preferir um teto maior (ex.: 30 págs só para o caso B e até 30 págs no caso A também, sem somar entre caminhos), me diga e eu reescrevo a regra.
+## Detalhes técnicos
+- Migrações com `check (char_length(...) <= N)` e triggers que bloqueiam mudança de colunas protegidas.
+- RPC atômica `claim_order` com `select ... for update`.
+- Validação de imagem: aceitar apenas `storage path` do bucket do projeto, URL ≤ 2048, protocolo https.
+- Autenticados continuam não verificáveis por aqui (Supabase externo sem sessão); testes de duas contas rodam via chamadas REST com contas de teste se você permitir criar.
