@@ -187,7 +187,7 @@ export function ProtocolosIndividuaisTab() {
   const approveProtocol = async (protocol: any) => {
     const { error } = await supabase
       .from('service_provider_protocols')
-      .update({ status: 'approved', approved_at: new Date().toISOString() })
+      .update({ status: 'approved', final_approved_at: new Date().toISOString() })
       .eq('id', protocol.id);
 
     if (error) throw error;

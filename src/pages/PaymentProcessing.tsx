@@ -190,7 +190,7 @@ export default function PaymentProcessing() {
           .from("service_provider_protocols")
           .update({ 
             status: "payment_processing",
-            payment_requested_at: new Date().toISOString()
+            updated_at: new Date().toISOString()
           })
           .in("id", spIds);
 
@@ -203,7 +203,7 @@ export default function PaymentProcessing() {
           .from("reviewer_protocols")
           .update({ 
             status: "payment_processing",
-            payment_requested_at: new Date().toISOString()
+            updated_at: new Date().toISOString()
           })
           .in("id", revIds);
 

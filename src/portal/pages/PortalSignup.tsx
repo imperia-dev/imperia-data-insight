@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { secureSignIn } from "@/lib/secureLogin";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PortalLayout } from "../PortalLayout";
@@ -95,10 +96,7 @@ export default function PortalSignup() {
     }
 
     // Auto sign-in to land directly on the awaiting-approval screen
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: parsed.data.email,
-      password: parsed.data.password,
-    });
+    const { error: signInError } = await secureSignIn(parsed.data.email, parsed.data.password);
     setLoading(false);
     if (signInError) {
       toast.success("Cadastro enviado!", { description: "Faça login para acompanhar o status." });

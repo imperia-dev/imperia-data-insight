@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { secureSignIn } from "@/lib/secureLogin";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PortalLayout } from "../PortalLayout";
@@ -18,7 +18,7 @@ export default function PortalLogin() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { error } = await secureSignIn(email.trim(), password);
     setLoading(false);
     if (error) {
       toast.error("Não foi possível entrar", { description: error.message });

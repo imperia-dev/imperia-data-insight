@@ -113,7 +113,8 @@ serve(async (req) => {
     const expirationDays = expires_in_days || SECRET_EXPIRATION_DEFAULTS[secret_name] || 90;
 
     // Log the rotation
-    const { data: rotationLog, error: logError } = await supabase
+    const ownerClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } });
+    const { data: rotationLog, error: logError } = await ownerClient
       .rpc('log_secret_rotation', {
         p_secret_name: secret_name,
         p_rotation_type: rotation_type,

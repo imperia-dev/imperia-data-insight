@@ -9,6 +9,7 @@
 // the role check has already validated the caller).
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 export type AppRole =
   | "owner"
@@ -33,12 +34,6 @@ export interface AuthFailure {
 
 export type AuthResult = AuthSuccess | AuthFailure;
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
 function jsonError(message: string, status: number): Response {
   return new Response(JSON.stringify({ error: message }), {
     status,
@@ -56,9 +51,10 @@ export async function requireAuth(req: Request): Promise<AuthResult> {
     return { ok: false, response: jsonError("Unauthorized", 401) };
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !anonKey || !serviceKey) return { ok: false, response: jsonError("Authentication unavailable", 503) };
 
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },

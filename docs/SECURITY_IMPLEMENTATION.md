@@ -2,6 +2,8 @@
 
 > Current verification (21 October 2026): the historical checklist below is not an assurance of security. Read `docs/SECURITY_AUDIT_2026-10-21.md` for confirmed anonymous RPC access, NULL fail-open authorization, public log writes, dependency advisories and remaining verification limits. No remediation was applied during that read-only audit.
 
+> Remediation (22 October 2026 UTC): see `docs/SECURITY_HARDENING_2026-10-22.md` for deployed RPC denial, history-write restrictions, actor-bound provider requests, server-observed login logging, patched production dependencies and actual verification. Secrets were deferred; authenticated end-to-end remains UNVERIFIED. The historical checklist is still not a complete-security assurance.
+
 ## Confidentiality commitment — 21 October 2026
 - Dedicated versioned, append-only policy and acceptance tables, with explicit grants and RLS. Own receipts are readable by the account and all receipts by owner via get_user_role().
 - Authenticated SECURITY INVOKER RPC validates current policy, SHA-256 and affirmative confirmation. Insert trigger enforces actor, declaration, server timestamps and JWT-derived identity/method; receipts and policy text cannot be updated or deleted.
