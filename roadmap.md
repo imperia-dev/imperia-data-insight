@@ -3,7 +3,7 @@
 - [ ] Close nullable-role sensitive RPCs and unauthorized target mutations; protect anonymous history writes.
 - [ ] Actor-bind the provider webhook and redact sensitive translation webhook logging.
 - [ ] Patch vulnerable dependencies and verify regressions and anonymous denial.
-- [ ] Rotate compromised webhook credentials — blocked: coordinated new credentials are required from the user.
+- [ ] Rotate compromised webhook credentials — blocked: user deferred entering secrets; outbound n8n calls must fail closed until configured.
 - [ ] Enable hosted leaked-password protection — blocked: external Supabase hosted authentication settings require owner access.
 - [ ] Verify authenticated correct-role/wrong-role/wrong-owner requests — blocked: external unmanaged Supabase has no authenticated test session.
 ## Security audit requested
