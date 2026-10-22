@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Resend } from 'npm:resend@2.0.0';
+import { requireAuth } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,8 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -29,6 +32,8 @@ serve(async (req) => {
     const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
     const { user_id, notification_type, ip_address, user_agent, suspicious_factors }: LoginAlertRequest = await req.json();
+    if (user_id !== auth.userId || typeof ip_address !== 'string' || typeof user_agent !== 'string' || user_agent.length > 512 || !Array.isArray(suspicious_factors) || suspicious_factors.some(v => typeof v !== 'string') || !['new_device', 'new_location', 'unusual_time'].includes(notification_type)) return new Response(JSON.stringify({ error: 'Invalid or unauthorized request' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const escapeHtml = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] ?? ''));
 
     // Buscar email do usuário
     const { data: userData } = await supabase.auth.admin.getUserById(user_id);
@@ -94,16 +99,16 @@ serve(async (req) => {
               <p><strong>Detalhes do Login:</strong></p>
               <ul style="list-style: none; padding-left: 0;">
                 <li>📅 <strong>Data/Hora:</strong> ${timestamp}</li>
-                <li>🌐 <strong>IP:</strong> ${ip_address}</li>
-                <li>💻 <strong>Dispositivo:</strong> ${user_agent.substring(0, 100)}</li>
+                <li>🌐 <strong>IP:</strong> ${escapeHtml(ip_address)}</li>
+                <li>💻 <strong>Dispositivo:</strong> ${escapeHtml(user_agent.substring(0, 100))}</li>
               </ul>
             </div>
 
             <p><strong>Se este login não foi você:</strong></p>
-            <a href="${supabaseUrl}/rest/v1/rpc/revoke_user_sessions?user_id=${user_id}" 
+            <a href="https://ops.imperiatraducoes.com.br/auth" 
                style="display: inline-block; background-color: #dc2626; color: white; padding: 12px 24px; 
                       text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px 0;">
-              ⚠️ Não fui eu - Revogar Sessões
+              ⚠️ Acessar minha conta com segurança
             </a>
 
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">

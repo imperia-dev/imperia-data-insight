@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireAuth } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,17 +21,24 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { user_id, login_attempt_id, ip_address, user_agent, device_fingerprint }: SuspiciousLoginRequest = await req.json();
+    if (user_id !== auth.userId || typeof user_agent !== 'string' || user_agent.length > 512 || typeof ip_address !== 'string' || typeof login_attempt_id !== 'string') return new Response(JSON.stringify({ error: 'Invalid or unauthorized request' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const { data: account } = await supabase.auth.admin.getUserById(auth.userId);
+    const email = account?.user?.email;
+    const { data: attempt, error: attemptError } = await supabase.from('login_attempts').select('identifier, success').eq('id', login_attempt_id).maybeSingle();
+    if (!email || attemptError || attempt?.identifier !== email || !attempt.success) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     // Buscar logins anteriores do usuário
     const { data: previousLogins } = await supabase
       .from('login_attempts')
       .select('ip_address, user_agent, metadata')
-      .eq('identifier', user_id)
+      .eq('identifier', email)
       .eq('success', true)
       .order('created_at', { ascending: false })
       .limit(10);
@@ -82,6 +90,7 @@ serve(async (req) => {
 
       // Chamar Edge Function para enviar alerta
       await supabase.functions.invoke('send-login-alert', {
+        headers: { Authorization: req.headers.get('authorization') ?? '' },
         body: {
           user_id,
           notification_type: notificationType,
