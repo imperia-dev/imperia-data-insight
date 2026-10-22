@@ -421,10 +421,7 @@ export default function Auth() {
       if (success) {
         // Get current form values for retry
         const formValues = loginForm.getValues();
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formValues.email,
-          password: formValues.password,
-        });
+        const { error } = await secureSignIn(formValues.email, formValues.password);
         
         if (!error) {
           // Play login success sound

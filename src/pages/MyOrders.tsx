@@ -133,12 +133,6 @@ export function MyOrders() {
   const takeOrderMutation = useMutation({
     mutationFn: async (order: any) => {
       // ===== LOG 1: DADOS INICIAIS =====
-      console.log('=== INÍCIO TAKE ORDER ===');
-      console.log('Order ID:', order.id);
-      console.log('Order Number:', order.order_number);
-      console.log('User ID:', user?.id);
-      console.log('Profile operation_account_id:', profile?.operation_account_id);
-      console.log('Profile completo:', profile);
       
       // Check if user has operation_account_id configured
       if (!profile?.operation_account_id) {
@@ -161,9 +155,6 @@ export function MyOrders() {
         status_order: "in_progress",
         account_ID: profile.operation_account_id,
       };
-      console.log('=== ATUALIZANDO SUPABASE ===');
-      console.log('Update data:', updateData);
-      console.log('Order ID a ser atualizado:', order.id);
 
       // Step 1: Update order in Supabase with operation account ID
       const { data: updateResult, error } = await supabase
@@ -173,9 +164,6 @@ export function MyOrders() {
         .select();
       
       // ===== LOG 3: APÓS ATUALIZAÇÃO =====
-      console.log('=== RESULTADO SUPABASE ===');
-      console.log('Update result:', updateResult);
-      console.log('Update error:', error);
       
       if (error) {
         console.error('ERRO ao atualizar no Supabase:', error);
@@ -189,8 +177,6 @@ export function MyOrders() {
         .eq("id", order.id)
         .single();
       
-      console.log('=== VERIFICAÇÃO account_ID ===');
-      console.log('Dados após update:', verifyData);
 
       // Step 2: Call n8n webhook via Edge Function (secure proxy)
       try {
@@ -199,16 +185,11 @@ export function MyOrders() {
           AccountId: profile.operation_account_id,
         };
 
-        console.log('=== CHAMANDO WEBHOOK VIA EDGE FUNCTION ===');
-        console.log('Payload:', payload);
 
         const { data: webhookData, error: webhookError } = await supabase.functions.invoke('n8n-webhook-proxy', {
           body: payload,
         });
 
-        console.log('=== RESPOSTA N8N (via Edge Function) ===');
-        console.log('Response data:', webhookData);
-        console.log('Error:', webhookError);
 
         if (webhookError) {
           console.error('Edge function error:', webhookError);
@@ -246,7 +227,6 @@ export function MyOrders() {
         if (responseData?.ServiceOrderLink || responseData?.Id) {
           const linkToSave = responseData.ServiceOrderLink || responseData.Id;
           
-          console.log('Saving service_order_link:', linkToSave);
           
           const { error: updateError } = await supabase
             .from("orders")

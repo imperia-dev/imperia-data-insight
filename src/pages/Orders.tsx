@@ -475,11 +475,6 @@ export function Orders() {
   const takeOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
       // ===== LOG 1: DADOS INICIAIS =====
-      console.log('=== INÍCIO TAKE ORDER (Orders.tsx) ===');
-      console.log('Order ID:', orderId);
-      console.log('User ID:', user?.id);
-      console.log('Profile operation_account_id:', profile?.operation_account_id);
-      console.log('Profile completo:', profile);
       
       // Check if user has operation_account_id configured
       if (!profile?.operation_account_id) {
@@ -507,7 +502,6 @@ export function Orders() {
         throw new Error(validation.error);
       }
 
-      console.log('Order Number:', orderData.order_number);
 
       // ===== LOG 2: ANTES DE ATUALIZAR NO SUPABASE =====
       const updateData = {
@@ -516,9 +510,6 @@ export function Orders() {
         status_order: "in_progress",
         account_ID: profile.operation_account_id,
       };
-      console.log('=== ATUALIZANDO SUPABASE ===');
-      console.log('Update data:', updateData);
-      console.log('Order ID a ser atualizado:', orderId);
 
       // Step 1: Update order in Supabase with operation account ID
       const { data: updateResult, error } = await supabase
@@ -528,9 +519,6 @@ export function Orders() {
         .select();
       
       // ===== LOG 3: APÓS ATUALIZAÇÃO =====
-      console.log('=== RESULTADO SUPABASE ===');
-      console.log('Update result:', updateResult);
-      console.log('Update error:', error);
       
       if (error) {
         console.error('ERRO ao atualizar no Supabase:', error);
@@ -544,8 +532,6 @@ export function Orders() {
         .eq("id", orderId)
         .single();
       
-      console.log('=== VERIFICAÇÃO account_ID ===');
-      console.log('Dados após update:', verifyData);
 
       // Step 2: Call n8n webhook via Edge Function (secure proxy)
       try {
@@ -554,16 +540,11 @@ export function Orders() {
           AccountId: profile.operation_account_id,
         };
 
-        console.log('=== CHAMANDO WEBHOOK VIA EDGE FUNCTION ===');
-        console.log('Payload:', payload);
 
         const { data: webhookData, error: webhookError } = await supabase.functions.invoke('n8n-webhook-proxy', {
           body: payload,
         });
 
-        console.log('=== RESPOSTA N8N (via Edge Function) ===');
-        console.log('Response data:', webhookData);
-        console.log('Error:', webhookError);
 
         if (webhookError) {
           console.error('Edge function error:', webhookError);
@@ -573,7 +554,6 @@ export function Orders() {
         if (webhookData?.ServiceOrderLink || webhookData?.serviceOrderLink || webhookData?.service_order_link) {
           const linkToSave = sanitizeInput(webhookData.ServiceOrderLink || webhookData.serviceOrderLink || webhookData.service_order_link);
           
-          console.log('Saving service_order_link:', linkToSave);
           
           const { error: linkError } = await supabase
             .from("orders")
@@ -590,7 +570,6 @@ export function Orders() {
       }
     },
     onSuccess: () => {
-      console.log("takeOrderMutation onSuccess: Invalidando e refazendo queries.");
       queryClient.refetchQueries({ queryKey: ["orders"] });
       queryClient.refetchQueries({ queryKey: ["my-orders", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["my-orders-in-progress", user?.id] });
