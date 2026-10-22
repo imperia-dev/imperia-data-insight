@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Role, canAccessRoute } from "@/lib/permissions";
 
 export const useRoleAccess = (pathname: string) => {
+  const subscriptionId = useId();
   const { user, session, loading: authLoading } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,13 +26,7 @@ export const useRoleAccess = (pathname: string) => {
 
       try {
         // Fetch user role from user_roles table (new system)
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .order('role', { ascending: true }) // Get highest priority role
-          .limit(1)
-          .maybeSingle();
+        const { data, error } = await supabase.rpc('get_user_role', { user_id: session.user.id });
 
         if (error) {
           console.error('Error fetching role access:', error);
@@ -47,18 +42,18 @@ export const useRoleAccess = (pathname: string) => {
           return;
         }
         
-        setUserRole(data.role);
+        setUserRole(data);
 
         // Check if the user role is valid
         const validRoles: Role[] = ['owner', 'master', 'admin', 'operation', 'translator', 'customer', 'financeiro'];
-        if (!validRoles.includes(data.role as Role)) {
+        if (!validRoles.includes(data as Role)) {
           setHasAccess(false);
           setLoading(false);
           return;
         }
 
         // Check if the current route allows this role
-        const hasPermission = canAccessRoute(data.role as Role, pathname);
+        const hasPermission = canAccessRoute(data as Role, pathname);
         
         setHasAccess(hasPermission);
       } catch (error) {
@@ -74,7 +69,7 @@ export const useRoleAccess = (pathname: string) => {
     // Set up real-time subscription to user_roles changes
     if (session?.user.id) {
       const channel = supabase
-        .channel('user-role-changes')
+        .channel(`user-role-changes:${subscriptionId}`)
         .on(
           'postgres_changes',
           {
@@ -95,7 +90,7 @@ export const useRoleAccess = (pathname: string) => {
         supabase.removeChannel(channel);
       };
     }
-  }, [session, pathname, authLoading]);
+  }, [session, pathname, authLoading, subscriptionId]);
 
   return { userRole, loading: loading || authLoading, hasAccess };
 };

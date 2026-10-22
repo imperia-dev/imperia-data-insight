@@ -1,4 +1,6 @@
 # Confidentiality commitment
+## Access error after confidentiality acceptance
+- [x] Reproduce and correct the post-acceptance Realtime channel collision; isolated browser regression passes and mandatory acknowledgment remains enforced. Live authenticated verification remains blocked as recorded below.
 ## Security remediation
 - [x] Close nullable-role sensitive RPCs and unauthorized target mutations; protect anonymous history writes.
 - [x] Actor-bind the provider webhook and redact sensitive translation webhook logging; fail closed while the shared secret is missing.

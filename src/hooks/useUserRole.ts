@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
  * This ensures consistency with role-based access control
  */
 export const useUserRole = () => {
+  const subscriptionId = useId();
   const { user, session, loading: authLoading } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,13 +28,7 @@ export const useUserRole = () => {
 
       try {
         // Fetch user role from user_roles table (security best practice)
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .order('role', { ascending: true }) // Get highest priority role
-          .limit(1)
-          .maybeSingle();
+        const { data, error } = await supabase.rpc('get_user_role', { user_id: session.user.id });
 
         if (error) {
           console.error('Error fetching user role:', error);
@@ -49,7 +44,7 @@ export const useUserRole = () => {
           return;
         }
         
-        setUserRole(data.role);
+        setUserRole(data);
       } catch (error) {
         console.error('Error fetching user role:', error);
         setUserRole(null);
@@ -63,7 +58,7 @@ export const useUserRole = () => {
     // Set up real-time subscription to user_roles changes
     if (session?.user.id) {
       const channel = supabase
-        .channel('user-role-changes-hook')
+        .channel(`user-role-changes-hook:${subscriptionId}`)
         .on(
           'postgres_changes',
           {
@@ -84,7 +79,7 @@ export const useUserRole = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [session, authLoading]);
+  }, [session, authLoading, subscriptionId]);
 
   return { userRole, loading: loading || authLoading };
 };
