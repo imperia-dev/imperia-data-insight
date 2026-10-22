@@ -1,4 +1,6 @@
 # Confidentiality commitment
+## Access error after confidentiality acceptance
+- [ ] Reproduce and correct the render failure immediately after accepting the commitment; preserve the mandatory gate.
 ## Security remediation
 - [x] Close nullable-role sensitive RPCs and unauthorized target mutations; protect anonymous history writes.
 - [x] Actor-bind the provider webhook and redact sensitive translation webhook logging; fail closed while the shared secret is missing.
