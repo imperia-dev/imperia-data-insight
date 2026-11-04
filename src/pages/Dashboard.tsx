@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
