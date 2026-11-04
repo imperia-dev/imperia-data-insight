@@ -769,27 +769,15 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
       }
 
       // Fetch pendencies for the same period
-      let pendenciesQuery = supabase
-        .from('pendencies')
-        .select('id, created_at, order_id')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
-      
-      // Apply customer filter if not "all"
-      if (selectedCustomer !== "all") {
-        // First get orders for this customer
-        const { data: customerOrders } = await supabase
-          .from('orders')
-          .select('id')
-          .eq('customer', selectedCustomer);
-        
-        if (customerOrders && customerOrders.length > 0) {
-          const orderIds = customerOrders.map(o => o.id);
-          pendenciesQuery = pendenciesQuery.in('order_id', orderIds);
-        }
-      }
-      
-      const { data: pendenciesData } = await pendenciesQuery;
+      const { data: pendenciesData } = await fetchAllRows<{ id: string; created_at: string; order_id: string }>(() => {
+        let q = supabase
+          .from('pendencies')
+          .select('id, created_at, order_id')
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
+        if (selectedCustomer !== "all") q = q.eq('customer', selectedCustomer);
+        return q;
+      });
 
       // Process data based on period
       const chartData = interval.map(date => {
