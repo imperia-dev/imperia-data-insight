@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
@@ -405,18 +406,15 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
       const { startDate, endDate } = getDateRange();
 
       // Fetch delivered orders (documents translated) for the period
-      let ordersQuery = supabase
-        .from('orders')
-        .select('id, order_number, document_count, status_order, is_urgent, urgent_document_count, created_at, delivered_at, deadline, attribution_date')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
-      
-      // Apply customer filter if not "all"
-      if (selectedCustomer !== "all") {
-        ordersQuery = ordersQuery.eq('customer', selectedCustomer);
-      }
-      
-      const { data: ordersData, error: ordersError } = await ordersQuery;
+      const { data: ordersData, error: ordersError } = await fetchAllRows(() => {
+        let q = supabase
+          .from('orders')
+          .select('id, order_number, document_count, status_order, is_urgent, urgent_document_count, created_at, delivered_at, deadline, attribution_date')
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
+        if (selectedCustomer !== "all") q = q.eq('customer', selectedCustomer);
+        return q;
+      });
       
       const typedOrdersData: OrderData[] = (ordersData || []) as OrderData[];
 
@@ -455,18 +453,15 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
       setDeliveryRate(deliveryRateCalc);
 
       // Fetch attributed documents in the period
-      let attributedQuery = supabase
-        .from('orders')
-        .select('id, order_number, document_count, attribution_date')
-        .gte('attribution_date', startDate.toISOString())
-        .lte('attribution_date', endDate.toISOString());
-      
-      // Apply customer filter if not "all"
-      if (selectedCustomer !== "all") {
-        attributedQuery = attributedQuery.eq('customer', selectedCustomer);
-      }
-      
-      const { data: attributedOrdersData, error: attributedError } = await attributedQuery;
+      const { data: attributedOrdersData, error: attributedError } = await fetchAllRows(() => {
+        let q = supabase
+          .from('orders')
+          .select('id, order_number, document_count, attribution_date')
+          .gte('attribution_date', startDate.toISOString())
+          .lte('attribution_date', endDate.toISOString());
+        if (selectedCustomer !== "all") q = q.eq('customer', selectedCustomer);
+        return q;
+      });
       
       const typedAttributedOrdersData: Pick<OrderData, "id" | "order_number" | "document_count" | "attribution_date">[] = (attributedOrdersData || []) as Pick<OrderData, "id" | "order_number" | "document_count" | "attribution_date">[];
 
@@ -649,12 +644,12 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
       }
       
       // Fetch orders marked with delay (has_delay = true)
-      const { data: delayedOrdersData, error: delayedError } = await supabase
+      const { data: delayedOrdersData, error: delayedError } = await fetchAllRows(() => supabase
         .from('orders')
         .select('id, order_number, document_count, has_delay')
         .eq('has_delay', true)
         .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
+        .lte('created_at', endDate.toISOString()));
       
       if (delayedError) {
         console.error('Error fetching delayed orders:', delayedError);
@@ -759,18 +754,15 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
       }
 
       // Fetch assigned orders for the period
-      let evolutionQuery = supabase
-        .from('orders')
-        .select('document_count, attribution_date')
-        .gte('attribution_date', startDate.toISOString())
-        .lte('attribution_date', endDate.toISOString());
-      
-      // Apply customer filter if not "all"
-      if (selectedCustomer !== "all") {
-        evolutionQuery = evolutionQuery.eq('customer', selectedCustomer);
-      }
-      
-      const { data: ordersData, error: ordersError } = await evolutionQuery;
+      const { data: ordersData, error: ordersError } = await fetchAllRows<{ document_count: number; attribution_date: string }>(() => {
+        let q = supabase
+          .from('orders')
+          .select('id, document_count, attribution_date')
+          .gte('attribution_date', startDate.toISOString())
+          .lte('attribution_date', endDate.toISOString());
+        if (selectedCustomer !== "all") q = q.eq('customer', selectedCustomer);
+        return q;
+      });
 
       if (ordersError) {
         console.error('Error fetching evolution data:', ordersError);
@@ -778,27 +770,15 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
       }
 
       // Fetch pendencies for the same period
-      let pendenciesQuery = supabase
-        .from('pendencies')
-        .select('id, created_at, order_id')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
-      
-      // Apply customer filter if not "all"
-      if (selectedCustomer !== "all") {
-        // First get orders for this customer
-        const { data: customerOrders } = await supabase
-          .from('orders')
-          .select('id')
-          .eq('customer', selectedCustomer);
-        
-        if (customerOrders && customerOrders.length > 0) {
-          const orderIds = customerOrders.map(o => o.id);
-          pendenciesQuery = pendenciesQuery.in('order_id', orderIds);
-        }
-      }
-      
-      const { data: pendenciesData } = await pendenciesQuery;
+      const { data: pendenciesData } = await fetchAllRows<{ id: string; created_at: string; order_id: string }>(() => {
+        let q = supabase
+          .from('pendencies')
+          .select('id, created_at, order_id')
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
+        if (selectedCustomer !== "all") q = q.eq('customer', selectedCustomer);
+        return q;
+      });
 
       // Process data based on period
       const chartData = interval.map(date => {
@@ -883,18 +863,15 @@ _Data: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}_`;
         .gte('created_at', exportStartDate.toISOString())
         .lte('created_at', exportEndDate.toISOString());
 
-      let ordersPeriodQuery = supabase
-        .from('orders')
-        .select('*')
-        .gte('attribution_date', exportStartDate.toISOString())
-        .lte('attribution_date', exportEndDate.toISOString());
-      
-      // Apply customer filter if not "all"
-      if (selectedCustomer !== "all") {
-        ordersPeriodQuery = ordersPeriodQuery.eq('customer', selectedCustomer);
-      }
-      
-      const { data: ordersPeriod } = await ordersPeriodQuery;
+      const { data: ordersPeriod } = await fetchAllRows(() => {
+        let q = supabase
+          .from('orders')
+          .select('*')
+          .gte('attribution_date', exportStartDate.toISOString())
+          .lte('attribution_date', exportEndDate.toISOString());
+        if (selectedCustomer !== "all") q = q.eq('customer', selectedCustomer);
+        return q;
+      });
 
       // Calculate error rate based on documents, not orders
       const totalDocumentsPeriod = ordersPeriod?.reduce((sum, order) => sum + (order.document_count || 0), 0) || 0;
