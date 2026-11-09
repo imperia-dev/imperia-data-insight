@@ -33,7 +33,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { strength, requirements } = usePasswordStrength(newPassword);
+  const { requirements } = usePasswordStrength(newPassword);
 
   const reset = () => {
     setCurrentPassword("");
@@ -127,7 +127,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
                 {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
-            {newPassword && <PasswordStrengthIndicator strength={strength} requirements={requirements} />}
+            {newPassword && <PasswordStrengthIndicator password={newPassword} />}
           </div>
 
           <div className="space-y-2">

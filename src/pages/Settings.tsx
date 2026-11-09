@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AvatarSettings } from "@/components/settings/AvatarSettings";
 import { FacebookIntegration } from "@/components/settings/FacebookIntegration";
 import { Input } from "@/components/ui/input";
+import { ChangePasswordDialog } from "@/components/settings/ChangePasswordDialog";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ export default function Settings() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [showDisableMFADialog, setShowDisableMFADialog] = useState(false);
   const [disableMFACode, setDisableMFACode] = useState("");
+  const [showChangePassword, setShowChangePassword] = useState(false);
   
   const { 
     mfaEnabled, 
@@ -328,9 +330,11 @@ Data de geração: ${new Date().toLocaleString('pt-BR')}
                   
                   <div className="border-t pt-6">
                     <h4 className="text-sm font-medium mb-3">Outras Configurações de Segurança</h4>
-                    <Button variant="outline" disabled className="w-full">
-                      Alterar Senha (Em breve)
+                    <Button variant="outline" className="w-full" onClick={() => setShowChangePassword(true)}>
+                      <Key className="h-4 w-4 mr-2" />
+                      Alterar Senha
                     </Button>
+                    <ChangePasswordDialog open={showChangePassword} onOpenChange={setShowChangePassword} />
                   </div>
                 </CardContent>
               </Card>
