@@ -5,3 +5,4 @@
 - Provider webhook requests must derive the external account and order from authenticated, assignment-checked database records; never forward arbitrary caller JSON.
 - Authoritative login-attempt logging runs server-side after Supabase Auth evaluates credentials; client-reported results must not drive lockouts.
 - Database RPC authorization must explicitly reject missing actors and NULL roles; internal service callers and trigger invocations are granted deliberately.
+- Signed-in password changes go through a JWT-verified server function that re-proves the current password and feeds the shared login lockout; never update passwords directly from the client.
