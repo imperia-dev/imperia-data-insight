@@ -21,3 +21,7 @@
 - [x] Explain legal review requirement and verification limitations.
 - [ ] Verify signed-in acceptance and receipt download end-to-end — blocked: external unmanaged Supabase has no available authenticated test session; a user must verify in the app.
 - [ ] Legal validation — blocked: an attorney must review the commitment, organization details and electronic acceptance method.
+## Password recovery and change
+- [x] Enable password change in Settings, re-proving the current password server-side.
+- [x] Show the real reason when the forgot-password email fails.
+- [ ] Restore forgot-password emails — blocked: user must verify the sender domain in Resend and save a new Resend key.
