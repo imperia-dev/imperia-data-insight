@@ -84,7 +84,7 @@ serve(async (req) => {
       }
 
       const resend = new Resend(resendApiKey);
-      const fromEmail = "Imperia Traduções <noreply@appimperiatraducoes.com>";
+      const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "Imperia Traduções <noreply@appimperiatraducoes.com>";
 
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -163,7 +163,7 @@ serve(async (req) => {
     }
 
     const resend = new Resend(resendApiKey);
-    const fromEmail = "Imperia Traduções <noreply@appimperiatraducoes.com>";
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "Imperia Traduções <noreply@appimperiatraducoes.com>";
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
